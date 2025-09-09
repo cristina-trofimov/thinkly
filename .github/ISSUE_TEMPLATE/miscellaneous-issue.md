@@ -1,3 +1,11 @@
+---
+name: Miscellaneous Issue
+about: All other types of issues
+title: ""
+labels: 
+assignees: ""
+---
+
 ## Description  
 Provide a clear summary of the issue, task, or topic.  
 
