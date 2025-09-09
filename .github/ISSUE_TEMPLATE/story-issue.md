@@ -1,6 +1,6 @@
 
 ---
-name: Bug Report
+name: Story Issue
 about: Report a bug to help us improve
 ---
 
