@@ -1,9 +1,8 @@
-
 ---
 name: User Story
-about: Issue for user stpries
+about: User Stories
 title: ""
-labels: User Story
+labels: 
 assignees: ""
 ---
 
