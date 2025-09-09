@@ -1,7 +1,10 @@
 
 ---
-name: Story Issue
-about: Report a bug to help us improve
+name: User Story
+about: Issue for user stpries
+title: ""
+labels: User Story
+assignees: ""
 ---
 
 ## Story
