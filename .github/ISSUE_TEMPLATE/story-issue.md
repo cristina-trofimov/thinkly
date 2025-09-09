@@ -1,4 +1,9 @@
 
+---
+name: Bug Report
+about: Report a bug to help us improve
+---
+
 ## Story
 As a [type of user] I want [some goal] so that [some reason or value]  
 
