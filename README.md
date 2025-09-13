@@ -4,7 +4,7 @@
 
 <CI information>  
 *(Add badges or links to your CI pipeline here, e.g., GitHub Actions, Jenkins, CircleCI.)* </br>
-[Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
+ [Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
 
 ---
 
