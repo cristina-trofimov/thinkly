@@ -1,12 +1,12 @@
 # Thinkly 
 
----
+[Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
 
-<CI information>  
+## CI information
 *(Add badges or links to your CI pipeline here, e.g., GitHub Actions, Jenkins, CircleCI.)* </br>
- [Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
 
----
+
+
 
 ## Release Demos
 This section will be updated with links to demo videos for each release.
@@ -15,7 +15,7 @@ This section will be updated with links to demo videos for each release.
 - [Release 2 Demo](#)  
 - [Release 3 Demo](#)  
 
----
+
 
 ## Project Summary
 The goal of this project is to develop a dedicated platform for AlgoTime, a weekly workshop organized by the Software Engineering and Computer Science Society (SCS Concordia), that centralizes problem management, solution submission, and peer collaboration in a single application tailored to AlgoTime’s needs. </br>
@@ -24,7 +24,7 @@ Currently, organizers share algorithmic practice problems via Discord, which lim
 </br>
 The platform will be self-hosted and customizable for long-term sustainability, support multiple programming languages (Python, Java, C++, and JavaScript), and provide both beginners and advanced students with opportunities to learn, mentor, and strengthen their problem-solving skills in a more engaging and interactive environment.
 
----
+
 
 ## Getting Started Guide
 What does a new developer need to do to get the system up and running?  
