@@ -11,6 +11,9 @@ on:
 jobs:
   python-tests:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
