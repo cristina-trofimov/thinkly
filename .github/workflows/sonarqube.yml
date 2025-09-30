@@ -1,0 +1,48 @@
+#name: SonarQube Code Analysis
+#on:
+#  push:
+#    branches:
+#      - '**'
+#  pull_request:
+    
+#jobs:
+#  sonarqube:
+#    name: SonarQube
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#        with:
+#          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+#      - name: Set up Node
+#        uses: actions/setup-node@v4
+
+#      - name: Install dependencies
+#        run: npm install
+#
+#      - name: Run tests with coverage
+#        run: npm test -- --coverage
+
+#      - name: Debug - List coverage directory
+#        run: ls -la coverage || echo "Coverage directory not found"
+     
+#      - name: Debug - Check for lcov.info
+#        run: cat coverage/lcov.info || echo "lcov.info not found"
+        
+#      - name: SonarQube Scan
+#        uses: SonarSource/sonarqube-scan-action@v4
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        with:
+#          args: >
+#            -Dsonar.verbose=true
+#            -Dsonar.projectBaseDir=.
+#            -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info
+#            -Dsonar.sources=src
+#            -Dsonar.tests=tests
+
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v5
+#        with:
+#          token: ${{ secrets.CODECOV_TOKEN }}
+#          fail_ci_if_error: false
