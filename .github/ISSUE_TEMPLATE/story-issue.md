@@ -6,25 +6,35 @@ labels:
 assignees: ""
 ---
 
-## Story
+## Description
 As a [type of user] I want [some goal] so that [some reason or value]  
 
-## Story Details
 - **Story Points:** <!-- e.g., 3, 5, 8 -->
 - **Priority/Value:** <!-- e.g., High, Medium, Low -->
 - **Risk:** <!-- e.g., Low/Medium/High -->
-- **Feature (Label):** <!-- Add the related feature label -->
-- **Iteration (Milestone):** <!-- Assign the milestone -->
-- **Estimated Ideal Time for Related Tasks:** <!-- e.g., 8h, 2 days -->
+- **Child of: ** <!-- e.g., 8h, 2 days -->
 
-## Task Breakdown
-- [ ] Task
+## Acceptance Criteria
+<!-- in 2-3 bullet points describe what would define this User Story complete -->
 
-> add any visual ressources necessary 
+## Implementation Breakdown
+<!-- in bullet points describe what is necessaru before the User Story  -->
+FRONTEND 
+| Time (h)  | Task Description                        |
+|-----------|-----------------------------------------|
+| 0.5       | Example task                            |
+
+BACKEND 
+| Time (h)  | Task Description                        |
+|-----------|-----------------------------------------|
+| 0.5       | Example task                            |
 
 
-## Notes
-<!-- Add any extra context, constraints, or requirements here -->
+## Testing
+<!-- Add any notes, links screenshots related to testing this US -->
+
+## Demo Steps
+<!-- Steps in the application to demo this feature -->
 
 
 <!-- IMPORTANT WHEN CREATING AN ISSUE -->
