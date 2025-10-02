@@ -20,60 +20,57 @@ changelog:
         - Code execution system
         - test
 
-# Custom sections to be filled manually after auto-release notes are generated
-custom_sections:
-  - title: Overall Summary
-    description: |
-      _Max four sentence paragraph describing main achievements._
+template: |
+  ## Overall Summary
+  _Max four sentence paragraph describing main achievements._
 
-  - title: Velocity and Contractor Estimate
-    description: |
-      **Did you accomplish what you thought you would?**
-      - What slipped?  
-      - Was anything done early?  
+  ## Velocity and Contractor Estimate
+  **Did you accomplish what you thought you would?**  
+  - What slipped?  
+  - Was anything done early?  
 
-      **Estimate:**  
-      _How much would you charge the stakeholder for this iteration?_
+  **Estimate:**  
+  _How much would you charge the stakeholder for this iteration?_
 
-  - title: Retrospective
-    description: |
-      **What went well?**  
-      -  
+  ## Retrospective
+  **What went well?**  
+  -  
 
-      **What went wrong?**  
-      -  
+  **What went wrong?**  
+  -  
 
-      **Improvements (planned or implemented):**  
-      -  
+  **Improvements (planned or implemented):**  
+  -  
 
-  - title: Breakdown by Individual
-    description: |
-      **Cristina Trofimov (40249494):**  
-      - Contribution details
+  ## Breakdown by Individual
+  _Each contributor should describe their contributions here._
 
-      **Julia Trinh (40245980):**  
-      - Contribution details
+  **Cristina Trofimov (40249494):**  
+  - Contribution details  
 
-      **Lawrence Mboutchouang (40245918):**  
-      - Contribution details
+  **Julia Trinh (40245980):**  
+  - Contribution details  
 
-      **Constance Prevot (40241987):**  
-      - Contribution details
+  **Lawrence Mboutchouang (40245918):**  
+  - Contribution details  
 
-      **Nao Lalancette (40244431):**  
-      - Contribution details
+  **Constance Prevot (40241987):**  
+  - Contribution details  
 
-      **Boudour Bannouri (40200175):**  
-      - Contribution details
+  **Nao Lalancette (40244431):**  
+  - Contribution details  
 
-      **Jackson Amirthalingam (40249183):**  
-      - Contribution details
+  **Boudour Bannouri (40200175):**  
+  - Contribution details  
 
-      **Oviya Sinnathamby (40249479):**  
-      - Contribution details
+  **Jackson Amirthalingam (40249183):**  
+  - Contribution details  
 
-      **Midhurshaan Nadarajah (40245613):**  
-      - Contribution details
+  **Oviya Sinnathamby (40249479):**  
+  - Contribution details  
 
-      **Brandon Toledano (40244896):**  
-      - Contribution details
+  **Midhurshaan Nadarajah (40245613):**  
+  - Contribution details  
+
+  **Brandon Toledano (40244896):**  
+  - Contribution details
