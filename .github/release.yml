@@ -19,3 +19,5 @@ changelog:
       labels:
         - Code execution system
         - test
+        - backend
+        - frontend
