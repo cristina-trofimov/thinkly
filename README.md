@@ -37,24 +37,24 @@ Provide setup instructions, dependencies, and commands here.
 
 ### Installation
 installing the frontend
-1- cd frontend
-2- npm install
+1- ```cd frontend```
+2- ```npm install```
 
 to run it 
-1- npm run dev
+1- ```npm run dev```
 
 to run jest 
-1- npm test
+1- ```npm test```
 
 to run cypress
-1- npx cypress run
+1- ```npx cypress run```
 
 installing the backend
 create virtual environement
-1-python -m venv .venv
+1- ```python -m venv .venv```
 
 install python dependencies
-2- pip install -r backend/requirements.txt
+2- ```pip install -r backend/requirements.txt```
 
 run pytest
-1- pytest
+1- ```pytest```
