@@ -33,9 +33,9 @@ jobs:
        run: pip install -r ./requirements.txt
        working-directory: ./backend
 
-    #  - name: Run tests with coverage
-    #    run: pytest -- --coverage
-    #    working-directory: ./backend
+     - name: Run tests with coverage
+       run: pytest --cov
+       working-directory: ./backend
 
      - name: Debug - List coverage directory
        run: ls -la coverage || echo "Coverage directory not found"
