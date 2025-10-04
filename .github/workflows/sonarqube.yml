@@ -52,7 +52,7 @@ jobs:
            -Dsonar.verbose=true
            -Dsonar.projectBaseDir=.
            -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info
-           -Dsonar.sources=src
+           -Dsonar.sources=./frontend/src,./backend/src
            -Dsonar.tests=./frontend/tests,./backend/tests
 
 #      - name: Upload coverage to Codecov
