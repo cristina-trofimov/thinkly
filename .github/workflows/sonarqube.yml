@@ -25,13 +25,13 @@ jobs:
        run: npm test -- --coverage
        working-directory: ./frontend
 
-    #  - name: Install virtual environment
-    #    run: python -m venv .venv
-    #    working-directory: ./backend
+     - name: Install virtual environment
+       run: python -m venv .venv
+       working-directory: ./backend
 
-    #  - name: Install dependencies
-    #    run: pip install -r ./requirements.txt
-    #    working-directory: ./backend
+     - name: Install dependencies
+       run: pip install -r ./requirements.txt
+       working-directory: ./backend
 
     #  - name: Run tests with coverage
     #    run: pytest -- --coverage
