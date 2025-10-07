@@ -34,7 +34,8 @@ jobs:
        working-directory: ./backend
 
      - name: Run tests with coverage
-       run: pytest --cov
+       run: pytest --cov --cov-branch --cov-report=xml
+    #    run: pytest --cov
        working-directory: ./backend
 
      - name: Debug - List coverage directory
@@ -55,8 +56,8 @@ jobs:
            -Dsonar.sources=./frontend/src,./backend/src
            -Dsonar.tests=./frontend/tests,./backend/tests
 
-#      - name: Upload coverage to Codecov
-#        uses: codecov/codecov-action@v5
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
-#          fail_ci_if_error: false
+     - name: Upload coverage to Codecov
+       uses: codecov/codecov-action@v5
+       with:
+         token: ${{ secrets.CODECOV_TOKEN }}
+         fail_ci_if_error: false
