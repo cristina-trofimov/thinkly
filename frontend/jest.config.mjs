@@ -6,7 +6,7 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 export default {
   preset: 'ts-jest',
   testEnvironment: 'jest-environment-jsdom',
-   globals: {
+  globals: {
     'ts-jest': {
       tsconfig: 'tsconfig.jest.json'
     }
@@ -15,7 +15,10 @@ export default {
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/tests/__mocks__/fileMock.js',
+    "^@/(.*)$": "<rootDir>/src/$1",
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
+  testEnvironment: "jsdom",
 };
+
 

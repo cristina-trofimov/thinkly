@@ -1,10 +1,7 @@
-import { render, screen } from '@testing-library/react'
-import App from '../src/App'
-import '@testing-library/jest-dom'
+import { render, screen } from "@testing-library/react";
+import App from "../src/App";
 
-
-test('renders Vite + React heading', () => {
+test("renders the button with text 'Click me'", () => {
   render(<App />);
-  const heading = screen.getByText(/Vite \+ React/i);
-  expect(heading).toBeInTheDocument();
+  expect(screen.getByText("Click me")).toBeInTheDocument();
 });

@@ -39,6 +39,7 @@ terraform.rc
 # Node
 node_modules/
 dist/
+frontend/node_modules/
 
 # IDE
 .idea/
