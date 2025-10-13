@@ -7,7 +7,7 @@ function App() {
   return (
     <>
       <div>
-        <Button variant="default">Test Button</Button>
+        <Button variant="default">Click me</Button>
       </div>
     </>
   )
