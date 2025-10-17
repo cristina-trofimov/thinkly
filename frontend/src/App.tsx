@@ -1,5 +1,6 @@
 
 import './App.css'
+import CodingScreen from './components/codingScreen'
 import { Button } from './components/ui/button'
 
 function App() {
@@ -7,7 +8,7 @@ function App() {
   return (
     <>
       <div>
-        <Button variant="default">Click me</Button>
+        <CodingScreen />
       </div>
     </>
   )
