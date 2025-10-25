@@ -1,13 +1,12 @@
 
 import './App.css'
-import { Button } from './components/ui/button'
+import { AdminDashboard } from './components/AdminDashboard'
 
 function App() {
-
   return (
     <>
-      <div>
-        <Button variant="default">Click me</Button>
+      <div className="min-h-screen bg-background">
+        <AdminDashboard />
       </div>
     </>
   )
