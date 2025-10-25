@@ -18,6 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 
 // Sample data - can keep navMain and other even when backend is implemented, but remove user
@@ -65,19 +66,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Avatar>
-                    <AvatarImage src="/assets/thinkly_logo.png" />
-                    <AvatarFallback>T</AvatarFallback>
-                  </Avatar>
-                </div>
-                <div>
-                  <span className="font-medium">Thinkly</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
+            <div className="flex items-center gap-2 w-full">
+              <SidebarMenuButton size="lg" asChild>
+                <a href="#">
+                  <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <Avatar>
+                      <AvatarImage src="/assets/thinkly_logo.png" />
+                      <AvatarFallback>T</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div>
+                    <span className="font-medium">Thinkly</span>
+                  </div>
+                </a>
+              </SidebarMenuButton>
+              <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" style={{color: '#8065CD'}}/>
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

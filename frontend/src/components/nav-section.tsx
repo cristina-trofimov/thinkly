@@ -1,5 +1,4 @@
 import {
-  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react"
 

@@ -1,12 +1,15 @@
 
 import './App.css'
-import Layout from './layout'
+import { AppSidebar } from './components/app-sidebar'
+import { SidebarProvider } from './components/ui/sidebar'
 
 function App() {
 
   return (
     <>
-      <Layout/>
+    <SidebarProvider>
+      <AppSidebar/>
+    </SidebarProvider>
     </>
   )
 }
