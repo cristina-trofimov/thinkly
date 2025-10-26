@@ -7,8 +7,8 @@ import {
   Trophy
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NavSection } from "@/components/nav-section"
-import { NavUser } from "@/components/nav-user"
+import { NavSection } from "@/components/layout/nav-section"
+import { NavUser } from "@/components/layout/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -32,29 +32,29 @@ const data = {
   navMain: [
     {
       name: "AlgoTime",
-      url: "#",
+      url: "/algotime",
       icon: SquareTerminal,
     },
     {
       name: "Competition",
-      url: "#",
+      url: "/competition",
       icon: Bot,
     },
     {
       name: "Settings",
-      url: "#",
+      url: "/settings",
       icon: Settings2,
     },
   ],
   navOther: [
     {
-      name: "Leaderboard",
-      url: "#",
+      name: "Leaderboards",
+      url: "/leaderboards",
       icon: Trophy,
     },
     {
       name: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: LayoutDashboardIcon,
     },
   ],
@@ -68,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 w-full">
               <SidebarMenuButton size="lg" asChild>
-                <a href="#">
+                <a href="/home">
                   <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                     <Avatar>
                       <AvatarImage src="/assets/thinkly_logo.png" />
