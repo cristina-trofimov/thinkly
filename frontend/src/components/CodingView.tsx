@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "./ui/resizable";
 import { SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxProvider,
           SandboxTabs, SandboxTabsContent } from "./ui/shadcn-io/sandbox";
 import CodingArea from "./CodingArea";
 import CodeDescArea from "./CodeDescArea";
 import CodeOutputArea from "./CodeOutputArea";
-import { Play, RotateCcw, Maximize2, ChevronDown } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "./ui/dropdown-menu";
@@ -14,11 +14,26 @@ import { getSandpackConfigs } from "./helpers/SandpackConfig";
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 
 
-// function useStateCallback(intialState) {
-//   const [state, setState] = React.useState(intialState)
-//   const cbRef = React.useRef(null)
+// Work around React useState being async
+function useStateCallback<T>(intialState: T
+): [T, (state: T, cb?: (state: T) => void) => void] {
+  const [state, setState] = useState<T>(intialState)
+  const cbRef = useRef<null | ((state: T) => void) >(null)
+  
+  const setStateCallback = (state: T, cb?: (state: T) => void) => {
+    cbRef.current = cb ?? null
+    setState(state)
+  }
 
-// }
+  useEffect(() => {
+    if (cbRef.current) {
+      cbRef.current(state)
+      cbRef.current = null
+    }
+  }, [state]);
+
+  return [state, setStateCallback];
+}
 
 const CodingView = () => {
 // const CodingView = ({problemName, inputVars, outputType}: ) => {
@@ -43,42 +58,29 @@ const CodingView = () => {
   const outputPanelRef = useRef<ImperativePanelHandle>(null)
   const codeAndOutputPanelRef = useRef<ImperativePanelHandle>(null)
 
-  const [fullCode, setFullCode] = useState(false)
-  const [fullDesc, setFullDesc] = useState(false)
-  const [fullOutput, setFullOutput] = useState(false)
+  const [fullCode, setFullCode] = useStateCallback(false)
+  const [fullOutput, setFullOutput] = useStateCallback(false)
 
   useEffect(() => {
     changePanelSizes()
-  }, [fullCode, fullDesc, fullOutput])
+  }, [fullCode, fullOutput])
 
   const changePanelSizes = () => {
-    console.log("changing sizes")
-    console.log(fullCode)
-
     if (fullCode) {
-      console.log("inside full code")
-
       descPanelRef.current?.resize(0)
-      codeAndOutputPanelRef.current?.resize(750)
-      codePanelRef.current?.resize(750)
-      outputPanelRef.current?.resize(0)
-    } else if (fullDesc) {
-      descPanelRef.current?.resize(750)
-      codeAndOutputPanelRef.current?.resize(0)
-      codePanelRef.current?.resize(0)
+      codeAndOutputPanelRef.current?.resize(100)
+      codePanelRef.current?.resize(100)
       outputPanelRef.current?.resize(0)
     } else if (fullOutput) {
       descPanelRef.current?.resize(0)
-      codeAndOutputPanelRef.current?.resize(750)
+      codeAndOutputPanelRef.current?.resize(100)
       codePanelRef.current?.resize(0)
-      outputPanelRef.current?.resize(750)
+      outputPanelRef.current?.resize(100)
     } else {
-      console.log("inside else stmt")
-
-      descPanelRef.current?.resize(350)
-      codeAndOutputPanelRef.current?.resize(350)
+      descPanelRef.current?.resize(50)
+      codeAndOutputPanelRef.current?.resize(50)
       codePanelRef.current?.resize(75)
-      outputPanelRef.current?.resize(40)
+      outputPanelRef.current?.resize(25)
     }
   }
   
@@ -87,12 +89,12 @@ const CodingView = () => {
       <SandboxLayout>
         <ResizablePanelGroup
           direction="horizontal"
-          className="max-w-full max-h-full rounded-lg md:min-w-[450px]"
+          className="max-w-full max-h-10/12 rounded-lg md:min-w-[450px]"
         >
           {/* Description panel */}
           <ResizablePanel
-            defaultSize={350} ref={descPanelRef}
-            //minSize={15}
+            defaultSize={50} ref={descPanelRef}
+            //minSize={25}
             className="mr-[3px] rounded-md border"
           >
             <CodeDescArea />
@@ -108,7 +110,7 @@ const CodingView = () => {
           />
 
           {/* Coding area panel */}
-          <ResizablePanel defaultSize={350} ref={codeAndOutputPanelRef} //minSize={50}
+          <ResizablePanel defaultSize={50} ref={codeAndOutputPanelRef} //minSize={50}
           >
             <ResizablePanelGroup direction="vertical">
               <ResizablePanel
@@ -130,7 +132,7 @@ const CodingView = () => {
                               <RotateCcw size={22} color="black" />
                           </Button>
                           <Button onClick={() => {setFullCode(!fullCode) }} className="shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                              <Maximize2 size={22} color="black" />
+                              {!fullCode ? (<Maximize2 size={22} color="black" />) : <Minimize2 size={22} color="black" />}
                           </Button>
                       </div>
                   </div>
@@ -168,9 +170,21 @@ const CodingView = () => {
 
               {/* Output panel */}
               <ResizablePanel
-                defaultSize={40} ref={outputPanelRef}
+                defaultSize={25} ref={outputPanelRef}
                 className="ml-[3px] mt-1 rounded-md border"
               >
+                <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                        border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                >
+                  <span className="text-lg font-medium" >Output</span>
+                  <div >
+                    {/* Size buttons */}
+                    <Button onClick={() => {setFullOutput(!fullOutput) }} className="shadow-none bg-muted rounded-full hover:bg-gray-200" >
+                      {!fullOutput ? (<Maximize2 size={22} color="black" />) : <Minimize2 size={22} color="black" />}
+                    </Button>
+                  </div>
+                </div>
+
                 {/* <CodeOutputArea /> */}
                 <SandboxTabs>
                   <SandboxTabsContent value="console">
