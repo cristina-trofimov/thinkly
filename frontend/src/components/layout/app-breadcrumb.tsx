@@ -34,9 +34,7 @@ export function AppBreadcrumbs({ items }: BreadcrumbWithCustomSeparatorProps) {
                 {isLast ? (
                   <BreadcrumbPage>{item.title}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink asChild>
-                    <BreadcrumbLink href={item.href}>{item.title}</BreadcrumbLink>
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href={item.href}>{item.title}</BreadcrumbLink>
                 )}
               </BreadcrumbItem>
               {!isLast && <BreadcrumbSeparator />}
