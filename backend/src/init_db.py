@@ -4,7 +4,7 @@
 
 
 from src.db import Base, engine
-from src.models import schema  # Make sure models are imported so SQLAlchemy knows them
+from src.models import schema
 
 def init_db():
     print("Creating all tables...")
