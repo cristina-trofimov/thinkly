@@ -1,11 +1,13 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 
 import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -29,11 +31,18 @@ export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
 }: ManageAccountsDataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    state: {
+      sorting,
+    },
   });
 
   return (
