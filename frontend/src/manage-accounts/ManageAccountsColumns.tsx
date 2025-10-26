@@ -18,14 +18,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
-export type Payment = {
+export type Account = {
   id: string;
-  amount: number;
-  status: "pending" | "processing" | "success" | "failed";
+  name: string;
   email: string;
+  accountType: "Participant" | "Admin" | "Owner";
 };
 
-export const columns: ColumnDef<Payment>[] = [
+export const columns: ColumnDef<Account>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -50,11 +50,27 @@ export const columns: ColumnDef<Payment>[] = [
     enableSorting: false,
   },
   {
-    accessorKey: "status",
-    header: () => <div className="text-left">Status</div>,
-    cell: ({ row }) => (
-      <div className="text-left font-medium">{row.getValue("status")}</div>
-    ),
+    accessorKey: "name",
+    header: () => <div className="text-left">Name</div>,
+    cell: ({ row }) => {
+      const name: string = row.getValue("name");
+      const nameSeparated = name.trim().split(" ").filter(Boolean);
+
+      const firstInitial = nameSeparated[0]?.[0].toUpperCase() ?? "";
+      const lastInitial =
+        nameSeparated[nameSeparated.length - 1]?.[0].toUpperCase() ?? "";
+
+      const initials = `${firstInitial}${lastInitial}`;
+
+      return (
+        <div className="flex text-left font-medium gap-3 items-center">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-black text-sm font-semibold">
+            {initials}
+          </span>
+          <span>{name}</span>
+        </div>
+      );
+    },
   },
   // deal with the resizing issue later
   {
@@ -77,10 +93,12 @@ export const columns: ColumnDef<Payment>[] = [
     ),
   },
   {
-    accessorKey: "amount",
-    header: () => <div className="text-right">Amount</div>,
+    accessorKey: "accountType",
+    header: () => <div className="text-right">Account Type</div>,
     cell: ({ row }) => (
-      <div className="text-right font-medium">${row.getValue("amount")}</div>
+      <div className="text-right font-medium">
+        {row.getValue("accountType")}
+      </div>
     ),
   },
   {
