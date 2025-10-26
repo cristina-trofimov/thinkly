@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ReferenceLine } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 
-/* ----------------------------- StatsCard ----------------------------- */
+/* StatsCard  */
 interface StatsCardProps {
   title: string;
   value: string | number;
@@ -73,7 +73,7 @@ const StatsCard = ({
   );
 };
 
-/* ----------------------------- ManageCard ---------------------------- */
+/*  ManageCard */
 type ManageItem = {
   name: string;
   info: string;
@@ -127,7 +127,6 @@ const ManageCard = ({ title, items, className }: ManageCardProps) => (
               </div>
             </div>
 
-            {/* Divider */}
             <div className="h-px bg-[#E5E5E5] -mx-6" />
           </div>
         ))}
@@ -136,7 +135,7 @@ const ManageCard = ({ title, items, className }: ManageCardProps) => (
   </Card>
 );
 
-/* ----------------------- TechnicalIssuesChart ----------------------- */
+/*  TechnicalIssuesChart  */
 const chartData = [
   { month: "January", issues: 2 },
   { month: "February", issues: 7 },
@@ -176,13 +175,12 @@ const TechnicalIssuesChart = () => {
             tickMargin={12}
             tick={{ fill: "#8C8C8C", fontSize: 14 }}
             tickFormatter={(v: string) => v.slice(0, 3)}
-            padding={{ left: 0, right: 0 }}          // Jan flush-left
+            padding={{ left: 0, right: 0 }}         
             allowDuplicatedCategory={false}
           />
 
           <YAxis axisLine={false} tickLine={false} tick={false} width={0} domain={[0, "auto"]} />
 
-          {/* Bottom edge to close the shape visually */}
           <ReferenceLine y={0} stroke="var(--color-issues)" strokeWidth={2} strokeLinecap="square" />
 
           <Area
@@ -201,7 +199,6 @@ const TechnicalIssuesChart = () => {
   );
 };
 
-/* --------------------------- AdminDashboard ------------------------- */
 export function AdminDashboard() {
   return (
     <div className="pl-6">
@@ -215,7 +212,6 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards row */}
       <div className="flex gap-6 mt-6 ml-6">
         <StatsCard
           title="New Accounts"
@@ -240,7 +236,6 @@ export function AdminDashboard() {
         />
       </div>
 
-      {/* Manage Cards row */}
       <div className="flex gap-4 mt-6 ml-6">
         <ManageCard
           title="Manage Accounts"
@@ -265,7 +260,6 @@ export function AdminDashboard() {
         />
       </div>
 
-      {/* Technical Issue Chart */}
       <TechnicalIssuesChart />
     </div>
   );
