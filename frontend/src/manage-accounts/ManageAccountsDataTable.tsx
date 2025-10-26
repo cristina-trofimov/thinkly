@@ -36,7 +36,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter } from "lucide-react";
+import { Filter, Search, SquarePen, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -74,14 +74,17 @@ export function ManageAccountsDataTable<TData, TValue>({
   return (
     <div>
       <div className="flex items-center py-4 gap-3">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+        <div className="relative items-center">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+          <Input
+            placeholder="Filter emails..."
+            value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
+            onChange={(event) =>
+              table.getColumn("email")?.setFilterValue(event.target.value)
+            }
+            className="pl-9 w-xs"
+          />
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-0.5">
@@ -123,6 +126,9 @@ export function ManageAccountsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant={"secondary"} className="ml-auto">
+            <SquarePen className="mr-2 h-4 w-4 text-primary" />
+            Edit</Button>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -181,6 +187,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
+            <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
           Previous
         </Button>
         <Button
@@ -190,6 +197,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           disabled={!table.getCanNextPage()}
         >
           Next
+          <ChevronRight className="h-4 w-4 text-primary ml-auto" />
         </Button>
       </div>
     </div>
