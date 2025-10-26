@@ -1,6 +1,6 @@
 
 import './App.css'
-import CodingScreen from './components/codingScreen'
+import CodingView from './components/CodingView'
 import { Button } from './components/ui/button'
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
   return (
     <>
       <div>
-        <CodingScreen />
+        <CodingView />
       </div>
     </>
   )
