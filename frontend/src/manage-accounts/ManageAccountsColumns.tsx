@@ -32,6 +32,7 @@ export const columns: ColumnDef<Payment>[] = [
       </div>
     ),
   },
+  // deal with the resizing issue later
   {
     accessorKey: "email",
     header: () => <div className="text-left">Email</div>,
