@@ -15,7 +15,7 @@ jest.mock("./../src/manage-accounts/ManageAccountsDataTable", () => ({
 }));
 
 describe("ManageAccountsPage", () => {
-    
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -30,6 +30,14 @@ describe("ManageAccountsPage", () => {
     
     await waitFor(() => {
       expect(screen.getByTestId('data-length')).toHaveTextContent('31');
+    });
+  });
+
+    it('should pass columns to DataTable', async () => {
+    render(<ManageAccountsPage />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('columns-length')).toHaveTextContent(String(columns.length));
     });
   });
 });
