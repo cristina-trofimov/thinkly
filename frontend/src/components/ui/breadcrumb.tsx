@@ -69,6 +69,7 @@ function BreadcrumbSeparator({
 }: React.ComponentProps<"li">) {
   return (
     <li
+      data-testid="breadcrumb-separator"
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"

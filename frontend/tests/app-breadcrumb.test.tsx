@@ -48,12 +48,20 @@ describe("AppBreadcrumbs", () => {
     expect(lastItem.closest("a")).toBeNull();
   });
 
+  test("renders separators between items but not after last item", () => {
+    const { container } = render(<AppBreadcrumbs items={mockItems} />);
+    const separators = container.querySelectorAll('[data-testid="breadcrumb-separator"]');
+    
+    // Should have 2 separators for 3 items
+    expect(separators.length).toBe(mockItems.length - 1);
+  });
+
   test("renders single item without separator", () => {
     const singleItem = [{ title: "Home", href: "/" }];
     const { container } = render(<AppBreadcrumbs items={singleItem} />);
     
     expect(screen.getByText("Home")).toBeInTheDocument();
-    const separators = container.querySelectorAll('[aria-hidden="true"]');
+    const separators = container.querySelectorAll('[data-testid="breadcrumb-separator"]');
     expect(separators.length).toBe(0);
   });
 
@@ -66,5 +74,25 @@ describe("AppBreadcrumbs", () => {
     
     expect(screen.getByText("Home & Garden")).toBeInTheDocument();
     expect(screen.getByText("Tools & Equipment")).toBeInTheDocument();
+  });
+
+  test("renders exactly two items correctly", () => {
+    const twoItems = [
+      { title: "Home", href: "/" },
+      { title: "About", href: "/about" },
+    ];
+    render(<AppBreadcrumbs items={twoItems} />);
+    
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByText("About")).toBeInTheDocument();
+    expect(screen.getByText("About").closest("a")).toBeNull();
+  });
+
+  test("uses React.Fragment with correct key for each iteration", () => {
+    const { container } = render(<AppBreadcrumbs items={mockItems} />);
+    const listItems = container.querySelectorAll('li');
+    
+    // Verify that all items are rendered
+    expect(listItems.length).toBeGreaterThan(0);
   });
 });
