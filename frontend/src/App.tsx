@@ -7,16 +7,16 @@ import ManageAccountsPage from './manage-accounts/ManageAccountsPage'
 function App() {
 
   return (
-    <>
-      <div>
-        <Button variant="default">Click me</Button>
-      </div>
-    </>
-    // <BrowserRouter>
-    //   <Routes>
-    //     <Route path="/manage-accounts" element={<ManageAccountsPage />} />
-    //   </Routes>
-    // </BrowserRouter>
+    // <>
+    //   <div>
+    //     <Button variant="default">Click me</Button>
+    //   </div>
+    // </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/manage-accounts" element={<ManageAccountsPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

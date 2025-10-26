@@ -4,7 +4,7 @@ import type { Account } from "./ManageAccountsColumns";
 import { ManageAccountsDataTable } from "./ManageAccountsDataTable";
 
 function getData(): Promise<Account[]> {
-  // Fetch data from your API here.
+// hardcoded data for now until backend is ready
   return Promise.resolve([
     {
       id: "728ed52f",
