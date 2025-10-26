@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 
 import { render, screen } from "@testing-library/react";
-import { Layout } from "../src/components/layout/Layout";
+import { Layout } from "../src/components/layout/AppLayout";
 import { jest } from '@jest/globals';
 
 // Mock react-router-dom
