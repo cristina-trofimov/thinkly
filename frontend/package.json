@@ -13,22 +13,29 @@
     "cypress:run": "cypress run"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.1.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",
+    "next-themes": "^0.4.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-hook-form": "^7.65.0",
     "react-router-dom": "^7.9.4",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.14"
+    "tailwindcss": "^4.1.14",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

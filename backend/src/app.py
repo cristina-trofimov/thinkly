@@ -1,3 +1,4 @@
+"use client"
 import os
 import json
 import requests
@@ -5,6 +6,8 @@ from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
+
+
 
 # Load environment variables
 load_dotenv()
@@ -48,16 +51,33 @@ def normalize_iso_utc(iso_str):
 # --------------------------
 # Routes
 # --------------------------
+
+
+ALLOWED_ORIGINS = {"http://localhost:5174","http://127.0.0.1:5174"}
+@app.after_request
+def add_cors_headers(resp):
+    origin = request.headers.get("Origin")
+    if origin in ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Vary"] = "Origin"
+        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return resp
+
+@app.before_request
+def _log_req():
+    print(">>", request.method, request.path, "Origin:", request.headers.get("Origin"))
+    
+    
 @app.post("/send-email")
 def send_email():
 
     data = request.get_json(silent=True) or {}
     to_list = data.get("to")
     subject = (data.get("subject") or "").strip()
-    html = (data.get("html") or "").strip()
     text = (data.get("text") or "").strip()
-    sender_email = (data.get("senderEmail") or DEFAULT_SENDER_EMAIL).strip()
-    sender_name  = (data.get("senderName")  or DEFAULT_SENDER_NAME).strip()
+    sender_email = DEFAULT_SENDER_EMAIL
+    sender_name  = DEFAULT_SENDER_NAME
     send_at_raw  = data.get("sendAt")
 
     # Input Validation
@@ -66,8 +86,8 @@ def send_email():
         return jsonify({"error": err}), 400
     if not subject:
         return jsonify({"error": "Field 'subject' is required."}), 400
-    if not html and not text:
-        return jsonify({"error": "Provide at least one of 'html' or 'text'."}), 400
+    if not text:
+        return jsonify({"error": "Provide at least one of 'text'."}), 400
     try:
         validate_email(sender_email)
     except EmailNotValidError as e:
@@ -83,8 +103,7 @@ def send_email():
         "to": [{"email": r} for r in to_list],
         "subject": subject,
     }
-    if html:
-        payload["htmlContent"] = html
+
     if text:
         payload["textContent"] = text
     if scheduledAt:

@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/layout.tsx'
+import SendEmailForm from './components/layout/email-form.tsx'
 
 const router = createBrowserRouter([
   {
@@ -19,14 +20,14 @@ const router = createBrowserRouter([
       },
       {
         path: "home",
-        element: <div>Home Page</div>,        // TO BE REPLACED
+        element: <div>Home</div>,        // TO BE REPLACED
         handle: {
           crumb: { title: "Home Page" }
         }
       },
       {
         path: "algotime",
-        element: <div>AlgoTime</div>,        // TO BE REPLACED
+        element: <div>AlgoTime</div>,        // TO BE REPLACED //<SendEmailForm></SendEmailForm> To test email form
         handle: {
           crumb: { title: "AlgoTime" }
         }
