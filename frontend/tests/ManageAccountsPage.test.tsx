@@ -15,11 +15,21 @@ jest.mock("./../src/manage-accounts/ManageAccountsDataTable", () => ({
 }));
 
 describe("ManageAccountsPage", () => {
+    
   beforeEach(() => {
     jest.clearAllMocks();
   });
+
   it("should render without crashing", () => {
     render(<ManageAccountsPage />);
     expect(screen.getByTestId("mock-data-table")).toBeInTheDocument();
+  });
+
+    it('should fetch and display data on mount', async () => {
+    render(<ManageAccountsPage />);
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('data-length')).toHaveTextContent('31');
+    });
   });
 });
