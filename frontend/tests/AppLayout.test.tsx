@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 
 import { render, screen } from "@testing-library/react";
-import { Layout } from "../src/components/layout/layout";
+import { Layout } from "../src/components/layout/AppLayout";
 import { jest } from '@jest/globals';
 
 // Mock react-router-dom
@@ -19,11 +19,11 @@ jest.mock("../src/components/ui/sidebar", () => ({
   ),
 }));
 
-jest.mock("../src/components/layout/app-sidebar", () => ({
+jest.mock("../src/components/layout/AppSidebar", () => ({
   AppSidebar: () => <aside data-testid="app-sidebar">Sidebar</aside>,
 }));
 
-jest.mock("../src/components/layout/app-breadcrumb", () => ({
+jest.mock("../src/components/layout/AppBreadcrumb", () => ({
   AppBreadcrumbs: ({ items }: any) => (
     <nav data-testid="app-breadcrumbs">
       {items.map((item: any, index: number) => (

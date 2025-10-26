@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
-import { Layout } from './components/layout/layout.tsx'
+import { Layout } from './components/layout/Applayout.tsx'
 import SendEmailForm from './components/layout/email-form.tsx'
 
 const router = createBrowserRouter([

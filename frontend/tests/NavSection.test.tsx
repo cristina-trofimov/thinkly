@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { Home, Settings, User } from "lucide-react";
-import { NavSection } from "../src/components/layout/nav-section";
+import { NavSection } from "../src/components/layout/NavSection";
 import { jest } from '@jest/globals';
 
 // Mock the sidebar components and hook
