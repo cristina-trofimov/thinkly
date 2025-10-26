@@ -36,7 +36,13 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Filter, Search, SquarePen, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Filter,
+  Search,
+  SquarePen,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -88,9 +94,11 @@ export function ManageAccountsDataTable<TData, TValue>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-0.5">
-              <Filter className="mr-2 h-4 w-4 text-primary" />
-              {(table.getColumn("accountType")?.getFilterValue() as string) ??
-                "All Account Types"}
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="ml-2 hidden md:inline-flex items-center">
+                {(table.getColumn("accountType")?.getFilterValue() as string) ??
+                  "All Account Types"}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
@@ -127,8 +135,9 @@ export function ManageAccountsDataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
         <Button variant={"secondary"} className="ml-auto">
-            <SquarePen className="mr-2 h-4 w-4 text-primary" />
-            Edit</Button>
+          <SquarePen className="h-4 w-4 text-primary" />
+          <span className="ml-2 hidden md:inline-flex items-center">Edit</span>
+        </Button>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -187,7 +196,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-            <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
+          <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
           Previous
         </Button>
         <Button
