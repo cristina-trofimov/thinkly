@@ -64,10 +64,10 @@ export const columns: ColumnDef<Account>[] = [
 
       return (
         <div className="flex text-left font-medium gap-3 items-center">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-black text-sm font-semibold">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-primary text-sm font-semibold">
             {initials}
           </span>
-          <span>{name}</span>
+          <span className="font-semibold">{name}</span>
         </div>
       );
     },
