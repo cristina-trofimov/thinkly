@@ -201,9 +201,9 @@ const TechnicalIssuesChart = () => {
 
 export function AdminDashboard() {
   return (
-    <div className="pl-6">
-      <div className="border-b border-[#E5E5E5] mt-6">
-        <div className="flex justify-between items-center pb-4 mr-6 ml-6">
+     <div className="flex flex-col w-full">
+      <div className="w-[calc(100vw-var(--sidebar-width))] relative left-[calc(-1rem)] border-b border-[#E5E5E5] bg-white">
+        <div className="flex justify-between items-center py-4 px-10">
           <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
           <Button className="bg-[#8065CD] hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]">
             <IconCirclePlusFilled className="h-4 w-4 text-white" />
@@ -212,7 +212,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      <div className="flex gap-6 mt-6 ml-6">
+      <div className="flex gap-6 mt-6 px-6">
         <StatsCard
           title="New Accounts"
           value="25"
@@ -236,12 +236,12 @@ export function AdminDashboard() {
         />
       </div>
 
-      <div className="flex gap-4 mt-6 ml-6">
+      <div className="flex gap-4 mt-6 px-6">
         <ManageCard
           title="Manage Accounts"
           items={[
-            { avatarUrl: "/user-avatar.jpg", name: "shadcn", info: "shadcn@vercel.com" },
-            { avatarUrl: "/user-avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
+            { avatarUrl: "/user_avatar.jpg", name: "shadcn", info: "shadcn@vercel.com" },
+            { avatarUrl: "/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
         <ManageCard

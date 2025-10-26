@@ -29,11 +29,11 @@ export function Layout() {
     <SidebarProvider>
       <div className="flex min-h-screen">
         <AppSidebar />
-        <main className="flex-1 p-4">
-          <AppBreadcrumbs items={breadcrumbItems} />
-          <div className="mt-4">
-            <Outlet />
+        <main className="flex-1">
+          <div className="px-6 py-4">
+            <AppBreadcrumbs items={breadcrumbItems} />
           </div>
+          <Outlet />
         </main>
       </div>
     </SidebarProvider>
