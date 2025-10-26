@@ -32,7 +32,7 @@ export function AppBreadcrumbs({ items }: BreadcrumbWithCustomSeparatorProps) {
             <React.Fragment key={index}>
               <BreadcrumbItem>
                 {isLast ? (
-                  <BreadcrumbPage>{item.title}</BreadcrumbPage>
+                  <BreadcrumbPage className="text-[#8065CD]">{item.title}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink href={item.href}>{item.title}</BreadcrumbLink>
                 )}
