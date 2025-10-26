@@ -32,7 +32,7 @@ class User(Base):
     last_name = Column(String)
     user_preferences_id = Column(Integer, ForeignKey('user_preferences.user_id'))
     salt = Column(String)
-    type = Column(String)
+    type = Column(Enum('user', 'admin', 'owner', name='type_enum'),nullable=False)
 
     # Relationships
     competitions = relationship('Competition', back_populates='user')
@@ -41,6 +41,7 @@ class User(Base):
     sessions = relationship('Session', back_populates='user')
     user_cooldowns = relationship('UserCooldown', back_populates='user')
     scoreboards = relationship('Scoreboard', back_populates='user')
+
 
 # need to talk to constance to see if this is necessary
 class Session(Base):
