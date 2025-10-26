@@ -1,7 +1,7 @@
 import { Outlet, useMatches } from 'react-router-dom'
 import { SidebarProvider } from '../ui/sidebar';
-import { AppSidebar } from './app-sidebar';
-import { AppBreadcrumbs } from './app-breadcrumb';
+import { AppSidebar } from './AppSidebar';
+import { AppBreadcrumbs } from './AppBreadcrumb';
 
 // Define the shape of route handle data
 interface RouteHandle {

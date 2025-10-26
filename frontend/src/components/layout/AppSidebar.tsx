@@ -7,8 +7,8 @@ import {
   Trophy
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { NavSection } from "@/components/layout/nav-section"
-import { NavUser } from "@/components/layout/nav-user"
+import { NavSection } from "@/components/layout/NavSection"
+import { NavUser } from "@/components/layout/NavUser"
 import {
   Sidebar,
   SidebarContent,

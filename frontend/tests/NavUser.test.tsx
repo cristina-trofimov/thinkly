@@ -2,7 +2,7 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { NavUser } from "../src/components/layout/nav-user";
+import { NavUser } from "../src/components/layout/NavUser";
 import { jest } from '@jest/globals';
 
 // Mock the sidebar hook

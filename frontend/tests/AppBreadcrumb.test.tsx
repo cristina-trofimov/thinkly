@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { AppBreadcrumbs } from "../src/components/layout/app-breadcrumb";
+import { AppBreadcrumbs } from "../src/components/layout/AppBreadcrumb";
 
 describe("AppBreadcrumbs", () => {
   const mockItems = [

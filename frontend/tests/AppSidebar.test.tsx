@@ -2,11 +2,11 @@
 
 import { render, screen } from "@testing-library/react";
 import { jest } from '@jest/globals';
-import { AppSidebar } from "../src/components/layout/app-sidebar";
+import { AppSidebar } from "../src/components/layout/AppSidebar";
 import '@testing-library/jest-dom';
 
 // Mock the child components
-jest.mock("@/components/layout/nav-section", () => ({
+jest.mock("@/components/layout/NavSection", () => ({
   NavSection: ({ link, label }: any) => (
     <div data-testid="nav-section">
       <span>{label}</span>
@@ -19,7 +19,7 @@ jest.mock("@/components/layout/nav-section", () => ({
   ),
 }));
 
-jest.mock("@/components/layout/nav-user", () => ({
+jest.mock("@/components/layout/NavUser", () => ({
   NavUser: ({ user }: any) => (
     <div data-testid="nav-user">
       {user.firstName} {user.lastName}
