@@ -96,7 +96,7 @@ export const columns: ColumnDef<Account>[] = [
     accessorKey: "accountType",
     header: () => <div className="text-right">Account Type</div>,
     cell: ({ row }) => (
-      <div className="text-right font-medium">
+      <div className="text-right font-medium italic">
         {row.getValue("accountType")}
       </div>
     ),
