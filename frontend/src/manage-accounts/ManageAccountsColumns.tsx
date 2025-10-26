@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@radix-ui/react-checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -47,6 +47,7 @@ export const columns: ColumnDef<Payment>[] = [
         aria-label="Select row"
       />
     ),
+    enableSorting: false,
   },
   {
     accessorKey: "status",
