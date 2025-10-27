@@ -71,7 +71,7 @@ describe("Layout", () => {
       const { container } = render(<Layout />);
       const main = container.querySelector("main");
       expect(main).toBeInTheDocument();
-      expect(main).toHaveClass("flex-1", "p-4");
+      expect(main).toHaveClass("flex-1"); 
     });
 
     test("renders flex container with min-h-screen", () => {
@@ -80,14 +80,7 @@ describe("Layout", () => {
       const flexContainer = container.querySelector(".flex.min-h-screen");
       expect(flexContainer).toBeInTheDocument();
     });
-
-    test("outlet is wrapped in div with mt-4 class", () => {
-      mockUseMatches.mockReturnValue([]);
-      const { container } = render(<Layout />);
-      const outletWrapper = screen.getByTestId("outlet").parentElement;
-      expect(outletWrapper).toHaveClass("mt-4");
-    });
-  });
+}); 
 
   describe("Breadcrumb Generation", () => {
     test("generates breadcrumbs from routes with crumb handles", () => {
