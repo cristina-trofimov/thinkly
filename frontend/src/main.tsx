@@ -4,7 +4,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
-import { AdminDashboard } from './components/AdminDashboard'
+import { AdminDashboard } from './components/dashboard/AdminDashboard'
 
 const router = createBrowserRouter([
   {
