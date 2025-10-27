@@ -96,17 +96,6 @@ def create_user(db: Session, username: str, email: str, password_hash: str, firs
     db.refresh(new_user)
     return new_user
 
-def login_user(db: Session, username_or_email: str, password_hash_candidate: str) -> Optional[User]:
-    user = db.query(User).filter(
-        (User.username == username_or_email) | (User.email == username_or_email)
-    ).one_or_none()
-
-    if not user:
-        return None
-    # Replace this check with proper password verification using stored salt
-    if user.salt != password_hash_candidate:
-        return None
-    return user
 
 def login_user(db: Session, username: str, password: str):
 
@@ -157,13 +146,66 @@ def logout_user(db: Session, user_id: int, token: str):
 
     return {"message": "Logged out successfully"}
 
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    """Retrieve a user by ID."""
+    return db.query(User).filter(User.user_id == user_id).first()
+
+def get_user_by_username(db: Session, username: str) -> Optional[User]:
+    """Retrieve a user by username."""
+    return db.query(User).filter(User.username == username).first()
+
+def search_users(db: Session, keyword: str) -> List[User]:
+    """Search for users by name or email."""
+    return db.query(User).filter(
+        (User.username.ilike(f"%{keyword}%")) |
+        (User.email.ilike(f"%{keyword}%")) |
+        (User.first_name.ilike(f"%{keyword}%")) |
+        (User.last_name.ilike(f"%{keyword}%"))
+    ).all()
+
+def update_user(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+
+    # Prevent creating multiple owners
+    if type == 'owner' and user.type != 'owner':
+        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        if existing_owner:
+            raise ValueError("An owner already exists. Only one owner is allowed.")
+
+    if username is not None:
+        user.username = username
+    if email is not None:
+        user.email = email
+    if first_name is not None:
+        user.first_name = first_name
+    if last_name is not None:
+        user.last_name = last_name
+    if password_hash is not None:
+        user.salt = password_hash
+    if type is not None:
+        user.type = type
+
+    _commit_or_rollback(db)
+    db.refresh(user)
+    return user
+
+def delete_user(db: Session, user_id: int) -> bool:
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+
+    db.delete(user)
+    _commit_or_rollback(db)
+    return True
 
 # --------------------------- 2) Set user preference (while logged in) ---------------------------
 
 # ASSUMED: USER LOGGED IN
 # Edit_lang: will store last language used by user
 def set_user_preferences(db: Session, user_id: int, theme: Optional[str]=None, notifications_enabled: Optional[bool]=None, edit_lang: Optional[str]=None) -> UserPreferences:
-    pref = db.query(UserPreferences).get(user_id)
+    pref = db.get(UserPreferences, user_id)
     if not pref:
         pref = UserPreferences(user_id=user_id)
         db.add(pref)
@@ -180,7 +222,7 @@ def set_user_preferences(db: Session, user_id: int, theme: Optional[str]=None, n
 
 # --------------------------- 4) User creating a new competition ---------------------------
 
-def create_competition(db: Session, user_id: int, name: str, location: str, date: Optional[datetime]=None, cooldown_time: Optional[int]=None, start_time: Optional[datetime]=None, end_time: Optional[datetime]=None) -> Competition:
+def create_competition(db: Session, user_id: int, name: str, location: str, date: [datetime]=None, cooldown_time: Optional[int]=None, start_time: Optional[datetime]=None, end_time: Optional[datetime]=None) -> Competition:
     comp = Competition(
         name=name,
         user_id=user_id,
@@ -196,6 +238,41 @@ def create_competition(db: Session, user_id: int, name: str, location: str, date
     db.refresh(comp)
     return comp
 
+def update_competition( db: Session, competition_id: int, name: Optional[str] = None, location: Optional[str] = None, date: Optional[datetime] = None, cooldown_time: Optional[int] = None, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None) -> Competition:
+    comp = db.query(Competition).filter(Competition.competition_id == competition_id).first()
+    if not comp:
+        raise ValueError("Competition not found")
+
+    if location is not None:
+        comp.location = location
+    if date is not None:
+        comp.date = date
+    if cooldown_time is not None:
+        comp.cooldown_time = cooldown_time
+    if start_time is not None:
+        comp.start_time = start_time
+    if end_time is not None:
+        comp.end_time = end_time
+
+    _commit_or_rollback(db)
+    db.refresh(comp)
+    return comp
+
+def delete_competition(db: Session, competition_id: int) -> bool:
+    comp = db.query(Competition).filter(Competition.competition_id == competition_id).first()
+    if not comp:
+        raise ValueError("Competition not found")
+
+    db.delete(comp)
+    _commit_or_rollback(db)
+    return True
+
+def get_competition_by_id(db: Session, competition_id: int) -> Optional[Competition]:
+    return db.query(Competition).filter(Competition.competition_id == competition_id).first()
+
+
+def get_all_competitions(db: Session) -> List[Competition]:
+    return db.query(Competition).all()
 
 # --------------------------- 5) Create a new competition question ---------------------------
 
@@ -210,7 +287,63 @@ def create_competition_question(db: Session, competition_id: int, question_id: i
     db.refresh(cq)
     return cq
 
+def update_competition_question(db: Session, competition_id: int, question_id: int, base_score_value: Optional[int] = None) -> CompetitionQuestion:
+    cq = db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.competition_id == competition_id,
+        CompetitionQuestion.question_id == question_id
+    ).first()
 
+    if not cq:
+        raise ValueError("Competition question not found")
+
+    if base_score_value is not None:
+        cq.base_score_value = base_score_value
+
+    _commit_or_rollback(db)
+    db.refresh(cq)
+    return cq
+
+def delete_competition_question( db: Session, competition_id: int, question_id: int) -> bool:
+    """Delete a competition-question mapping."""
+    cq = db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.competition_id == competition_id,
+        CompetitionQuestion.question_id == question_id
+    ).first()
+
+    if not cq:
+        raise ValueError("Competition question not found")
+
+    db.delete(cq)
+    _commit_or_rollback(db)
+    return True
+
+def delete_all_questions_for_competition(db: Session, competition_id: int) -> int:
+    """Delete all questions linked to a competition."""
+    deleted_count = db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.competition_id == competition_id
+    ).delete()
+    _commit_or_rollback(db)
+    return deleted_count
+
+
+def get_competition_question(db: Session, competition_id: int, question_id: int) -> Optional[CompetitionQuestion]:
+    """Retrieve a single competition question mapping."""
+    return db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.competition_id == competition_id,
+        CompetitionQuestion.question_id == question_id
+    ).first()
+
+def get_questions_by_competition(db: Session, competition_id: int) -> List[CompetitionQuestion]:
+    """Retrieve all questions linked to a specific competition."""
+    return db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.competition_id == competition_id
+    ).all()
+
+def get_competitions_by_question( db: Session, question_id: int) -> List[CompetitionQuestion]:
+    """Retrieve all competitions that use a specific question."""
+    return db.query(CompetitionQuestion).filter(
+        CompetitionQuestion.question_id == question_id
+    ).all()
 # --------------------------- 6) Add question tags ---------------------------
 
 def add_question_tag(db: Session, question_id: int, tag_value: str) -> QuestionTag:
@@ -220,6 +353,56 @@ def add_question_tag(db: Session, question_id: int, tag_value: str) -> QuestionT
     db.refresh(tag)
     return tag
 
+def update_question_tag(
+    db: Session, question_id: int, old_tag_value: str, new_tag_value: str
+) -> QuestionTag:
+    """Update a tag's value for a question."""
+    tag = db.query(QuestionTag).filter(
+        QuestionTag.question_id == question_id,
+        QuestionTag.tag_value == old_tag_value
+    ).first()
+
+    if not tag:
+        raise ValueError("Tag not found for this question")
+
+    tag.tag_value = new_tag_value
+    _commit_or_rollback(db)
+    db.refresh(tag)
+    return tag
+
+def delete_question_tag(db: Session, question_id: int, tag_value: str) -> bool:
+    """Delete a specific tag from a question."""
+    tag = db.query(QuestionTag).filter(
+        QuestionTag.question_id == question_id,
+        QuestionTag.tag_value == tag_value
+    ).first()
+
+    if not tag:
+        raise ValueError("Tag not found")
+
+    db.delete(tag)
+    _commit_or_rollback(db)
+    return True
+
+def delete_all_tags_for_question(db: Session, question_id: int) -> int:
+    """Remove all tags for a specific question."""
+    deleted_count = db.query(QuestionTag).filter(
+        QuestionTag.question_id == question_id
+    ).delete()
+    _commit_or_rollback(db)
+    return deleted_count
+
+def get_tags_by_question(db: Session, question_id: int) -> List[QuestionTag]:
+    """Retrieve all tags linked to a question."""
+    return db.query(QuestionTag).filter(
+        QuestionTag.question_id == question_id
+    ).all()
+
+def get_questions_by_tag(db: Session, tag_value: str) -> List[QuestionTag]:
+    """Retrieve all questions that use a specific tag."""
+    return db.query(QuestionTag).filter(
+        QuestionTag.tag_value == tag_value
+    ).all()
 
 # --------------------------- 7) Add question to a set (and create a set) ---------------------------
 
@@ -260,6 +443,55 @@ def add_question_to_set(db: Session, question_id: int, set_id: Optional[int]=Non
         db.refresh(qs)
     return qs
 
+def update_question_set(
+    db: Session, set_id: int, set_name: Optional[str] = None, week: Optional[int] = None
+) -> QuestionSet:
+    """Update a question set's details."""
+    qs = db.query(QuestionSet).filter(QuestionSet.set_id == set_id).first()
+
+    if not qs:
+        raise ValueError("Question set not found")
+
+    if set_name is not None:
+        qs.set_name = set_name
+    if week is not None:
+        qs.week = week
+
+    _commit_or_rollback(db)
+    db.refresh(qs)
+    return qs
+
+def delete_question_set(db: Session, set_id: int) -> bool:
+    """Delete a specific question set."""
+    qs = db.query(QuestionSet).filter(QuestionSet.set_id == set_id).first()
+
+    if not qs:
+        raise ValueError("Question set not found")
+
+    db.delete(qs)
+    _commit_or_rollback(db)
+    return True
+
+def get_question_set(db: Session, set_id: int) -> Optional[QuestionSet]:
+    """Retrieve a specific question set by ID."""
+    return db.query(QuestionSet).filter(QuestionSet.set_id == set_id).first()
+
+def get_all_question_sets(db: Session) -> List[QuestionSet]:
+    """Retrieve all question sets."""
+    return db.query(QuestionSet).all()
+
+def get_question_sets_by_week(db: Session, week: int) -> List[QuestionSet]:
+    """Retrieve question sets filtered by week."""
+    return db.query(QuestionSet).filter(QuestionSet.week == week).all()
+
+def get_sets_by_question(db: Session, question_id: int) -> List[QuestionSet]:
+    """Get all sets that contain a specific question."""
+    return (
+        db.query(QuestionSet)
+        .join(QuestionSet.algo_questions)
+        .filter_by(question_id=question_id)
+        .all()
+    )
 
 # --------------------------- 8) Create new algotime questions ---------------------------
 
@@ -270,12 +502,127 @@ def create_algotime_question(db: Session, question_id: int, base_score_value: Op
     db.refresh(atq)
     return atq
 
+def update_algotime_question(
+    db: Session, question_id: int, base_score_value: Optional[int] = None
+) -> AlgoTimeQuestion:
+    """Update the base score for an AlgoTime question."""
+    atq = db.query(AlgoTimeQuestion).filter(
+        AlgoTimeQuestion.question_id == question_id
+    ).first()
+
+    if not atq:
+        raise ValueError("AlgoTime question not found")
+
+    if base_score_value is not None:
+        atq.base_score_value = base_score_value
+
+    _commit_or_rollback(db)
+    db.refresh(atq)
+    return atq
+
+def delete_algotime_question(db: Session, question_id: int) -> bool:
+    """Delete an AlgoTime question."""
+    atq = db.query(AlgoTimeQuestion).filter(
+        AlgoTimeQuestion.question_id == question_id
+    ).first()
+
+    if not atq:
+        raise ValueError("AlgoTime question not found")
+
+    db.delete(atq)
+    _commit_or_rollback(db)
+    return True
+
+def get_algotime_question(db: Session, question_id: int) -> Optional[AlgoTimeQuestion]:
+    """Retrieve a single AlgoTime question by ID."""
+    return db.query(AlgoTimeQuestion).filter(
+        AlgoTimeQuestion.question_id == question_id
+    ).first()
+
+def get_all_algotime_questions(db: Session) -> List[AlgoTimeQuestion]:
+    """Retrieve all AlgoTime questions."""
+    return db.query(AlgoTimeQuestion).all()
+
+def get_algotime_questions_by_set(db: Session, set_id: int) -> List[AlgoTimeQuestion]:
+    """Retrieve all AlgoTime questions in a given question set."""
+    return (
+        db.query(AlgoTimeQuestion)
+        .join(AlgoTimeQuestion.question_sets)
+        .filter_by(set_id=set_id)
+        .all()
+    )
 
 # --------------------------- 9) Checking participation for a competition ---------------------------
 
+def add_participation(db: Session, competition_id: int, user_id: int) -> Participation:
+    """Register a user as a participant in a competition."""
+    existing = db.query(Participation).filter_by(
+        competition_id=competition_id,
+        user_id=user_id
+    ).first()
+
+    if existing:
+        raise ValueError("User is already participating in this competition")
+
+    p = Participation(competition_id=competition_id, user_id=user_id)
+    db.add(p)
+    _commit_or_rollback(db)
+    db.refresh(p)
+    return p
+
+def update_participation(
+    db: Session, competition_id: int, user_id: int, **kwargs
+) -> Participation:
+    """Update participation record (if extended with more fields)."""
+    p = db.query(Participation).filter_by(
+        competition_id=competition_id,
+        user_id=user_id
+    ).first()
+
+    if not p:
+        raise ValueError("Participation not found")
+
+    for key, value in kwargs.items():
+        if hasattr(p, key):
+            setattr(p, key, value)
+
+    _commit_or_rollback(db)
+    db.refresh(p)
+    return p
+
+def remove_participation(db: Session, competition_id: int, user_id: int) -> bool:
+    """Remove a user's participation from a competition."""
+    p = db.query(Participation).filter_by(
+        competition_id=competition_id,
+        user_id=user_id
+    ).first()
+
+    if not p:
+        raise ValueError("Participation not found")
+
+    db.delete(p)
+    _commit_or_rollback(db)
+    return True
+
 def is_participating(db: Session, competition_id: int, user_id: int) -> bool:
-    p = db.query(Participation).get((competition_id, user_id))
-    return p is not None
+    """Check if a user is participating in a competition."""
+    return db.query(Participation).filter_by(
+        competition_id=competition_id,
+        user_id=user_id
+    ).first() is not None
+
+def get_participants_by_competition(db: Session, competition_id: int) -> List[Participation]:
+    """Retrieve all participants in a given competition."""
+    return db.query(Participation).filter(
+        Participation.competition_id == competition_id
+    ).all()
+
+def get_competitions_by_user(db: Session, user_id: int) -> List[Participation]:
+    """Retrieve all competitions a user is participating in."""
+    return db.query(Participation).filter(
+        Participation.user_id == user_id
+    ).all()
+
 
 
 # --------------------------- 10) Competition question stats & user stats ---------------------------
@@ -287,11 +634,12 @@ def get_competition_question_stats(db: Session, question_id: int, user_id: Optio
     return q.all()
 
 
-def add_or_update_competition_question_stats(db: Session, question_id: int, user_id: int, num_attempts: Optional[int]=None, completed: Optional[bool]=None, score_awarded: Optional[int]=None, datetime_completed: Optional[datetime]=None) -> CompetitionQuestionStats:
+def add_or_update_competition_question_stats( db: Session, question_id: int, user_id: int, num_attempts: Optional[int] = None, completed: Optional[bool] = None, score_awarded: Optional[int] = None, datetime_completed: Optional[datetime] = None) -> CompetitionQuestionStats:
     stats = db.query(CompetitionQuestionStats).get((question_id, user_id))
     if not stats:
         stats = CompetitionQuestionStats(question_id=question_id, user_id=user_id)
         db.add(stats)
+
     if num_attempts is not None:
         stats.num_attempts = num_attempts
     if completed is not None:
@@ -300,10 +648,28 @@ def add_or_update_competition_question_stats(db: Session, question_id: int, user
         stats.score_awarded = score_awarded
     if datetime_completed is not None:
         stats.datetime_completed = datetime_completed
+
     _commit_or_rollback(db)
     db.refresh(stats)
     return stats
 
+def delete_competition_question_stats(db: Session, question_id: int, user_id: int) -> bool:
+    """Delete a specific user's competition question stats."""
+    stats = db.query(CompetitionQuestionStats).get((question_id, user_id))
+    if not stats:
+        raise ValueError("Competition question stats not found")
+
+    db.delete(stats)
+    _commit_or_rollback(db)
+    return True
+
+def delete_all_competition_stats_for_question(db: Session, question_id: int) -> int:
+    """Delete all stats for a question across all users."""
+    count = db.query(CompetitionQuestionStats).filter(
+        CompetitionQuestionStats.question_id == question_id
+    ).delete()
+    _commit_or_rollback(db)
+    return count
 
 def get_user_algotime_stats(db: Session, question_id: int, user_id: Optional[int]=None) -> List[UserAlgoTimeStats]:
     q = db.query(UserAlgoTimeStats).filter(UserAlgoTimeStats.question_id == question_id)
@@ -311,6 +677,22 @@ def get_user_algotime_stats(db: Session, question_id: int, user_id: Optional[int
         q = q.filter(UserAlgoTimeStats.user_id == user_id)
     return q.all()
 
+def get_competition_question_stats(
+    db: Session, question_id: int, user_id: Optional[int] = None
+) -> List[CompetitionQuestionStats]:
+    """Retrieve competition question stats (optionally for a specific user)."""
+    q = db.query(CompetitionQuestionStats).filter(
+        CompetitionQuestionStats.question_id == question_id
+    )
+    if user_id is not None:
+        q = q.filter(CompetitionQuestionStats.user_id == user_id)
+    return q.all()
+
+def get_all_competition_stats_for_user(db: Session, user_id: int) -> List[CompetitionQuestionStats]:
+    """Retrieve all competition stats for a user."""
+    return db.query(CompetitionQuestionStats).filter(
+        CompetitionQuestionStats.user_id == user_id
+    ).all()
 
 def add_or_update_user_algotime_stats(db: Session, question_id: int, user_id: int, num_attempts: Optional[int]=None, best_time: Optional[int]=None, completed: Optional[bool]=None, score_awarded: Optional[int]=None, datetime_completed: Optional[datetime]=None) -> UserAlgoTimeStats:
     stats = db.query(UserAlgoTimeStats).get((question_id, user_id))
@@ -331,6 +713,40 @@ def add_or_update_user_algotime_stats(db: Session, question_id: int, user_id: in
     db.refresh(stats)
     return stats
 
+def delete_user_algotime_stats(db: Session, question_id: int, user_id: int) -> bool:
+    """Delete a specific user's AlgoTime stats for a question."""
+    stats = db.query(UserAlgoTimeStats).get((question_id, user_id))
+    if not stats:
+        raise ValueError("User AlgoTime stats not found")
+
+    db.delete(stats)
+    _commit_or_rollback(db)
+    return True
+
+def delete_all_algotime_stats_for_question(db: Session, question_id: int) -> int:
+    """Delete all AlgoTime stats for a question."""
+    count = db.query(UserAlgoTimeStats).filter(
+        UserAlgoTimeStats.question_id == question_id
+    ).delete()
+    _commit_or_rollback(db)
+    return count
+
+def get_user_algotime_stats(
+    db: Session, question_id: int, user_id: Optional[int] = None
+) -> List[UserAlgoTimeStats]:
+    """Retrieve AlgoTime stats for a question (optionally filtered by user)."""
+    q = db.query(UserAlgoTimeStats).filter(
+        UserAlgoTimeStats.question_id == question_id
+    )
+    if user_id is not None:
+        q = q.filter(UserAlgoTimeStats.user_id == user_id)
+    return q.all()
+
+def get_all_algotime_stats_for_user(db: Session, user_id: int) -> List[UserAlgoTimeStats]:
+    """Retrieve all AlgoTime stats for a specific user."""
+    return db.query(UserAlgoTimeStats).filter(
+        UserAlgoTimeStats.user_id == user_id
+    ).all()
 
 # --------------------------- 11) CRUD user results and answers ---------------------------
 
