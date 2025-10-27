@@ -13,7 +13,7 @@ global.ResizeObserver = global.ResizeObserver || RO;
 
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import SendEmailForm from "../src/components/layout/email-form";
+import SendEmailForm from "../src/components/layout/EmailForm.tsx"
 
 // --- Mocks ---
 jest.mock("sonner", () => ({

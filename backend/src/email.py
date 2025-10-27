@@ -1,4 +1,3 @@
-"use client"
 import os
 import json
 import requests

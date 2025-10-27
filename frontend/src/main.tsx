@@ -5,7 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
-import SendEmailForm from './components/layout/email-form.tsx'
+import SendEmailForm from './components/layout/EmailForm.tsx'
 
 const router = createBrowserRouter([
   {
