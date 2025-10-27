@@ -72,13 +72,6 @@ const router = createBrowserRouter([
           crumb: { title: "Admin Dashboard" }
         }
       },
-      {
-        path: "admin",
-        element: <AdminDashboard />,
-        handle: {
-          crumb: { title: "Admin Dashboard" }
-        }
-      },
     ]
   },
 ])
