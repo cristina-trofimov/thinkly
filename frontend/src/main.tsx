@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
+import SendEmailForm from './components/layout/EmailForm.tsx'
 
 const router = createBrowserRouter([
   {
@@ -20,14 +21,14 @@ const router = createBrowserRouter([
       },
       {
         path: "home",
-        element: <div>Home Page</div>,        // TO BE REPLACED
+        element: <div>Home</div>,        // TO BE REPLACED
         handle: {
           crumb: { title: "Home Page" }
         }
       },
       {
         path: "algotime",
-        element: <div>AlgoTime</div>,        // TO BE REPLACED
+        element: <div>AlgoTime</div>,        // TO BE REPLACED //<SendEmailForm></SendEmailForm> To test email form
         handle: {
           crumb: { title: "AlgoTime" }
         }
