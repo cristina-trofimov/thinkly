@@ -88,11 +88,7 @@ def create_user(db: Session, username: str, email: str, password_hash: str, firs
         type=type,
     )
     db.add(new_user)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise
+    _commit_or_rollback(db)
     db.refresh(new_user)
     return new_user
 

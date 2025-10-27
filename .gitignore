@@ -44,3 +44,6 @@ frontend/node_modules/
 # IDE
 .idea/
 *.iml
+
+# pytest cache
+__pycache__/
