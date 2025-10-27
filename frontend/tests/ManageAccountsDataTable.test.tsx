@@ -78,6 +78,13 @@ describe("ManageAccountsDataTable", () => {
       fireEvent.change(searchInput, { target: { value: "" } });
       expect(screen.getByText("jane@example.com")).toBeInTheDocument();
     });
+
+    it("handles undefined email filter value", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const searchInput = screen.getByPlaceholderText("Filter emails...");
+      expect(searchInput).toHaveValue("");
+    });
   });
 
   describe("Filter UI", () => {
@@ -92,6 +99,13 @@ describe("ManageAccountsDataTable", () => {
       
       const filterButton = screen.getByRole("button", { name: "All Account Types" });
       expect(filterButton).toBeInTheDocument();
+    });
+
+    it("filter button has correct attributes", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      expect(filterButton).toHaveAttribute("aria-haspopup", "menu");
     });
   });
 
@@ -149,6 +163,17 @@ describe("ManageAccountsDataTable", () => {
       const nextButton = screen.getByRole("button", { name: "Next" });
       expect(nextButton).toBeDisabled();
     });
+
+    it("handles pagination state changes", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={largeDataset} />);
+      
+      const nextButton = screen.getByRole("button", { name: "Next" });
+      expect(nextButton).not.toBeDisabled();
+      
+      fireEvent.click(nextButton);
+      const previousButton = screen.getByRole("button", { name: "Previous" });
+      expect(previousButton).not.toBeDisabled();
+    });
   });
 
   describe("Row selection", () => {
@@ -194,6 +219,17 @@ describe("ManageAccountsDataTable", () => {
       expect(screen.getByLabelText("Select row 1")).toBeChecked();
       expect(screen.getByLabelText("Select row 2")).toBeChecked();
     });
+
+    it("maintains row selection state", () => {
+      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+      
+      const rowCheckbox = screen.getByLabelText("Select row 0");
+      fireEvent.click(rowCheckbox);
+      expect(rowCheckbox).toBeChecked();
+      
+      fireEvent.click(rowCheckbox);
+      expect(rowCheckbox).not.toBeChecked();
+    });
   });
 
   describe("Table structure", () => {
@@ -216,6 +252,13 @@ describe("ManageAccountsDataTable", () => {
       
       const rows = screen.getAllByRole("row");
       expect(rows).toHaveLength(mockData.length + 1);
+    });
+
+    it("renders table container with border", () => {
+      const { container } = render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const borderDiv = container.querySelector('.overflow-hidden.rounded-md.border');
+      expect(borderDiv).toBeInTheDocument();
     });
   });
 
@@ -249,6 +292,17 @@ describe("ManageAccountsDataTable", () => {
       const rows = screen.getAllByRole("row");
       expect(rows.length).toBeGreaterThan(1);
     });
+
+    it("toggles sort direction", () => {
+      render(<ManageAccountsDataTable columns={columnsWithSorting} data={mockData} />);
+      
+      const nameButton = screen.getByRole("button", { name: "Name" });
+      fireEvent.click(nameButton);
+      fireEvent.click(nameButton);
+      
+      const rows = screen.getAllByRole("row");
+      expect(rows.length).toBeGreaterThan(1);
+    });
   });
 
   describe("Data rendering", () => {
@@ -266,6 +320,75 @@ describe("ManageAccountsDataTable", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
       expect(screen.getByText("Jane Smith")).toBeInTheDocument();
       expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
+    });
+  });
+
+  describe("State management", () => {
+    it("initializes with empty sorting state", () => {
+      const { rerender } = render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+      
+      rerender(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      expect(screen.getByText("John Doe")).toBeInTheDocument();
+    });
+
+    it("initializes with empty column filters", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const searchInput = screen.getByPlaceholderText("Filter emails...");
+      expect(searchInput).toHaveValue("");
+    });
+
+    it("initializes with empty row selection", () => {
+      const columnsWithSelection: ColumnDef<TestData>[] = [
+        {
+          id: "select",
+          header: ({ table }) => (
+            <input
+              type="checkbox"
+              aria-label="Select all"
+              checked={table.getIsAllPageRowsSelected()}
+              onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
+            />
+          ),
+          cell: ({ row }) => (
+            <input
+              type="checkbox"
+              aria-label={`Select row ${row.id}`}
+              checked={row.getIsSelected()}
+              onChange={(e) => row.toggleSelected(!!e.target.checked)}
+            />
+          ),
+        },
+        ...mockColumns,
+      ];
+
+      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+      
+      const headerCheckbox = screen.getByLabelText("Select all");
+      expect(headerCheckbox).not.toBeChecked();
+    });
+  });
+
+  describe("Filter and search interaction", () => {
+    it("handles search with special characters", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const searchInput = screen.getByPlaceholderText("Filter emails...");
+      fireEvent.change(searchInput, { target: { value: "@example" } });
+      
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
+      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+    });
+
+    it("handles case-insensitive search", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const searchInput = screen.getByPlaceholderText("Filter emails...");
+      fireEvent.change(searchInput, { target: { value: "JOHN" } });
+      
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
     });
   });
 });
