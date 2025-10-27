@@ -8,7 +8,7 @@ from src.models import schema
 
 def init_db():
     print("Creating all tables...")
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(engine)
     print("✅ Tables created successfully!")
 
 if __name__ == "__main__":
