@@ -1,72 +1,82 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import type { ProblemInfo } from './interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from './ui/table'
+import { WriteComment } from './WriteComment'
+import ViewComment from './ViewComment'
+import { FileText, History, MessageCircle, Trophy } from 'lucide-react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from "motion/react";
+
 
 // const CodeDescArea = (problem: ProblemInfo) => {
 const CodeDescArea = () => {
 
+    const tabs = [
+        {"id": "description", "text":  "Description", "icon": <FileText />},
+        {"id": "submissions", "text":  "Submissions", "icon": <History />},
+        {"id": "leaderboard", "text":  "Leaderboard", "icon": <Trophy />},
+        {"id": "discussion", "text":  "Discussion", "icon": <MessageCircle />},
+    ]
+
+    const submissions = [
+        {"status": "Accepted", "language":  "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40"},
+        {"status": "Runtime Error", "language":  "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-23 17:40"},
+        {"status": "Wrong Answer", "language":  "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40"},
+    ]
+
+    const leaderboard = [
+        {"name": "Julia T.", "points":  259, "solved": 13, "runtime": "34 min"},
+        {"name": "Law M.", "points":  209, "solved": 10, "runtime": "24 min"},
+        {"name": "Boudour B.", "points":  109, "solved": 9, "runtime": "18 min"},
+        {"name": "Alice T.", "points":  59, "solved": 3, "runtime": "8 min"},
+    ]
+
+    const [activeTab, setActiveTab] = useState("description")
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [containerWidth, setContainerWidth] = useState(0)
+
+    useLayoutEffect(() => {
+        const updateWidth = () => {
+            setContainerWidth(containerRef.current?.offsetWidth || 0)
+        }
+        updateWidth();
+        window.addEventListener('resize', updateWidth)
+        return () => window.removeEventListener('resize', updateWidth)
+    }, [])
+
+    const fullSize = window.innerWidth
+    const halfSize = fullSize / 2
+    const quarterSize = fullSize / 4
     
   return (
     <Tabs defaultValue='description' >
-        <TabsList 
+        <TabsList ref={containerRef}
             className="w-full relative justify-between rounded-none h-10 bg-muted 
                         border-b border-border/75 dark:border-border/50 py-0 px-4"
             
             // activeClassName="rounded-none shadow-none bg-transparent after:content-[''] after:absolute after:inset-x-0 after:h-0.5 after:bottom-0 dark:after:bg-white after:bg-black after:rounded-t-full"
         >
-            <TabsTrigger value="description"
-                className='bg-muted rounded-none
-                           data-[state=active]:border-purple-700
-                           data-[state=active]:text-purple-700
-                           data-[state=active]:bg-muted
-                           data-[state=active]:shadow-none
-                           data-[state=active]:border-b-[2.5px]
-                           data-[state=active]:border-x-0
-                           data-[state=active]:border-t-0
-                           dark:data-[state=active]:border-purple-700
-                           '
-            >
-                Description
-            </TabsTrigger>
-            <TabsTrigger value="submissions"
-                className='bg-muted rounded-none
-                           data-[state=active]:border-purple-700
-                           data-[state=active]:text-purple-700
-                           data-[state=active]:bg-muted
-                           data-[state=active]:shadow-none
-                           data-[state=active]:border-b-[2.5px]
-                           data-[state=active]:border-x-0
-                           data-[state=active]:border-t-0
-                           '
-            >
-                Submissions
-            </TabsTrigger>
-            <TabsTrigger value="leaderboard"
-                className='bg-muted rounded-none
-                           data-[state=active]:border-purple-700
-                           data-[state=active]:text-purple-700
-                           data-[state=active]:bg-muted
-                           data-[state=active]:shadow-none
-                           data-[state=active]:border-b-[2.5px]
-                           data-[state=active]:border-x-0
-                           data-[state=active]:border-t-0
-                           '
-            >
-                Leaderboard
-            </TabsTrigger>
-            <TabsTrigger value="discussion"
-                className='bg-muted rounded-none
-                           data-[state=active]:border-purple-700
-                           data-[state=active]:text-purple-700
-                           data-[state=active]:bg-muted
-                           data-[state=active]:shadow-none
-                           data-[state=active]:border-b-[2.5px]
-                           data-[state=active]:border-x-0
-                           data-[state=active]:border-t-0
-                           '
-            >
-                Discussion
-            </TabsTrigger>
+            {tabs.map(t => {
+                const isActive = activeTab == t.id
+                let showText = true
+                if (containerWidth < halfSize && !isActive) showText = false
+                if (containerWidth < quarterSize && isActive) showText = false
+                
+                return <TabsTrigger value="description"
+                    className='bg-muted rounded-none
+                            data-[state=active]:border-purple-700
+                            data-[state=active]:text-purple-700
+                            data-[state=active]:bg-muted
+                            data-[state=active]:shadow-none
+                            data-[state=active]:border-b-[2.5px]
+                            data-[state=active]:border-x-0
+                            data-[state=active]:border-t-0
+                            dark:data-[state=active]:border-purple-700
+                            '
+                >
+                    Description
+                </TabsTrigger>
+            })}
         </TabsList>
 
         {/* Description */}
@@ -94,7 +104,7 @@ const CodeDescArea = () => {
 
         {/* Submissions */}
         <TabsContent value='submissions' >
-            <div className="flex h-[750px] p-6">
+            <div className="h-[750px] p-6">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -106,15 +116,17 @@ const CodeDescArea = () => {
                     </TableHeader>
 
                     <TableBody>
-                        <TableRow>
-                            <TableCell className='grid grid-rows-2' >
-                                <span>Status</span>
-                                <span className='text-gray-500' >2 minutes ago</span>
-                            </TableCell>
-                            <TableCell className="text-right" >Java</TableCell>
-                            <TableCell className="text-right text-gray-500" >12</TableCell>
-                            <TableCell className="text-right text-gray-500" >23 min</TableCell>
+                        {submissions.map(s => {
+                            return <TableRow>
+                                <TableCell className='grid grid-rows-2' >
+                                    <span>{s.status}</span>
+                                    <span className='text-gray-500' >{Date.now() - Date.parse(s.submittedOn)} ago</span>
+                                </TableCell>
+                                <TableCell className="" >{s.language}</TableCell>
+                                <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
+                                <TableCell className="text-right text-gray-500" >{s.runtime}</TableCell>
                         </TableRow>
+                        })}
                     </TableBody>
 
                     <TableFooter className='mt-3' >
@@ -127,7 +139,7 @@ const CodeDescArea = () => {
 
         {/* Leaderboard */}
         <TabsContent value='leaderboard' >
-            <div className="flex h-[750px] p-6">
+            <div className="h-[750px] p-6">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -140,17 +152,19 @@ const CodeDescArea = () => {
                     </TableHeader>
 
                     <TableBody>
-                        <TableRow>
-                            <TableCell className="font-medium">#1</TableCell>
-                            <TableCell>Someone S.</TableCell>
-                            <TableCell className="text-right text-gray-500" >250</TableCell>
-                            <TableCell className="text-right text-gray-500" >12</TableCell>
-                            <TableCell className="text-right text-gray-500" >23 min</TableCell>
+                        {leaderboard.map((l, index) => {
+                            return <TableRow>
+                                <TableCell className="font-medium">#{index+1}</TableCell>
+                                <TableCell className='font-semibold text-purple-600'>{l.name}</TableCell>
+                                <TableCell className="text-right text-gray-500" >{l.points}</TableCell>
+                                <TableCell className="text-right text-gray-500" >{l.solved}</TableCell>
+                                <TableCell className="text-right text-gray-500" >{l.runtime}</TableCell>
                         </TableRow>
+                        })}
                     </TableBody>
 
                     <TableFooter className='mt-3' >
-                        <TableRow><TableCell colSpan={5} className='text-gray-500' >1 participant</TableCell>
+                        <TableRow><TableCell colSpan={5} className='text-gray-500' >{leaderboard.length} participant(s)</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
@@ -159,8 +173,9 @@ const CodeDescArea = () => {
 
         {/* Discussion */}
         <TabsContent value='discussion' >
-            <div className="flex h-[750px] p-6">
-                <span className="font-semibold">Discussion</span>
+            <div className="h-[750px] p-6" >
+                <WriteComment />
+                <ViewComment />
             </div>
         </TabsContent>
     </Tabs>
