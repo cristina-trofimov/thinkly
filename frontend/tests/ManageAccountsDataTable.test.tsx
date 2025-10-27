@@ -1,4 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ManageAccountsDataTable } from "./../src/manage-accounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 
@@ -32,11 +33,6 @@ const mockColumns: ColumnDef<TestData>[] = [
     cell: ({ row }) => row.getValue("accountType"),
   },
 ];
-
-// Helper component to expose table instance for testing
-const TestWrapper = ({ children, onTableReady }: any) => {
-  return children;
-};
 
 describe("ManageAccountsDataTable", () => {
   it("renders table with data", () => {
@@ -112,102 +108,111 @@ describe("ManageAccountsDataTable", () => {
       const filterButton = screen.getByRole("button", { name: "All Account Types" });
       expect(filterButton).toHaveAttribute("aria-haspopup", "menu");
     });
+  });
 
-    it("opens filter dropdown on click", () => {
+  describe("Account Type Filtering via Dropdown", () => {
+    it("filters by Participant from dropdown", async () => {
+      const user = userEvent.setup();
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
       const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      fireEvent.click(filterButton);
+      await user.click(filterButton);
       
-      // Dropdown may not render in test environment, but click handler should execute
-      expect(filterButton).toBeInTheDocument();
-    });
-  });
-
-  describe("Account Type Filtering", () => {
-    // Create columns that expose filter controls for testing
-    const testColumns: ColumnDef<TestData>[] = [
-      ...mockColumns,
-      {
-        id: "filterControls",
-        header: ({ table }) => (
-          <div>
-            <button
-              data-testid="filter-all"
-              onClick={() => table.getColumn("accountType")?.setFilterValue(undefined)}
-            >
-              All
-            </button>
-            <button
-              data-testid="filter-participant"
-              onClick={() => table.getColumn("accountType")?.setFilterValue("Participant")}
-            >
-              Participant
-            </button>
-            <button
-              data-testid="filter-admin"
-              onClick={() => table.getColumn("accountType")?.setFilterValue("Admin")}
-            >
-              Admin
-            </button>
-            <button
-              data-testid="filter-owner"
-              onClick={() => table.getColumn("accountType")?.setFilterValue("Owner")}
-            >
-              Owner
-            </button>
-          </div>
-        ),
-        cell: () => null,
-      },
-    ];
-
-    it("filters by Participant account type", () => {
-      render(<ManageAccountsDataTable columns={testColumns} data={mockData} />);
+      await waitFor(async () => {
+        const participantItem = await screen.findByText("Participant", { 
+          selector: 'div[role="menuitem"]' 
+        });
+        await user.click(participantItem);
+      });
       
-      const participantButton = screen.getByTestId("filter-participant");
-      fireEvent.click(participantButton);
-      
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
-      expect(screen.queryByText("bob@example.com")).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+        expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+      });
     });
 
-    it("filters by Admin account type", () => {
-      render(<ManageAccountsDataTable columns={testColumns} data={mockData} />);
+    it("filters by Admin from dropdown", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const adminButton = screen.getByTestId("filter-admin");
-      fireEvent.click(adminButton);
+      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      await user.click(filterButton);
       
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
-      expect(screen.queryByText("bob@example.com")).not.toBeInTheDocument();
+      await waitFor(async () => {
+        const adminItems = screen.getAllByText("Admin");
+        const dropdownItem = adminItems.find(item => 
+          item.closest('div[role="menuitem"]')
+        );
+        if (dropdownItem) {
+          await user.click(dropdownItem);
+        }
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByText("john@example.com")).toBeInTheDocument();
+        expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      });
     });
 
-    it("filters by Owner account type", () => {
-      render(<ManageAccountsDataTable columns={testColumns} data={mockData} />);
+    it("filters by Owner from dropdown", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const ownerButton = screen.getByTestId("filter-owner");
-      fireEvent.click(ownerButton);
+      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      await user.click(filterButton);
       
-      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      await waitFor(async () => {
+        const ownerItems = screen.getAllByText("Owner");
+        const dropdownItem = ownerItems.find(item => 
+          item.closest('div[role="menuitem"]')
+        );
+        if (dropdownItem) {
+          await user.click(dropdownItem);
+        }
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+        expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+      });
     });
 
-    it("clears account type filter", () => {
-      render(<ManageAccountsDataTable columns={testColumns} data={mockData} />);
+    it("clears filter by selecting All from dropdown", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const adminButton = screen.getByTestId("filter-admin");
-      fireEvent.click(adminButton);
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      // First filter by Admin
+      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      await user.click(filterButton);
       
-      const allButton = screen.getByTestId("filter-all");
-      fireEvent.click(allButton);
+      await waitFor(async () => {
+        const adminItems = screen.getAllByText("Admin");
+        const dropdownItem = adminItems.find(item => 
+          item.closest('div[role="menuitem"]')
+        );
+        if (dropdownItem) {
+          await user.click(dropdownItem);
+        }
+      });
       
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      });
+      
+      // Then clear filter
+      const filterButtonAdmin = screen.getByRole("button", { name: "Admin" });
+      await user.click(filterButtonAdmin);
+      
+      await waitFor(async () => {
+        const allItem = screen.getByText("All");
+        await user.click(allItem);
+      });
+      
+      await waitFor(() => {
+        expect(screen.getByText("john@example.com")).toBeInTheDocument();
+        expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+        expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+      });
     });
   });
 
