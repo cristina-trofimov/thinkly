@@ -85,16 +85,19 @@ import { Button } from "../components/ui/button"
                 All
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                data-testid="filter-easy"
                 onClick={() => table.getColumn("difficulty")?.setFilterValue("Easy")}
                 >
                 Easy
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                data-testid="filter-medium"
                 onClick={() => table.getColumn("difficulty")?.setFilterValue("Medium")}
                 >
                 Medium
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                data-testid="filter-hard"
                 onClick={() => table.getColumn("difficulty")?.setFilterValue("Hard")}
                 >
                 Hard

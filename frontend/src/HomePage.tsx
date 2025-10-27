@@ -73,7 +73,7 @@ function HomePage() {
     ]
     return (
       <>
-        <div className="flex flex-col ">
+        <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem]">
           <Button className="relative h-[20vh] w-full text-base bg-[#8065CD] hover:bg-border hover:text-black">
             <div className="absolute top-1 left-4">
               <h1 className="text-[clamp(1rem,3vw,2rem)] text-left font-semibold leading-tight">
@@ -115,7 +115,7 @@ function HomePage() {
                                         <ItemDescription className="truncate text-sm text-gray-600 text-left">{competition.competitionDesc}</ItemDescription>
                                       </ItemContent>
                                       <ItemActions  className="w-[30%] flex justify-end">
-                                        <Button variant="outline" size="sm"className=" truncate text-[#8065CD] max-w-[80px]" >
+                                        <Button data-testid={`competition-button-${competition.status.toLowerCase()}`} variant="outline" size="sm"className=" truncate text-[#8065CD] max-w-[80px]" >
                                           {competition.status}
                                         </Button>
                                       </ItemActions>
