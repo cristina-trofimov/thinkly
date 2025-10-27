@@ -11,9 +11,13 @@ jest.mock("recharts", () => ({
   Area: ({ dataKey, stroke }: { dataKey: string; stroke?: string }) => (
     <div data-testid="area" data-datakey={dataKey} data-stroke={stroke} />
   ),
-  XAxis: ({ dataKey, tickFormatter }: { dataKey: string; tickFormatter?: (v: string) => string }) => (
-    <div data-testid="x-axis" data-datakey={dataKey} />
-  ),
+  XAxis: ({ dataKey, tickFormatter }: { dataKey: string; tickFormatter?: (v: string) => string }) => {
+    // Call tickFormatter to ensure coverage
+    const formattedValue = tickFormatter ? tickFormatter("January") : "January";
+    return (
+      <div data-testid="x-axis" data-datakey={dataKey} data-formatted-tick={formattedValue} />
+    );
+  },
   YAxis: () => <div data-testid="y-axis" />,
   CartesianGrid: ({ vertical, stroke }: { vertical?: boolean; stroke?: string }) => (
     <div data-testid="cartesian-grid" data-vertical={vertical} data-stroke={stroke} />
@@ -75,6 +79,13 @@ describe("TechnicalIssuesChart", () => {
       const xAxis = screen.getByTestId("x-axis");
       expect(xAxis).toBeInTheDocument();
       expect(xAxis).toHaveAttribute("data-datakey", "month");
+    });
+
+    it("formats month labels to first 3 characters", () => {
+      render(<TechnicalIssuesChart />);
+      
+      const xAxis = screen.getByTestId("x-axis");
+      expect(xAxis).toHaveAttribute("data-formatted-tick", "Jan");
     });
 
     it("renders YAxis", () => {
