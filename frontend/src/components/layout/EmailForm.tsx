@@ -196,7 +196,7 @@ export default function SendEmailForm({ className }: { className?: string }) {
                         />
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={submitting}>
+                    <Button type="submit" className="bg-[#8065CD] w-full" disabled={submitting}>
                         {submitting ? "Sending…" : "Send"}
                     </Button>
                 </form>
