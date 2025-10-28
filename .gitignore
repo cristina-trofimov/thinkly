@@ -44,3 +44,9 @@ frontend/node_modules/
 # IDE
 .idea/
 *.iml
+
+#Environment files
+.env
+.env.*
+backend/.env
+backend/.env.*

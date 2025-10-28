@@ -6,6 +6,8 @@ import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/CodingView.tsx'
+import SendEmailForm from './components/layout/EmailForm.tsx'
+import  HomePage from './HomePage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -21,14 +23,14 @@ const router = createBrowserRouter([
       },
       {
         path: "home",
-        element: <div>Home Page</div>,        // TO BE REPLACED
+        element: <div className="min-h-screen h-full"><HomePage/></div>,        // TO BE REPLACED
         handle: {
           crumb: { title: "Home Page" }
         }
       },
       {
         path: "algotime",
-        element: <div>AlgoTime</div>,        // TO BE REPLACED
+        element: <div>AlgoTime</div>,        // TO BE REPLACED //<SendEmailForm></SendEmailForm> To test email form
         handle: {
           crumb: { title: "AlgoTime" }
         }
