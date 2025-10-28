@@ -62,7 +62,7 @@ const CodeDescArea = () => {
                 if (containerWidth < halfSize && !isActive) showText = false
                 if (containerWidth < quarterSize && isActive) showText = false
                 
-                return <TabsTrigger value="description"
+                return <TabsTrigger value={t.id}
                     className='bg-muted rounded-none
                             data-[state=active]:border-purple-700
                             data-[state=active]:text-purple-700
@@ -74,7 +74,7 @@ const CodeDescArea = () => {
                             dark:data-[state=active]:border-purple-700
                             '
                 >
-                    Description
+                    {t.icon}{t.text}
                 </TabsTrigger>
             })}
         </TabsList>

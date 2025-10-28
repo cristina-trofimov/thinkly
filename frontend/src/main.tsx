@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
+import CodingView from './components/CodingView.tsx'
 
 const router = createBrowserRouter([
   {
@@ -70,6 +71,13 @@ const router = createBrowserRouter([
         element: <AdminDashboard />,        
         handle: {
           crumb: { title: "Admin Dashboard" }
+        }
+      },
+      {
+        path: "code",
+        element: <CodingView />,        
+        handle: {
+          crumb: { title: "Coding" }
         }
       },
     ]

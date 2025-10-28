@@ -102,7 +102,7 @@ const CodingView = () => {
       <SandboxLayout>
         <ResizablePanelGroup
           direction="horizontal"
-          className="max-w-full max-h-[750px] rounded-lg md:min-w-[450px]"
+          className="max-w-full max-h-[730px] mx-3 rounded-lg md:min-w-[450px]"
         >
           {/* Description panel */}
           <ResizablePanel
@@ -168,7 +168,7 @@ const CodingView = () => {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <SandboxCodeEditor showLineNumbers showInlineErrors />
+                {/* <SandboxCodeEditor showLineNumbers showInlineErrors /> */}
               </ResizablePanel>
 
               <ResizableHandle withHandle className='my-[1px]'
@@ -205,9 +205,6 @@ const CodingView = () => {
                       showOpenInCodeSandbox={true}
                       showRefreshButton={true}
                     />
-                  </SandboxTabsContent>
-                  <SandboxTabsContent value="console">
-                    <SandboxConsole />
                   </SandboxTabsContent>
                   <SandboxTabsContent value="console">
                     <SandboxConsole />
