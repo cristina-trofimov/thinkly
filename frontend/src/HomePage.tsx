@@ -74,7 +74,7 @@ function HomePage() {
     return (
       <>
         <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem]">
-          <Button className="relative h-[20vh] w-full text-base bg-[#8065CD] hover:bg-border hover:text-black">
+          <Button className="relative h-[20vh] w-full text-base bg-primary hover:bg-border hover:text-black">
             <div className="absolute top-1 left-4">
               <h1 className="text-[clamp(1rem,3vw,2rem)] text-left font-semibold leading-tight">
                 It's Competition Time!
