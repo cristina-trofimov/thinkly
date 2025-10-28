@@ -2,9 +2,9 @@ import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "./components/ui/button"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle} from "@/components/ui/item"
-import { columns } from "./HomePageQuestions/questionsColumns"
-import type { Questions } from "./HomePageQuestions/questionsColumns"
-import { DataTable } from "./HomePageQuestions/questionDataTable"
+import { columns } from "./components/HomePageQuestions/questionsColumns"
+import type { Questions } from "./components/HomePageQuestions/questionsColumns"
+import { DataTable } from "./components/HomePageQuestions/questionDataTable"
 
 function HomePage() {
     const [date, setDate] = React.useState<Date | undefined>(new Date())
