@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import SendEmailForm from './components/layout/EmailForm.tsx'
+import  HomePage from './HomePage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -21,7 +22,7 @@ const router = createBrowserRouter([
       },
       {
         path: "home",
-        element: <div>Home</div>,        // TO BE REPLACED
+        element: <div className="min-h-screen h-full"><HomePage/></div>,        // TO BE REPLACED
         handle: {
           crumb: { title: "Home Page" }
         }
