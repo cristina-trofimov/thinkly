@@ -1,10 +1,12 @@
+import type { variableTemplate } from "./VariableTemplate"
+
 export interface ProblemInfo {
     title: string,
-    problemDesc: string,
+    description: string,
     clarification: string,
     examples: {
-        inputs: string,
-        outputs: string,
+        inputs: variableTemplate[],
+        outputs: variableTemplate[],
         expectations: string
-    }
+    }[]
 }
