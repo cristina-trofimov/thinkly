@@ -1,14 +1,12 @@
 
 import './App.css'
-import { Button } from './components/ui/button'
+import LoginPage from './LogInPage'
 
 function App() {
 
   return (
     <>
-      <div>
-        <Button variant="default">Click me</Button>
-      </div>
+      <LoginPage />
     </>
   )
 }
