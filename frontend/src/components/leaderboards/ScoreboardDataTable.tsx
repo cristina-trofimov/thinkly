@@ -1,14 +1,14 @@
 "use client";
 
-import {
-  Hash,
-  User,
-  Star,
-  ListChecks,
-  Clock,
-} from "lucide-react";
+import { Hash, User, Star, ListChecks, Clock } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";import {
+import {
+  type ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import {
   Table,
   TableBody,
   TableCell,
@@ -38,9 +38,7 @@ export function ScoreboardDataTable({ participants }: Props) {
           Rank
         </div>
       ),
-      cell: ({ row }) => (
-        <NumberCircle number={row.index + 1} />
-      ),
+      cell: ({ row }) => <NumberCircle number={row.index + 1} />,
     },
     {
       accessorKey: "name",
@@ -99,7 +97,10 @@ export function ScoreboardDataTable({ participants }: Props) {
                 <TableHead key={header.id}>
                   {header.isPlaceholder
                     ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -122,14 +123,20 @@ export function ScoreboardDataTable({ participants }: Props) {
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    )}
                   </TableCell>
                 ))}
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="text-center py-6 text-gray-400">
+              <TableCell
+                colSpan={columns.length}
+                className="text-center py-6 text-gray-400"
+              >
                 No participants found
               </TableCell>
             </TableRow>
