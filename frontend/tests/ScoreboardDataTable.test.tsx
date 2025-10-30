@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { SearchAndFilterBar } from "../src/components/leaderboards/SearchAndFilterBar";
 
 
@@ -20,6 +21,7 @@ describe("SearchAndFilterBar", () => {
   });
 
   it("changes sorting when dropdown option is selected", async () => {
+    const user = userEvent.setup();
     const mockSetSortAsc = jest.fn();
     render(
       <SearchAndFilterBar
@@ -30,12 +32,13 @@ describe("SearchAndFilterBar", () => {
       />
     );
 
-    // Click to open dropdown
-    fireEvent.click(screen.getByRole("button", { name: /date/i }));
+    // Click to open dropdown using userEvent
+    const dropdownButton = screen.getByRole("button", { name: /date/i });
+    await user.click(dropdownButton);
 
-    // 🔑 Search inside document.body (where Radix portal renders)
-    const dropdown = within(document.body);
-    fireEvent.click(dropdown.getByText(/Oldest → Newest/));
+    // Wait for dropdown content to appear in the portal
+    const oldestOption = await screen.findByText(/Oldest → Newest/);
+    await user.click(oldestOption);
 
     expect(mockSetSortAsc).toHaveBeenCalledWith(true);
   });
