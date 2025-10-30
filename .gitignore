@@ -45,6 +45,9 @@ frontend/node_modules/
 .idea/
 *.iml
 
+# pytest cache
+__pycache__/
+
 #Environment files
 .env
 .env.*

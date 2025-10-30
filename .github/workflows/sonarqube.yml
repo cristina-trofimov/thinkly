@@ -34,9 +34,10 @@ jobs:
        working-directory: ./backend
 
      - name: Run tests with coverage
-       run: pytest --cov --cov-branch --cov-report=xml
-    #    run: pytest --cov
        working-directory: ./backend
+       env:
+         PYTHONPATH: .
+       run: pytest --cov --cov-branch --cov-report=xml
 
      - name: Debug - List coverage directory
        run: ls -la coverage || echo "Coverage directory not found"
