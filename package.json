@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@types/jest": "^30.0.0"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.21.3"
   }
 }

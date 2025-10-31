@@ -54,7 +54,7 @@ create virtual environement
 1- ```python -m venv .venv```
 
 install python dependencies
-2- ```pip install -r backend/requirements.txt```
+1- ```pip install -r backend/requirements.txt```
 
 run pytest
-1- ```pytest```
+1- ```python -m pytest -v```

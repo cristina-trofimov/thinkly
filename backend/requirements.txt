@@ -1,6 +1,8 @@
 pytest
 pytest-cov
 fastapi
+httpx
+
 # Core framework & ORM
 SQLAlchemy>=2.0.0
 
@@ -12,3 +14,4 @@ bcrypt>=4.0.0
 
 # JWT tokens
 PyJWT>=2.8.0
+
