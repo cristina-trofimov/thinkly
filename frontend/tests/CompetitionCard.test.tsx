@@ -6,7 +6,7 @@ const mockCompetition = {
   name: "Test Challenge",
   date: "2025-10-20",
   participants: [
-    { name: "Alice", points: 1200, problemsSolved: 10, runningTime: "10 min" },
+    { name: "Alice", points: 1200, problemsSolved: 10, totalTime: "10 min" },
   ],
 };
 

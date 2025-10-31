@@ -21,7 +21,7 @@ type Participant = {
   name: string;
   points: number;
   problemsSolved: number;
-  runningTime: string;
+  totalTime: string;
 };
 
 interface Props {
@@ -57,7 +57,7 @@ export function ScoreboardDataTable({ participants }: Props) {
       header: () => (
         <div className="flex items-center gap-1">
           <Star className="w-4 h-4 text-gray-500" />
-          Points
+          Total Points
         </div>
       ),
     },
@@ -66,16 +66,16 @@ export function ScoreboardDataTable({ participants }: Props) {
       header: () => (
         <div className="flex items-center gap-1">
           <ListChecks className="w-4 h-4 text-gray-500" />
-          Solved
+          Problems Solved
         </div>
       ),
     },
     {
-      accessorKey: "runningTime",
+      accessorKey: "totalTime",
       header: () => (
         <div className="flex items-center gap-1">
           <Clock className="w-4 h-4 text-gray-500" />
-          Time
+           Total Time
         </div>
       ),
     },
