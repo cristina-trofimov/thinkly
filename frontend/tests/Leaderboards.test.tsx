@@ -2,6 +2,22 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboards } from "../src/components/leaderboards/Leaderboards";
 
+beforeEach(() => {
+  // Mock fetch
+  global.fetch = jest.fn(() =>
+    Promise.resolve({
+      json: () =>
+        Promise.resolve([
+          { id: "1", name: "Mock Competition", date: "2025-10-31", participants: [] },
+        ]),
+    } as any)
+  );
+});
+
+afterEach(() => {
+  jest.resetAllMocks();
+});
+
 describe("Leaderboards", () => {
   it("renders competitions sorted by newest date by default", () => {
     render(<Leaderboards />);
