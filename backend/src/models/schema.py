@@ -185,6 +185,8 @@ class UserResult(Base):
     competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), primary_key=True)
     total_score = Column(Integer)
     rank = Column(Integer)
+    problems_solved = Column(Integer, default=0)
+    total_time = Column(Float, default=0.0)
 
     user = relationship('User', back_populates='user_results')
 
