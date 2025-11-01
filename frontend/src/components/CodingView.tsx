@@ -229,17 +229,21 @@ const CodingView = () => {
                           <ChevronDown />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent data-testid='languageMenu' //forceMount // forces it to stay in the DOM so it can be testable
-                        className="z-10 bg-white w-26 border-1 rounded-xl"
+                      <DropdownMenuContent 
+                        
                       >
-                        {languages.map((lang) => (
-                          <DropdownMenuItem  data-testid={`languageItem-${lang}`} key={lang} className="text-s font-medium p-1 m-1 hover:border-none hover:bg-primary-200"
-                            onSelect={ () => {setSelectedLang(lang); //console.log(files[1]); selectedTemp(templates[lang])
-                            } }
-                          >
-                            {lang}
-                          </DropdownMenuItem>
-                        ))}
+                        <div data-testid='languageMenu' //forceMount // forces it to stay in the DOM so it can be testable
+                             className="z-10 bg-white w-26 border-1 rounded-xl"
+                        >
+                          {languages.map((lang) => (
+                            <DropdownMenuItem  data-testid={`languageItem-${lang}`} key={lang} className="text-s font-medium p-1 m-1 hover:border-none hover:bg-primary-200"
+                              onSelect={ () => {setSelectedLang(lang); //console.log(files[1]); selectedTemp(templates[lang])
+                              } }
+                            >
+                              {lang}
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
