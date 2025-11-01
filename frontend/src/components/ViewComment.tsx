@@ -17,7 +17,7 @@ const ViewComment = ({comment}: {comment: CommentType}) => {
                 </ItemMedia>
                 <div className='flex-col items-start'>
                     <InputGroupText
-                        className='text-purple-600 font-semibold' >
+                        className='font-semibold' >
                         {comment.senderName}
                         <span className='font-light text-gray-500' >- {comment.senderEmail}</span>
                     </InputGroupText>
@@ -31,7 +31,7 @@ const ViewComment = ({comment}: {comment: CommentType}) => {
             <InputGroupAddon align="block-end" >
                 <div className="flex flex-row" >
                     {comment.liked
-                        ? <Heart size={20} fill='purple' onClick={() => likeUnlike()}
+                        ? <Heart size={20} fill='primary' onClick={() => likeUnlike()}
                             className="ml-auto w-8 h-7 p-1 rounded-lg bg-background hover:bg-gray-200 border-0"
                             />
                         : <Heart size={20} onClick={() => likeUnlike()}

@@ -163,8 +163,8 @@ const CodingView = () => {
   return (
     <SandboxProvider data-testid="sandbox-provider"
       key="sandbox-provider" template={template} files={files}
-      className='w-[calc(100vw-var(--sidebar-width--2rem))] relative left-[calc(+0.5rem)] mr-1.5'
-      // className='w-[1100px] h-[725px]'
+      // className='w-[calc(100vw-var(--sidebar-width--2rem))] relative left-[calc(+0.5rem)] mr-1.5'
+      className='w-[1100px] h-[725px]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
         <ResizablePanelGroup
@@ -229,11 +229,11 @@ const CodingView = () => {
                           <ChevronDown />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent data-testid='languageMenu' forceMount // forces it to stay in the DOM so it can be testable
+                      <DropdownMenuContent data-testid='languageMenu' //forceMount // forces it to stay in the DOM so it can be testable
                         className="z-10 bg-white w-26 border-1 rounded-xl"
                       >
                         {languages.map((lang) => (
-                          <DropdownMenuItem  data-testid={`languageItem-${lang}`} key={lang} className="text-s font-medium p-1 m-1 hover:border-none hover:bg-purple-200"
+                          <DropdownMenuItem  data-testid={`languageItem-${lang}`} key={lang} className="text-s font-medium p-1 m-1 hover:border-none hover:bg-primary-200"
                             onSelect={ () => {setSelectedLang(lang); //console.log(files[1]); selectedTemp(templates[lang])
                             } }
                           >

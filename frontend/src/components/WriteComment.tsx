@@ -20,7 +20,7 @@ export function WriteComment() {
                 <CodeXml size={20} className="ml-auto w-8 h-7 p-1 rounded-lg bg-background hover:bg-gray-200" />
                 <Link2 size={20} className="ml-auto w-8 h-7 p-1 rounded-lg bg-background hover:bg-gray-200" />
             </div>
-            <InputGroupButton size="sm" className="ml-auto bg-purple-600 text-white" >
+            <InputGroupButton size="sm" className="ml-auto bg-primary-600 text-white" >
               Comment
               <Send className="mt-[1px]" />
             </InputGroupButton>

@@ -129,14 +129,14 @@ const CodeDescArea = (
                 >
                     <TabsTrigger data-testid="tabs-trigger" value={t.id} asChild
                         className='w-full bg-muted rounded-none
-                            data-[state=active]:border-purple-700
-                            data-[state=active]:text-purple-700
+                            data-[state=active]:border-primary
+                            data-[state=active]:text-primary
                             data-[state=active]:bg-muted
                             data-[state=active]:shadow-none
                             data-[state=active]:border-b-[2.5px]
                             data-[state=active]:border-x-0
                             data-[state=active]:border-t-0
-                            dark:data-[state=active]:border-purple-700
+                            dark:data-[state=active]:border-primary
                         '
                     >
                         <motion.div
@@ -278,7 +278,7 @@ const CodeDescArea = (
                         {leaderboard.map((l, idx) => {
                             return <TableRow key={`rank #${idx+1}`} >
                                 <TableCell className="font-medium">#{idx+1}</TableCell>
-                                <TableCell className='font-semibold text-purple-600'>{l.name}</TableCell>
+                                <TableCell className='font-semibold text-primary'>{l.name}</TableCell>
                                 <TableCell className="text-right text-gray-500" >{l.points}</TableCell>
                                 <TableCell className="text-right text-gray-500" >{l.solved}</TableCell>
                                 <TableCell className="text-right text-gray-500" >{l.runtime}</TableCell>
