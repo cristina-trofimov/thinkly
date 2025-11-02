@@ -40,8 +40,8 @@ jobs:
         source .venv/bin/activate
         pytest --cov=src --cov-branch --cov-report=xml:coverage.xml
        working-directory: ./backend
-      #  env:
-      #    PYTHONPATH: .
+       env:
+         PYTHONPATH: .
 
      - name: Debug - Frontend coverage directory
        run: ls -la ./frontend/coverage || echo "Frontend coverage directory not found"
