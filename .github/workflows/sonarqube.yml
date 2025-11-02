@@ -1,4 +1,4 @@
-name: SonarQube Code Analysis
+name: Code Analysis
 on:
  push:
    branches:
@@ -6,14 +6,15 @@ on:
  pull_request:
     
 jobs:
- sonarqube:
-   name: SonarQube
+ analysis:
+   name: SonarQube and CodeCov
    runs-on: ubuntu-latest
    steps:
      - uses: actions/checkout@v4
        with:
          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
  
+    # Frontend setup
      - name: Set up Node
        uses: actions/setup-node@v4
 
@@ -25,44 +26,56 @@ jobs:
        run: npm test -- --coverage
        working-directory: ./frontend
 
-     # - name: Install virtual environment
-     #   run: python -m venv .venv
-     #   working-directory: ./backend
+    #  Backend setup
 
-     # - name: Install dependencies
-     #   run: pip install -r ./requirements.txt
-     #   working-directory: ./backend
+     - name: Create virtual environment and install dependencies
+       run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        pip install -r ./requirements.txt
+       working-directory: ./backend
 
-     # - name: Run tests with coverage
-     #   working-directory: ./backend
-     #   env:
-     #     PYTHONPATH: .
-     #   run: pytest --cov --cov-branch --cov-report=xml
+     - name: Run backend tests with coverage
+       run: |
+        source .venv/bin/activate
+        pytest --cov=src --cov-branch --cov-report=xml:coverage.xml
+       working-directory: ./backend
+       env:
+         PYTHONPATH: .
 
-     - name: Debug - List coverage directory
-       run: ls -la coverage || echo "Coverage directory not found"
+     - name: Debug - Frontend coverage directory
+       run: ls -la ./frontend/coverage || echo "Frontend coverage directory not found"
      
      - name: Debug - Check for lcov.info
-       run: cat coverage/lcov.info || echo "lcov.info not found"
+       run: cat ./frontend/coverage/lcov.info || echo "lcov.info not found"
+
+     - name: Debug - Backend coverage directory
+       run: ls -la ./backend/coverage.xml || echo "Backend coverage directory not found"
+     
+     - name: Debug - Check for coverage.xml
+       run: cat ./backend/coverage.xml || echo "coverage.xml not found"
         
      - name: SonarQube Scan
        uses: SonarSource/sonarqube-scan-action@v5
        env:
          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-         # SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
        with:
-         args: >
-           -Dsonar.verbose=true
-           -Dsonar.projectBaseDir=.
-           -Dsonar.javascript.lcov.reportPaths=./coverage/lcov.info
-           -Dsonar.sources=./frontend/src,./backend/src
-           -Dsonar.tests=./frontend/tests,./backend/tests
-           -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-           -Dsonar.pullrequest.branch=${{ github.head_ref }}
-           -Dsonar.pullrequest.base=${{ github.base_ref }}
+        args: >
+          -Dsonar.verbose=true
+          -Dsonar.projectBaseDir=.
+          -Dsonar.sources=./frontend/src,./backend/src
+          -Dsonar.tests=./frontend/tests,./backend/tests
+          -Dsonar.javascript.lcov.reportPaths=./frontend/coverage/lcov.info
+          -Dsonar.python.coverage.reportPaths=./backend/coverage.xml
+          -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+          -Dsonar.pullrequest.branch=${{ github.head_ref }}
+          -Dsonar.pullrequest.base=${{ github.base_ref }}
 
      - name: Upload coverage to Codecov
        uses: codecov/codecov-action@v5
        with:
          token: ${{ secrets.CODECOV_TOKEN }}
+         files: ./frontend/coverage/lcov.info,./backend/coverage.xml
          fail_ci_if_error: false
+         verbose: true
