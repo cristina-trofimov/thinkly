@@ -1,19 +1,13 @@
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from src.DB_Methods.crudOperations import SessionLocal, get_all_competitions, get_scoreboard_for_competition
-from src.models.schema import User, Competition, Scoreboard, UserResult
-
-app = FastAPI()
-
-# Allow your frontend to access the API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # or your frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+from DB_Methods.crudOperations import (
+    SessionLocal,
+    get_all_competitions,
+    get_scoreboard_for_competition
 )
+from models.schema import User, Competition, Scoreboard, UserResult
+router = APIRouter()
+
 
 def get_db():
     db = SessionLocal()
@@ -22,7 +16,7 @@ def get_db():
     finally:
         db.close()
 
-@app.get("/leaderboards")
+@router.get("/leaderboards")
 def get_leaderboards(db: Session = Depends(get_db)):
     competitions = get_all_competitions(db)
     result = []
@@ -31,7 +25,6 @@ def get_leaderboards(db: Session = Depends(get_db)):
         participants = []
         for s in scoreboards:
             if s.user:
-                # Fetch UserResult for more details
                 ur = db.query(UserResult).get((s.user_id, s.competition_id))
                 participants.append({
                     "name": f"{s.user.first_name} {s.user.last_name}",
@@ -40,7 +33,7 @@ def get_leaderboards(db: Session = Depends(get_db)):
                     "totalTime": f"{ur.total_time:.1f} min" if ur else "0.0 min",
                 })
         result.append({
-            "id": comp.competition_id,
+            "id": str(comp.competition_id),
             "name": comp.name,
             "date": comp.date.strftime("%Y-%m-%d"),
             "participants": participants

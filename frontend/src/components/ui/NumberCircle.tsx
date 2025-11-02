@@ -17,7 +17,7 @@ export function NumberCircle({ number, className }: NumberCircleProps) {
       case 3:
         return "bg-orange-400"; // bronze
       default:
-        return "bg-[#A894E5]"; // purple
+        return "bg-primary"; // purple
     }
   };
 
