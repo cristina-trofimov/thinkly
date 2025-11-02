@@ -18,9 +18,12 @@ from sqlalchemy.orm import Session
 import uuid, bcrypt, jwt
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.exc import IntegrityError
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Import your models here (adjust the import path as needed)
-from src.models.schema import (
+from models.schema import (
     User,
     UserPreferences,
     Session as SessionModel,
@@ -38,12 +41,39 @@ from src.models.schema import (
     Scoreboard,
     UserCooldown
 )
-from src.models import User, SessionModel as UserSession
+from models import User, SessionModel as UserSession
 
 #---------------------------- Config Values (to be changed) ------------
 JWT_SECRET_KEY = "YOUR_SECRET_KEY"   # should come from env var
 JWT_ALGORITHM = "HS256"
 SESSION_DURATION_HOURS = 2
+
+
+
+
+# ---------------- DATABASE CONNECTION SETUP ----------------
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/ThinklyDB"
+)
+
+engine = create_engine(DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    """
+    Dependency-style generator for getting a new database session.
+    Usage example:
+        with next(get_db()) as db:
+            ...
+    Or inside FastAPI:
+        Depends(get_db)
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 # --------------------------- Utility helpers ---------------------------
@@ -932,7 +962,15 @@ def get_all_algotime_stats_for_user(db: Session, user_id: int) -> List[UserAlgoT
 
 # --------------------------- 11) CRUD user results and answers ---------------------------
 
-def upsert_user_result(db: Session, user_id: int, competition_id: int, total_score: Optional[int]=None, rank: Optional[int]=None) -> UserResult:
+def upsert_user_result(
+    db: Session,
+    user_id: int,
+    competition_id: int,
+    total_score: Optional[int] = None,
+    rank: Optional[int] = None,
+    problems_solved: Optional[int] = None,
+    total_time: Optional[float] = None
+) -> UserResult:
     ur = db.query(UserResult).get((user_id, competition_id))
     if not ur:
         ur = UserResult(user_id=user_id, competition_id=competition_id)
@@ -941,6 +979,11 @@ def upsert_user_result(db: Session, user_id: int, competition_id: int, total_sco
         ur.total_score = total_score
     if rank is not None:
         ur.rank = rank
+    if problems_solved is not None:
+        ur.problems_solved = problems_solved
+    if total_time is not None:
+        ur.total_time = total_time
+
     _commit_or_rollback(db)
     db.refresh(ur)
     return ur

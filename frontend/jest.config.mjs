@@ -12,6 +12,9 @@ export default {
     }
   },
   transform: { ...tsJestTransformCfg },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@radix-ui)/)',
+  ],
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/tests/__mocks__/fileMock.js',
