@@ -6,7 +6,6 @@ import ErroPage from '../src/components/ErrorPage'
 const nav = jest.fn()
 
 jest.mock("react-router-dom", () => ({
-    // ...jest.requireActual("react-router-dom"), // Other exports
     useNavigate: () => nav,
 }))
 
