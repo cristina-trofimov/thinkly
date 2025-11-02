@@ -2,8 +2,8 @@
 import { cn } from "@/lib/utils";
 
 interface NumberCircleProps {
-  number: number;
-  className?: string;
+  readonly number: number;
+  readonly className?: string;
 }
 
 export function NumberCircle({ number, className }: NumberCircleProps) {

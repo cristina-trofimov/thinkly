@@ -1,6 +1,6 @@
 # do /backend and run python -m src.Components.leaderboards.loadDBToDelete
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import random
 from src.DB_Methods.crudOperations import (
     create_user,
@@ -35,7 +35,7 @@ print("✅ Created 10 users.")
 
 # 2️⃣ Create 5 competitions (4 past, 1 future)
 competitions = []
-now = datetime.utcnow()
+now = datetime.now(timezone.utc)
 for i in range(1, 6):
     date = now - timedelta(days=i * 7) if i < 5 else now + timedelta(days=14)
     comp = create_competition(

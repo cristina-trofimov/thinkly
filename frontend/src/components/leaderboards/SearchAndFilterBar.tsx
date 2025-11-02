@@ -13,10 +13,10 @@ import {
 import { Filter } from "lucide-react";
 
 interface SearchAndFilterBarProps {
-  search: string;
-  setSearch: (v: string) => void;
-  sortAsc: boolean;
-  setSortAsc: (v: boolean) => void;
+  readonly search: string;
+  readonly setSearch: (v: string) => void;
+  readonly sortAsc: boolean;
+  readonly setSortAsc: (v: boolean) => void;
 }
 
 export function SearchAndFilterBar({

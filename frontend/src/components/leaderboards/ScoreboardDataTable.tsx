@@ -18,66 +18,89 @@ import {
 } from "@/components/ui/table";
 
 type Participant = {
-  name: string;
-  points: number;
-  problemsSolved: number;
-  totalTime: string;
+  readonly name: string;
+  readonly points: number;
+  readonly problemsSolved: number;
+  readonly totalTime: string;
 };
 
 interface Props {
   participants: Participant[];
 }
 
+// --- Move headers and cells out of parent component ---
+const RankHeader = () => (
+  <div className="flex items-center gap-1">
+    <Hash className="w-4 h-4 text-gray-500" />
+    Rank
+  </div>
+);
+
+const NameHeader = () => (
+  <div className="flex items-center gap-1">
+    <User className="w-4 h-4 text-gray-500" />
+    Name
+  </div>
+);
+
+const NameCell = ({ name }: { name: string }) => (
+  <span className="font-medium">{name}</span>
+);
+
+const PointsHeader = () => (
+  <div className="flex items-center gap-1">
+    <Star className="w-4 h-4 text-gray-500" />
+    Total Points
+  </div>
+);
+
+const ProblemsSolvedHeader = () => (
+  <div className="flex items-center gap-1">
+    <ListChecks className="w-4 h-4 text-gray-500" />
+    Problems Solved
+  </div>
+);
+
+const TotalTimeHeader = () => (
+  <div className="flex items-center gap-1">
+    <Clock className="w-4 h-4 text-gray-500" />
+    Total Time
+  </div>
+);
+
+const RankCell = ({ index }: { index: number }) => <NumberCircle number={index + 1} />;
+
+// --- Helper for row background color ---
+const getRowBgClass = (idx: number) => {
+  if (idx === 0) return "bg-yellow-100";
+  if (idx === 1) return "bg-gray-100";
+  if (idx === 2) return "bg-orange-100";
+  return "";
+};
+
 export function ScoreboardDataTable({ participants }: Props) {
   const columns: ColumnDef<Participant>[] = [
     {
       id: "rank",
-      header: () => (
-        <div className="flex items-center gap-1">
-          <Hash className="w-4 h-4 text-gray-500" />
-          Rank
-        </div>
-      ),
-      cell: ({ row }) => <NumberCircle number={row.index + 1} />,
+      header: RankHeader,
+      cell: ({ row }) => <RankCell index={row.index} />,
     },
     {
       accessorKey: "name",
-      header: () => (
-        <div className="flex items-center gap-1">
-          <User className="w-4 h-4 text-gray-500" />
-          Name
-        </div>
-      ),
-      cell: ({ row }) => (
-        <span className="font-medium">{row.original.name}</span>
-      ),
+      header: NameHeader,
+      cell: ({ row }) => <NameCell name={row.original.name} />,
     },
     {
       accessorKey: "points",
-      header: () => (
-        <div className="flex items-center gap-1">
-          <Star className="w-4 h-4 text-gray-500" />
-          Total Points
-        </div>
-      ),
+      header: PointsHeader,
     },
     {
       accessorKey: "problemsSolved",
-      header: () => (
-        <div className="flex items-center gap-1">
-          <ListChecks className="w-4 h-4 text-gray-500" />
-          Problems Solved
-        </div>
-      ),
+      header: ProblemsSolvedHeader,
     },
     {
       accessorKey: "totalTime",
-      header: () => (
-        <div className="flex items-center gap-1">
-          <Clock className="w-4 h-4 text-gray-500" />
-           Total Time
-        </div>
-      ),
+      header: TotalTimeHeader,
     },
   ];
 
@@ -109,24 +132,10 @@ export function ScoreboardDataTable({ participants }: Props) {
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row, idx) => (
-              <TableRow
-                key={row.id}
-                className={
-                  idx === 0
-                    ? "bg-yellow-100"
-                    : idx === 1
-                    ? "bg-gray-100"
-                    : idx === 2
-                    ? "bg-orange-100"
-                    : ""
-                }
-              >
+              <TableRow key={row.id} className={getRowBgClass(idx)}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>

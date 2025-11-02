@@ -7,24 +7,41 @@ import type { Competition } from "./Leaderboards";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
 
 interface Props {
-  competition: Competition;
+  readonly competition: Competition;
 }
 
 export function CompetitionCard({ competition }: Props) {
   const [open, setOpen] = useState(false);
 
   const hasScoreboard = competition.participants && competition.participants.length > 0;
+  const borderColor = hasScoreboard ? "border-gray-200" : "border-blue-200";
+  const backgroundColor = open
+    ? "bg-white"
+    : hasScoreboard
+    ? "bg-gray-50"
+    : "bg-blue-50";
+
+  let statusIndicator;
+  if (hasScoreboard) {
+    statusIndicator = open ? (
+      <ChevronUp className="w-5 h-5 text-gray-600" />
+    ) : (
+      <ChevronDown className="w-5 h-5 text-gray-600" />
+    );
+  } else {
+    statusIndicator = (
+      <span className="px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">
+        Upcoming
+      </span>
+    );
+  }
 
   return (
-    <Card
-      className={`mb-6 shadow-sm border ${
-        hasScoreboard ? "border-gray-200" : "border-blue-200"
-      } ${open ? "bg-white" : hasScoreboard ? "bg-gray-50" : "bg-blue-50"}`}
-    >
+    <Card className={`mb-6 shadow-sm border ${borderColor} ${backgroundColor}`}>
       <CardHeader
         onClick={() => hasScoreboard && setOpen(!open)}
         className={`flex flex-row items-center justify-between px-6 py-4 ${
-          !hasScoreboard ? "opacity-70 cursor-default" : "cursor-pointer"
+          hasScoreboard ? "cursor-pointer" : "opacity-70 cursor-default"
         }`}
       >
         <div>
@@ -39,18 +56,8 @@ export function CompetitionCard({ competition }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          {hasScoreboard ? (
-            open ? (
-              <ChevronUp className="w-5 h-5 text-gray-600" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-gray-600" />
-            )
-          ) : (
-            <span className="px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">
-              Upcoming
-            </span>
-          )}
-        </div>
+    {statusIndicator}
+  </div>
       </CardHeader>
 
       {hasScoreboard && open && (
