@@ -4,6 +4,7 @@ import { Hash, User, Star, ListChecks, Clock } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
 import {
   type ColumnDef,
+  type CellContext,
   flexRender,
   getCoreRowModel,
   useReactTable,
@@ -43,9 +44,6 @@ const NameHeader = () => (
   </div>
 );
 
-const NameCell = ({ name }: { name: string }) => (
-  <span className="font-medium">{name}</span>
-);
 
 const PointsHeader = () => (
   <div className="flex items-center gap-1">
@@ -68,7 +66,6 @@ const TotalTimeHeader = () => (
   </div>
 );
 
-const RankCell = ({ index }: { index: number }) => <NumberCircle number={index + 1} />;
 
 // --- Helper for row background color ---
 const getRowBgClass = (idx: number) => {
@@ -77,21 +74,25 @@ const getRowBgClass = (idx: number) => {
   if (idx === 2) return "bg-orange-100";
   return "";
 };
+const RankCellRenderer = (props: CellContext<Participant, unknown>) => {
+  return <NumberCircle number={props.row.index + 1} />;
+};
+
+const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
+  return <span className="font-medium">{props.row.original.name}</span>;
+};
 
 export function ScoreboardDataTable({ participants }: Props) {
-  const RankCellRenderer = ({ index }: { index: number }) => <RankCell index={index} />;
-  const NameCellRenderer = ({ name }: { name: string }) => <NameCell name={name} />;
-
   const columns: ColumnDef<Participant>[] = [
     {
       id: "rank",
       header: RankHeader,
-      cell: (props) => <RankCellRenderer index={props.row.index} />,
+      cell: RankCellRenderer, // just pass the component
     },
     {
       accessorKey: "name",
       header: NameHeader,
-      cell: (props) => <NameCellRenderer name={props.row.original.name} />,
+      cell: NameCellRenderer, // just pass the component
     },
     {
       accessorKey: "points",
