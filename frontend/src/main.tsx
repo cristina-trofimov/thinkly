@@ -8,11 +8,13 @@ import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import  HomePage from './HomePage.tsx'
+import ErrorPage from './components/ErrorPage.tsx'
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Layout />,
+    errorElement: <ErrorPage />,
     handle: {
       crumb: { title: "Home" }
     },
