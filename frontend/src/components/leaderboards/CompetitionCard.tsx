@@ -15,19 +15,24 @@ export function CompetitionCard({ competition }: Props) {
 
   const hasScoreboard = competition.participants && competition.participants.length > 0;
   const borderColor = hasScoreboard ? "border-gray-200" : "border-blue-200";
-  const backgroundColor = open
-    ? "bg-white"
-    : hasScoreboard
-    ? "bg-gray-50"
-    : "bg-blue-50";
+  let backgroundColor: string;
+
+  if (open) {
+    backgroundColor = "bg-white";
+  } else if (hasScoreboard) {
+    backgroundColor = "bg-gray-50";
+  } else {
+    backgroundColor = "bg-blue-50";
+  }
 
   let statusIndicator;
+
   if (hasScoreboard) {
-    statusIndicator = open ? (
-      <ChevronUp className="w-5 h-5 text-gray-600" />
-    ) : (
-      <ChevronDown className="w-5 h-5 text-gray-600" />
-    );
+    if (open) {
+      statusIndicator = <ChevronUp className="w-5 h-5 text-gray-600" />;
+    } else {
+      statusIndicator = <ChevronDown className="w-5 h-5 text-gray-600" />;
+    }
   } else {
     statusIndicator = (
       <span className="px-2 py-0.5 text-xs bg-blue-200 text-blue-800 rounded-full">

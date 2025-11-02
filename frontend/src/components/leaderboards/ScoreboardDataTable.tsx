@@ -25,7 +25,7 @@ type Participant = {
 };
 
 interface Props {
-  participants: Participant[];
+  readonly participants: Participant[];
 }
 
 // --- Move headers and cells out of parent component ---
@@ -79,16 +79,19 @@ const getRowBgClass = (idx: number) => {
 };
 
 export function ScoreboardDataTable({ participants }: Props) {
+  const RankCellRenderer = ({ index }: { index: number }) => <RankCell index={index} />;
+  const NameCellRenderer = ({ name }: { name: string }) => <NameCell name={name} />;
+
   const columns: ColumnDef<Participant>[] = [
     {
       id: "rank",
       header: RankHeader,
-      cell: ({ row }) => <RankCell index={row.index} />,
+      cell: (props) => <RankCellRenderer index={props.row.index} />,
     },
     {
       accessorKey: "name",
       header: NameHeader,
-      cell: ({ row }) => <NameCell name={row.original.name} />,
+      cell: (props) => <NameCellRenderer name={props.row.original.name} />,
     },
     {
       accessorKey: "points",
