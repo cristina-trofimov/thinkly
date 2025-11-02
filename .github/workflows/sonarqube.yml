@@ -1,4 +1,4 @@
-name: SonarQube Code Analysis
+name: Code Analysis
 on:
  push:
    branches:
@@ -6,8 +6,8 @@ on:
  pull_request:
     
 jobs:
- sonarqube:
-   name: SonarQube
+ analysis:
+   name: SonarQube and CodeCov
    runs-on: ubuntu-latest
    steps:
      - uses: actions/checkout@v4
