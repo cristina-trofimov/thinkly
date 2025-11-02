@@ -1,21 +1,21 @@
 import { useEffect, useRef, } from 'react'
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "./ui/resizable";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
 import { SandboxConsole, SandboxLayout, SandboxPreview, SandboxProvider,
-          SandboxTabs, SandboxTabsContent } from "./ui/shadcn-io/sandbox";
+          SandboxTabs, SandboxTabsContent } from "../ui/shadcn-io/sandbox";
 import CodingArea from "./CodingArea";
 import CodeDescArea from "./CodeDescArea";
 import CodeOutputArea from "./CodeOutputArea";
 import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, FileText, History, MessageCircle, Trophy } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-import { DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { getSandpackConfigs } from "./helpers/SandpackConfig";
+import { DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { getSandpackConfigs } from "../helpers/SandpackConfig";
 import type { ImperativePanelHandle } from 'react-resizable-panels';
-import type { SubmissionType } from './interfaces/SubmissionType';
-import type { ProblemInfo } from './interfaces/ProblemInfo';
-import type { CommentType } from './interfaces/CommentType';
-import type { LeaderboardType } from './interfaces/LeaderboardType';
-import { useStateCallback } from './helpers/UseStateCallback';
+import type { SubmissionType } from '../interfaces/SubmissionType';
+import type { ProblemInfo } from '../interfaces/ProblemInfo';
+import type { CommentType } from '../interfaces/CommentType';
+import type { LeaderboardType } from '../interfaces/LeaderboardType';
+import { useStateCallback } from '../helpers/UseStateCallback';
 
 
 const CodingView = () => {

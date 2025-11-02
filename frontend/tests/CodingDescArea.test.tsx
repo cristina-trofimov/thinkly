@@ -1,11 +1,11 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import CodeDescArea from '../src/components/CodeDescArea'
+import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
 import { Regex } from 'lucide-react'
 
 
-jest.mock('../src/components/CodingArea', () => ({
+jest.mock('../src/components/codingPage/CodingArea', () => ({
     __esModule: true,
     default: () => <div data-testid="coding-area" />
 }))

@@ -1,5 +1,5 @@
 import React from 'react'
-import { SandboxTabsContent, SandboxConsole } from './ui/shadcn-io/sandbox'
+import { SandboxTabsContent, SandboxConsole } from '../ui/shadcn-io/sandbox'
 
 const CodeOutputArea = () => {
   return (

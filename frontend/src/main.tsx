@@ -5,7 +5,7 @@ import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
-import CodingView from './components/CodingView.tsx'
+import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import  HomePage from './HomePage.tsx'
 

@@ -1,20 +1,20 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import CodingView from '../src/components/CodingView'
+import CodingView from '../src/components/codingPage/CodingView'
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import userEvent from '@testing-library/user-event'
 
-jest.mock('../src/components/CodeDescArea', () => ({
+jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     __esModule: true,
     default: () => <div data-testid="desc-area" />
 }))
 
-jest.mock('../src/components/CodeOutputArea', () => ({
+jest.mock('../src/components/codingPage/CodeOutputArea', () => ({
     __esModule: true,
     default: () => <div data-testid="output-area" />
 }))
 
-jest.mock('../src/components/CodingArea', () => ({
+jest.mock('../src/components/codingPage/CodingArea', () => ({
     __esModule: true,
     default: () => <div data-testid="coding-area" />
 }))
