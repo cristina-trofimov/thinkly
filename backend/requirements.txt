@@ -1,2 +1,17 @@
 pytest
 pytest-cov
+fastapi
+httpx
+
+# Core framework & ORM
+SQLAlchemy>=2.0.0
+
+# PostgreSQL driver for SQLAlchemy
+psycopg2-binary>=2.9.0
+
+# Password hashing
+bcrypt>=4.0.0
+
+# JWT tokens
+PyJWT>=2.8.0
+
