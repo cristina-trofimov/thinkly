@@ -5,7 +5,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
 
     Java: {
         fileExt: "java",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
             `class ${problemName} {
             public static void main(String[] args) {
@@ -19,7 +19,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     Python: {
         fileExt: "py",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `def ${problemName}(${inputVars.map(v => v.name).join(', ')}}):
         # TODO
@@ -36,7 +36,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     Python3: {
         fileExt: "py",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `import sys
             def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
@@ -54,7 +54,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     C: {
         fileExt: "c",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `#include <stdio.h>
             void solution(${inputVars.map(v => `${v.type} ${v.name}`).join(', ')}) {
@@ -69,7 +69,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "C#": {
         fileExt: "cs",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `using System;
         
@@ -86,7 +86,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "C++": {
         fileExt: "cs",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `using System;
         
@@ -103,7 +103,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Kotlin": {
         fileExt: "kt",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `fun main(){
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
@@ -115,7 +115,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Typescript": {
         fileExt: "ts",
-        template: 'node', // ???
+        template: 'node',
         codeBuilder: (problemName, inputVars, outputType) =>
         `function ${problemName}(${inputVars.map(v => `${v.name}${`: ${v.type}`}`).join(', ')}: { ${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')} }): void {
             // TODO
@@ -125,7 +125,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Javascript": {
         fileExt: "js",
-        template: 'node', // ???
+        template: 'node',
         codeBuilder: (problemName, inputVars, outputType) =>
         `function ${problemName}(${inputVars.map(v => v.name).join(', ')}): {
             // TODO
@@ -134,7 +134,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Ruby": {
         fileExt: "rb",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
             # TODO
@@ -147,7 +147,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Rust": {
         fileExt: "rs",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `fn main() {
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
@@ -160,7 +160,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     "Erlang": {
         fileExt: "erl",
-        template: 'vanilla', // ???
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
         `-module(${problemName.toLowerCase()}).
             -export([main/0]).

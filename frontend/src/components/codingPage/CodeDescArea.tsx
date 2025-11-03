@@ -1,8 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import type { ProblemInfo } from '../interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { WriteComment } from '../WriteComment'
-import ViewComment from '../ViewComment'
 import { FileText, History, MessageCircle, Trophy } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, } from 'react'
 import { motion, AnimatePresence } from "motion/react";
@@ -25,7 +23,6 @@ const CodeDescArea = (
         {"id": "description", "text":  "Description", "icon": <FileText />},
         {"id": "submissions", "text":  "Submissions", "icon": <History />},
         {"id": "leaderboard", "text":  "Leaderboard", "icon": <Trophy />},
-        {"id": "discussion", "text":  "Discussion", "icon": <MessageCircle />},
     ]
 
     const code = [
@@ -291,25 +288,6 @@ const CodeDescArea = (
                         </TableRow>
                     </TableFooter>
                 </Table>
-            </div>
-        </TabsContent>
-
-        {/* Discussion */}
-        <TabsContent value='discussion' data-testid="tabs-content-discussion" >
-            <div className='p-6' >
-                <WriteComment data-testid='write-comment' />
-                <div className='mt-4 flex flex-col gap-2'>
-                    {comments.map((c, idx) => {
-                        return <div key={`comment-wrapper-${idx}`} className='flex flex-col gap-1.5'>
-                            <ViewComment data-testid="view-comment" comment={c} key={`comment ${idx+1}`} />
-                            {c.replies.map((r, ridx) => {
-                                return <div className='ml-5 flex flex-col gap-1.5'>
-                                    <ViewComment data-testid="view-comment" comment={r} key={`comment ${ridx+1}`} />
-                                </div>
-                            })}
-                        </div>
-                    })}
-                </div>
             </div>
         </TabsContent>
     </Tabs>

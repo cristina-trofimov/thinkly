@@ -144,7 +144,7 @@ describe('CodeDescArea', () => {
     />)
 
     const triggers = screen.getAllByTestId("tabs-trigger")
-    expect(triggers.length).toBe(4)
+    expect(triggers.length).toBe(3)
   })
 
   it("renders Description tab with problem title and description (by default)", () => {
@@ -209,23 +209,6 @@ describe('CodeDescArea', () => {
     expect(screen.getByText("#1")).toBeInTheDocument()
     expect(screen.getByText("Alice")).toBeInTheDocument()
     expect(screen.getByText("100")).toBeInTheDocument()
-  })
-
-  it("can switch to Discussion tab and renders comments and replies", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-      leaderboard={leaderboard}
-      comments={comments}
-    />)
-
-    const tab = screen.getByText("Discussion")
-    fireEvent.click(tab)
-
-    expect(screen.getByTestId("write-comment")).toBeInTheDocument()
-    expect(screen.getAllByTestId("view-comment").length).toBeGreaterThan(1)
-    expect(screen.getByText("Great problem!")).toBeInTheDocument()
-    expect(screen.getByText("Thanks!")).toBeInTheDocument()
   })
 
   it('formats submission time properly', () => {
