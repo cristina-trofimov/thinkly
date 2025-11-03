@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { WriteComment } from '../WriteComment'
 import ViewComment from '../ViewComment'
 import { FileText, History, MessageCircle, Trophy } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, } from 'react'
+import { act, useEffect, useLayoutEffect, useRef, useState, } from 'react'
 import { motion, AnimatePresence } from "motion/react";
 import type { SubmissionType } from '../interfaces/SubmissionType'
 import type { LeaderboardType } from '../interfaces/LeaderboardType'
@@ -22,10 +22,10 @@ const CodeDescArea = (
 }) => {
     
     const tabs = [
-        {"id": "description", "text":  "Description", "icon": <FileText />},
-        {"id": "submissions", "text":  "Submissions", "icon": <History />},
-        {"id": "leaderboard", "text":  "Leaderboard", "icon": <Trophy />},
-        {"id": "discussion", "text":  "Discussion", "icon": <MessageCircle />},
+        {"id": "description", "label":  "Description", "icon": <FileText />},
+        {"id": "submissions", "label":  "Submissions", "icon": <History />},
+        {"id": "leaderboard", "label":  "Leaderboard", "icon": <Trophy />},
+        {"id": "discussion", "label":  "Discussion", "icon": <MessageCircle />},
     ]
 
     const code = [
@@ -59,13 +59,27 @@ const CodeDescArea = (
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useStateCallback(0)
+    const [initialWidth, setInitialWidth] = useState<number | null>(null)
 
-    useLayoutEffect(() => {
-        const updateWidth = () => { setContainerWidth(containerRef.current?.offsetWidth || 0) }
-        updateWidth();
-        window.addEventListener('resize', updateWidth)
-        return () => window.removeEventListener('resize', updateWidth)
-    }, [])
+    useEffect(() => {
+        if (!containerRef.current) return
+
+        const observer = new ResizeObserver(entries => {
+            const width = entries[0].contentRect.width
+            setContainerWidth(width)
+            if (initialWidth === null) setInitialWidth(width)
+        })
+
+        observer.observe(containerRef.current)
+        return () => observer.disconnect()
+    }, [initialWidth])
+
+    // useLayoutEffect(() => {
+    //     const updateWidth = () => { setContainerWidth(containerRef.current?.offsetWidth || 0) }
+    //     updateWidth();
+    //     window.addEventListener('resize', updateWidth)
+    //     return () => window.removeEventListener('resize', updateWidth)
+    // }, [])
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
@@ -97,8 +111,10 @@ const CodeDescArea = (
     }
     
   return (
-    <Tabs data-testid="tabs" defaultValue='description' className='w-full' >
-        <TabsList data-testid="tabs-list" //ref={containerRef}
+    <Tabs data-testid="tabs" defaultValue='description'
+        value={activeTab} onValueChange={setActiveTab} className='w-full flex-none'
+    >
+        <TabsList data-testid="tabs-list" ref={containerRef}
             className={`w-full flex rounded-none h-10 bg-muted 
                         border-b border-border/75 dark:border-border/50 py-0 px-4`}
         >
@@ -115,20 +131,8 @@ const CodeDescArea = (
                     }
                 }, [activeTab])
 
-                return <motion.div
-                        key={t.id} layout initial={false}
-                        onClick={() => setActiveTab(t.id)}
-                        className={`flex items-center justify-center overflow-hidden cursor-pointer
-                            ${isActive ? 'flex-grow basis-0' : 'flex-grow-0 flex-shrink basis-auto'}`}
-                        animate={{ flexGrow: isActive ? 1 : 0}}
-                        transition={{
-                            type: "tween",
-                            stiffness: 400,
-                            damping: 25
-                        }}
-                >
-                    <TabsTrigger data-testid="tabs-trigger" value={t.id} asChild
-                        className='w-full bg-muted rounded-none
+                return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
+                        className={`bg-muted rounded-none
                             data-[state=active]:border-primary
                             data-[state=active]:text-primary
                             data-[state=active]:bg-muted
@@ -137,31 +141,13 @@ const CodeDescArea = (
                             data-[state=active]:border-x-0
                             data-[state=active]:border-t-0
                             dark:data-[state=active]:border-primary
-                        '
+                            flex items-center gap-2 transition-all
+                            ${ showText ? 'px-4' : 'px-2' }
+                        `}
                     >
-                        <motion.div
-                            className={`flex items-center justify-center gap-2 w-full`}
-                            animate={{ filter: 'blur(0px)' }}
-                            exit={{ filter: 'blur(2px)' }}
-                            transition={{ duration: 0.25, ease: 'easeOut' }}
-                        >
-                            {t.icon}
-                            <AnimatePresence initial={false}>
-                            {showText && (
-                                <motion.span
-                                    className='font-medium'
-                                    initial={{ opacity: 0, scaleX: 0.8 }}
-                                    animate={{ opacity: 1, scaleX: 1 }}
-                                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                                    style={{ originX: 0 }}
-                                >
-                                    {t.text}
-                                </motion.span>
-                            )}
-                            </AnimatePresence>
-                        </motion.div>
+                        {t.icon}
+                        {showText && t.label}
                     </TabsTrigger>
-                </motion.div>
             })}
         </TabsList>
 
@@ -212,8 +198,6 @@ const CodeDescArea = (
 
                     <TableBody>
                         {submissions.map((s, idx) => {
-                            
-
                             return (
                             <TableRow key={`submission ${idx}`} >
                                 <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
@@ -261,7 +245,8 @@ const CodeDescArea = (
         </TabsContent>
 
         {/* Leaderboard */}
-        <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
+        <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" 
+        className='w-full' >
             <div className='p-6' >
                 <Table data-testid="table" >
                     <TableHeader>
@@ -296,9 +281,11 @@ const CodeDescArea = (
 
         {/* Discussion */}
         <TabsContent value='discussion' data-testid="tabs-content-discussion" >
-            <div className='p-6' >
-                <WriteComment data-testid='write-comment' />
-                <div className='mt-4 flex flex-col gap-2'>
+            <div className='p-3' >
+                <div className='max-h-1/3' >
+                    <WriteComment data-testid='write-comment' />
+                </div>
+                <div className='mt-4 flex flex-col gap-2 max-h-2/3 overflow-scroll'>
                     {comments.map((c, idx) => {
                         return <div key={`comment-wrapper-${idx}`} className='flex flex-col gap-1.5'>
                             <ViewComment data-testid="view-comment" comment={c} key={`comment ${idx+1}`} />
