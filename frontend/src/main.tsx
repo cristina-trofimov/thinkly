@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { Layout } from './components/layout/AppLayout.tsx'
+import { Leaderboards } from './components/leaderboards/Leaderboards'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
       },
       {
         path: "leaderboards",
+        element: <Leaderboards />,
         handle: {
           crumb: { title: "Leaderboards" }
         },

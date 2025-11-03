@@ -8,9 +8,9 @@ import inspect
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.db import Base
-from src import models
-from src.DB_Methods import crudOperations as crud
+from db import Base
+import models
+from DB_Methods import crudOperations as crud
 import bcrypt
 
 def setup_db():
