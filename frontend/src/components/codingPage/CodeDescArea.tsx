@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import type { ProblemInfo } from '../interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { FileText, History, MessageCircle, Trophy } from 'lucide-react'
+import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, } from 'react'
 import { motion, AnimatePresence } from "motion/react";
 import type { SubmissionType } from '../interfaces/SubmissionType'
@@ -87,7 +87,7 @@ const CodeDescArea = (
         } else if (minutes > 0) {
             displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
         } else {
-            displayTime = `${seconds} second${seconds !== 1 ? "s" : ""} ago`
+            displayTime = `${seconds} second${seconds > 1 ? "s" : ""} ago`
         }
 
         return displayTime
@@ -212,7 +212,7 @@ const CodeDescArea = (
                             
 
                             return (
-                            <TableRow key={`submission ${idx}`} >
+                            <TableRow key={`submission ${idx+1}`} >
                                 <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
                                     <span>{s.status}</span>
                                     <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>

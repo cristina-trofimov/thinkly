@@ -199,12 +199,12 @@ const CodingView = () => {
                         <RotateCcw size={22} color="black" />
                       </Button>
                       <Button data-testid='code-area-fullscreen' onClick={() => {setFullCode(!fullCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                        {!fullCode ? (<Maximize2 data-testid='code-area-max-btn' size={22} color="black" />) 
-                                   : <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />}
+                        {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
+                                  : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
                       </Button>
                       <Button data-testid='code-area-collapse' onClick={() => {setCloseCode(!closeCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                        {!closeCode ? (<ChevronUp data-testid='code-area-up-btn' size={22} color="black" />)
-                                    : <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />}
+                        {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
+                                   : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
                       </Button>
                     </div>
                   </div>
@@ -252,12 +252,12 @@ const CodingView = () => {
                   <div className="grid grid-cols-2 gap-1">
                     {/* Size buttons */}
                     <Button data-testid='output-area-fullscreen' onClick={() => {setFullOutput(!fullOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {!fullOutput ? (<Maximize2 data-testid='output-area-max-btn' size={22} color="black" />)
-                                   : <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />}
+                      {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
+                                  : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
                     </Button>
                     <Button data-testid='output-area-collapse' onClick={() => {setCloseOutput(!closeOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {!closeOutput ? (<ChevronDown data-testid='output-area-down-btn' size={22} color="black" />)
-                                    : <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />}
+                      {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
+                                   : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
                     </Button>
                   </div>
                 </div>
