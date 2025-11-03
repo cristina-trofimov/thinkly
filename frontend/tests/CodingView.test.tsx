@@ -9,11 +9,6 @@ jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     default: () => <div data-testid="desc-area" />
 }))
 
-jest.mock('../src/components/codingPage/CodeOutputArea', () => ({
-    __esModule: true,
-    default: () => <div data-testid="output-area" />
-}))
-
 jest.mock('../src/components/codingPage/CodingArea', () => ({
     __esModule: true,
     default: () => <div data-testid="coding-area" />

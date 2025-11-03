@@ -2,7 +2,6 @@ import React from 'react'
 import '@testing-library/jest-dom'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
-import { Regex } from 'lucide-react'
 
 
 jest.mock('../src/components/codingPage/CodingArea', () => ({
@@ -53,16 +52,6 @@ jest.mock("motion/react", () => {
     AnimatePresence: ({ children }: any) => <>{children}</>,
   }
 })
-
-jest.mock("../src/components/WriteComment", () => ({
-  __esModule: true,
-  WriteComment: () => <div data-testid='write-comment' >WriteComment</div>
-}))
-
-jest.mock('../src/components/ViewComment', () => ({
-    __esModule: true,
-    default: ({ comment }: any) => <div data-testid="view-comment" >{comment.comment}</div>
-}))
 
 jest.mock('../src/components/helpers/UseStateCallback', () => ({
     useStateCallback: (initial: any) => {
