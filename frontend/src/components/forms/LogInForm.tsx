@@ -20,6 +20,7 @@ import { getProfile, googleLogin, login, logout } from "@/api/auth";
 import type { LoginRequest, UserProfile } from "@/types/auth";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/types/auth";
+import { useNavigate } from 'react-router-dom';
 
 export function LoginForm({
     className,
@@ -29,6 +30,8 @@ export function LoginForm({
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [profile, setProfile] = useState<UserProfile | null>(null);
+
+    const navigate = useNavigate();
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement>
@@ -51,7 +54,10 @@ export function LoginForm({
 
             // Optionally redirect based on role
             const role = decoded.sub.role;
-            alert(`Logged in as ${role}`);
+            if (decoded) {
+                navigate('/app/home');
+            }
+            // alert(`Logged in as ${role}`);
             // if (role === "admin") window.location.href = "/admin/dashboard";
             // else if (role === "owner") window.location.href = "/owner";
             // else window.location.href = "/student";
@@ -73,7 +79,9 @@ export function LoginForm({
             localStorage.setItem("token", token);
 
             const decoded = jwtDecode<DecodedToken>(token);
-            alert(`Logged in as ${decoded.sub})`);
+            if (decoded) {
+                navigate('/app/home');
+            }
         } catch (err) {
             console.error("Google login failed:", err);
             alert("Google login failed");
