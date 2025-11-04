@@ -92,6 +92,7 @@ const CodeDescArea = (
 
         return displayTime
     }
+
     
   return (
     <Tabs data-testid="tabs" defaultValue='description' className='w-full' >
@@ -104,13 +105,6 @@ const CodeDescArea = (
                 let showText = true
                 if (containerWidth < halfSize && !isActive) showText = false
                 if (containerWidth < quarterSize && isActive) showText = false
-                
-                const tabRef = useRef<HTMLDivElement>(null)
-                useEffect(() => {
-                    if (isActive && tabRef.current) {
-                        tabRef.current.scrollIntoView({ behavior: 'smooth', inline: 'center' })
-                    }
-                }, [activeTab])
 
                 return <motion.div
                         key={t.id} layout initial={false}
