@@ -51,6 +51,5 @@ jobs:
         with:
           node-version: '18.16'
       - run: npm ci
-      - run: npm run dev &    # start Vite server in background
-      - run: npx wait-on http://localhost:5173  # wait for server to be ready
-      - run: npx cypress run --headless --browser chrome
+      - run: npx cypress install
+      - run: npx start-server-and-test "npm run dev" http://localhost:5173 "npm run cypress:run -- --headless --browser chrome"
