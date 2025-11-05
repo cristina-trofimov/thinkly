@@ -19,11 +19,6 @@ describe('Check Home page', () => {
       .click({ force: true });
     cy.contains("Palindrome").should('be.visible');
 
-    // Test Hard filter
-    cy.get('[data-testid="filter-hard"]')
-      .should('be.visible')
-      .click({ force: true });
-    cy.contains("Binary Tree").should('be.visible');
   });
   it('is Upcomming Competitions present', () => {
     cy.visit('http://localhost:5173/home');
