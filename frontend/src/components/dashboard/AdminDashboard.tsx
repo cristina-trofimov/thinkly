@@ -3,11 +3,14 @@ import { IconCirclePlusFilled } from "@tabler/icons-react";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
+import { useNavigate } from "react-router-dom"; 
 
 export function AdminDashboard() {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col w-full">
-      <div className="w-[calc(100vw-var(--sidebar-width))] relative left-[calc(-1rem)] border-b border-[#E5E5E5] bg-white">
+      <div className="border-b border-[#E5E5E5] bg-white">
         <div className="flex justify-between items-center py-4 px-10">
           <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
           <Button className="bg-[#8065CD] hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]">
@@ -49,13 +52,15 @@ export function AdminDashboard() {
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
-        <ManageCard
-          title="Manage Competitions"
-          items={[
-            { color: "#A52A56", name: "Comp1", info: "08/11/25" },
-            { color: "#F2D340", name: "Comp2", info: "06/12/25" },
-          ]}
-        />
+        <div onClick={() => navigate('/dashboard/competitions')} className="cursor-pointer">
+          <ManageCard
+            title="Manage Competitions"
+            items={[
+              { color: "#A52A56", name: "Comp1", info: "08/11/25" },
+              { color: "#F2D340", name: "Comp2", info: "06/12/25" },
+            ]}
+          />
+        </div>
         <ManageCard
           title="Manage Questions"
           items={[
