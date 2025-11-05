@@ -122,7 +122,14 @@ const comments = [
     ],
   },
 ]
+beforeAll(() => {
+  jest.useFakeTimers()
+  jest.setSystemTime(new Date('2025-10-28T10:00:00Z'))
+})
 
+afterAll(() => {
+  jest.useRealTimers()
+})
 describe('CodeDescArea', () => {
   it("should render all tab triggers", () => {
     render(<CodeDescArea
@@ -202,28 +209,32 @@ describe('CodeDescArea', () => {
 
   it('formats submission time properly', () => {
     const times = [
-      { ago: 1000, expected: '1 second'},
-      { ago: 60000, expected: '1 minute'},
-      { ago: 3600000, expected: '1 hour'},
-      { ago: 86400000, expected: '1 day'},
+      { ago: 1000, expected: '1 second' },
+      { ago: 60000, expected: '1 minute' },
+      { ago: 3600000, expected: '1 hour' },
+      { ago: 86400000, expected: '1 day' },
     ]
 
     times.forEach(time => {
       const submission = {
         ...submissions[0],
-        submittedOn: new Date(Date.now() - time.ago).toString()
+        submittedOn: new Date(Date.now() - time.ago).toISOString(),
       }
 
-      render(<CodeDescArea
-        problemInfo={problemInfo}
-        submissions={[submission]}
-        leaderboard={leaderboard}
-        comments={comments}
-      />)
+      render(
+        <CodeDescArea
+          problemInfo={problemInfo}
+          submissions={[submission]}
+          leaderboard={leaderboard}
+          comments={comments}
+        />
+      )
 
-      const [subTabs] = screen.getAllByText("Submissions")
-      fireEvent.click(subTabs)
-      expect(screen.getByText(new RegExp(time.expected, 'i'))).toBeInTheDocument()
+      fireEvent.click(screen.getByText('Submissions'))
+
+      expect(
+        screen.getByText(new RegExp(time.expected, 'i'))
+      ).toBeInTheDocument()
     })
   })
 })

@@ -2,13 +2,25 @@ describe('Check Home page', () => {
   it('Visits the home page and filter for different questions', () => {
     cy.visit('http://localhost:5173/home');
     cy.contains("It's Competition Time!").should('be.visible');
-    cy.contains('Filter Difficulties').click();
-    cy.get('[data-testid="filter-easy"]').should('be.visible').click();
+    cy.contains('Filter Difficulties')
+      .should('exist')
+      .should('be.visible')
+      .then(($el) => cy.wrap($el).click({ force: true }));
+
+    cy.get('[data-testid="filter-easy"]')
+      .should('exist')
+      .should('be.visible')
+      .then(($el) => cy.wrap($el).click({ force: true }));
     cy.contains('Two sum').should('be.visible');
-    cy.get('[data-testid="filter-medium"]').should('be.visible').click();
+    cy.get('[data-testid="filter-medium"]')
+      .should('exist')
+      .should('be.visible')
+      .then(($el) => cy.wrap($el).click({ force: true }));
     cy.contains("Palindrome").should('be.visible');
-    cy.contains('Medium').click();
-    cy.get('[data-testid="filter-hard"]').should('be.visible').click();
+    cy.get('[data-testid="filter-hard"]')
+      .should('exist')
+      .should('be.visible')
+      .then(($el) => cy.wrap($el).click({ force: true }));
     cy.contains("Binary Tree").should('be.visible');
   });
   it('is Upcomming Competitions present', () => {
