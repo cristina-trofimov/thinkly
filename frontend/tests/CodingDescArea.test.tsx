@@ -221,7 +221,7 @@ describe('CodeDescArea', () => {
         submittedOn: new Date(Date.now() - time.ago).toISOString(),
       }
 
-      render(
+      const { unmount } = render(
         <CodeDescArea
           problemInfo={problemInfo}
           submissions={[submission]}
@@ -235,6 +235,8 @@ describe('CodeDescArea', () => {
       expect(
         screen.getByText(new RegExp(time.expected, 'i'))
       ).toBeInTheDocument()
+
+      unmount() // Clean up after each iteration
     })
   })
 })

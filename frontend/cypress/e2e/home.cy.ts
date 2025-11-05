@@ -12,11 +12,17 @@ describe('Check Home page', () => {
       .should('be.visible')
       .then(($el) => cy.wrap($el).click({ force: true }));
     cy.contains('Two sum').should('be.visible');
+    cy.contains('Filter Difficulties')
+      .should('exist')
+      .should('be.visible')
     cy.get('[data-testid="filter-medium"]')
       .should('exist')
       .should('be.visible')
       .then(($el) => cy.wrap($el).click({ force: true }));
     cy.contains("Palindrome").should('be.visible');
+    cy.contains('Filter Difficulties')
+      .should('exist')
+      .should('be.visible')
     cy.get('[data-testid="filter-hard"]')
       .should('exist')
       .should('be.visible')
