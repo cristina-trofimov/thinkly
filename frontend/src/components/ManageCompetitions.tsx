@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Filter, SquarePen } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
 
 interface Competition {
@@ -56,6 +56,11 @@ const ManageCompetitions = () => {
   const handleView = (id: string) => {
     console.log('View competition:', id);
     // Add your navigation logic here
+  };
+
+   const handleCreateNew = () => {
+    console.log('Create new competition');
+    // Add your create competition logic here
   };
 
   return (
@@ -125,6 +130,23 @@ const ManageCompetitions = () => {
           </Card>
         ))}
 
+        {/* Create New Competition Card */}
+        <Card 
+          className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-[#E5E5E5] rounded-2xl w-[182px] h-[214px] flex flex-col"
+          onClick={handleCreateNew}
+        >
+          <div className="h-[146px] w-[146px] bg-gray-100 flex items-center justify-center mx-auto mt-4">
+            <Plus className="w-20 h-20 text-primary" strokeWidth={1.5} />
+          </div>
+          <CardContent className="flex-1 flex flex-col justify-center">
+            <div className="mb-3">
+              <h3 className="text-sm text-center">
+                Create New Competition
+              </h3>
+            </div>
+          </CardContent>
+        </Card>
+
       {/* No Results matching the filter Message */}
         {filteredCompetitions.length === 0 && (
         <div className="text-center py-12 text-gray-500">
@@ -133,7 +155,6 @@ const ManageCompetitions = () => {
       )}
 
       </div>
-      
     </div>
   );
 };
