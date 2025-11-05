@@ -23,9 +23,9 @@ describe('Check leaderboards page', () => {
 
   it('Visits the leaderboards page and filter for different leaderboards', () => {
     cy.visit('http://localhost:5173/leaderboards');
-    cy.contains("Competition 5").should('be.visible');
-    cy.contains('Competition 2').click();
-    cy.contains('Competition 2').click();
+    cy.contains("Competition 1").should('be.visible');
+    cy.contains('Competition 1').click();
+    cy.contains('Competition 1').click();
     cy.contains('Date: Newest → Oldest').should('be.visible').click();
     cy.contains('Sort by Date', { timeout: 5000 }).should('be.visible');
     cy.contains('Oldest → Newest').should('be.visible').click();
