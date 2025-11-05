@@ -5,28 +5,24 @@ describe('Check Home page', () => {
     cy.contains('Filter Difficulties')
       .should('exist')
       .should('be.visible')
-      .then(($el) => cy.wrap($el).click({ force: true }));
+      .click({ force: true });
 
+    // Test Easy filter
     cy.get('[data-testid="filter-easy"]')
-      .should('exist')
       .should('be.visible')
-      .then(($el) => cy.wrap($el).click({ force: true }));
+      .click({ force: true });
     cy.contains('Two sum').should('be.visible');
-    cy.contains('Filter Difficulties')
-      .should('exist')
-      .should('be.visible')
+
+    // Test Medium filter
     cy.get('[data-testid="filter-medium"]')
-      .should('exist')
       .should('be.visible')
-      .then(($el) => cy.wrap($el).click({ force: true }));
+      .click({ force: true });
     cy.contains("Palindrome").should('be.visible');
-    cy.contains('Filter Difficulties')
-      .should('exist')
-      .should('be.visible')
+
+    // Test Hard filter
     cy.get('[data-testid="filter-hard"]')
-      .should('exist')
       .should('be.visible')
-      .then(($el) => cy.wrap($el).click({ force: true }));
+      .click({ force: true });
     cy.contains("Binary Tree").should('be.visible');
   });
   it('is Upcomming Competitions present', () => {
