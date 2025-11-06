@@ -9,7 +9,7 @@ import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import  HomePage from './HomePage.tsx'
-import ManageCompetitions from './components/ManageCompetitions.tsx'
+import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
 
 const router = createBrowserRouter([
   {
