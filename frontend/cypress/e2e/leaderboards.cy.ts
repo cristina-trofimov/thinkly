@@ -1,7 +1,12 @@
 describe('Check leaderboards page', () => {
-     beforeEach(() => {
+  beforeEach(() => {
+    // Inject config into window before the page loads
+    Cypress.on('window:before:load', (win) => {
+      win.config = { backendUrl: Cypress.env('BACKEND_URL') || 'http://localhost:8000' };
+    });
+
     // Intercept backend call
-    cy.intercept('GET', 'http://localhost:8000/leaderboards', {
+    cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/leaderboards`, {
       statusCode: 200,
       body: [
         {
@@ -30,7 +35,6 @@ describe('Check leaderboards page', () => {
     cy.contains('Date: Newest → Oldest').should('be.visible').click();
     cy.contains('Sort by Date', { timeout: 5000 }).should('be.visible');
     cy.contains('Oldest → Newest').should('be.visible').click();
-   //cy.contains('Date: Oldest → Newest').should('be.visible').click();
     cy.contains('Sort by Date', { timeout: 5000 }).should('be.visible');
     cy.contains('Newest → Oldest').should('be.visible').click();
     cy.contains('Competition 1').click();

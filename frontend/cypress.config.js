@@ -5,5 +5,8 @@ export default defineConfig({
     baseUrl: 'http://localhost:5173', // replace with your dev server URL
     specPattern: 'cypress/e2e/**/*.cy.{js,ts}',
     supportFile: 'cypress/support/e2e.ts',
+     env: {
+      BACKEND_URL: process.env.VITE_BACKEND_URL || 'http://localhost:8000'
+    }
   },
 });

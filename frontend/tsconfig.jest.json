@@ -1,7 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "types": ["jest", "node"]
   },
   "include": ["tests", "src"]
 }
