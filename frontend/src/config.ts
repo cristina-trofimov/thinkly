@@ -1,11 +1,9 @@
 // Use a function to safely access import.meta only in environments that support it
 const getBackendUrl = (): string => {
-  if (typeof window !== 'undefined' && 'VITE_BACKEND_URL' in (import.meta as any).env) {
-    return (import.meta as any).env.VITE_BACKEND_URL;
+  if (typeof import.meta !== 'undefined') {
+    return (import.meta.env as any).VITE_BACKEND_URL || 'http://localhost:8000';
   }
-  return process.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  return 'http://localhost:8000'; // fallback for safety
 };
 
-export const config = {
-  backendUrl: getBackendUrl(),
-};
+export const config = { backendUrl: getBackendUrl() };

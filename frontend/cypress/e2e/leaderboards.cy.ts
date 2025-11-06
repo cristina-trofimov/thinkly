@@ -1,5 +1,10 @@
 describe('Check leaderboards page', () => {
   beforeEach(() => {
+    // Inject config into window before the page loads
+    Cypress.on('window:before:load', (win) => {
+      win.config = { backendUrl: Cypress.env('BACKEND_URL') || 'http://localhost:8000' };
+    });
+
     // Intercept backend call
     cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/leaderboards`, {
       statusCode: 200,
@@ -18,8 +23,8 @@ describe('Check leaderboards page', () => {
           ],
         },
       ],
-    }).as('getCompetitions'); // <-- CLOSE beforeEach brace here
-  }); // <-- added
+    }).as('getCompetitions');
+  });
 
   it('Visits the leaderboards page and filter for different leaderboards', () => {
     cy.visit('http://localhost:5173/leaderboards');
