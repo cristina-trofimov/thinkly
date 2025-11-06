@@ -3,7 +3,7 @@ from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, Float, Table
 )
 from sqlalchemy.orm import relationship
-from db import Base
+from ..db import Base
 
 # Association table for many-to-many relationship between AlgoTimeQuestion and QuestionSet
 algo_question_set = Table(

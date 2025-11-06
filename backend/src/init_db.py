@@ -3,8 +3,8 @@
 # run python -m src.init_db
 
 
-from src.db import Base, engine
-from src.models import schema
+from db import Base, engine
+from models import schema
 
 def init_db():
     print("Creating all tables...")

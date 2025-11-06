@@ -7,7 +7,7 @@ import os
 # password: postgres
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/ThinklyDB"
+    "postgresql+psycopg2://postgres:violetta143@localhost:5432/ThinklyDB"
 )
 
 engine = create_engine(DATABASE_URL)

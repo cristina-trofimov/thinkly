@@ -5,7 +5,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { LoginForm } from '../src/components/forms/LogInForm';
 import * as authApi from '../src/api/auth';
 import { jwtDecode } from 'jwt-decode';
-import type { UserProfile } from '../src/types/auth';
 
 // Polyfill for TextEncoder/TextDecoder
 import { TextEncoder, TextDecoder } from 'util';
@@ -24,7 +23,6 @@ jest.mock('react-router-dom', () => ({
 
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
 const mockGoogleLogin = authApi.googleLogin as jest.MockedFunction<typeof authApi.googleLogin>;
-const mockGetProfile = authApi.getProfile as jest.MockedFunction<typeof authApi.getProfile>;
 const mockLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>;
 const mockJwtDecode = jwtDecode as jest.MockedFunction<typeof jwtDecode>;
 
@@ -50,7 +48,7 @@ describe('LoginForm', () => {
             expect(screen.getByText('Login to your account')).toBeInTheDocument();
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
             expect(screen.getByLabelText('Password')).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
         });
 
         it('renders email and password inputs with correct types', () => {
@@ -67,14 +65,7 @@ describe('LoginForm', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
             // GoogleLogin component should be present
-            expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
-        });
-
-        it('renders Get Profile and Log Out buttons', () => {
-            render(<LoginForm />, { wrapper: Wrapper });
-
-            expect(screen.getByRole('button', { name: 'Get Profile' })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: 'Log Out' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -130,7 +121,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -155,7 +146,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -176,7 +167,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
@@ -199,7 +190,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             // First submission - should fail
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
@@ -232,7 +223,7 @@ describe('LoginForm', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
             // Simulate Google login success by calling the handler directly
-            const loginForm = screen.getByRole('button', { name: /login/i }).closest('form');
+            const loginForm = screen.getByRole('button', { name: /sign in/i }).closest('form');
 
             // We need to test the handleGoogleSuccess function
             // Since GoogleLogin is a third-party component, we'll verify the API call
@@ -254,78 +245,7 @@ describe('LoginForm', () => {
         });
     });
 
-    describe('Get Profile', () => {
-        it('fetches and displays user profile', async () => {
-            const mockProfile: UserProfile = {
-                id: 1,
-                email: 'user@example.com',
-                role: 'student' as const,
-            };
 
-            mockGetProfile.mockResolvedValue(mockProfile);
-            const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-
-            render(<LoginForm />, { wrapper: Wrapper });
-
-            const getProfileButton = screen.getByRole('button', { name: 'Get Profile' });
-            fireEvent.click(getProfileButton);
-
-            await waitFor(() => {
-                expect(mockGetProfile).toHaveBeenCalled();
-            });
-
-            await waitFor(() => {
-                expect(screen.getByText('user@example.com')).toBeInTheDocument();
-                expect(screen.getByText('student')).toBeInTheDocument();
-            });
-
-            alertMock.mockRestore();
-        });
-
-        it('handles profile fetch error', async () => {
-            const mockError = {
-                response: { data: { error: 'Unauthorized' } },
-                message: 'Request failed',
-            };
-
-            mockGetProfile.mockRejectedValue(mockError);
-            const alertMock = jest.spyOn(window, 'alert').mockImplementation();
-
-            render(<LoginForm />, { wrapper: Wrapper });
-
-            const getProfileButton = screen.getByRole('button', { name: 'Get Profile' });
-            fireEvent.click(getProfileButton);
-
-            await waitFor(() => {
-                expect(alertMock).toHaveBeenCalledWith('Unauthorized');
-            });
-
-            alertMock.mockRestore();
-        });
-
-        it('displays profile information after successful fetch', async () => {
-            const mockProfile: UserProfile = {
-                id: 2,
-                email: 'admin@example.com',
-                role: 'admin' as const,
-            };
-
-            mockGetProfile.mockResolvedValue(mockProfile);
-            jest.spyOn(window, 'alert').mockImplementation();
-
-            render(<LoginForm />, { wrapper: Wrapper });
-
-            const getProfileButton = screen.getByRole('button', { name: 'Get Profile' });
-            fireEvent.click(getProfileButton);
-
-            await waitFor(() => {
-                expect(screen.getByText(/email:/i)).toBeInTheDocument();
-                expect(screen.getByText('admin@example.com')).toBeInTheDocument();
-                expect(screen.getByText(/role:/i)).toBeInTheDocument();
-                expect(screen.getByText('admin')).toBeInTheDocument();
-            });
-        });
-    });
 
     describe('Form Validation', () => {
         it('requires email field', () => {
@@ -363,7 +283,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -381,7 +301,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /login/i });
+            const submitButton = screen.getByRole('button', { name: /sign in/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrong' } });

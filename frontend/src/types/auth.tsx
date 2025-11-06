@@ -1,3 +1,14 @@
+export interface LoginResponse {
+    token: string;
+}
+
+export interface UserProfile {
+    id: number;
+    email: string;
+    username: string;
+    role: "user" | "admin" | "owner";
+}
+
 export interface LoginRequest {
     email: string;
     password: string;
@@ -6,16 +17,9 @@ export interface LoginRequest {
 export interface SignupRequest {
     email: string;
     password: string;
-}
-
-export interface LoginResponse {
-    token: string;
-}
-
-export interface UserProfile {
-    id: number;
-    email: string;
-    role: "admin" | "owner" | "student";
+    username?: string;
+    firstName: string;
+    lastName: string;
 }
 
 export interface DecodedToken {
@@ -23,3 +27,4 @@ export interface DecodedToken {
     exp: number;
     iat: number;
 }
+

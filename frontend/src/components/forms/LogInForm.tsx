@@ -100,18 +100,6 @@ export function LoginForm({
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-            alert("You have been logged out.");
-            // Optionally redirect
-            window.location.href = "/login";
-        } catch (err: any) {
-            console.error("Logout failed:", err);
-            alert(err.response?.data?.error || err.message);
-        }
-    };
-
     const handleGoogleError = (): void => {
         alert("Google Sign-In was unsuccessful. Try again later.");
     };
@@ -155,13 +143,13 @@ export function LoginForm({
                             )}
                             <Field className="flex flex-col gap-2 mt-4">
                                 <Button type="submit" disabled={loading}>
-                                    {loading ? "Logging in..." : "Login"}
+                                    {loading ? "Logging in..." : "Sign In"}
                                 </Button>
                                 <GoogleLogin
                                     onSuccess={handleGoogleSuccess}
                                     onError={handleGoogleError}
                                 />
-
+                                {/* 
 
                                 <Button
                                     variant="secondary"
@@ -180,9 +168,16 @@ export function LoginForm({
 
                                 <Button variant="destructive" type="button" onClick={handleLogout}>
                                     Log Out
-                                </Button>
+                                </Button> */}
                                 <FieldDescription className="text-center">
-                                    Don&apos;t have an account? <a href="#">Sign up</a>
+                                    Don&apos;t have an account?{' '}
+                                    <button
+                                        type="button"
+                                        className="text-gray-500 underline cursor-pointer"
+                                        onClick={() => navigate('/signup')}
+                                    >
+                                        Sign up
+                                    </button>
                                 </FieldDescription>
                             </Field>
                         </FieldGroup>

@@ -13,11 +13,16 @@ import { Leaderboards } from './components/leaderboards/Leaderboards'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import HomePage from './views/HomePage.tsx';
+import SignupPage from './views/SignupPage.tsx';
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <LoginPage />, // 👈 LoginPage loads first
+  },
+  {
+    path: "/signup",
+    element : <SignupPage />
   },
   {
     path: "/app", // 👈 everything else under /app

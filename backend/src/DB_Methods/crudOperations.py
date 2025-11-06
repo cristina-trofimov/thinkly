@@ -23,7 +23,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Import your models here (adjust the import path as needed)
-from models.schema import (
+from ..models.schema import (
     User,
     UserPreferences,
     Session as SessionModel,
@@ -41,7 +41,6 @@ from models.schema import (
     Scoreboard,
     UserCooldown
 )
-from models import User, SessionModel as UserSession
 
 #---------------------------- Config Values (to be changed) ------------
 JWT_SECRET_KEY = "YOUR_SECRET_KEY"   # should come from env var
@@ -54,7 +53,7 @@ SESSION_DURATION_HOURS = 2
 # ---------------- DATABASE CONNECTION SETUP ----------------
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/ThinklyDB"
+    "postgresql+psycopg2://postgres:violetta143@localhost:5432/ThinklyDB"
 )
 
 engine = create_engine(DATABASE_URL, echo=False)
@@ -102,25 +101,7 @@ def generate_jwt(user_id: int):
 
 # --------------------------- 1) Authentication / account ---------------------------
 
-def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'user'):
-    # Prevent multiple owners
-    if type == 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
-        if existing_owner:
-            raise ValueError("An owner already exists. Only one owner is allowed.")
 
-    new_user = User(
-        username=username,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        salt=password_hash,
-        type=type,
-    )
-    db.add(new_user)
-    _commit_or_rollback(db)
-    db.refresh(new_user)
-    return new_user
 
 
 def login_user(db: Session, username: str, password: str):
@@ -180,14 +161,7 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
     """Retrieve a user by username."""
     return db.query(User).filter(User.username == username).first()
 
-def search_users(db: Session, keyword: str) -> List[User]:
-    """Search for users by name or email."""
-    return db.query(User).filter(
-        (User.username.ilike(f"%{keyword}%")) |
-        (User.email.ilike(f"%{keyword}%")) |
-        (User.first_name.ilike(f"%{keyword}%")) |
-        (User.last_name.ilike(f"%{keyword}%"))
-    ).all()
+
 
 def update_user(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
     user = db.query(User).filter(User.user_id == user_id).first()

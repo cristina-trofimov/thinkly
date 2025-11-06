@@ -5,6 +5,11 @@ from flask_jwt_extended import (
 )
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
+from .db import SessionLocal
+from sqlalchemy.orm import Session
+from typing import Optional, List
+from .models.schema import User
+from .DB_Methods.crudOperations import _commit_or_rollback
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "your-secret-key"
@@ -48,6 +53,9 @@ CORS(
 
 
 
+
+
+
 # Store revoked tokens (in memory or Redis for production)
 token_blocklist = set()
 
@@ -67,32 +75,74 @@ users = [
     }
 ]
 
-def find_user_by_email(email: str):
-    return next((u for u in users if u["email"] == email), None)
+
 
 def find_user_by_id(user_id: int):
     return next((u for u in users if u["id"] == user_id), None)
 
+def get_user_by_username(db: Session, username: str) -> Optional[User]:
+    """Retrieve a user by username."""
+    return db.query(User).filter(User.username == username).first()
+
+def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    """Retrieve a user by email."""
+    return db.query(User).filter(User.email == email).first()
+
+
+def search_users(db: Session, keyword: str) -> List[User]:
+    """Search for users by name or email."""
+    return db.query(User).filter(
+        (User.username.ilike(f"%{keyword}%")) |
+        (User.email.ilike(f"%{keyword}%")) |
+        (User.first_name.ilike(f"%{keyword}%")) |
+        (User.last_name.ilike(f"%{keyword}%"))
+    ).all()
+
+def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'user'):
+    # Prevent multiple owners
+    if type == 'owner':
+        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        if existing_owner:
+            raise ValueError("An owner already exists. Only one owner is allowed.")
+
+    new_user = User(
+        username=username,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        salt=password_hash,
+        type=type,
+    )
+    db.add(new_user)
+    _commit_or_rollback(db)
+    db.refresh(new_user)
+    return new_user
 
 
 @app.post("/signup")
 def signup():
     data = request.get_json()
+    first_name = data["firstName"]
+    last_name = data["lastName"]
     email = data["email"]
     password = data["password"]
+    username = data["username"]
+    
+    with SessionLocal() as db:
+        existing_user = get_user_by_email(db, email)
+        if existing_user:
+            return jsonify({"error": "User already exists"}), 400
 
-    if any(u["email"] == email for u in users):
-        return jsonify({"error": "User already exists"}), 400
-
-    password_hash = bcrypt.generate_password_hash(password).decode()
-    new_user = {
-        "id": len(users) + 1,
-        "email": email,
-        "password_hash": password_hash,
-        "provider": "local",
-        "role": "student"  # default role
-    }
-    users.append(new_user)
+        password_hash = bcrypt.generate_password_hash(password).decode()
+        new_user = create_user(
+            db,
+            username=username,
+            email=email,
+            password_hash=password_hash,
+            first_name=first_name,
+            last_name=last_name,
+            type="user"
+        )
     return jsonify({"message": "User created"}), 201
 
 
@@ -101,16 +151,17 @@ def login():
     data = request.get_json()
     email = data.get("email")
     password = data.get("password")
-
-    user = find_user_by_email(email)
-    if not user or not bcrypt.check_password_hash(user["password_hash"], password):
-        return jsonify({"error": "Invalid credentials"}), 401
-
-    # Use email (string) as identity, put role in additional_claims
-    access_token = create_access_token(
-        identity=user["email"],
-        additional_claims={"role": user["role"]}
-    )
+    
+    with SessionLocal() as db:
+        user = get_user_by_email(email)
+        if not user or not bcrypt.check_password_hash(user["password_hash"], password):
+            return jsonify({"error": "Invalid credentials"}), 401
+        
+        # Use email (string) as identity, put role in additional_claims
+        access_token = create_access_token(
+            identity=user.email,
+            additional_claims={"role": user.type, "id": user.user_id}
+        )
     return jsonify(token=access_token)
 
 
@@ -126,24 +177,24 @@ def google_login():
 
         email = idinfo["email"]
         name = idinfo.get("name", "Unknown User")
-
-        user = next((u for u in users if u["email"] == email), None)
         
-        if not user:
-            user = {
-                "id": len(users) + 1,
-                "email": email,
-                "password_hash": None,
-                "provider": "google",
-                "role": "student"  # default role maybe
-            }
-            users.append(user)
-
-        # Issue your own JWT for session
-        access_token = create_access_token(
-            identity=user["email"],
-            additional_claims={"role": user["role"], "id": user["id"]}
-        )
+        with SessionLocal() as db:
+            user = get_user_by_email(email)
+            if not user:
+                new_user = create_user(
+                        db,
+                        username=email,
+                        email=email,
+                        password_hash="",  # No password for Google users
+                        first_name=name,
+                        last_name="",
+                        type="user"
+                    )
+            user = get_user_by_email(email)
+            access_token = create_access_token(
+                identity=user.email,
+                additional_claims={"role": user. type, "id": user.user_id}
+            )
 
         return jsonify({"token": access_token})
 
@@ -172,19 +223,17 @@ def profile():
     email = get_jwt_identity()
     claims = get_jwt()   # contains additional_claims e.g. "role"
     role = claims.get("role")
-
-    # Find full user record in DB by email
-    user = find_user_by_email(email)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    # Return whatever you need — avoid returning password hashes
-    return jsonify({
-        "id": user["id"],
-        "email": user["email"],
-        "role": role
-    })
     
+    with SessionLocal() as db:
+        user = get_user_by_email(db, email)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "id": user.user_id,
+            "email": user.email,
+            "role": role
+        })
     
 @app.post("/logout")
 @jwt_required()

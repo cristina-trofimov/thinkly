@@ -5,8 +5,24 @@ import userEvent from "@testing-library/user-event";
 import { NavUser } from "../src/components/layout/NavUser";
 import { jest } from '@jest/globals';
 
+const { TextEncoder, TextDecoder } = require('util');
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+
 // Mock the sidebar hook
 const mockUseSidebar = jest.fn();
+
+// Mock react-router-dom
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => jest.fn(),
+}));
+
+// Mock the logout function
+jest.mock("@/api/auth", () => ({
+  logout: jest.fn(),
+}));
 
 jest.mock("@/components/ui/sidebar", () => ({
   SidebarMenu: ({ children }: any) => (
