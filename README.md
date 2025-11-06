@@ -47,7 +47,8 @@ to run jest
 1- ```npm test```
 
 to run cypress
-1- ```npx cypress run```
+1- cd frontend
+2- ```npm run cypress:open```
 
 installing the backend
 create virtual environement
