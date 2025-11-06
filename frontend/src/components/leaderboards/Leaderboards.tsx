@@ -25,7 +25,7 @@ export function Leaderboards(){
 
   // Fetch from FastAPI backend
   useEffect(() => {
-    fetch("http://localhost:8000/leaderboards")
+     fetch(import.meta.env.VITE_BACKEND_URL + "/leaderboards")
       .then((res) => res.json())
       .then((data) => setCompetitions(data))
       .catch((err) => console.error("Error loading leaderboards:", err));
