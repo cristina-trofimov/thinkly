@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
+import { config } from '../../config';
 
 type Competitor = {
   name: string;
@@ -24,12 +25,12 @@ export function Leaderboards(){
   const [sortAsc, setSortAsc] = useState(false);
 
   // Fetch from FastAPI backend
-  useEffect(() => {
-    fetch("http://localhost:8000/leaderboards")
-      .then((res) => res.json())
-      .then((data) => setCompetitions(data))
-      .catch((err) => console.error("Error loading leaderboards:", err));
-  }, []);
+useEffect(() => {
+  fetch(config.backendUrl + "/leaderboards")
+    .then((res) => res.json())
+    .then((data) => setCompetitions(data))
+    .catch((err) => console.error("Error loading leaderboards:", err));
+}, []);
 
   const filteredCompetitions = competitions
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))

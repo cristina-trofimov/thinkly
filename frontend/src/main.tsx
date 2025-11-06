@@ -11,6 +11,7 @@ const GOOGLE_CLIENT_ID = "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.goo
 import { Layout } from './components/layout/AppLayout.tsx'
 import { Leaderboards } from './components/leaderboards/Leaderboards'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
+import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
@@ -88,6 +89,13 @@ const router = createBrowserRouter([
         element: <AdminDashboard />,
         handle: {
           crumb: { title: "Admin Dashboard" }
+        }
+      },
+      {
+        path: "code",
+        element: <CodingView />,        
+        handle: {
+          crumb: { title: "Coding" }
         }
       },
     ]
