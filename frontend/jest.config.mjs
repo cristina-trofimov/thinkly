@@ -21,7 +21,6 @@ export default {
     "^@/(.*)$": "<rootDir>/src/$1",
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
-  testEnvironment: "jsdom",
 };
 
 

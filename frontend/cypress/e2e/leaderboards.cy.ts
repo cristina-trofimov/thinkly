@@ -1,7 +1,7 @@
 describe('Check leaderboards page', () => {
-     beforeEach(() => {
+  beforeEach(() => {
     // Intercept backend call
-    cy.intercept('GET', 'http://localhost:8000/leaderboards', {
+    cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/leaderboards`, {
       statusCode: 200,
       body: [
         {
@@ -18,8 +18,8 @@ describe('Check leaderboards page', () => {
           ],
         },
       ],
-    }).as('getCompetitions');
-  });
+    }).as('getCompetitions'); // <-- CLOSE beforeEach brace here
+  }); // <-- added
 
   it('Visits the leaderboards page and filter for different leaderboards', () => {
     cy.visit('http://localhost:5173/leaderboards');
@@ -30,7 +30,6 @@ describe('Check leaderboards page', () => {
     cy.contains('Date: Newest → Oldest').should('be.visible').click();
     cy.contains('Sort by Date', { timeout: 5000 }).should('be.visible');
     cy.contains('Oldest → Newest').should('be.visible').click();
-   //cy.contains('Date: Oldest → Newest').should('be.visible').click();
     cy.contains('Sort by Date', { timeout: 5000 }).should('be.visible');
     cy.contains('Newest → Oldest').should('be.visible').click();
     cy.contains('Competition 1').click();

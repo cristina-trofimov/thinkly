@@ -55,7 +55,7 @@ to run jest </br>
 
 to run cypress</br>
 1- cd frontend</br>
-2- ```npm run cypress:open```</br></br>
+2- ``````</br></br>
 
 INSTALLING THE BACKEND</br>
 create virtual environement</br>
