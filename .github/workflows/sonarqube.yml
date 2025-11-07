@@ -77,8 +77,10 @@ jobs:
        with:
          token: ${{ secrets.CODECOV_TOKEN }}
          files: ./frontend/coverage/lcov.info
+         working-directory: ./frontend
          flags: frontend
          name: frontend
+         cwd: frontend
          fail_ci_if_error: false
          verbose: true
 
@@ -87,7 +89,9 @@ jobs:
        with:
          token: ${{ secrets.CODECOV_TOKEN }}
          files: ./backend/coverage.xml
+         working-directory: ./backend
          flags: backend
          name: backend
+         cwd: backend
          fail_ci_if_error: false
          verbose: true
