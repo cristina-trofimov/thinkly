@@ -4,6 +4,7 @@ on:
    branches:
      - '**'
  pull_request:
+  types: [opened, synchronize, reopened]
     
 jobs:
  analysis:
@@ -23,7 +24,7 @@ jobs:
        working-directory: ./frontend
 
      - name: Run tests with coverage
-       run: npm test -- --coverage
+       run: npm test -- --coverage --coverageDirectory=coverage
        working-directory: ./frontend
 
     #  Backend setup
@@ -56,7 +57,7 @@ jobs:
        run: cat ./backend/coverage.xml || echo "coverage.xml not found"
         
      - name: SonarQube Scan
-       uses: SonarSource/sonarqube-scan-action@v5
+       uses: SonarSource/sonarqube-scan-action@v6
        env:
          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -72,10 +73,26 @@ jobs:
           -Dsonar.pullrequest.branch=${{ github.head_ref }}
           -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-     - name: Upload coverage to Codecov
+     - name: Upload frontend coverage to Codecov
        uses: codecov/codecov-action@v5
        with:
          token: ${{ secrets.CODECOV_TOKEN }}
-         files: ./frontend/coverage/lcov.info,./backend/coverage.xml
+         files: ./frontend/coverage/lcov.info
+         working-directory: ./frontend
+         flags: frontend
+         name: frontend
+         cwd: frontend
+         fail_ci_if_error: false
+         verbose: true
+
+     - name: Upload backend coverage to Codecov
+       uses: codecov/codecov-action@v5
+       with:
+         token: ${{ secrets.CODECOV_TOKEN }}
+         files: ./backend/coverage.xml
+         working-directory: ./backend
+         flags: backend
+         name: backend
+         cwd: backend
          fail_ci_if_error: false
          verbose: true
