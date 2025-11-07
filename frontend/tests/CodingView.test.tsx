@@ -9,11 +9,6 @@ jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     default: () => <div data-testid="desc-area" />
 }))
 
-jest.mock('../src/components/codingPage/CodeOutputArea', () => ({
-    __esModule: true,
-    default: () => <div data-testid="output-area" />
-}))
-
 jest.mock('../src/components/codingPage/CodingArea', () => ({
     __esModule: true,
     default: () => <div data-testid="coding-area" />
@@ -78,36 +73,16 @@ describe('CodingView Component', () => {
         expect(langBtn).toBeInTheDocument()
 
         await userEvent.click(langBtn)
-        
-        // const dropdownMenu = await screen.findByTestId('languageMenu')
-        // expect(dropdownMenu).toBeInTheDocument()
-
-        // const jsItem = screen.getByTestId('languageItem-javascript')
-        // await userEvent.click(jsItem)
-        // expect(langBtn).toHaveTextContent('javascript')
     })
 
     it('toggles and closes code area fullscreen mode', async () => {
         render(<CodingView />)
-        // screen.debug()
-        // const secondPanel = screen.getByTestId('second-panel')
-        // // const secondPanelWidth = parseFloat(secondPanel.style.width)
-        // const codeArea = screen.getByTestId('coding-area')
-        // const codeAreaHeight = parseFloat(codeArea.style.height)
-        // const codeAreaWidth = parseFloat(codeArea.style.width)
         
         const fullscreenBtn = screen.getByTestId('code-area-fullscreen')
         expect(screen.getByTestId('code-area-max-btn')).toBeInTheDocument()
-        // expect(secondPanel).toHaveAttribute('data-size', '50')
-        // expect(codeArea).toHaveAttribute('data-size', '75')
 
         await userEvent.click(fullscreenBtn)
         expect(screen.getByTestId('code-area-min-btn')).toBeInTheDocument()
-        // expect(codeArea).toHaveAttribute('data-size', '100')
-        // // expect(parseFloat(secondPanel.style.height)).toBeGreaterThan(secondPanelWidth)
-        // // codeArea = screen.getByTestId('coding-area')
-        // expect(parseFloat(codeArea.style.height)).toBeGreaterThan(codeAreaHeight)
-        // expect(parseFloat(codeArea.style.width)).toBeGreaterThan(codeAreaWidth)
     })
 
     it('collapses and uncollapses code area', async () => {

@@ -2,10 +2,8 @@ import { useEffect, useRef, } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
 import { SandboxConsole, SandboxLayout, SandboxPreview, SandboxProvider,
           SandboxTabs, SandboxTabsContent } from "../ui/shadcn-io/sandbox";
-import CodingArea from "./CodingArea";
 import CodeDescArea from "./CodeDescArea";
-import CodeOutputArea from "./CodeOutputArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, FileText, History, MessageCircle, Trophy } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -19,7 +17,6 @@ import { useStateCallback } from '../helpers/UseStateCallback';
 
 
 const CodingView = () => {
-// const CodingView = ({problemName, inputVars, outputType}: ) => {
   const problemName = "problemName"
   const inputVars = [{name: "test", type: "int"}, {name: "me", type: "string"}]
   const outputType = "int"
@@ -101,15 +98,8 @@ const CodingView = () => {
   const templates = getSandpackConfigs(problemName, inputVars, outputType)
   const languages = Object.keys(templates)
 
-  // const [selectedTemp, setSelectedTemp] = useState("", null, "")
   const [selectedLang, setSelectedLang] = useStateCallback(languages[0])
   const { template, files } = templates[selectedLang]!
-
-  // console.log(templates)
-  // console.log('1')
-  // console.log(templates[selectedLang])
-  // console.log(`2: ${template}`)
-  // console.log(files)
 
   const codePanelRef = useRef<ImperativePanelHandle>(null)
   const descPanelRef = useRef<ImperativePanelHandle>(null)
@@ -163,14 +153,12 @@ const CodingView = () => {
   return (
     <SandboxProvider data-testid="sandbox-provider"
       key="sandbox-provider" template={template} files={files}
-      // className='w-[calc(100vw-var(--sidebar-width--2rem))] relative left-[calc(+0.5rem)] mr-1.5'
       className='w-[1100px] h-[725px]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
         <ResizablePanelGroup
           direction="horizontal"
           className='flex flex-col w-full'
-          // className="max-w-[1080px] max-h-[730px] mx-3 rounded-lg md:min-w-[450px]"
         >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"
@@ -197,7 +185,6 @@ const CodingView = () => {
                 className="ml-[3px] mb-1 rounded-md border"
               >
                 <div data-testid="coding-area" >
-                  {/* <CodingArea CodeItem={code} /> */}
 
                   <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                         border-b border-border/75 dark:border-border/50 py-1.5 px-4"
@@ -212,12 +199,12 @@ const CodingView = () => {
                         <RotateCcw size={22} color="black" />
                       </Button>
                       <Button data-testid='code-area-fullscreen' onClick={() => {setFullCode(!fullCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                        {!fullCode ? (<Maximize2 data-testid='code-area-max-btn' size={22} color="black" />) 
-                                   : <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />}
+                        {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
+                                  : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
                       </Button>
                       <Button data-testid='code-area-collapse' onClick={() => {setCloseCode(!closeCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                        {!closeCode ? (<ChevronUp data-testid='code-area-up-btn' size={22} color="black" />)
-                                    : <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />}
+                        {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
+                                   : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
                       </Button>
                     </div>
                   </div>
@@ -248,7 +235,6 @@ const CodingView = () => {
                     </DropdownMenu>
                   </div>
                 </div>
-                {/* <SandboxCodeEditor showLineNumbers showInlineErrors /> */}
               </ResizablePanel>
 
               <ResizableHandle withHandle className='my-[0.5px] border-none h-[0.5px]'
@@ -266,12 +252,12 @@ const CodingView = () => {
                   <div className="grid grid-cols-2 gap-1">
                     {/* Size buttons */}
                     <Button data-testid='output-area-fullscreen' onClick={() => {setFullOutput(!fullOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {!fullOutput ? (<Maximize2 data-testid='output-area-max-btn' size={22} color="black" />)
-                                   : <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />}
+                      {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
+                                  : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
                     </Button>
                     <Button data-testid='output-area-collapse' onClick={() => {setCloseOutput(!closeOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {!closeOutput ? (<ChevronDown data-testid='output-area-down-btn' size={22} color="black" />)
-                                    : <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />}
+                      {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
+                                   : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
                     </Button>
                   </div>
                 </div>

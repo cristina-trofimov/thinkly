@@ -21,7 +21,6 @@ export function getSandpackConfigs(
     const configs: Partial<Record<string, SandpackConfig>> = {}
 
     for (const [lang, config] of Object.entries(CodeMultiLangTemplate)) {
-        // const template = CodeMultiLangTemplate[lang]
         const filename = `${problemName}.${config.fileExt}`
         const code = config.codeBuilder(problemName, inputVars, outputType)
 

@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboards } from "../src/components/leaderboards/Leaderboards";
-
+jest.mock('../src/config', () => ({
+  config: { backendUrl: 'http://localhost:8000' },
+}));
 beforeEach(() => {
   // Mock fetch for Leaderboards component
   global.fetch = jest.fn(() =>

@@ -1,14 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import type { ProblemInfo } from '../interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { WriteComment } from '../WriteComment'
-import ViewComment from '../ViewComment'
-import { FileText, History, MessageCircle, Trophy } from 'lucide-react'
-import { act, useEffect, useLayoutEffect, useRef, useState, } from 'react'
-import { motion, AnimatePresence } from "motion/react";
+import { FileText, History, Trophy } from 'lucide-react'
+import { useEffect, useRef, useState, } from 'react'
 import type { SubmissionType } from '../interfaces/SubmissionType'
 import type { LeaderboardType } from '../interfaces/LeaderboardType'
-import type { CommentType } from '../interfaces/CommentType'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
@@ -16,16 +12,15 @@ import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui
 
 
 const CodeDescArea = (
-    { problemInfo, submissions, leaderboard, comments }: 
+    { problemInfo, submissions, leaderboard }: 
     { problemInfo: ProblemInfo, submissions: SubmissionType[],
-      leaderboard: LeaderboardType[], comments: CommentType[]
+      leaderboard: LeaderboardType[]
 }) => {
     
     const tabs = [
         {"id": "description", "label":  "Description", "icon": <FileText />},
         {"id": "submissions", "label":  "Submissions", "icon": <History />},
         {"id": "leaderboard", "label":  "Leaderboard", "icon": <Trophy />},
-        {"id": "discussion", "label":  "Discussion", "icon": <MessageCircle />},
     ]
 
     const code = [
@@ -104,11 +99,12 @@ const CodeDescArea = (
         } else if (minutes > 0) {
             displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
         } else {
-            displayTime = `${seconds} second${seconds !== 1 ? "s" : ""} ago`
+            displayTime = `${seconds} second${seconds > 1 ? "s" : ""} ago`
         }
 
         return displayTime
     }
+
     
   return (
     <Tabs data-testid="tabs" defaultValue='description'
@@ -123,13 +119,6 @@ const CodeDescArea = (
                 let showText = true
                 if (containerWidth < halfSize && !isActive) showText = false
                 if (containerWidth < quarterSize && isActive) showText = false
-                
-                const tabRef = useRef<HTMLDivElement>(null)
-                useEffect(() => {
-                    if (isActive && tabRef.current) {
-                        tabRef.current.scrollIntoView({ behavior: 'smooth', inline: 'center' })
-                    }
-                }, [activeTab])
 
                 return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
                         className={`bg-muted rounded-none
@@ -199,7 +188,7 @@ const CodeDescArea = (
                     <TableBody>
                         {submissions.map((s, idx) => {
                             return (
-                            <TableRow key={`submission ${idx}`} >
+                            <TableRow key={`submission ${idx+1}`} >
                                 <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
                                     <span>{s.status}</span>
                                     <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>
@@ -276,27 +265,6 @@ const CodeDescArea = (
                         </TableRow>
                     </TableFooter>
                 </Table>
-            </div>
-        </TabsContent>
-
-        {/* Discussion */}
-        <TabsContent value='discussion' data-testid="tabs-content-discussion" >
-            <div className='p-3' >
-                <div className='max-h-1/3' >
-                    <WriteComment data-testid='write-comment' />
-                </div>
-                <div className='mt-4 flex flex-col gap-2 max-h-2/3 overflow-scroll'>
-                    {comments.map((c, idx) => {
-                        return <div key={`comment-wrapper-${idx}`} className='flex flex-col gap-1.5'>
-                            <ViewComment data-testid="view-comment" comment={c} key={`comment ${idx+1}`} />
-                            {c.replies.map((r, ridx) => {
-                                return <div className='ml-5 flex flex-col gap-1.5'>
-                                    <ViewComment data-testid="view-comment" comment={r} key={`comment ${ridx+1}`} />
-                                </div>
-                            })}
-                        </div>
-                    })}
-                </div>
             </div>
         </TabsContent>
     </Tabs>
