@@ -53,3 +53,29 @@ jobs:
       - run: npm ci
       - run: npx cypress install
       - run: npx start-server-and-test "npm run dev" http://localhost:5173 "npm run cypress:run -- --headless --browser chrome"
+
+  lint-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20.19.0'
+      - run: npm ci
+      - run: npm run lint
+
+  lint-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install flake8
+      - run: flake8 src/ --max-line-length=120

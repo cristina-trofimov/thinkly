@@ -111,7 +111,7 @@ passlib[bcrypt]  # if you're hashing passwords
 alembic  # if you're doing database migratio
 httpx
 psycopg2-binary>=2.9.0
-
+flake8==7.0.0
 # Password hashing
 bcrypt>=4.0.0
 
