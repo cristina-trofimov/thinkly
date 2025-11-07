@@ -103,25 +103,6 @@ const leaderboard = [
   { name: "Alice", points: 100, solved: 2, runtime: "10m" },
 ]
 
-const comments = [
-  {
-    senderName: "Bob",
-    senderEmail: "bob@email.com",
-    senderPP: "",
-    liked: true,
-    comment: "Great problem!",
-    replies: [
-      {
-        senderName: "Jane",
-        senderEmail: "jane@email.com",
-        senderPP: "",
-        liked: false,
-        comment: "Thanks!",
-        replies: [],
-      },
-    ],
-  },
-]
 beforeAll(() => {
   jest.useFakeTimers()
   jest.setSystemTime(new Date('2025-10-28T10:00:00Z'))
@@ -136,7 +117,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const triggers = screen.getAllByTestId("tabs-trigger")
@@ -148,7 +128,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
@@ -161,7 +140,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const tab = screen.getByText("Submissions")
@@ -176,7 +154,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     fireEvent.click(screen.getByText("Submissions"))
@@ -196,7 +173,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const tab = screen.getByText("Leaderboard")
@@ -226,7 +202,6 @@ describe('CodeDescArea', () => {
           problemInfo={problemInfo}
           submissions={[submission]}
           leaderboard={leaderboard}
-          comments={comments}
         />
       )
 

@@ -11,7 +11,6 @@ import { getSandpackConfigs } from "../helpers/SandpackConfig";
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../interfaces/SubmissionType';
 import type { ProblemInfo } from '../interfaces/ProblemInfo';
-import type { CommentType } from '../interfaces/CommentType';
 import type { LeaderboardType } from '../interfaces/LeaderboardType';
 import { useStateCallback } from '../helpers/UseStateCallback';
 
@@ -57,42 +56,6 @@ const CodingView = () => {
     {"name": "Law M.", "points":  209, "solved": 10, "runtime": "24 min"},
     {"name": "Boudour B.", "points":  109, "solved": 9, "runtime": "18 min"},
     {"name": "Alice T.", "points":  59, "solved": 3, "runtime": "8 min"},
-  ]
-
-  const comments: CommentType[] = [
-    {
-        senderName: "Law P",
-        senderEmail: "some@email.com",
-        senderPP: "some@email.com",
-        liked: true,
-        comment: "vufdbuhbcdihbfibv uhsdfuhsbdh uushducjbs uheds",
-        replies: [],
-    },
-    {
-        senderName: "Law P",
-        senderEmail: "some@email.com",
-        senderPP: "some@email.com",
-        liked: true,
-        comment: "vufdbuhbcdihbfibv uhsdfuhsbdh uushducjbs uheds",
-        replies: [
-            {
-                senderName: "Law P",
-                senderEmail: "some@email.com",
-                senderPP: "some@email.com",
-                liked: false,
-                comment: "vufdbuhbcdihbfibv uhsdfuhsbdh uushducjbs uheds",
-                replies: [],
-            },
-            {
-                senderName: "Law P",
-                senderEmail: "some@email.com",
-                senderPP: "some@email.com",
-                liked: true,
-                comment: "vufdbuhbcdihbfibv uhsdfuhsbdh uushducjbs uheds",
-                replies: [],
-            },
-        ],
-    },
   ]
 
   const templates = getSandpackConfigs(problemName, inputVars, outputType)
@@ -168,7 +131,7 @@ const CodingView = () => {
             <div className='flex flex-row w-full' >
               <CodeDescArea
                 problemInfo={problemInfo} submissions={submissions}
-                leaderboard={leaderboard} comments={comments}
+                leaderboard={leaderboard}
               />
             </div>
           </ResizablePanel>
