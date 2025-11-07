@@ -4,13 +4,11 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState, } from 'react'
 import type { SubmissionType } from '../interfaces/SubmissionType'
-import type { LeaderboardType } from '../interfaces/LeaderboardType'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { ScoreboardDataTable } from '../leaderboards/ScoreboardDataTable'
-import { CardContent } from '../ui/card'
 import type { Participant } from '../interfaces/Participant'
 
 
@@ -238,8 +236,9 @@ const CodeDescArea = (
 
         {/* Leaderboard */}
         <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" 
-        className='w-full' >
-            <div className='p-6' >
+            // className='w-full'
+        >
+            <div className='p-6 w-full' >
                 <ScoreboardDataTable participants={leaderboard} />
                 <div className='mt-3 text-gray-500' >
                     {leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}
