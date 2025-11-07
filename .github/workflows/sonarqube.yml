@@ -60,7 +60,6 @@ jobs:
        uses: SonarSource/sonarqube-scan-action@v6
        env:
          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
        with:
         args: >
           -Dsonar.verbose=true
@@ -72,6 +71,23 @@ jobs:
           -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
           -Dsonar.pullrequest.branch=${{ github.head_ref }}
           -Dsonar.pullrequest.base=${{ github.base_ref }}
+     
+     - name: SonarQube Summary
+       uses: SonarSource/sonarqube-quality-gate-action@v1
+      #  uses: SonarSource/sonarcloud-github-action@v2
+       env:
+         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #  with:
+      #   args: >
+      #     -Dsonar.verbose=true
+      #     -Dsonar.projectBaseDir=.
+      #     -Dsonar.sources=./frontend/src,./backend/src
+      #     -Dsonar.tests=./frontend/tests,./backend/tests
+      #     -Dsonar.javascript.lcov.reportPaths=./frontend/coverage/lcov.info
+      #     -Dsonar.python.coverage.reportPaths=./backend/coverage.xml
+      #     -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+      #     -Dsonar.pullrequest.branch=${{ github.head_ref }}
+      #     -Dsonar.pullrequest.base=${{ github.base_ref }}
 
      - name: Upload frontend coverage to Codecov
        uses: codecov/codecov-action@v5
