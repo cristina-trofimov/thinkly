@@ -1,6 +1,6 @@
 import { useEffect, useRef, } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
-import { SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxProvider,
+import { SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxPreview, SandboxProvider,
           SandboxTabs } from "../ui/shadcn-io/sandbox";
 import CodeDescArea from "./CodeDescArea";
 import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp } from "lucide-react";
@@ -81,8 +81,8 @@ const CodingView = () => {
 
   const changePanelSizes = () => {
     // console.log("changing sizes");
-    if (!descPanelRef.current || !codeAndOutputPanelRef.current 
-      || !codePanelRef.current || !outputPanelRef.current) return;
+    if (!descPanelRef.current || !codeAndOutputPanelRef.current || !codePanelRef.current || !outputPanelRef.current)
+      return;
 
     let descSize = 50, codeAndOutputSize = 50, codeSize = 65, outputSize = 35;
 
@@ -117,7 +117,9 @@ const CodingView = () => {
   return (
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
       template={template} files={files}
-      options={{ activeFile: `${Object.keys(files)[0]}`, autorun: false, showConsole: true, showConsoleButton: true }}
+      options={{ activeFile: `${Object.keys(files)[0]}`, autorun: false,
+        //showConsole: true, showConsoleButton: true 
+      }}
       // className='flex-none relative h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
       className='flex-none h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
     >
@@ -206,7 +208,9 @@ const CodingView = () => {
                     </DropdownMenu>
                   </div>
                 </div>
-                <SandboxCodeEditor showRunButton showLineNumbers showInlineErrors />
+                <SandboxCodeEditor data-testid="sandbox-code-editor" showRunButton
+                  showLineNumbers showInlineErrors
+                />
               </ResizablePanel>
 
               <ResizableHandle withHandle className='my-[0.5px] border-none h-[0.5px]'
@@ -237,10 +241,10 @@ const CodingView = () => {
                 {/* <CodeOutputArea /> */} 
                 <SandboxTabs data-testid="sandbox-tabs" className='border-none' >
                   {/* <SandboxTabsContent data-testid="sandbox-tabs-content" value="preview" > */}
-                    {/* <SandboxPreview data-testid="sandbox-preview"
+                    <SandboxPreview data-testid="sandbox-preview"
                       showOpenInCodeSandbox={true}
                       showRefreshButton={true}
-                    /> */}
+                    />
                   {/* </SandboxTabsContent>
                   <SandboxTabsContent data-testid="sandbox-tabs-content" value="console"> */}
                     <SandboxConsole data-testid="sandbox-console" showHeader showRestartButton showSyntaxError />
