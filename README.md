@@ -49,22 +49,27 @@ installing the frontend</br>
 1- ```cd frontend```</br>
 2- ```npm install```</br></br>
 to run frontend</br>
-1- ```npm run dev```</br></br>
+1- ```cd frontend```</br>
+2- ```npm run dev```</br></br>
 to run jest </br>
-1- ```npm test```</br></br>
+1- ```cd frontend```</br>
+2- ```npm test```</br></br>
 
 to run cypress</br>
-1- cd frontend</br>
-2- ``````</br></br>
+1- ```cd frontend```</br>
+2- ```npm run cypress:open```</br></br>
 
 INSTALLING THE BACKEND</br>
 create virtual environement</br>
-1- ```python -m venv .venv```</br>
+1- ```cd backend```</br>
+2- ```python -m venv .venv```</br>
 install python dependencies</br>
-1- ```pip install -r backend/requirements.txt```</br></br>
+1- ```cd backend```</br>
+2- ```pip install -r backend/requirements.txt```</br></br>
 to run python</br>
-1- cd backend</br>
+1- ```cd backend```</br>
 2- ```python src/main.py```</br>
 run pytest</br></br>
-1- ```python -m pytest -v```</br>
+1- ```cd backend```</br>
+2- ```python -m pytest -v```</br>
 
