@@ -21,7 +21,7 @@ describe('Check Home page', () => {
 
   });
   it('is Upcomming Competitions present', () => {
-    cy.visit('http://localhost:5173/home');
+    cy.visit('http://localhost:5173/app/home');
     cy.contains("Upcoming Competitions").should('be.visible');
     cy.contains("WebComp").should('be.visible');
     cy.contains("45 mins to complete as many riddles as possible").should('be.visible');
