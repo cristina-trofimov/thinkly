@@ -23,7 +23,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Import your models here (adjust the import path as needed)
-from ..models.schema import (
+from models.schema import (
     User,
     UserPreferences,
     Session as SessionModel,
