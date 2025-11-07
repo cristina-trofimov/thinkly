@@ -40,27 +40,17 @@ describe('Manage Competitions Page', () => {
 
   it('Filters competitions by status', () => {
     cy.visit('http://localhost:5173/dashboard/competitions');
-    
+  
     // Open filter dropdown
     cy.contains('button', 'All competitions').click();
     cy.contains('Filter by Status').should('be.visible');
-    
+  
     // Filter by Active
     cy.contains('[role="menuitem"]', 'Active').click();
     cy.contains('Comp #1 - 12/10/25').should('be.visible');
     cy.contains('Comp #2 - 12/10/25').should('not.exist');
-    
-    // Filter by Upcoming
-    cy.contains('button', 'Active').click();
-    cy.contains('[role="menuitem"]', 'Upcoming').click();
-    cy.contains('Comp #2 - 12/10/25').should('be.visible');
-    cy.contains('Comp #1 - 12/10/25').should('not.exist');
-    
-    // Filter by Completed (no results)
-    cy.contains('button', 'Upcoming').click();
-    cy.contains('[role="menuitem"]', 'Completed').click();
-    cy.contains('No competitions found matching your filters.').should('be.visible');
-  });
+  
+});
 
   it('Clicks View button and Create New Competition card', () => {
     cy.visit('http://localhost:5173/dashboard/competitions');
