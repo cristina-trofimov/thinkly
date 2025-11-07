@@ -97,7 +97,7 @@ jobs:
          working-directory: ./frontend
          flags: frontend
          name: frontend
-         cwd: frontend
+         cwd: ./frontend
          fail_ci_if_error: false
          verbose: true
 
@@ -109,6 +109,6 @@ jobs:
          working-directory: ./backend
          flags: backend
          name: backend
-         cwd: backend
+         cwd: ./backend
          fail_ci_if_error: false
          verbose: true
