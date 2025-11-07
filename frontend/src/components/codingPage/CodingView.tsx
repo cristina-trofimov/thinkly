@@ -11,8 +11,8 @@ import { getSandpackConfigs } from "../helpers/SandpackConfig";
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../interfaces/SubmissionType';
 import type { ProblemInfo } from '../interfaces/ProblemInfo';
-import type { LeaderboardType } from '../interfaces/LeaderboardType';
 import { useStateCallback } from '../helpers/UseStateCallback';
+import type { Participant } from '../interfaces/Participant';
 // import { useSandpack } from '@codesandbox/sandpack-react';
 
 
@@ -52,11 +52,11 @@ const CodingView = () => {
     {"status": "Wrong Answer", "language":  "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40"},
   ]
 
-  const leaderboard: LeaderboardType[] = [
-    {"name": "Julia T.", "points":  259, "solved": 13, "runtime": "34 min"},
-    {"name": "Law M.", "points":  209, "solved": 10, "runtime": "24 min"},
-    {"name": "Boudour B.", "points":  109, "solved": 9, "runtime": "18 min"},
-    {"name": "Alice T.", "points":  59, "solved": 3, "runtime": "8 min"},
+  const leaderboard: Participant[] = [
+    {"name": "Julia T.", "points":  259, "problemsSolved": 13, "totalTime": "34 min"},
+    {"name": "Law M.", "points":  209, "problemsSolved": 10, "totalTime": "24 min"},
+    {"name": "Boudour B.", "points":  109, "problemsSolved": 9, "totalTime": "18 min"},
+    {"name": "Alice T.", "points":  59, "problemsSolved": 3, "totalTime": "8 min"},
   ]
 
   const templates = getSandpackConfigs(problemName, inputVars, outputType)

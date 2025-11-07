@@ -17,13 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-type Participant = {
-  readonly name: string;
-  readonly points: number;
-  readonly problemsSolved: number;
-  readonly totalTime: string;
-};
+import type { Participant } from "../interfaces/Participant";
 
 interface Props {
   readonly participants: Participant[];

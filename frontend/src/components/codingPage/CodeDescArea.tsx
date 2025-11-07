@@ -9,12 +9,15 @@ import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
+import { ScoreboardDataTable } from '../leaderboards/ScoreboardDataTable'
+import { CardContent } from '../ui/card'
+import type { Participant } from '../interfaces/Participant'
 
 
 const CodeDescArea = (
     { problemInfo, submissions, leaderboard }: 
     { problemInfo: ProblemInfo, submissions: SubmissionType[],
-      leaderboard: LeaderboardType[]
+      leaderboard: Participant[]
 }) => {
     
     const tabs = [
@@ -237,34 +240,10 @@ const CodeDescArea = (
         <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" 
         className='w-full' >
             <div className='p-6' >
-                <Table data-testid="table" >
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[100px]"></TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Points</TableHead>
-                            <TableHead className="text-right">Problem Solved</TableHead>
-                            <TableHead className="text-right">Runtime</TableHead>
-                        </TableRow>
-                    </TableHeader>
-
-                    <TableBody>
-                        {leaderboard.map((l, idx) => {
-                            return <TableRow key={`rank #${idx+1}`} >
-                                <TableCell className="font-medium">#{idx+1}</TableCell>
-                                <TableCell className='font-semibold text-primary'>{l.name}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.points}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.solved}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.runtime}</TableCell>
-                        </TableRow>
-                        })}
-                    </TableBody>
-
-                    <TableFooter className='mt-3' >
-                        <TableRow><TableCell colSpan={5} className='text-gray-500' >{leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}</TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
+                <ScoreboardDataTable participants={leaderboard} />
+                <div className='mt-3 text-gray-500' >
+                    {leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}
+                </div>
             </div>
         </TabsContent>
     </Tabs>

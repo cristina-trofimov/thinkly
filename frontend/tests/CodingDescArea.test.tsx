@@ -100,7 +100,7 @@ const submissions = [
 ]
 
 const leaderboard = [
-  { name: "Alice", points: 100, solved: 2, runtime: "10m" },
+  { name: "Alice", points: 100, problemsSolved: 2, totalTime: "10m" },
 ]
 
 beforeAll(() => {
@@ -178,7 +178,6 @@ describe('CodeDescArea', () => {
     const tab = screen.getByText("Leaderboard")
     fireEvent.click(tab)
 
-    expect(screen.getByText("#1")).toBeInTheDocument()
     expect(screen.getByText("Alice")).toBeInTheDocument()
     expect(screen.getByText("100")).toBeInTheDocument()
   })
