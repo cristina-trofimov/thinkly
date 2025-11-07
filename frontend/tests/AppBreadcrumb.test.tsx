@@ -14,7 +14,7 @@ describe("AppBreadcrumbs", () => {
   });
 
   test("renders null when items is undefined", () => {
-    const { container } = render(<AppBreadcrumbs items={null as any} />);
+    const { container } = render(<AppBreadcrumbs items={null as unknown} />);
     expect(container.firstChild).toBeNull();
   });
 

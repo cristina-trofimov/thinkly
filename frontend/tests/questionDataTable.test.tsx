@@ -6,22 +6,22 @@ import { waitFor } from "@testing-library/react"
 
 // Mock Button, Input, DropdownMenu components (if needed)
 jest.mock("../src/components/ui/button", () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Button: ({ children, ...props }: unknown) => <button {...props}>{children}</button>,
 }))
 
 jest.mock("../src/components/ui/input", () => ({
-  Input: ({ ...props }: any) => <input {...props} />,
+  Input: ({ ...props }: unknown) => <input {...props} />,
 }))
 
 jest.mock("../src/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick, ...props }: any) => (
+  DropdownMenu: ({ children }: unknown) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: unknown) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: unknown) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick, ...props }: unknown) => (
     <div {...props} onClick={onClick}>
       {children}
     </div>),
-  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuLabel: ({ children }: unknown) => <div>{children}</div>,
   DropdownMenuSeparator: () => <div>---</div>,
 }))
 

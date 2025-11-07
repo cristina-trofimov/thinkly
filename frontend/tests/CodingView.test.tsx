@@ -1,7 +1,7 @@
 import React from 'react'
 import '@testing-library/jest-dom'
 import CodingView from '../src/components/codingPage/CodingView'
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { render, screen} from "@testing-library/react"
 import userEvent from '@testing-library/user-event'
 
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
@@ -15,24 +15,24 @@ jest.mock('../src/components/codingPage/CodingArea', () => ({
 }))
 
 jest.mock("../src/components/ui/shadcn-io/sandbox", () => ({
-    SandboxProvider: ({ children }: any) => <div data-testid="sandbox-provider" >{children}</div>,
-    SandboxLayout: ({ children }: any) => <div data-testid="sandbox-layout" >{children}</div>,
-    SandboxTabs: ({ children }: any) => <div data-testid="sandbox-tabs" >{children}</div>,
-    SandboxTabsContent: ({ children }: any) => <div data-testid="sandbox-tabs-content" >{children}</div>,
+    SandboxProvider: ({ children }: unknown) => <div data-testid="sandbox-provider" >{children}</div>,
+    SandboxLayout: ({ children }: unknown) => <div data-testid="sandbox-layout" >{children}</div>,
+    SandboxTabs: ({ children }: unknown) => <div data-testid="sandbox-tabs" >{children}</div>,
+    SandboxTabsContent: ({ children }: unknown) => <div data-testid="sandbox-tabs-content" >{children}</div>,
     SandboxPreview: () => <div data-testid="sandbox-preview" />,
     SandboxConsole: () => <div data-testid="sandbox-console" />,
 }))
 
 jest.mock("../src/components/ui/dropdown-menu", () => ({
-    DropdownMenu: ({ children }: any) => <div data-testid="languageDropdown" >{children}</div>,
-    DropdownMenuTrigger: ({ children, asChild }: any) => asChild ? children : <button data-testid="languageBtn">{children}</button>,
-    DropdownMenuContent: ({ children }: any) => <div data-testid="languageMenu" >{children}</div>,
-    DropdownMenuItem: ({ children, ...props }: any) => <div data-testid={`languageItem-${children}`} {...props} role='menuitem' >{children}</div>,
+    DropdownMenu: ({ children }: unknown) => <div data-testid="languageDropdown" >{children}</div>,
+    DropdownMenuTrigger: ({ children, asChild }: unknown) => asChild ? children : <button data-testid="languageBtn">{children}</button>,
+    DropdownMenuContent: ({ children }: unknown) => <div data-testid="languageMenu" >{children}</div>,
+    DropdownMenuItem: ({ children, ...props }: unknown) => <div data-testid={`languageItem-${children}`} {...props} role='menuitem' >{children}</div>,
 }))
 
 jest.mock("../src/components/ui/resizable", () => ({
-    ResizablePanelGroup: ({ children }: any) => <div data-testid="resizable-group">{children}</div>,
-    ResizablePanel: React.forwardRef(({ children }: any, ref) => {
+    ResizablePanelGroup: ({ children }: unknown) => <div data-testid="resizable-group">{children}</div>,
+    ResizablePanel: React.forwardRef(({ children }: unknown, ref) => {
       React.useImperativeHandle(ref, () => ({
         resize: jest.fn(), // allow testing of resize() calls
       }));
@@ -51,9 +51,9 @@ jest.mock("../src/components/helpers/SandpackConfig", () => ({
 }))
 
 jest.mock("../src/components/helpers/UseStateCallback", () => ({
-    useStateCallback: (initial: any) => {
+    useStateCallback: (initial: unknown) => {
       const [value, setValue] = React.useState(initial)
-      return [value, (v: any) => setValue(v), jest.fn()]
+      return [value, (v: unknown) => setValue(v), jest.fn()]
     },
 }))
 

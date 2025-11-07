@@ -1,7 +1,6 @@
 /// <reference types="jest" />
 
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { NavUser } from "../src/components/layout/NavUser";
 import { jest } from '@jest/globals';
 
@@ -9,13 +8,13 @@ import { jest } from '@jest/globals';
 const mockUseSidebar = jest.fn();
 
 jest.mock("@/components/ui/sidebar", () => ({
-  SidebarMenu: ({ children }: any) => (
+  SidebarMenu: ({ children }: unknown) => (
     <div data-testid="sidebar-menu">{children}</div>
   ),
-  SidebarMenuItem: ({ children }: any) => (
+  SidebarMenuItem: ({ children }: unknown) => (
     <div data-testid="sidebar-menu-item">{children}</div>
   ),
-  SidebarMenuButton: ({ children, className, size, ...props }: any) => (
+  SidebarMenuButton: ({ children, className, size, ...props }: unknown) => (
     <button
       data-testid="sidebar-menu-button"
       className={className}
@@ -29,15 +28,15 @@ jest.mock("@/components/ui/sidebar", () => ({
 }));
 
 jest.mock("@/components/ui/avatar", () => ({
-  Avatar: ({ children, className }: any) => (
+  Avatar: ({ children, className }: unknown) => (
     <div data-testid="avatar" className={className}>
       {children}
     </div>
   ),
-  AvatarImage: ({ src }: any) => (
+  AvatarImage: ({ src }: unknown) => (
     <img data-testid="avatar-image" src={src} alt="avatar" />
   ),
-  AvatarFallback: ({ children, className }: any) => (
+  AvatarFallback: ({ children, className }: unknown) => (
     <div data-testid="avatar-fallback" className={className}>
       {children}
     </div>
@@ -45,13 +44,13 @@ jest.mock("@/components/ui/avatar", () => ({
 }));
 
 jest.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: any) => (
+  DropdownMenu: ({ children }: unknown) => (
     <div data-testid="dropdown-menu">{children}</div>
   ),
-  DropdownMenuTrigger: ({ children, asChild }: any) => (
+  DropdownMenuTrigger: ({ children }: unknown) => (
     <div data-testid="dropdown-menu-trigger">{children}</div>
   ),
-  DropdownMenuContent: ({ children, side, align, sideOffset, className }: any) => (
+  DropdownMenuContent: ({ children, side, align, sideOffset, className }: unknown) => (
     <div
       data-testid="dropdown-menu-content"
       data-side={side}
@@ -62,15 +61,15 @@ jest.mock("@/components/ui/dropdown-menu", () => ({
       {children}
     </div>
   ),
-  DropdownMenuLabel: ({ children, className }: any) => (
+  DropdownMenuLabel: ({ children, className }: unknown) => (
     <div data-testid="dropdown-menu-label" className={className}>
       {children}
     </div>
   ),
-  DropdownMenuGroup: ({ children }: any) => (
+  DropdownMenuGroup: ({ children }: unknown) => (
     <div data-testid="dropdown-menu-group">{children}</div>
   ),
-  DropdownMenuItem: ({ children }: any) => (
+  DropdownMenuItem: ({ children }: unknown) => (
     <div data-testid="dropdown-menu-item">{children}</div>
   ),
   DropdownMenuSeparator: () => <hr data-testid="dropdown-menu-separator" />,

@@ -111,44 +111,46 @@ const CodingView = () => {
   const [closeCode, setCloseCode] = useStateCallback(false)
   const [closeOutput, setCloseOutput] = useStateCallback(false)
 
-  useEffect(() => {
-    changePanelSizes()
-  }, [fullCode, fullOutput, closeCode, closeOutput])
+useEffect(() => {
+  changePanelSizes()
+}, [changePanelSizes])
 
-  const changePanelSizes = () => {
-    console.log("changing sizes");
-    if (!descPanelRef.current || !codeAndOutputPanelRef.current 
-      || !codePanelRef.current || !outputPanelRef.current) return;
 
-    let descSize = 50, codeAndOutputSize = 50, codeSize = 75, outputSize = 25;
+  const changePanelSizes = useCallback(() => {
+  console.log("changing sizes");
+  if (!descPanelRef.current || !codeAndOutputPanelRef.current
+    || !codePanelRef.current || !outputPanelRef.current) return;
 
-    if (fullCode) {
-      descSize = 0;
-      codeAndOutputSize = 100;
-      codeSize = 100;
-      outputSize = 0;
-    } else if (fullOutput) {
-      descSize = 0;
-      codeAndOutputSize = 100;
-      codeSize = 0;
-      outputSize = 100;
-    } else if (closeCode) {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 5;
-      outputSize = 95;
-    } else if (closeOutput) {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 95;
-      outputSize = 5;
-    }
+  let descSize = 50, codeAndOutputSize = 50, codeSize = 75, outputSize = 25;
 
-    descPanelRef.current.resize(descSize);
-    codeAndOutputPanelRef.current.resize(codeAndOutputSize);
-    codePanelRef.current.resize(codeSize);
-    outputPanelRef.current.resize(outputSize);
+  if (fullCode) {
+    descSize = 0;
+    codeAndOutputSize = 100;
+    codeSize = 100;
+    outputSize = 0;
+  } else if (fullOutput) {
+    descSize = 0;
+    codeAndOutputSize = 100;
+    codeSize = 0;
+    outputSize = 100;
+  } else if (closeCode) {
+    descSize = 50;
+    codeAndOutputSize = 50;
+    codeSize = 5;
+    outputSize = 95;
+  } else if (closeOutput) {
+    descSize = 50;
+    codeAndOutputSize = 50;
+    codeSize = 95;
+    outputSize = 5;
   }
+
+  descPanelRef.current.resize(descSize);
+  codeAndOutputPanelRef.current.resize(codeAndOutputSize);
+  codePanelRef.current.resize(codeSize);
+  outputPanelRef.current.resize(outputSize);
+}, [fullCode, fullOutput, closeCode, closeOutput, descPanelRef, codeAndOutputPanelRef, codePanelRef, outputPanelRef]);
+
 
   return (
     <SandboxProvider data-testid="sandbox-provider"

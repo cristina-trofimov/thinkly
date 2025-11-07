@@ -3,7 +3,7 @@ import { SearchAndFilterBar } from "../src/components/leaderboards/SearchAndFilt
 
 // Mock the Button component
 jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, ...props }: any) => (
+  Button: ({ children, onClick, ...props }: unknown) => (
     <button onClick={onClick} {...props}>
       {children}
     </button>
@@ -12,31 +12,31 @@ jest.mock("@/components/ui/button", () => ({
 
 // Mock the Input component
 jest.mock("@/components/ui/input", () => ({
-  Input: (props: any) => <input {...props} />,
+  Input: (props: unknown) => <input {...props} />,
 }));
 
 // Mock the entire dropdown menu module
 jest.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuTrigger: ({ children, asChild }: any) => {
+  DropdownMenu: ({ children }: unknown) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children, asChild }: unknown) => {
     if (asChild) {
       return <>{children}</>;
     }
     return <button>{children}</button>;
   },
-  DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick }: any) => (
+  DropdownMenuContent: ({ children }: unknown) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: unknown) => (
     <div onClick={onClick} role="menuitem">
       {children}
     </div>
   ),
-  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuLabel: ({ children }: unknown) => <div>{children}</div>,
   DropdownMenuSeparator: () => <hr />,
 }));
 
 // Mock lucide-react icons - only Filter is used
 jest.mock("lucide-react", () => ({
-  Filter: ({ className }: any) => <span data-testid="filter-icon" className={className} />,
+  Filter: ({ className }: unknown) => <span data-testid="filter-icon" className={className} />,
 }));
 
 describe("SearchAndFilterBar", () => {

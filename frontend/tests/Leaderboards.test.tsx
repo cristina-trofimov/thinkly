@@ -13,7 +13,7 @@ beforeEach(() => {
           { id: "1", name: "Competition A", date: "2025-09-15", participants: [] },
           { id: "2", name: "Competition B", date: "2025-10-31", participants: [] },
         ]),
-    } as any)
+    } as unknown)
   );
 });
 

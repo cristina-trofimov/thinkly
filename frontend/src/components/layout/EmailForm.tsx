@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 
-const API_BASE = "http://127.0.0.1:8000"
+//const API_BASE = "http://127.0.0.1:8000"
 
 const schema = z.object({
     to: z.string().min(3, "Enter at least one recipient (comma-separated)"),
@@ -32,6 +32,12 @@ const schema = z.object({
 })
 
 type FormValues = z.infer<typeof schema>
+
+interface EmailPayload {
+  to: string[];    // or string depending on our format
+  subject: string;
+  text: string;
+}
 
 function localToUTCZ(dtLocal?: string) {
     if (!dtLocal) return undefined
@@ -67,7 +73,7 @@ export default function SendEmailForm({ className }: { className?: string }) {
             return
         }
 
-        const payload: Record<string, any> = {
+        const payload: EmailPayload = {
             to: toList,
             subject: values.subject,
             text: values.text,
@@ -107,7 +113,7 @@ export default function SendEmailForm({ className }: { className?: string }) {
                 sendAtLocal: "",
                 sendInOneMinute: false,
             })
-        } catch (e: any) {
+        } catch (e: unknown) {
             toast.error("Network error", { description: e?.message ?? String(e) })
         } finally {
             setSubmitting(false)

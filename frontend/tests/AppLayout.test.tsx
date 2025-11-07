@@ -14,7 +14,7 @@ jest.mock("react-router-dom", () => ({
 
 // Mock child components
 jest.mock("../src/components/ui/sidebar", () => ({
-  SidebarProvider: ({ children }: any) => (
+  SidebarProvider: ({ children }: unknown) => (
     <div data-testid="sidebar-provider">{children}</div>
   ),
 }));
@@ -24,9 +24,9 @@ jest.mock("../src/components/layout/AppSidebar", () => ({
 }));
 
 jest.mock("../src/components/layout/AppBreadcrumb", () => ({
-  AppBreadcrumbs: ({ items }: any) => (
+  AppBreadcrumbs: ({ items }: unknown) => (
     <nav data-testid="app-breadcrumbs">
-      {items.map((item: any, index: number) => (
+      {items.map((item: unknown, index: number) => (
         <span key={index} data-href={item.href}>
           {item.title}
         </span>

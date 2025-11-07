@@ -22,7 +22,7 @@ jest.mock("@/components/dashboard/StatsCard", () => ({
 }));
 
 jest.mock("@/components/dashboard/ManageCard", () => ({
-  ManageCard: ({ title, items }: { title: string; items: any[] }) => (
+  ManageCard: ({ title, items }: { title: string; items: unknown[] }) => (
     <div data-testid="manage-card">
       <span>{title}</span>
       <span>{items.length} items</span>

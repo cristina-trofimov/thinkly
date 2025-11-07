@@ -2,12 +2,9 @@
 
 // ---- Polyfill ResizeObserver for Radix / JSDOM ----
 class RO {
-    constructor(_cb: ResizeObserverCallback) { }
-    observe(_target?: Element) { }
-    unobserve(_target?: Element) { }
-    disconnect() { }
+    constructor() { }
 }
-// @ts-ignore
+// @ts-expect-error TS doesn't recognize global.ResizeObserver in Jest environment
 global.ResizeObserver = global.ResizeObserver || RO;
 // ---- End Fix ----
 
@@ -43,18 +40,10 @@ function getInputs() {
     };
 }
 
-function mockFetchOnceOk(json: any = { message: "OK" }) {
+function mockFetchOnceOk(json: unknown = { message: "OK" }) {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => json,
-    });
-}
-
-function mockFetchOnceError(status = 400, json: any = { error: "Bad Request" }) {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status,
         json: async () => json,
     });
 }

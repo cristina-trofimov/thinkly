@@ -1,22 +1,21 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import HomePage from "../src/HomePage"
 
 jest.mock("../src/components/ui/button", () => ({
-    Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+    Button: ({ children, ...props }: unknown) => <button {...props}>{children}</button>,
   }))
 
 // Mock DataTable to avoid needing actual table implementation
 jest.mock("../src/components/HomePageQuestions/questionDataTable", () => ({
-  DataTable: ({ data }: any) => (
+  DataTable: ({ data }: unknown) => (
     <div data-testid="data-table">{data.length} questions rendered</div>
   ),
 }))
 
 // Mock Calendar
 jest.mock("@/components/ui/calendar", () => ({
-  Calendar: ({ selected, onSelect }: any) => (
+  Calendar: ({ selected }: unknown) => (
     <div data-testid="calendar">
       Calendar selected: {selected ? selected.toDateString() : "none"}
     </div>

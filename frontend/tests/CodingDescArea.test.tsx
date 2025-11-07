@@ -11,67 +11,66 @@ jest.mock('../src/components/codingPage/CodingArea', () => ({
 
 jest.mock('../src/components/ui/button', () => ({
   __esModule: true,
-  Button: ({ children, ...props }: any) => (
+  Button: ({ children, ...props }: unknown) => (
       <button {...props} data-testid='button' >{children}</button>
   )
 }))
 
 jest.mock("../src/components/ui/tabs", () => ({
   __esModule: true,
-  Tabs: ({ children }: any) => <div data-testid="tabs" >{children}</div>,
-  TabsList: ({ children }: any) => <div data-testid="tabs-list" >{children}</div>,
-  TabsTrigger: ({ children, asChild, ...props }: any) => {
+  Tabs: ({ children }: unknown) => <div data-testid="tabs" >{children}</div>,
+  TabsList: ({ children }: unknown) => <div data-testid="tabs-list" >{children}</div>,
+  TabsTrigger: ({ children, asChild, ...props }: unknown) => {
     if (asChild) return React.cloneElement(children, { 'data-testid': 'tabs-trigger', ...props })
     return <button data-testid="tabs-trigger" {...props} >{children}</button>
   },
-  TabsContent: ({ value, children }: any) => <div data-testid={`tabs-content-${value}`} >{children}</div>,
+  TabsContent: ({ value, children }: unknown) => <div data-testid={`tabs-content-${value}`} >{children}</div>,
 }))
 
 jest.mock("../src/components/ui/table", () => ({
   __esModule: true,
-  Table: ({ children }: any) => <table data-testid="table" >{children}</table>,
-  TableBody: ({ children }: any) => <tbody>{children}</tbody>,
-  TableCell: ({ children, ...props }: any) => <td {...props} >{children}</td>,
-  TableFooter: ({ children }: any) => <tfoot>{children}</tfoot>,
-  TableHead: ({ children }: any) => <th>{children}</th>,
-  TableHeader: ({ children }: any) => <thead>{children}</thead>,
-  TableRow: ({ children }: any) => <tr>{children}</tr>,
+  Table: ({ children }: unknown) => <table data-testid="table" >{children}</table>,
+  TableBody: ({ children }: unknown) => <tbody>{children}</tbody>,
+  TableCell: ({ children, ...props }: unknown) => <td {...props} >{children}</td>,
+  TableFooter: ({ children }: unknown) => <tfoot>{children}</tfoot>,
+  TableHead: ({ children }: unknown) => <th>{children}</th>,
+  TableHeader: ({ children }: unknown) => <thead>{children}</thead>,
+  TableRow: ({ children }: unknown) => <tr>{children}</tr>,
 }))
 
 jest.mock("motion/react", () => {
-  const React = require("react")
-  const filterProps = (props: any) => {
-    const { layout, animate, initial, exit, transition, ...rest } = props
+  const filterProps = (props: unknown) => {
+    const { ...rest } = props
     return rest
   }
   return {
     motion: {
-      div: (props: any) => <div {...filterProps(props)}>{props.children}</div>,
-      span: (props: any) => <span {...filterProps(props)}>{props.children}</span>,
+      div: (props: unknown) => <div {...filterProps(props)}>{props.children}</div>,
+      span: (props: unknown) => <span {...filterProps(props)}>{props.children}</span>,
     },
-    AnimatePresence: ({ children }: any) => <>{children}</>,
+    AnimatePresence: ({ children }: unknown) => <>{children}</>,
   }
 })
 
 jest.mock('../src/components/helpers/UseStateCallback', () => ({
-    useStateCallback: (initial: any) => {
+    useStateCallback: (initial: unknown) => {
         const [state, setState] = React.useState(initial)
-        return [state, (v: any) => setState(v), jest.fn() ]
+        return [state, (v: unknown) => setState(v), jest.fn() ]
     }
 }))
 
 jest.mock("../src/components/ui/shadcn-io/code-block", () => ({
   __esModule: true,
-  CodeBlock: ({ children }: any) => <div data-testid="code-block" >{children}</div>,
-  CodeBlockBody: ({ children }: any) => (
+  CodeBlock: ({ children }: unknown) => <div data-testid="code-block" >{children}</div>,
+  CodeBlockBody: ({ children }: unknown) => (
     <div data-testid="code-body" >{
       typeof children === 'function'
       ? children({ language: 'js', code: 'console.log("test")' })
       : children
     }</div>
   ),
-  CodeBlockItem: ({ children }: any) => <div data-testid="code-item" >{children}</div>,
-  CodeBlockContent: ({ children }: any) => <div data-testid="code-content" >{children}</div>,
+  CodeBlockItem: ({ children }: unknown) => <div data-testid="code-item" >{children}</div>,
+  CodeBlockContent: ({ children }: unknown) => <div data-testid="code-content" >{children}</div>,
 }))
 
 // Samples

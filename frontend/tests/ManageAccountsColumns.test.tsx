@@ -17,7 +17,7 @@ const createMockTable = (overrides = {}) => ({
 });
 
 const createMockRow = (overrides = {}) => ({
-  getValue: jest.fn((key: string) => mockAccount[key as keyof Account]),
+  getValue: jest.fn((key: keyof Account) => mockAccount[key]),
   getIsSelected: jest.fn(() => false),
   toggleSelected: jest.fn(),
   original: mockAccount,
@@ -29,6 +29,10 @@ const createMockColumn = (overrides = {}) => ({
   getIsSorted: jest.fn(() => false),
   ...overrides,
 });
+
+// Define explicit types for header and cell functions
+type HeaderFunction = (props: { table?: ReturnType<typeof createMockTable>; column?: ReturnType<typeof createMockColumn> }) => JSX.Element;
+type CellFunction = (props: { row: ReturnType<typeof createMockRow> }) => JSX.Element;
 
 describe("Account Columns", () => {
   beforeEach(() => {
@@ -43,45 +47,45 @@ describe("Account Columns", () => {
 
     it("renders header checkbox unchecked", () => {
       const table = createMockTable();
-      const Header = selectColumn.header as Function;
+      const Header = selectColumn.header as HeaderFunction;
       render(<>{Header({ table })}</>);
-      
+
       expect(screen.getByRole("checkbox")).not.toBeChecked();
     });
 
     it("renders header checkbox checked when all selected", () => {
       const table = createMockTable({ getIsAllPageRowsSelected: () => true });
-      const Header = selectColumn.header as Function;
+      const Header = selectColumn.header as HeaderFunction;
       render(<>{Header({ table })}</>);
-      
+
       expect(screen.getByRole("checkbox")).toBeChecked();
     });
 
     it("renders header checkbox indeterminate when some selected", () => {
       const table = createMockTable({ getIsSomePageRowsSelected: () => true });
-      const Header = selectColumn.header as Function;
+      const Header = selectColumn.header as HeaderFunction;
       const { container } = render(<>{Header({ table })}</>);
-      
+
       expect(container.querySelector('[data-state="indeterminate"]')).toBeInTheDocument();
     });
 
     it("toggles all rows on header checkbox change", () => {
       const table = createMockTable();
-      const Header = selectColumn.header as Function;
+      const Header = selectColumn.header as HeaderFunction;
       render(<>{Header({ table })}</>);
-      
+
       fireEvent.click(screen.getByRole("checkbox"));
       expect(table.toggleAllPageRowsSelected).toHaveBeenCalledWith(true);
     });
 
     it("renders and toggles row checkbox", () => {
       const row = createMockRow();
-      const Cell = selectColumn.cell as Function;
+      const Cell = selectColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       const checkbox = screen.getByRole("checkbox");
       expect(checkbox).toBeInTheDocument();
-      
+
       fireEvent.click(checkbox);
       expect(row.toggleSelected).toHaveBeenCalledWith(true);
     });
@@ -92,30 +96,30 @@ describe("Account Columns", () => {
 
     it("renders name with initials", () => {
       const row = createMockRow();
-      const Cell = nameColumn.cell as Function;
+      const Cell = nameColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("JD")).toBeInTheDocument();
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
     it("handles single name", () => {
       const row = createMockRow({
-        getValue: (key: string) => key === "name" ? "John" : mockAccount[key as keyof Account],
+        getValue: (key: keyof Account) => key === "name" ? "John" : mockAccount[key],
       });
-      const Cell = nameColumn.cell as Function;
+      const Cell = nameColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("JJ")).toBeInTheDocument();
     });
 
     it("handles empty name", () => {
       const row = createMockRow({
-        getValue: (key: string) => key === "name" ? "" : mockAccount[key as keyof Account],
+        getValue: (key: keyof Account) => key === "name" ? "" : mockAccount[key],
       });
-      const Cell = nameColumn.cell as Function;
+      const Cell = nameColumn.cell as CellFunction;
       const { container } = render(<>{Cell({ row })}</>);
-      
+
       const initialsSpan = container.querySelector('.bg-muted');
       expect(initialsSpan).toHaveTextContent("");
     });
@@ -126,35 +130,35 @@ describe("Account Columns", () => {
 
     it("renders email with sort button", () => {
       const column = createMockColumn();
-      const Header = emailColumn.header as Function;
+      const Header = emailColumn.header as HeaderFunction;
       render(<>{Header({ column })}</>);
-      
+
       expect(screen.getByText("Email")).toBeInTheDocument();
     });
 
     it("toggles sorting from not sorted to ascending", () => {
       const column = createMockColumn();
-      const Header = emailColumn.header as Function;
+      const Header = emailColumn.header as HeaderFunction;
       render(<>{Header({ column })}</>);
-      
+
       fireEvent.click(screen.getByRole("button"));
       expect(column.toggleSorting).toHaveBeenCalledWith(false);
     });
 
     it("toggles sorting from ascending to descending", () => {
       const column = createMockColumn({ getIsSorted: () => "asc" });
-      const Header = emailColumn.header as Function;
+      const Header = emailColumn.header as HeaderFunction;
       render(<>{Header({ column })}</>);
-      
+
       fireEvent.click(screen.getByRole("button"));
       expect(column.toggleSorting).toHaveBeenCalledWith(true);
     });
 
     it("renders email cell", () => {
       const row = createMockRow();
-      const Cell = emailColumn.cell as Function;
+      const Cell = emailColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("john@example.com")).toBeInTheDocument();
     });
   });
@@ -164,9 +168,9 @@ describe("Account Columns", () => {
 
     it("renders account type", () => {
       const row = createMockRow();
-      const Cell = accountTypeColumn.cell as Function;
+      const Cell = accountTypeColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("Admin")).toBeInTheDocument();
     });
   });
@@ -176,25 +180,25 @@ describe("Account Columns", () => {
 
     it("renders dropdown menu trigger", () => {
       const row = createMockRow();
-      const Cell = actionsColumn.cell as Function;
+      const Cell = actionsColumn.cell as CellFunction;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByRole("button")).toBeInTheDocument();
     });
 
     it("copies user ID to clipboard", () => {
       const row = createMockRow();
-      const Cell = actionsColumn.cell as Function;
+      const Cell = actionsColumn.cell as CellFunction;
       const { container } = render(<>{Cell({ row })}</>);
-      
+
       const button = screen.getByRole("button");
       fireEvent.click(button);
-      
+
       const dropdownItem = container.querySelector('[role="menuitem"]');
       if (dropdownItem) {
         fireEvent.click(dropdownItem);
       }
-      
+
       expect(button).toBeInTheDocument();
     });
   });

@@ -55,7 +55,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     C: {
         fileExt: "c",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `#include <stdio.h>
             void solution(${inputVars.map(v => `${v.type} ${v.name}`).join(', ')}) {
                 // TODO
@@ -104,7 +104,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Kotlin": {
         fileExt: "kt",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `fun main(){
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
             solution(${inputVars.map(v => v.name).join(', ')})
@@ -116,7 +116,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Typescript": {
         fileExt: "ts",
         template: 'node',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `function ${problemName}(${inputVars.map(v => `${v.name}${`: ${v.type}`}`).join(', ')}: { ${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')} }): void {
             // TODO
         }
@@ -126,7 +126,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Javascript": {
         fileExt: "js",
         template: 'node',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `function ${problemName}(${inputVars.map(v => v.name).join(', ')}): {
             // TODO
         }
@@ -135,7 +135,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Ruby": {
         fileExt: "rb",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
             # TODO
         end
@@ -148,7 +148,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Rust": {
         fileExt: "rs",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `fn main() {
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
             solution(${inputVars.map(v => v.name).join(', ')})
@@ -161,7 +161,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Erlang": {
         fileExt: "erl",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars, outputType) =>
+        codeBuilder: (problemName, inputVars) =>
         `-module(${problemName.toLowerCase()}).
             -export([main/0]).
             

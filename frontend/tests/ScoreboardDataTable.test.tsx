@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SearchAndFilterBar } from "../src/components/leaderboards/SearchAndFilterBar";
 

@@ -7,10 +7,10 @@ import '@testing-library/jest-dom';
 
 // Mock the child components
 jest.mock("@/components/layout/NavSection", () => ({
-  NavSection: ({ link, label }: any) => (
+  NavSection: ({ link, label }: unknown) => (
     <div data-testid="nav-section">
       <span>{label}</span>
-      {link.map((item: any) => (
+      {link.map((item: unknown) => (
         <a key={item.name} href={item.url}>
           {item.name}
         </a>
@@ -20,7 +20,7 @@ jest.mock("@/components/layout/NavSection", () => ({
 }));
 
 jest.mock("@/components/layout/NavUser", () => ({
-  NavUser: ({ user }: any) => (
+  NavUser: ({ user }: unknown) => (
     <div data-testid="nav-user">
       {user.firstName} {user.lastName}
     </div>
@@ -28,33 +28,33 @@ jest.mock("@/components/layout/NavUser", () => ({
 }));
 
 jest.mock("@/components/ui/sidebar", () => ({
-  Sidebar: ({ children, ...props }: any) => (
+  Sidebar: ({ children, ...props }: unknown) => (
     <aside data-testid="sidebar" {...props}>
       {children}
     </aside>
   ),
-  SidebarContent: ({ children }: any) => (
+  SidebarContent: ({ children }: unknown) => (
     <div data-testid="sidebar-content">{children}</div>
   ),
-  SidebarFooter: ({ children }: any) => (
+  SidebarFooter: ({ children }: unknown) => (
     <div data-testid="sidebar-footer">{children}</div>
   ),
-  SidebarHeader: ({ children }: any) => (
+  SidebarHeader: ({ children }: unknown) => (
     <div data-testid="sidebar-header">{children}</div>
   ),
-  SidebarMenu: ({ children }: any) => (
+  SidebarMenu: ({ children }: unknown) => (
     <ul data-testid="sidebar-menu">{children}</ul>
   ),
-  SidebarMenuButton: ({ children, asChild, ...props }: any) => (
+  SidebarMenuButton: ({ children, ...props }: unknown) => (
     <button data-testid="sidebar-menu-button" {...props}>
       {children}
     </button>
   ),
-  SidebarMenuItem: ({ children }: any) => (
+  SidebarMenuItem: ({ children }: unknown) => (
     <li data-testid="sidebar-menu-item">{children}</li>
   ),
   SidebarRail: () => <div data-testid="sidebar-rail" />,
-  SidebarTrigger: (props: any) => (
+  SidebarTrigger: (props: unknown) => (
     <button data-testid="sidebar-trigger" {...props}>
       Toggle
     </button>
@@ -62,13 +62,13 @@ jest.mock("@/components/ui/sidebar", () => ({
 }));
 
 jest.mock("@/components/ui/avatar", () => ({
-  Avatar: ({ children }: any) => (
+  Avatar: ({ children }: unknown) => (
     <div data-testid="avatar">{children}</div>
   ),
-  AvatarImage: ({ src }: any) => (
+  AvatarImage: ({ src }: unknown) => (
     <img data-testid="avatar-image" src={src} alt="avatar" />
   ),
-  AvatarFallback: ({ children }: any) => (
+  AvatarFallback: ({ children }: unknown) => (
     <div data-testid="avatar-fallback">{children}</div>
   ),
 }));

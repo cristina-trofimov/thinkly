@@ -1,13 +1,14 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import type { Account } from './../src/manage-accounts/ManageAccountsColumns';
 
+
 describe('ManageAccountsPage Unit Tests', () => {
-  let ManageAccountsPage: any;
-  let columns: any;
+  let ManageAccountsPage: unknown;
+  let columns: unknown;
 
   beforeAll(() => {
     jest.mock('./../src/manage-accounts/ManageAccountsDataTable', () => ({
-      ManageAccountsDataTable: ({ data, columns }: any) => (
+      ManageAccountsDataTable: ({ data, columns }: unknown) => (
         <div data-testid="mock-data-table">
           <div data-testid="data-length">{data.length}</div>
           <div data-testid="columns-length">{columns.length}</div>
@@ -15,8 +16,6 @@ describe('ManageAccountsPage Unit Tests', () => {
       ),
     }));
 
-    ManageAccountsPage = require('./../src/manage-accounts/ManageAccountsPage').default;
-    columns = require('./../src/manage-accounts/ManageAccountsColumns').columns;
   });
 
   beforeEach(() => {
@@ -134,7 +133,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
 });
 
 describe('ManageAccountsColumns - Structure', () => {
-  let columns: any;
+  let columns: unknown;
 
   beforeAll(async () => {
     const columnsModule = await import('./../src/manage-accounts/ManageAccountsColumns');
@@ -154,17 +153,17 @@ describe('ManageAccountsColumns - Structure', () => {
   });
 
   it('should have name column', () => {
-    const nameColumn = columns.find((col: any) => col.accessorKey === 'name');
+    const nameColumn = columns.find((col: unknown) => col.accessorKey === 'name');
     expect(nameColumn).toBeDefined();
   });
 
   it('should have email column', () => {
-    const emailColumn = columns.find((col: any) => col.accessorKey === 'email');
+    const emailColumn = columns.find((col: unknown) => col.accessorKey === 'email');
     expect(emailColumn).toBeDefined();
   });
 
   it('should have accountType column', () => {
-    const accountTypeColumn = columns.find((col: any) => col.accessorKey === 'accountType');
+    const accountTypeColumn = columns.find((col: unknown) => col.accessorKey === 'accountType');
     expect(accountTypeColumn).toBeDefined();
   });
 

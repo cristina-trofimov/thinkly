@@ -4,22 +4,23 @@ import { render, screen } from "@testing-library/react";
 import { Home, Settings, User } from "lucide-react";
 import { NavSection } from "../src/components/layout/NavSection";
 import { jest } from '@jest/globals';
+import * as SidebarModule from "@/components/ui/sidebar";
 
 // Mock the sidebar components and hook
 jest.mock("@/components/ui/sidebar", () => ({
-  SidebarGroup: ({ children }: any) => (
+  SidebarGroup: ({ children }: unknown) => (
     <div data-testid="sidebar-group">{children}</div>
   ),
-  SidebarGroupLabel: ({ children }: any) => (
+  SidebarGroupLabel: ({ children }: unknown) => (
     <div data-testid="sidebar-group-label">{children}</div>
   ),
-  SidebarMenu: ({ children }: any) => (
+  SidebarMenu: ({ children }: unknown) => (
     <ul data-testid="sidebar-menu">{children}</ul>
   ),
-  SidebarMenuItem: ({ children }: any) => (
+  SidebarMenuItem: ({ children }: unknown) => (
     <li data-testid="sidebar-menu-item">{children}</li>
   ),
-  SidebarMenuButton: ({ children, tooltip, asChild }: any) => (
+  SidebarMenuButton: ({ children, tooltip }: unknown) => (
     <button data-testid="sidebar-menu-button" data-tooltip={tooltip}>
       {children}
     </button>
@@ -131,9 +132,8 @@ describe("NavSection", () => {
   });
 
   test("calls useSidebar hook", () => {
-    const { useSidebar } = require("@/components/ui/sidebar");
     render(<NavSection link={mockLinks} label="Main Menu" />);
-    expect(useSidebar).toHaveBeenCalled();
+    expect(SidebarModule.useSidebar).toHaveBeenCalled();
   });
 
   test("renders correct component structure", () => {

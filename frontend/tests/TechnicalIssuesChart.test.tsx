@@ -3,7 +3,7 @@ import { TechnicalIssuesChart } from "../src/components/dashboard/TechnicalIssue
 
 // Mock recharts
 jest.mock("recharts", () => ({
-  AreaChart: ({ children, data }: { children: React.ReactNode; data: any[] }) => (
+  AreaChart: ({ children, data }: { children: React.ReactNode; data: unknown[] }) => (
     <div data-testid="area-chart" data-chart-data={JSON.stringify(data)}>
       {children}
     </div>
@@ -29,7 +29,7 @@ jest.mock("recharts", () => ({
 
 // Mock chart container
 jest.mock("@/components/ui/chart", () => ({
-  ChartContainer: ({ children, config, className }: { children: React.ReactNode; config: any; className?: string }) => (
+  ChartContainer: ({ children, config, className }: { children: React.ReactNode; config: unknown; className?: string }) => (
     <div data-testid="chart-container" data-config={JSON.stringify(config)} className={className}>
       {children}
     </div>
@@ -175,8 +175,7 @@ describe("TechnicalIssuesChart", () => {
 
   describe("Gradient definition", () => {
     it("includes gradient definition in the chart", () => {
-      const { container } = render(<TechnicalIssuesChart />);
-      
+
       // Check if defs element would be present (this is rendered by recharts)
       // In a real implementation with actual recharts, we'd check for the linearGradient
       const areaChart = screen.getByTestId("area-chart");
