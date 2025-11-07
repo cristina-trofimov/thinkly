@@ -34,7 +34,7 @@ const ErrorPage = () => {
                 <div data-testid="logo" className="w-full flex-1 bg-primary" >
                     <div className="relative w-full pb-[100%]" >
                         <div className="absolute top-0 right-0 bottom-0 left-0" >
-                            <img decoding="async" data-nimg="fill"
+                            <img decoding="async" data-nimg="fill" src="/asset/logo.png"
                                 className="h-full w-full rounded-xl object-cover
                                         absolute left-0 top-0 right-0 bottom-0 bg-transparent"
                             />
