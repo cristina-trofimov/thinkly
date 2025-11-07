@@ -23,7 +23,7 @@ jobs:
        working-directory: ./frontend
 
      - name: Run tests with coverage
-       run: npm test -- --coverage
+       run: npm test -- --coverage --coverageDirectory=coverage
        working-directory: ./frontend
 
     #  Backend setup
@@ -72,10 +72,22 @@ jobs:
           -Dsonar.pullrequest.branch=${{ github.head_ref }}
           -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-     - name: Upload coverage to Codecov
+     - name: Upload frontend coverage to Codecov
        uses: codecov/codecov-action@v5
        with:
          token: ${{ secrets.CODECOV_TOKEN }}
-         files: ./frontend/coverage/lcov.info,./backend/coverage.xml
+         files: ./frontend/coverage/lcov.info
+         flags: frontend
+         name: frontend
+         fail_ci_if_error: false
+         verbose: true
+
+     - name: Upload backend coverage to Codecov
+       uses: codecov/codecov-action@v5
+       with:
+         token: ${{ secrets.CODECOV_TOKEN }}
+         files: ./backend/coverage.xml
+         flags: backend
+         name: backend
          fail_ci_if_error: false
          verbose: true
