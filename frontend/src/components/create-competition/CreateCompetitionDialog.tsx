@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { IconPlus, IconSearch } from "@tabler/icons-react";
 
 interface CreateCompetitionDialogProps {
   open: boolean;
@@ -20,38 +21,91 @@ interface CreateCompetitionDialogProps {
 export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
-    description: "",
-    startDate: "",
-    endDate: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    questionCooldownTime: "",
+    riddleCooldownTime: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
+  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const [selectedRiddles, setSelectedRiddles] = useState<number[]>([]);
+
+  // Hardcoded questions data
+  const questions = [
+    { id: 1, title: "Two Sum", difficulty: "Easy" },
+    { id: 2, title: "Reverse Linked List", difficulty: "Easy" },
+    { id: 3, title: "Binary Tree Level Order", difficulty: "Medium" },
+    { id: 4, title: "Maximum Subarray", difficulty: "Medium" },
+    { id: 5, title: "Merge K Sorted Lists", difficulty: "Hard" },
+    { id: 6, title: "Trapping Rain Water", difficulty: "Hard" },
+  ];
+
+  // Hardcoded riddles data
+  const riddles = [
+    { id: 1, title: "Where's Waldo?" },
+    { id: 2, title: "I speak without a mouth" },
+    { id: 3, title: "The more you take, the more you leave behind" },
+    { id: 4, title: "What can travel around the world while staying in a corner?" },
+    { id: 5, title: "I have cities but no houses" },
+    { id: 6, title: "What gets wetter the more it dries?" },
+  ];
+
+  const filteredQuestions = questions.filter((q) =>
+    q.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredRiddles = riddles.filter((r) =>
+    r.title.toLowerCase().includes(riddleSearchQuery.toLowerCase())
+  );
+
+  const toggleQuestion = (id: number) => {
+    setSelectedQuestions((prev) =>
+      prev.includes(id) ? prev.filter((qId) => qId !== id) : [...prev, id]
+    );
+  };
+
+  const toggleRiddle = (id: number) => {
+    setSelectedRiddles((prev) =>
+      prev.includes(id) ? prev.filter((rId) => rId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSubmit = () => {
     // Handle form submission logic here
     console.log("Competition created:", formData);
+    console.log("Selected questions:", selectedQuestions);
+    console.log("Selected riddles:", selectedRiddles);
     onOpenChange(false);
     // Reset form
     setFormData({
       name: "",
-      description: "",
-      startDate: "",
-      endDate: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+      questionCooldownTime: "",
+    riddleCooldownTime: "",
     });
+    setSelectedQuestions([]);
+    setSelectedRiddles([]);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-[#8065CD]">
+          <DialogTitle className="text-xl font-semibold text-primary">
             Create New Competition
           </DialogTitle>
           <DialogDescription>
             Fill in the details below to create a new competition.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
+        <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
+          <div className="grid gap-4">
+            <h3 className="text-sm font-semibold text-primary">General Information</h3>
             <div className="grid gap-2">
               <Label htmlFor="name">Competition Name</Label>
               <Input
@@ -59,56 +113,171 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter competition name"
-                required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter competition description"
-                rows={3}
-                required
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startTime">Start Time</Label>
                 <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  required
+                  id="startTime"
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endTime">End Time</Label>
                 <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  required
+                  id="endTime"
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                 />
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="bg-[#8065CD] hover:bg-[#6a51b8]">
-              Create Competition
-            </Button>
-          </DialogFooter>
-        </form>
+
+          <div className="grid gap-4">
+            <h3 className="text-sm font-semibold text-primary">Question Selection</h3>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search questions..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center gap-2 text-primary hover:text-primary"
+                onClick={() => console.log("Add new question")}
+              >
+                <IconPlus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            <div className="border rounded-lg max-h-[200px] overflow-y-auto">
+              {filteredQuestions.map((question) => (
+                <div
+                  key={question.id}
+                  className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
+                >
+                  <Checkbox
+                    checked={selectedQuestions.includes(question.id)}
+                    onCheckedChange={() => toggleQuestion(question.id)}
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{question.title}</span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          question.difficulty === "Easy"
+                            ? "bg-green-100 text-green-700"
+                            : question.difficulty === "Medium"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {question.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="cooldownTime">Cooldown Time Between Questions (seconds)</Label>
+              <Input
+                id="cooldownTime"
+                type="number"
+                min="0"
+                value={formData.questionCooldownTime}
+                onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
+                placeholder="Enter cooldown time"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <h3 className="text-sm font-semibold text-primary">Riddle Selection</h3>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search riddles..."
+                  value={riddleSearchQuery}
+                  onChange={(e) => setRiddleSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center gap-2 text-primary hover:text-primary"
+                onClick={() => console.log("Add new riddle")}
+              >
+                <IconPlus className="h-4 w-4" />
+                Add
+              </Button>
+            </div>
+
+            <div className="border rounded-lg max-h-[200px] overflow-y-auto">
+              {filteredRiddles.map((riddle) => (
+                <div
+                  key={riddle.id}
+                  className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
+                >
+                  <Checkbox
+                    checked={selectedRiddles.includes(riddle.id)}
+                    onCheckedChange={() => toggleRiddle(riddle.id)}
+                  />
+                  <div className="flex-1">
+                    <span className="font-medium text-sm">{riddle.title}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="cooldownTime">Cooldown Time Between Riddles (seconds)</Label>
+              <Input
+                id="cooldownTime"
+                type="number"
+                min="0"
+                value={formData.riddleCooldownTime}
+                onChange={(e) => setFormData({ ...formData, riddleCooldownTime: e.target.value })}
+                placeholder="Enter cooldown time"
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
+            Create Competition
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
