@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 
 interface CreateCompetitionDialogProps {
@@ -18,7 +20,20 @@ interface CreateCompetitionDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps) {
+function localToUTCZ(dtLocal?: string) {
+  if (!dtLocal) return undefined;
+  const local = new Date(dtLocal);
+  if (isNaN(local.getTime())) return undefined;
+  return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
+    .toISOString()
+    .replace(".000Z", "Z");
+}
+
+function oneMinuteFromNowISO() {
+  return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
+}
+
+export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -26,6 +41,14 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
     endTime: "",
     questionCooldownTime: "",
     riddleCooldownTime: "",
+  });
+
+  const [emailData, setEmailData] = useState({
+    to: "",
+    subject: "",
+    text: "",
+    sendAtLocal: "",
+    sendInOneMinute: false,
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,11 +96,47 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
     );
   };
 
-  const handleSubmit = () => {
-    // Handle form submission logic here
+  const handleSubmit = async () => {
+    // Handle competition creation
     console.log("Competition created:", formData);
     console.log("Selected questions:", selectedQuestions);
     console.log("Selected riddles:", selectedRiddles);
+
+    // Handle email notification if recipients are provided
+    if (emailData.to.trim()) {
+      const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
+      
+      if (toList.length > 0) {
+        const payload: Record<string, any> = {
+          to: toList,
+          subject: emailData.subject,
+          text: emailData.text,
+        };
+
+        const sendAt = emailData.sendInOneMinute
+          ? oneMinuteFromNowISO()
+          : localToUTCZ(emailData.sendAtLocal);
+        if (sendAt) payload.sendAt = sendAt;
+
+        try {
+          const res = await fetch('http://127.0.0.1:8000/send-email', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
+          } else {
+            console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
+          }
+        } catch (e: any) {
+          console.error("Network error:", e?.message ?? String(e));
+        }
+      }
+    }
+
     onOpenChange(false);
     // Reset form
     setFormData({
@@ -86,7 +145,14 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
       startTime: "",
       endTime: "",
       questionCooldownTime: "",
-    riddleCooldownTime: "",
+      riddleCooldownTime: "",
+    });
+    setEmailData({
+      to: "",
+      subject: "",
+      text: "",
+      sendAtLocal: "",
+      sendInOneMinute: false,
     });
     setSelectedQuestions([]);
     setSelectedRiddles([]);
@@ -104,6 +170,7 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
+          {/* General Information */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">General Information</h3>
             <div className="grid gap-2">
@@ -146,6 +213,7 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
             </div>
           </div>
 
+          {/* Question Selection */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Question Selection</h3>
             
@@ -213,6 +281,7 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
             </div>
           </div>
 
+          {/* Riddle Selection */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Riddle Selection</h3>
             
@@ -254,15 +323,77 @@ export function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitio
               ))}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="cooldownTime">Cooldown Time Between Riddles (seconds)</Label>
+              <Label htmlFor="riddleCooldownTime">Cooldown Time Between Riddles (seconds)</Label>
               <Input
-                id="cooldownTime"
+                id="riddleCooldownTime"
                 type="number"
                 min="0"
                 value={formData.riddleCooldownTime}
                 onChange={(e) => setFormData({ ...formData, riddleCooldownTime: e.target.value })}
                 placeholder="Enter cooldown time"
               />
+            </div>
+          </div>
+
+          {/* Email Notification */}
+          <div className="grid gap-4">
+            <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
+            <p className="text-sm text-gray-500">Optionally send email notifications about this competition</p>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="emailTo">To (comma-separated)</Label>
+              <Input
+                id="emailTo"
+                value={emailData.to}
+                onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                placeholder="alice@example.com, bob@example.com"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="emailSubject">Subject</Label>
+              <Input
+                id="emailSubject"
+                value={emailData.subject}
+                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                placeholder="Competition announcement"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="emailText">Message</Label>
+              <Textarea
+                id="emailText"
+                rows={4}
+                value={emailData.text}
+                onChange={(e) => setEmailData({ ...emailData, text: e.target.value })}
+                placeholder="Write your message..."
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
+                  <p className="text-xs text-gray-500">
+                    Overrides custom schedule
+                  </p>
+                </div>
+                <Switch
+                  id="sendInOneMinute"
+                  checked={emailData.sendInOneMinute}
+                  onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="sendAtLocal">Schedule (local time)</Label>
+                <Input
+                  id="sendAtLocal"
+                  type="datetime-local"
+                  value={emailData.sendAtLocal}
+                  onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                />
+              </div>
             </div>
           </div>
         </div>
