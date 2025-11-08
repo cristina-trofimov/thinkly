@@ -27,7 +27,7 @@ export function Layout() {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1">
           <div className="p-4">

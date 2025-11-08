@@ -15,6 +15,7 @@ import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
+import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
 
 const router = createBrowserRouter([
   {
@@ -23,7 +24,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/signup",
-    element : <SignupPage />
+    element: <SignupPage />
   },
   {
     path: "/app", // 👈 everything else under /app
@@ -92,8 +93,15 @@ const router = createBrowserRouter([
         }
       },
       {
+        path: "dashboard/competitions",
+        element: <ManageCompetitions />,
+        handle: {
+          crumb: { title: "Manage Competitions" }
+        }
+      },
+      {
         path: "code",
-        element: <CodingView />,        
+        element: <CodingView />,
         handle: {
           crumb: { title: "Coding" }
         }
