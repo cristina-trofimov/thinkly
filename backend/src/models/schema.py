@@ -10,7 +10,7 @@ algo_question_set = Table(
     'algo_question_set',
     Base.metadata,
     Column('question_id', Integer, ForeignKey('algo_time_question.question_id', ondelete='CASCADE'), primary_key=True),
-    Column('set_id', Integer, ForeignKey('question_set.set_id', ondelete='CASCADE'), primary_key=True)
+    Column('set_id', Integer, ForeignKey('question_set.set_id', ondelete='CASCADE'), primary_key=True),
     extend_existing=True
 )
 
