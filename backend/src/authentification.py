@@ -5,11 +5,12 @@ from flask_jwt_extended import (
 )
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
-from .db import SessionLocal
+from db import SessionLocal
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from .models.schema import User
-from .DB_Methods.crudOperations import _commit_or_rollback
+from models.schema import User
+from DB_Methods.crudOperations import _commit_or_rollback
+from dotenv import load_dotenv
 import os
 
 app = Flask(__name__)
@@ -18,6 +19,7 @@ bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
 from flask_cors import CORS
+load_dotenv()
 
 CORS(
     app,
@@ -26,35 +28,6 @@ CORS(
     allow_headers=["Content-Type", "Authorization"],
     methods=["GET", "POST", "OPTIONS"]
 )
-
-from flask import Flask, request, jsonify
-from flask_bcrypt import Bcrypt
-from flask_jwt_extended import (
-    JWTManager, create_access_token, jwt_required, get_jwt, get_jwt_identity
-)
-from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
-import datetime
-
-app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = "your-secret-key"
-bcrypt = Bcrypt(app)
-jwt = JWTManager(app)
-
-from flask_cors import CORS
-
-CORS(
-    app,
-    resources={r"/*": {"origins": "http://localhost:5173"}},
-    supports_credentials=True,
-    allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "OPTIONS"]
-)
-
-
-
-
-
 
 
 # Store revoked tokens (in memory or Redis for production)
@@ -249,6 +222,8 @@ def logout():
 def admin_dashboard():
     return jsonify({"message": "Welcome to the admin dashboard"})
 
+if __name__ == "__main__":
+    app.run(debug=True, host="127.0.0.1", port=5000)
 
 
 
