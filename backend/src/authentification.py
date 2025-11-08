@@ -127,8 +127,8 @@ def login():
     password = data.get("password")
     
     with SessionLocal() as db:
-        user = get_user_by_email(email)
-        if not user or not bcrypt.check_password_hash(user["password_hash"], password):
+        user = get_user_by_email(db,email)
+        if not user or not bcrypt.check_password_hash(user.salt, password):
             return jsonify({"error": "Invalid credentials"}), 401
         
         # Use email (string) as identity, put role in additional_claims
@@ -153,7 +153,7 @@ def google_login():
         name = idinfo.get("name", "Unknown User")
         
         with SessionLocal() as db:
-            user = get_user_by_email(email)
+            user = get_user_by_email(db,email)
             if not user:
                 new_user = create_user(
                         db,
@@ -164,10 +164,10 @@ def google_login():
                         last_name="",
                         type="user"
                     )
-            user = get_user_by_email(email)
+            user = get_user_by_email(db,email)
             access_token = create_access_token(
                 identity=user.email,
-                additional_claims={"role": user. type, "id": user.user_id}
+                additional_claims={"role": user.type, "id": user.user_id}
             )
 
         return jsonify({"token": access_token})
