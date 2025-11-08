@@ -10,9 +10,10 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .models.schema import User
 from .DB_Methods.crudOperations import _commit_or_rollback
+import os
 
 app = Flask(__name__)
-app.config["JWT_SECRET_KEY"] = "your-secret-key"
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
@@ -165,7 +166,7 @@ def login():
     return jsonify(token=access_token)
 
 
-GOOGLE_CLIENT_ID = "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 @app.post("/google-auth")
 def google_login():

@@ -11,6 +11,7 @@ from src.crud_operations import create_user, login_user, create_competition, ...
 
 All functions commit on success and rollback on exception.
 """
+from dotenv import load_dotenv
 from datetime import datetime
 from typing import Optional, List, Tuple
 from datetime import datetime, timedelta
@@ -48,12 +49,12 @@ JWT_ALGORITHM = "HS256"
 SESSION_DURATION_HOURS = 2
 
 
-
+load_dotenv()
 
 # ---------------- DATABASE CONNECTION SETUP ----------------
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:violetta143@localhost:5432/ThinklyDB"
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/ThinklyDB"
 )
 
 engine = create_engine(DATABASE_URL, echo=False)

@@ -57,10 +57,7 @@ export function LoginForm({
             if (decoded) {
                 navigate('/app/home');
             }
-            // alert(`Logged in as ${role}`);
-            // if (role === "admin") window.location.href = "/admin/dashboard";
-            // else if (role === "owner") window.location.href = "/owner";
-            // else window.location.href = "/student";
+            
 
         } catch (err) {
             console.error(err);
@@ -149,26 +146,7 @@ export function LoginForm({
                                     onSuccess={handleGoogleSuccess}
                                     onError={handleGoogleError}
                                 />
-                                {/* 
 
-                                <Button
-                                    variant="secondary"
-                                    type="button"
-                                    onClick={handleGetProfile}
-                                >
-                                    Get Profile
-                                </Button>
-
-                                {profile && (
-                                    <div className="mt-4">
-                                        <p><strong>Email:</strong> {profile.email}</p>
-                                        <p><strong>Role:</strong> {profile.role}</p>
-                                    </div>
-                                )}
-
-                                <Button variant="destructive" type="button" onClick={handleLogout}>
-                                    Log Out
-                                </Button> */}
                                 <FieldDescription className="text-center">
                                     Don&apos;t have an account?{' '}
                                     <button
