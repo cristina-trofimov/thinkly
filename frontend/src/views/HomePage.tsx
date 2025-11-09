@@ -8,50 +8,7 @@ import { DataTable } from "../components/HomePageQuestions/questionDataTable"
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const questions: Questions[] = [
-    {
-      id: "1",
-      questionTitle: "Two sum",
-      date: new Date('2025-08-02'),
-      difficulty: "Easy",
-    },
-    {
-      id: "2",
-      questionTitle: "Palindrome",
-      date: new Date('2025-08-15'),
-      difficulty: "Medium",
-    },
-    {
-      id: "3",
-      questionTitle: "Two sum",
-      date: new Date('2025-07-01'),
-      difficulty: "Hard",
-    },
-    {
-      id: "4",
-      questionTitle: "Christmas Tree",
-      date: new Date('2025-07-12'),
-      difficulty: "Easy",
-    },
-    {
-      id: "5",
-      questionTitle: "Inverse String",
-      date: new Date('2025-08-03'),
-      difficulty: "Easy",
-    },
-    {
-      id: "6",
-      questionTitle: "Hash Map",
-      date: new Date('2025-08-03'),
-      difficulty: "Medium",
-    },
-    {
-      id: "7",
-      questionTitle: "Binary Tree",
-      date: new Date("2025-08-19"),
-      difficulty: "Hard",
-    }
-  ]
+  const questions: Questions[] = []
 
   const competitions = [
     //once we get the db connection we need to switch this maybe something
