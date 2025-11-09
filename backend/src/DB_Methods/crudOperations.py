@@ -550,6 +550,10 @@ def get_question_sets_by_week(db: Session, week: int) -> List[QuestionSet]:
     """Retrieve question sets filtered by week."""
     return db.query(QuestionSet).filter(QuestionSet.week == week).all()
 
+def get_all_base_questions(db: Session):
+    """Retrieve all base questions."""
+    return db.query(BaseQuestion).all()
+
 def get_sets_by_question(db: Session, question_id: int) -> List[QuestionSet]:
     """Get all sets that contain a specific question."""
     return (
