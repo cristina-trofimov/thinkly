@@ -3,7 +3,7 @@ from sqlalchemy import (
     Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, Float, Table
 )
 from sqlalchemy.orm import relationship
-from db import Base
+from src.db import Base
 
 # Association table for many-to-many relationship between AlgoTimeQuestion and QuestionSet
 algo_question_set = Table(
@@ -86,6 +86,7 @@ class BaseQuestion(Base):
     media = Column(String)
     difficulty = Column(Enum('easy', 'medium', 'hard', name='difficulty_enum'), nullable=False)
     solution = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey('user.user_id', ondelete='SET NULL'))  # ← added
 
     user = relationship('User', back_populates='questions')

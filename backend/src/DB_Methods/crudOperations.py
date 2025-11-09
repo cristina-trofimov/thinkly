@@ -25,7 +25,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Import your models here (adjust the import path as needed)
-from models.schema import (
+from src.models.schema import (
     User,
     UserPreferences,
     Competition,
@@ -42,7 +42,7 @@ from models.schema import (
     Scoreboard,
     UserCooldown
 )
-from models import SessionModel as UserSession
+from src.models import SessionModel as UserSession
 
 #---------------------------- Config Values (to be changed) ------------
 JWT_SECRET_KEY = "YOUR_SECRET_KEY"   # should come from env var
