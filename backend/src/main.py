@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from Components.leaderboards import leaderboards_api
+from Components.manage_accounts import manage_accounts_api
 import os
 app = FastAPI(title="My Backend API")
 
@@ -26,6 +27,7 @@ def root():
 # Include your leaderboards API
 try:
     app.include_router(leaderboards_api.router)
+    app.include_router(manage_accounts_api.router)
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py. Make sure it defines `router = APIRouter()`.")
 
