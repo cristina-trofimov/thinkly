@@ -42,7 +42,7 @@ import {
   SquarePen,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
@@ -85,12 +85,14 @@ export function ManageAccountsDataTable<TData, TValue>({
   };
 
   const handleDelete = () => {
-    const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+    const selectedRows = table
+      .getSelectedRowModel()
+      .rows.map((row) => row.original);
     console.log("Deleting rows: ", selectedRows);
 
     setIsEditMode(false);
     setRowSelection({});
-  }
+  };
 
   return (
     <div>
@@ -149,10 +151,36 @@ export function ManageAccountsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant={"secondary"} className="ml-auto">
-          <SquarePen className="h-4 w-4 text-primary" />
-          <span className="ml-2 hidden md:inline-flex items-center">Edit</span>
-        </Button>
+        {!isEditMode ? (
+          <Button
+            variant={"secondary"}
+            className="ml-auto"
+            onClick={() => setIsEditMode(true)}
+          >
+            <SquarePen className="h-4 w-4 text-primary" />
+            <span className="ml-2 hidden md:inline-flex items-center">
+              Edit
+            </span>
+          </Button>
+        ) : (
+          <div className="ml-auto flex gap-2">
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={Object.keys(rowSelection).length === 0}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="ml-2 hidden md:inline-flex items-center">
+                Delete
+              </span>
+            </Button>
+            <Button variant="outline" onClick={handleCancel}>
+              <span className="ml-2 hidden md:inline-flex items-center">
+                Cancel
+              </span>
+            </Button>
+          </div>
+        )}
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -160,6 +188,9 @@ export function ManageAccountsDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  if (header.id === "select" && !isEditMode) {
+                    return null;
+                  }
                   return (
                     <TableHead key={header.id}>
                       {header.isPlaceholder
@@ -181,14 +212,19 @@ export function ManageAccountsDataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    if (cell.column.id === "select" && !isEditMode) {
+                      return null;
+                    }
+                    return (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
