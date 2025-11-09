@@ -20,6 +20,13 @@ interface CreateCompetitionDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface EmailPayload {
+  to: string[];
+  subject: string;
+  text: string;
+  sendAt?: string;
+}
+
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
   const localDate = new Date(dtLocal);
@@ -109,7 +116,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
       const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
       
       if (toList.length > 0) {
-        const payload: Record<string, any> = {
+        const payload: EmailPayload = {
           to: toList,
           subject: emailData.subject,
           text: emailData.text,
@@ -133,8 +140,9 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
           } else {
             console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
           }
-        } catch (e: any) {
-          console.error("Network error:", e?.message ?? String(e));
+        } catch (e: unknown) {
+          const error = e as { message?: string };
+          console.error("Network error:", error?.message ?? String(e));
         }
       }
     }
