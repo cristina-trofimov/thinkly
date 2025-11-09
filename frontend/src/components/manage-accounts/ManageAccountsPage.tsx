@@ -12,7 +12,7 @@ export default function ManageAccountsPage() {
     useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(config.backendUrl + "/manage-accounts");
+        const response = await fetch(config.backendUrl + "/users");
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }

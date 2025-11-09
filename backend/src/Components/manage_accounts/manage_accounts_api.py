@@ -14,7 +14,7 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/manage-accounts")
+@router.get("/users")
 def get_all_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     result = []
