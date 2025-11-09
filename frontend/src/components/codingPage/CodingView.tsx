@@ -1,9 +1,12 @@
 import { useEffect, useRef, } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
 import { SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxPreview, SandboxProvider,
-          SandboxTabs } from "../ui/shadcn-io/sandbox";
+          SandboxTabs, 
+          SandboxTabsContent,
+          SandboxTabsList,
+          SandboxTabsTrigger} from "../ui/shadcn-io/sandbox";
 import CodeDescArea from "./CodeDescArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -116,9 +119,11 @@ const CodingView = () => {
 
   return (
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
-      template={template} files={files}
-      options={{ activeFile: `${Object.keys(files)[0]}`, autorun: false,
-        //showConsole: true, showConsoleButton: true 
+      // template={template} files={files} //showConsole={true}
+      options={{
+        autorun: true,
+        // showConsoleButton={true},
+        // activeFile: `${Object.keys(files)[0]}`,
       }}
       // className='flex-none relative h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
       className='flex-none h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
@@ -162,17 +167,19 @@ const CodingView = () => {
                     <span className="text-lg font-medium" >Code</span>
                     <div className="grid grid-cols-4 gap-1">
                       {/* Size buttons */}
-                      <Button  className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
+                      <Button  className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         <Play size={22} color="green" />
                       </Button>
-                      <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
+                      <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         <RotateCcw size={22} color="black" />
                       </Button>
-                      <Button data-testid='code-area-fullscreen' onClick={() => {setFullCode(!fullCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
+                      <Button data-testid='code-area-fullscreen' onClick={() => {setFullCode(!fullCode) }}
+                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
                                   : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
                       </Button>
-                      <Button data-testid='code-area-collapse' onClick={() => {setCloseCode(!closeCode) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
+                      <Button data-testid='code-area-collapse' onClick={() => {setCloseCode(!closeCode) }}
+                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
                                    : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
                       </Button>
@@ -191,13 +198,13 @@ const CodingView = () => {
                       <DropdownMenuContent className='z-99999'
                         
                       >
-                        <div data-testid='languageMenu' //forceMount // forces it to stay in the DOM so it can be testable
+                        <div data-testid='languageMenu'
                              className="z-10 bg-white w-26 border-1 rounded-lg"
                         >
                           {languages.map((lang) => (
                             <DropdownMenuItem  data-testid={`languageItem-${lang}`} key={lang}
-                              className="text-s font-medium p-1 rounded-md hover:border-none hover:bg-primary/25"
-                              onSelect={ () => {setSelectedLang(lang); //console.log(files[1]); selectedTemp(templates[lang])
+                              className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                              onSelect={ () => {setSelectedLang(lang);
                               } }
                             >
                               {lang}
@@ -221,34 +228,46 @@ const CodingView = () => {
                 defaultSize={35} ref={outputPanelRef}
                 className="ml-[3px] mt-1 rounded-md border"
               >
-                <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                        border-b border-border/75 dark:border-border/50 py-1.5 px-4"
-                >
-                  <span className="text-lg font-medium" >Output</span>
-                  <div className="grid grid-cols-2 gap-1">
-                    {/* Size buttons */}
-                    <Button data-testid='output-area-fullscreen' onClick={() => {setFullOutput(!fullOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
-                                  : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
-                    </Button>
-                    <Button data-testid='output-area-collapse' onClick={() => {setCloseOutput(!closeOutput) }} className="w-7 shadow-none bg-muted rounded-full hover:bg-gray-200" >
-                      {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
-                                   : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
-                    </Button>
-                  </div>
-                </div>
-
                 {/* <CodeOutputArea /> */} 
-                <SandboxTabs data-testid="sandbox-tabs" className='border-none' >
-                  {/* <SandboxTabsContent data-testid="sandbox-tabs-content" value="preview" > */}
+                <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
+                  <SandboxTabsList
+                    className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                        border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                  >
+                    <div>
+                      <SandboxTabsTrigger value='preview' >
+                        <MonitorCheck size={16} /> Preview
+                      </SandboxTabsTrigger>
+                      <SandboxTabsTrigger value='console' >
+                        <Terminal size={16} /> Console
+                      </SandboxTabsTrigger>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1">
+                      {/* Size buttons */}
+                      <Button data-testid='output-area-fullscreen' onClick={() => {setFullOutput(!fullOutput) }}
+                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                        {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
+                                    : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
+                      </Button>
+                      <Button data-testid='output-area-collapse' onClick={() => {setCloseOutput(!closeOutput) }}
+                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                        {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
+                                    : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
+                      </Button>
+                    </div>
+                  </SandboxTabsList>
+                  <SandboxTabsContent data-testid="sandbox-tabs-content" value="preview" >
                     <SandboxPreview data-testid="sandbox-preview"
                       showOpenInCodeSandbox={true}
                       showRefreshButton={true}
                     />
-                  {/* </SandboxTabsContent>
-                  <SandboxTabsContent data-testid="sandbox-tabs-content" value="console"> */}
-                    <SandboxConsole data-testid="sandbox-console" showHeader showRestartButton showSyntaxError />
-                  {/* </SandboxTabsContent> */}
+                  </SandboxTabsContent>
+                  <SandboxTabsContent data-testid="sandbox-tabs-content" value="console">
+                    <SandboxConsole data-testid="sandbox-console" 
+                      showHeader
+                      showRestartButton showSyntaxError showResetConsoleButton
+                    />
+                  </SandboxTabsContent>
                 </SandboxTabs>
               </ResizablePanel>
             </ResizablePanelGroup>
