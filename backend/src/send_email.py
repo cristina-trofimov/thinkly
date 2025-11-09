@@ -51,7 +51,7 @@ def normalize_iso_utc(iso_str):
 # --------------------------
 
 
-ALLOWED_ORIGINS = {"http://localhost:5173","http://127.0.0.1:5173"}
+ALLOWED_ORIGINS = {"http://localhost:5173","http://127.0.0.1:5173","http://localhost:5173/app/dashboard"}
 @app.after_request
 def add_cors_headers(resp):
     origin = request.headers.get("Origin")
@@ -144,4 +144,4 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8001, debug=True)
