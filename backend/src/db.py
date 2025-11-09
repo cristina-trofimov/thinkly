@@ -1,6 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # You can load this from an environment variable or .env file
 # username: postgres
