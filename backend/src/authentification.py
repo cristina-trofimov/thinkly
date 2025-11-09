@@ -73,7 +73,7 @@ def search_users(db: Session, keyword: str) -> List[User]:
         (User.last_name.ilike(f"%{keyword}%"))
     ).all()
 
-def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'user'):
+def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'particpipant'):
     # Prevent multiple owners
     if type == 'owner':
         existing_owner = db.query(User).filter(User.type == 'owner').first()
@@ -116,7 +116,7 @@ def signup():
             password_hash=password_hash,
             first_name=first_name,
             last_name=last_name,
-            type="user"
+            type="participant"
         )
     return jsonify({"message": "User created"}), 201
 
@@ -163,7 +163,7 @@ def google_login():
                         password_hash="",  # No password for Google users
                         first_name=name,
                         last_name="",
-                        type="user"
+                        type="participant"
                     )
             user = get_user_by_email(db,email)
             access_token = create_access_token(
