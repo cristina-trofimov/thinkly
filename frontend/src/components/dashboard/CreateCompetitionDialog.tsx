@@ -59,7 +59,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     sendAtLocal: "",
     sendInOneMinute: false,
   });
-
+  const [validationError, setValidationError] = useState('');
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
@@ -105,7 +105,28 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     );
   };
 
+const validateForm = (): boolean => {
+    if (formData.name.trim() === '' || formData.date === '' || formData.startTime === '' || formData.endTime === '') {
+      setValidationError("Incomplete general information.");
+      return false;
+    }
+    if (selectedQuestions.length === 0) {
+      setValidationError("Please select at least one question.");
+      return false;
+    }
+    if (selectedRiddles.length === 0) {
+      setValidationError("Please select at least one riddle.");
+      return false;
+    }
+    setValidationError('');
+    return true;
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      return; // Stop submission if validation fails
+    }
+
     // Handle competition creation
     console.log("Competition created:", formData);
     console.log("Selected questions:", selectedQuestions);
@@ -180,6 +201,12 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
+          {/* Validation Error Message */}
+          {validationError && (
+              <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
+                  ⚠️ {validationError}
+              </p>
+          )}
           {/* General Information */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">General Information</h3>
