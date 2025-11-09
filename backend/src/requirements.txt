@@ -117,3 +117,11 @@ bcrypt>=4.0.0
 
 # JWT tokens
 PyJWT>=2.8.0
+Flask-Bcrypt
+Flask-JWT-Extended
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+
+fastapi
+uvicorn

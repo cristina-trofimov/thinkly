@@ -53,3 +53,9 @@ __pycache__/
 .env.*
 backend/.env
 backend/.env.*
+
+backend/venv/
+backend/.env/
+backend/.venv/
+backend/ENV/
+backend/env/

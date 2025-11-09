@@ -2,18 +2,32 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
-import App from './App.tsx'
+import LoginPage from './views/LogInPage.tsx'; // currently using HomePage as login page
+
+import { GoogleOAuthProvider } from "@react-oauth/google";
+
+const GOOGLE_CLIENT_ID = "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.googleusercontent.com";
+
 import { Layout } from './components/layout/AppLayout.tsx'
 import { Leaderboards } from './components/leaderboards/Leaderboards'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/codingPage/CodingView.tsx'
 import SendEmailForm from './components/layout/EmailForm.tsx'
-import  HomePage from './HomePage.tsx'
+import HomePage from './views/HomePage.tsx';
+import SignupPage from './views/SignupPage.tsx';
 import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
 
 const router = createBrowserRouter([
   {
     path: "/",
+    element: <LoginPage />, // 👈 LoginPage loads first
+  },
+  {
+    path: "/signup",
+    element: <SignupPage />
+  },
+  {
+    path: "/app", // 👈 everything else under /app
     element: <Layout />,
     handle: {
       crumb: { title: "Home" }
@@ -21,32 +35,32 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/home" replace />
+        element: <Navigate to="/app/home" replace />
       },
       {
         path: "home",
-        element: <div className="min-h-screen h-full"><HomePage/></div>,        // TO BE REPLACED
+        element: <div className="min-h-screen h-full"><HomePage /></div>,
         handle: {
           crumb: { title: "Home Page" }
         }
       },
       {
         path: "algotime",
-        element: <div>AlgoTime</div>,        // TO BE REPLACED //<SendEmailForm></SendEmailForm> To test email form
+        element: <div>AlgoTime</div>,
         handle: {
           crumb: { title: "AlgoTime" }
         }
       },
       {
         path: "competition",
-        element: <div>Competition</div>,        // TO BE REPLACED
+        element: <div>Competition</div>,
         handle: {
           crumb: { title: "Competition" }
         }
       },
       {
         path: "settings",
-        element: <div>Settings</div>,        // TO BE REPLACED
+        element: <div>Settings</div>,
         handle: {
           crumb: { title: "Settings" }
         }
@@ -60,11 +74,11 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <div>Competitions</div>,        // TO BE REPLACED
+            element: <div>Competitions</div>,
           },
           {
             path: ":competitionId",
-            element: <div>Competition Leaderboard</div>,        // TO BE REPLACED
+            element: <div>Competition Leaderboard</div>,
             handle: {
               crumb: { title: "Competition Leaderboard" }
             }
@@ -73,21 +87,21 @@ const router = createBrowserRouter([
       },
       {
         path: "dashboard",
-        element: <AdminDashboard />,        
+        element: <AdminDashboard />,
         handle: {
           crumb: { title: "Admin Dashboard" }
         }
       },
       {
         path: "dashboard/competitions",
-        element: <ManageCompetitions />,        
+        element: <ManageCompetitions />,
         handle: {
           crumb: { title: "Manage Competitions" }
         }
       },
       {
         path: "code",
-        element: <CodingView />,        
+        element: <CodingView />,
         handle: {
           crumb: { title: "Coding" }
         }
@@ -98,7 +112,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-    <RouterProvider router={router} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <RouterProvider router={router} />
+    </GoogleOAuthProvider>
   </StrictMode>,
-)
+);

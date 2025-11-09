@@ -32,29 +32,29 @@ const data = {
   navMain: [
     {
       name: "AlgoTime",
-      url: "/algotime",
+      url: "/app/algotime",
       icon: SquareTerminal,
     },
     {
       name: "Competition",
-      url: "/competition",
+      url: "/app/competition",
       icon: Bot,
     },
     {
       name: "Settings",
-      url: "/settings",
+      url: "/app/settings",
       icon: Settings2,
     },
   ],
   navOther: [
     {
       name: "Leaderboards",
-      url: "/leaderboards",
+      url: "/app/leaderboards",
       icon: Trophy,
     },
     {
       name: "Dashboard",
-      url: "/dashboard",
+      url: "/app/dashboard",
       icon: LayoutDashboardIcon,
     },
   ],
@@ -68,7 +68,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <div className="flex items-center gap-2 w-full">
               <SidebarMenuButton size="lg" asChild>
-                <a href="/home">
+                <a href="/app/home">
                   <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                     <Avatar>
                       <AvatarImage src="/assets/thinkly_logo.png" />
@@ -80,14 +80,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </div>
                 </a>
               </SidebarMenuButton>
-              <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" style={{color: '#8065CD'}}/>
+              <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" style={{ color: '#8065CD' }} />
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavSection link={data.navMain} label="Platform"/>
-        <NavSection link={data.navOther} label="Other"/>
+        <NavSection link={data.navMain} label="Platform" />
+        <NavSection link={data.navOther} label="Other" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

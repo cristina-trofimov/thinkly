@@ -1,6 +1,6 @@
 describe('Manage Competitions Page', () => {
   it('Visits the manage competitions page and checks all elements are present', () => {
-    cy.visit('http://localhost:5173/dashboard/competitions');
+    cy.visit('http://localhost:5173/app/dashboard/competitions');
     
     // Check search input exists
     cy.get('input[placeholder="Search competitions..."]').should('be.visible');
@@ -21,7 +21,7 @@ describe('Manage Competitions Page', () => {
   });
 
   it('Filters competitions by search', () => {
-    cy.visit('http://localhost:5173/dashboard/competitions');
+    cy.visit('http://localhost:5173/app/dashboard/competitions');
     
     // Search for Comp #1
     cy.get('input[placeholder="Search competitions..."]').type('Comp #1');
@@ -39,7 +39,7 @@ describe('Manage Competitions Page', () => {
   });
 
   it('Filters competitions by status', () => {
-    cy.visit('http://localhost:5173/dashboard/competitions');
+    cy.visit('http://localhost:5173/app/dashboard/competitions');
   
     // Open filter dropdown
     cy.contains('button', 'All competitions').click();
@@ -53,7 +53,7 @@ describe('Manage Competitions Page', () => {
 });
 
   it('Clicks View button and Create New Competition card', () => {
-    cy.visit('http://localhost:5173/dashboard/competitions');
+    cy.visit('http://localhost:5173/app/dashboard/competitions');
     
     // Click View button
     cy.contains('button', 'View').first().click();

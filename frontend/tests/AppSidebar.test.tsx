@@ -88,7 +88,7 @@ describe("AppSidebar", () => {
   test("renders logo link pointing to /home", () => {
     render(<AppSidebar />);
     const link = screen.getByRole("link", { name: /thinkly/i });
-    expect(link).toHaveAttribute("href", "/home");
+    expect(link).toHaveAttribute("href", "/app/home");
   });
 
   test("renders avatar with correct image source", () => {
@@ -123,15 +123,15 @@ describe("AppSidebar", () => {
     render(<AppSidebar />);
     expect(screen.getByRole("link", { name: "AlgoTime" })).toHaveAttribute(
       "href",
-      "/algotime"
+      "/app/algotime"
     );
     expect(screen.getByRole("link", { name: "Competition" })).toHaveAttribute(
       "href",
-      "/competition"
+      "/app/competition"
     );
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
       "href",
-      "/settings"
+      "/app/settings"
     );
   });
 
@@ -139,11 +139,11 @@ describe("AppSidebar", () => {
     render(<AppSidebar />);
     expect(screen.getByRole("link", { name: "Leaderboards" })).toHaveAttribute(
       "href",
-      "/leaderboards"
+      "/app/leaderboards"
     );
     expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
       "href",
-      "/dashboard"
+      "/app/dashboard"
     );
   });
 
