@@ -38,7 +38,7 @@ Provide setup instructions, dependencies, and commands here.
 ### Installation
 
 Docker commands (to run in root of project)</br>
-- have docker desktop installed and opened
+**have docker desktop installed and opened**</br>
 1-  ```docker compose up --build``` (this will build and run) </br>
 2-  ```docker compose up -d``` (run in bakcground)</br>
 3-  ```docker compose down``` (clean shut down)</br>
@@ -85,4 +85,4 @@ backend </br>
 1- ```cd backend```</br>
 2- ```ruff check src/```</br>
 or </br>
-2- ```ruff check src/ --fix```</br> (will auto-fix some issues)
+2- ```ruff check src/ --fix``` (will auto-fix some issues)</br>
