@@ -42,6 +42,7 @@ import {
   SquarePen,
   ChevronLeft,
   ChevronRight,
+  Trash2
 } from "lucide-react";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
@@ -59,6 +60,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   );
 
   const [rowSelection, setRowSelection] = React.useState({});
+  const [isEditMode, setIsEditMode] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -76,6 +78,19 @@ export function ManageAccountsDataTable<TData, TValue>({
       rowSelection,
     },
   });
+
+  const handleCancel = () => {
+    setIsEditMode(false);
+    setRowSelection({});
+  };
+
+  const handleDelete = () => {
+    const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+    console.log("Deleting rows: ", selectedRows);
+
+    setIsEditMode(false);
+    setRowSelection({});
+  }
 
   return (
     <div>
