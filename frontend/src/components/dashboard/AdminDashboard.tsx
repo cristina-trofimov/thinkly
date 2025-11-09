@@ -58,7 +58,7 @@ export function AdminDashboard() {
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
-        <div onClick={() => navigate('/dashboard/competitions')} className="cursor-pointer">
+        <div onClick={() => navigate('/app/dashboard/competitions')} className="cursor-pointer">
           <ManageCard
             title="Manage Competitions"
             items={[
