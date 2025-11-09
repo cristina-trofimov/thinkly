@@ -135,7 +135,7 @@ describe("AdminDashboard", () => {
     const manageCompetitionsCard = manageCards[1];
     fireEvent.click(manageCompetitionsCard);
     
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/competitions');
+    expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/competitions');
   });
 
   it("Manage Competitions card has cursor-pointer class", () => {
