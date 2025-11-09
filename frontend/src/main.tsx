@@ -15,6 +15,7 @@ import CodingView from './components/codingPage/CodingView.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
 import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
+import ManageAccountsPage from './components/manage-accounts/ManageAccountsPage.tsx';
 
 const router = createBrowserRouter([
   {
@@ -96,6 +97,13 @@ const router = createBrowserRouter([
         element: <ManageCompetitions />,
         handle: {
           crumb: { title: "Manage Competitions" }
+        }
+      },
+      {
+        path: "dashboard/manage-accounts",
+        element: <ManageAccountsPage />,
+        handle: {
+          crumb: { title: "Manage Accounts" }
         }
       },
       {
