@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
+import CreateCompetitionDialog from "../create-competition/CreateCompetitionDialog"
 
 interface Competition {
   id: string;
@@ -24,6 +25,7 @@ interface Competition {
 const ManageCompetitions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Sample data until backend gets integrated
   const competitions: Competition[] = [
@@ -56,11 +58,6 @@ const ManageCompetitions = () => {
   const handleView = (id: string) => {
     console.log('View competition:', id);
     // Add your navigation logic here
-  };
-
-   const handleCreateNew = () => {
-    console.log('Create new competition');
-    // Add your create competition logic here
   };
 
   return (
@@ -135,7 +132,7 @@ const ManageCompetitions = () => {
         {/* Create New Competition Card */}
         <Card 
           className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-border rounded-2xl w-[190px] h-[235px] flex flex-col"
-          onClick={handleCreateNew}
+          onClick={() => setDialogOpen(true)}
         >
           <div className="min-h-[146px] min-w-[146px] bg-muted flex items-center justify-center mx-auto">
             <Plus className="w-30 h-30 text-primary" strokeWidth={1} />
@@ -153,9 +150,11 @@ const ManageCompetitions = () => {
           No competitions found matching your filters.
         </div>
       )}
-
       </div>
-      
+      <CreateCompetitionDialog 
+              open={dialogOpen} 
+              onOpenChange={setDialogOpen} 
+            />
     </div>
   );
 };
