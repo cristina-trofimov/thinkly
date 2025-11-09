@@ -110,6 +110,15 @@ const validateForm = (): boolean => {
       setValidationError("Incomplete general information.");
       return false;
     }
+
+    const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const now = new Date();
+    now.setSeconds(0, 0); 
+    if (competitionDateTime.getTime() <= now.getTime()) {
+        setValidationError("The competition must be scheduled for a future date and time.");
+        return false;
+    }
+
     if (selectedQuestions.length === 0) {
       setValidationError("Please select at least one question.");
       return false;
@@ -199,14 +208,14 @@ const validateForm = (): boolean => {
           <DialogDescription>
             Fill in the details below to create a new competition.
           </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
           {/* Validation Error Message */}
           {validationError && (
               <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
                   ⚠️ {validationError}
               </p>
           )}
+        </DialogHeader>
+        <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
           {/* General Information */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">General Information</h3>

@@ -154,6 +154,7 @@ const ManageCompetitions = () => {
       <CreateCompetitionDialog 
               open={dialogOpen} 
               onOpenChange={setDialogOpen} 
+              key={dialogOpen ? 'open' : 'closed'}
             />
     </div>
   );

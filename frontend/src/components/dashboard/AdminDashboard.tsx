@@ -80,7 +80,8 @@ export function AdminDashboard() {
 
       <CreateCompetitionDialog 
         open={dialogOpen} 
-        onOpenChange={setDialogOpen} 
+        onOpenChange={setDialogOpen}
+        key={dialogOpen ? 'open' : 'closed'}
       />
     </div>
   );
