@@ -45,14 +45,17 @@ export function AdminDashboard() {
       </div>
 
       <div className="flex gap-4 mt-6 px-6">
-        <ManageCard
+        <div onClick={() => navigate('manage-accounts')} className="cursor-pointer">
+          <ManageCard
           title="Manage Accounts"
           items={[
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "shadcn", info: "shadcn@vercel.com" },
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
-        <div onClick={() => navigate('/dashboard/competitions')} className="cursor-pointer">
+        </div>
+        
+        <div onClick={() => navigate('competitions')} className="cursor-pointer">
           <ManageCard
             title="Manage Competitions"
             items={[
