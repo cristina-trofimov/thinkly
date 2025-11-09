@@ -29,7 +29,7 @@ describe('CreateCompetitionDialog', () => {
           json: async () => ({}),
         });
       }
-      if (url.includes('http://127.0.0.1:8001/send-email')) {
+      if (url.includes('http://127.0.0.1:8000/send-email')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({}),
@@ -156,7 +156,7 @@ describe('CreateCompetitionDialog', () => {
 
     await waitFor(() => {
       expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions');
-      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8001/send-email');
+      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8000/send-email');
       expect(mockFetch.mock.calls[1][1]).toEqual(
         expect.objectContaining({
           method: 'POST',
@@ -228,7 +228,7 @@ describe('CreateCompetitionDialog', () => {
       if (url.includes('8000/questions')) {
         return Promise.resolve({ ok: false, json: async () => ({}) });
       }
-      if (url.includes('8001/send-email')) {
+      if (url.includes('8000/send-email')) {
         return Promise.resolve({
           ok: false,
           status: 400,
