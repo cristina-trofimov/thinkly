@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
-import CreateCompetitionDialog from "../create-competition/CreateCompetitionDialog"
+import CreateCompetitionDialog from "../dashboard/CreateCompetitionDialog"
 
 interface Competition {
   id: string;

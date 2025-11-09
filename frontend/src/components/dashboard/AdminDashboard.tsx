@@ -4,7 +4,7 @@ import { IconCirclePlusFilled } from "@tabler/icons-react";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
-import CreateCompetitionDialog from "../create-competition/CreateCompetitionDialog"
+import CreateCompetitionDialog from "./CreateCompetitionDialog"
 import { useNavigate } from "react-router-dom"; 
 
 export function AdminDashboard() {
