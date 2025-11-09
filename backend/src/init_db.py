@@ -1,6 +1,6 @@
 # pip install sqlalchemy psycopg2-binary IF NEEDED
 #go to db.py and change username and password and db name if needed
-# run python -m src.init_db
+# cd src and then run python init_db.py
 
 
 from db import Base, engine
