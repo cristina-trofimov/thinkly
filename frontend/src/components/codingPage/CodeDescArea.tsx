@@ -112,8 +112,8 @@ const CodeDescArea = (
         value={activeTab} onValueChange={setActiveTab} className='w-full flex-none'
     >
         <TabsList data-testid="tabs-list" ref={containerRef}
-            className={`w-full flex rounded-none h-10 bg-muted 
-                        border-b border-border/75 dark:border-border/50 py-0 px-4`}
+            className={`w-full rounded-none h-10 bg-muted py-0 px-4
+                        border-b border-border/75 dark:border-border/50`}
         >
             {tabs.map(t => {
                 const isActive = activeTab === t.id
@@ -235,10 +235,8 @@ const CodeDescArea = (
         </TabsContent>
 
         {/* Leaderboard */}
-        <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" 
-            // className='w-full'
-        >
-            <div className='p-6 w-full' >
+        <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
+            <div className='p-6' >
                 <ScoreboardDataTable participants={leaderboard} />
                 <div className='mt-3 text-gray-500' >
                     {leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}

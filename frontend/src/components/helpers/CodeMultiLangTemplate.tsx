@@ -4,6 +4,7 @@ import type { ProblemTemplate } from "../interfaces/ProblemTemplate";
 export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     Java: {
         fileExt: "java",
+        filename: "Main.java",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `class ${problemName} {
@@ -20,6 +21,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     },
     Python: {
         fileExt: "py",
+        filename: "solution.py",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
@@ -37,10 +39,10 @@ if __name__ == "__main__":
     },
     Python3: {
         fileExt: "py",
+        filename: "solution_py3.py",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`import sys
-def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
+`def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
     # TODO
     pass
 
@@ -55,6 +57,7 @@ if __name__ == "__main__":
     },
     C: {
         fileExt: "c",
+        filename: "solution.c",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `#include <stdio.h>
@@ -70,6 +73,7 @@ int main() {
     },
     "C#": {
         fileExt: "cs",
+        filename: "program.cs",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `using System;
@@ -88,6 +92,7 @@ public class ${problemName} {
     },
     "C++": {
         fileExt: "cpp",
+        filename: "solution.cpp",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `#include <iostream>
@@ -106,6 +111,7 @@ int main() {
     },
     "Kotlin": {
         fileExt: "kt",
+        filename: "Main.kt",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `fun main(){
@@ -119,9 +125,10 @@ fun solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}){
     },
     "Typescript": {
         fileExt: "ts",
-        template: 'node',
+        filename: "index.ts",
+        template: 'vanilla-ts',
         codeBuilder: (problemName, inputVars, outputType) =>
-`function ${problemName}(${inputVars.map(v => `${v.name}${`: ${v.type}`}`).join(', ')}: { ${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')} }): void {
+`function ${problemName}(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}): ${outputType} {
     // TODO
     return null as any
 }
@@ -130,9 +137,10 @@ export default ${problemName};`.trim()
     },
     "Javascript": {
         fileExt: "js",
-        template: 'node',
+        filename: "index.js",
+        template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`function ${problemName}(${inputVars.map(v => v.name).join(', ')}): {
+`function ${problemName}(${inputVars.map(v => v.name).join(', ')}) {
     // TODO
 }
 
@@ -140,19 +148,21 @@ module.exports = ${problemName}`.trim()
     },
     "Ruby": {
         fileExt: "rb",
+        filename: "solution.rb",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
-    // TODO
+    # TODO
 end
 
 if __FILE__ == $0
-    ${inputVars.map(v => `// ${v.name} = ...`).join("\n    ")}
+    ${inputVars.map(v => `# ${v.name} = ...`).join("\n    ")}
     ${problemName}(${inputVars.map(v => v.name).join(', ')})
 end`.trim()
     },
     "Rust": {
         fileExt: "rs",
+        filename: "main.rs",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `fn main() {
@@ -167,6 +177,7 @@ fn solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}) {
     },
     "Erlang": {
         fileExt: "erl",
+        filename: "main.erl",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `-module(${problemName.toLowerCase()}).

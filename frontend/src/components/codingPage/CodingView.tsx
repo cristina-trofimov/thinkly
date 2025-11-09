@@ -16,7 +16,6 @@ import type { SubmissionType } from '../interfaces/SubmissionType';
 import type { ProblemInfo } from '../interfaces/ProblemInfo';
 import { useStateCallback } from '../helpers/UseStateCallback';
 import type { Participant } from '../interfaces/Participant';
-// import { useSandpack } from '@codesandbox/sandpack-react';
 
 
 const CodingView = () => {
@@ -63,10 +62,20 @@ const CodingView = () => {
   ]
 
   const templates = getSandpackConfigs(problemName, inputVars, outputType)
-  const languages = Object.keys(templates)
+  const sampleTemps = {
+    "Javascript": templates.Javascript,
+    "typescript": templates.Typescript,
+  }
+  
+  const languages = Object.keys(sampleTemps) as Array<keyof typeof sampleTemps>
 
   const [selectedLang, setSelectedLang] = useStateCallback(languages[0])
-  const { template, files } = templates[selectedLang]!
+  const { template, files } = sampleTemps[selectedLang]!
+
+  const outputTabs = [
+    { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },
+    { id: 'console', text: 'Console', icon: <Terminal size={16} /> },
+  ]
 
   const codePanelRef = useRef<ImperativePanelHandle>(null)
   const descPanelRef = useRef<ImperativePanelHandle>(null)
@@ -83,7 +92,6 @@ const CodingView = () => {
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
   const changePanelSizes = () => {
-    // console.log("changing sizes");
     if (!descPanelRef.current || !codeAndOutputPanelRef.current || !codePanelRef.current || !outputPanelRef.current)
       return;
 
@@ -119,29 +127,27 @@ const CodingView = () => {
 
   return (
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
-      // template={template} files={files} //showConsole={true}
+      template={template} files={files}
       options={{
         autorun: true,
-        // showConsoleButton={true},
-        // activeFile: `${Object.keys(files)[0]}`,
+        activeFile: Object.keys(files)[0],
       }}
       // className='flex-none relative h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
-      className='flex-none h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
+      className='h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
         <ResizablePanelGroup
           direction="horizontal"
-          className='flex flex-col w-full'
+          className='h-full w-full'
         >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"
             defaultSize={50} ref={descPanelRef}
-            className="mr-[3px] rounded-md border"
+            className="mr-[3px] rounded-md border shrink-0"
           >
             <div className='flex flex-row w-full' >
-              <CodeDescArea
-                problemInfo={problemInfo} submissions={submissions}
-                leaderboard={leaderboard}
+              <CodeDescArea problemInfo={problemInfo}
+                submissions={submissions} leaderboard={leaderboard}
               />
             </div>
           </ResizablePanel>
@@ -150,7 +156,7 @@ const CodingView = () => {
             style={{ background: "transparent" }} />
 
           {/* Second panel */}
-          <ResizablePanel data-testid="second-panel"
+          <ResizablePanel data-testid="second-panel" className='shrink-0'
             defaultSize={50} ref={codeAndOutputPanelRef}
             >
             <ResizablePanelGroup direction="vertical">
@@ -195,9 +201,7 @@ const CodingView = () => {
                           <ChevronDown />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className='z-99999'
-                        
-                      >
+                      <DropdownMenuContent className='z-99999' >
                         <div data-testid='languageMenu'
                              className="z-10 bg-white w-26 border-1 rounded-lg"
                         >
@@ -232,15 +236,27 @@ const CodingView = () => {
                 <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
                   <SandboxTabsList
                     className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                        border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                        border-b border-border/75 dark:border-border/50 py-1.5"
                   >
-                    <div>
-                      <SandboxTabsTrigger value='preview' >
-                        <MonitorCheck size={16} /> Preview
+                    <div className='w-full flex rounded-none h-10 bg-muted 
+                        border-b border-border/75 dark:border-border/50 py-0 px-4'
+                    >
+                      {outputTabs.map(tab => 
+                        {return <SandboxTabsTrigger value={tab.id} key={tab.id}
+                        className='bg-muted rounded-none
+                          data-[state=active]:border-primary
+                          data-[state=active]:text-primary
+                          data-[state=active]:bg-muted
+                          data-[state=active]:shadow-none
+                          data-[state=active]:border-b-[2.5px]
+                          data-[state=active]:border-x-0
+                          data-[state=active]:border-t-0
+                          dark:data-[state=active]:border-primary
+                          flex items-center gap-2 transition-all'
+                      >
+                        {tab.icon}{tab.text}
                       </SandboxTabsTrigger>
-                      <SandboxTabsTrigger value='console' >
-                        <Terminal size={16} /> Console
-                      </SandboxTabsTrigger>
+                        })}
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       {/* Size buttons */}
@@ -264,8 +280,8 @@ const CodingView = () => {
                   </SandboxTabsContent>
                   <SandboxTabsContent data-testid="sandbox-tabs-content" value="console">
                     <SandboxConsole data-testid="sandbox-console" 
-                      showHeader
-                      showRestartButton showSyntaxError showResetConsoleButton
+                      showHeader showRestartButton
+                      showSyntaxError showResetConsoleButton
                     />
                   </SandboxTabsContent>
                 </SandboxTabs>

@@ -21,13 +21,12 @@ export function getSandpackConfigs(
     const configs: Record<string, SandpackConfig> = {}
 
     for (const [lang, config] of Object.entries(CodeMultiLangTemplate)) {
-        const filename = `${problemName}.${config.fileExt}`
         const code = config.codeBuilder(problemName, inputVars, outputType)
 
         configs[lang] = {
             template: config.template,
             files: {
-                [`/${filename}`]: {code},
+                [`/${config.filename}`]: {code},
             }
         }
     }
