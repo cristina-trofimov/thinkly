@@ -12,7 +12,6 @@ import { Layout } from './components/layout/AppLayout.tsx'
 import { Leaderboards } from './components/leaderboards/Leaderboards'
 import { AdminDashboard } from './components/dashboard/AdminDashboard'
 import CodingView from './components/codingPage/CodingView.tsx'
-import SendEmailForm from './components/layout/EmailForm.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
 import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'

@@ -44,11 +44,20 @@ export function NavUser({
     try {
       await logout();
       alert("You have been logged out.");
-      // Optionally redirect
       navigate('/');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Logout failed:", err);
-      alert(err.response?.data?.error || err.message);
+
+      // Narrow the type
+      if (err instanceof Error) {
+        alert(err.message);
+      } else if (typeof err === "object" && err !== null && "response" in err) {
+        // For Axios-like errors
+        // @ts-expect-error TS can't infer 'response' property
+        alert(err.response?.data?.error);
+      } else {
+        alert(String(err));
+      }
     }
   };
 

@@ -4,7 +4,6 @@
 
 
 from db import Base, engine
-from models import schema
 
 def init_db():
     print("Creating all tables...")

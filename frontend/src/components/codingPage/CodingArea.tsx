@@ -1,10 +1,9 @@
 import { Maximize2, Play, RotateCcw } from "lucide-react";
-import type { CodeItem } from "../interfaces/CodeItem";
 import { SandboxCodeEditor } from "../ui/shadcn-io/sandbox";
 import { Button } from "../ui/button";
 
 
-const CodingArea = ({ CodeItem }: { CodeItem: CodeItem[] }) => {
+const CodingArea = () => {
   return (
     <div>
         <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between

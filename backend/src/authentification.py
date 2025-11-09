@@ -12,13 +12,14 @@ from models.schema import User
 from DB_Methods.crudOperations import _commit_or_rollback
 from dotenv import load_dotenv
 import os
+from functools import wraps
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 
-from flask_cors import CORS
 load_dotenv()
 
 CORS(
@@ -108,7 +109,7 @@ def signup():
             return jsonify({"error": "User already exists"}), 400
 
         password_hash = bcrypt.generate_password_hash(password).decode()
-        new_user = create_user(
+        create_user(
             db,
             username=username,
             email=email,
@@ -175,8 +176,6 @@ def google_login():
     except ValueError as e:
         return jsonify({"error": "Invalid Google token", "details": str(e)}), 401
 
-
-from functools import wraps
 
 def role_required(role):
     def decorator(fn):

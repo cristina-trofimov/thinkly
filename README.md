@@ -38,6 +38,7 @@ Provide setup instructions, dependencies, and commands here.
 ### Installation
 
 Docker commands (to run in root of project)</br>
+- have docker desktop installed and opened
 1-  ```docker compose up --build``` (this will build and run) </br>
 2-  ```docker compose up -d``` (run in bakcground)</br>
 3-  ```docker compose down``` (clean shut down)</br>
@@ -68,8 +69,20 @@ install python dependencies</br>
 2- ```pip install -r backend/requirements.txt```</br></br>
 to run python</br>
 1- ```cd backend```</br>
-2- ```python src/main.py```</br>
-run pytest</br></br>
+2- ```python src/main.py```</br></br>
+run pytest</br>
 1- ```cd backend```</br>
 2- ```python -m pytest -v```</br>
 
+LINTING</br>
+frontend </br>
+1- ```cd frontend```</br>
+2- ```npm run lint```</br>
+or 
+2- ```npm run lint -- --fix``` (will auto-fix some issues) </br>
+
+backend </br>
+1- ```cd backend```</br>
+2- ```ruff check src/```</br>
+or </br>
+2- ```ruff check src/ --fix```</br> (will auto-fix some issues)
