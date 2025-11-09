@@ -35,7 +35,7 @@ class User(Base):
     last_name = Column(String)
     user_preferences_id = Column(Integer, ForeignKey('user_preferences.user_id', ondelete='CASCADE'))
     salt = Column(String)
-    type = Column(Enum('user', 'admin', 'owner', name='type_enum'), nullable=False)
+    type = Column(Enum('participant', 'admin', 'owner', name='type_enum'), nullable=False)
 
     # Relationships
     competitions = relationship( 'Competition', back_populates='user', cascade="save-update", passive_deletes=True)
