@@ -45,20 +45,20 @@ def get_leaderboards(db: Session = Depends(get_db)):
 @router.get("/questions")
 def get_all_questions(db: Session = Depends(get_db)):
     try:
-        # Ensure table exists (useful right after fresh seed)
+        
         insp = inspect(db.bind)
         if "base_question" not in insp.get_table_names() and "basequestion" not in insp.get_table_names():
             raise RuntimeError("Table for BaseQuestion not found. Did you run the seeder & use the same DB URL?")
 
         rows = db.query(BaseQuestion).all()
 
-        # Minimal serializer to avoid non-JSON types/lazy loads
+        
         def to_dict(q: BaseQuestion):
             created = None
             if hasattr(q, "created_at") and isinstance(q.created_at, datetime):
                 created = q.created_at.strftime("%Y-%m-%d")
 
-            # Adjust field names if your model differs
+            
             return {
                 "id": str(getattr(q, "question_id", getattr(q, "id", None))),
                 "title": getattr(q, "title", None),

@@ -58,12 +58,12 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [selectedRiddles, setSelectedRiddles] = useState<number[]>([]);
 
-  // Hardcoded questions (used as initial/fallback)
+
   const fallbackQuestions = [
     { id: 1, title: "Two Sum", difficulty: "Easy" },
   ];
 
-  // 🔄 Replace hardcoded list with backend (with fallback)
+
   const [questions, setQuestions] = useState(fallbackQuestions);
   useEffect(() => {
     let cancelled = false;

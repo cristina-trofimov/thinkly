@@ -15,7 +15,7 @@ DIFFICULTIES = ["easy", "medium", "hard"]
 SEED_QUESTIONS = [
     {
         # mandatory
-        "title": "Two Sum is working",
+        "title": "Two Sum",
         "description": "Given an array of integers nums and an integer target, return indices of the two numbers that add up to target.",
         "difficulty": "easy",
         "solution": "Use a hash map to store complement indices in O(n).",
