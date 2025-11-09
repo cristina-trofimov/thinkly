@@ -1,18 +1,17 @@
 # do /backend and run:  python -m src.Components.leaderboards.populateDB
 
 from sqlalchemy.orm import Session
-from random import choice
 from datetime import datetime
 
-# Reuse your existing engine/Session factory
+
 from src.DB_Methods.crudOperations import engine, SessionLocal
-# Import Base + the model we’re seeding
+
 from src.models.schema import Base, BaseQuestion
 
-# ----- CONFIG -----
+
 DIFFICULTIES = ["easy", "medium", "hard"]
 
-# Some sample questions to seed
+
 SEED_QUESTIONS = [
     {
         # mandatory
@@ -100,19 +99,19 @@ SEED_QUESTIONS = [
 
 
 def main():
-    # 💥 Reset DB (drop & recreate all tables known to Base)
-    print("⚠️  Dropping and recreating all tables...")
+
+    print("Dropping and recreating all tables...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    print("✅ Schema recreated.")
+    print("Schema recreated.")
 
     db: Session = SessionLocal()
     try:
-        # Insert BaseQuestion rows. Only mandatory fields are required.
+
         print("➕ Inserting BaseQuestion rows...")
         objects = []
         for q in SEED_QUESTIONS:
-            # Defensive: ensure difficulty matches enum
+            
             if q["difficulty"] not in DIFFICULTIES:
                 raise ValueError(f"Invalid difficulty: {q['difficulty']}")
 
@@ -123,16 +122,16 @@ def main():
                 solution=q["solution"],
                 # optional fields -> use provided or None
                 media=q.get("media"),
-                user_id=q.get("user_id"),# stays None unless you want to attach to an existing user
+                user_id=q.get("user_id"),
                 created_at = datetime.utcnow()
             )
             objects.append(obj)
 
         db.add_all(objects)
         db.commit()
-        print(f"🎉 Inserted {len(objects)} BaseQuestion rows.")
+        print(f" Inserted {len(objects)} BaseQuestion rows.")
 
-        # Show what’s in DB now (count + a sample)
+        
         count = db.query(BaseQuestion).count()
         one = db.query(BaseQuestion).first()
         print(f"🔎 BaseQuestion count: {count}")
@@ -141,6 +140,7 @@ def main():
 
     except Exception as e:
         db.rollback()
+        print(f"Error during DB population: {e}")
         raise
     finally:
         db.close()

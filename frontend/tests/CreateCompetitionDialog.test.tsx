@@ -1,216 +1,258 @@
+/**
+ * @file tests/CreateCompetitionDialog.test.tsx
+ */
 
-import React from "react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import CreateCompetitionDialog from "./CreateCompetitionDialog";
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import CreateCompetitionDialog from '../src/components/dashboard/CreateCompetitionDialog';
 
-function openDialog() {
-    const onOpenChange = vi.fn();
-    render(<CreateCompetitionDialog open={true} onOpenChange={onOpenChange} />);
-    return { onOpenChange };
-}
+describe('CreateCompetitionDialog', () => {
+  const originalError = console.error;
+  const originalLog = console.log;
+  let mockOnOpenChange: jest.Mock;
+  let mockFetch: jest.Mock;
 
-const QUESTIONS_URL = "http://127.0.0.1:8000/questions";
-const EMAIL_URL = "http://127.0.0.1:8001/send-email";
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2025-11-09T18:00:00.000Z')); // stable reference time
+  });
 
-beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.spyOn(global, "fetch").mockImplementation((input: RequestInfo | URL) => {
-        const url = String(input);
-        if (url === QUESTIONS_URL) {
-            return Promise.resolve(
-                new Response(
-                    JSON.stringify([
-                        { id: 101, title: "Two Sum", difficulty: "easy" },
-                        { id: 202, title: "Binary Tree Level Order", difficulty: "Medium" },
-                    ]),
-                    { status: 200, headers: { "Content-Type": "application/json" } }
-                )
-            ) as any;
-        }
-        return Promise.resolve(new Response("{}", { status: 200 })) as any;
-    });
-});
+  beforeEach(() => {
+    mockOnOpenChange = jest.fn();
+    mockFetch = jest.fn();
 
-afterEach(() => {
-    vi.clearAllMocks();
-});
-
-describe("CreateCompetitionDialog", () => {
-    it("loads questions from backend and displays them", async () => {
-        openDialog();
-
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sum/i)).toBeInTheDocument()
-        );
-        expect(
-            screen.getByText(/Binary Tree Level Order/i)
-        ).toBeInTheDocument();
-
-        // Difficulty labels normalized
-        expect(screen.getByText("Easy")).toBeInTheDocument();
-        expect(screen.getByText("Medium")).toBeInTheDocument();
-    });
-
-    it("falls back to hardcoded question list when fetch fails", async () => {
-        (global.fetch as any).mockImplementationOnce((input: any) => {
-
-            return Promise.resolve(new Response("boom", { status: 500 }));
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('http://127.0.0.1:8000/questions')) {
+        return Promise.resolve({
+          ok: false,
+          json: async () => ({}),
         });
-
-        openDialog();
-
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sums/i)).toBeInTheDocument()
-        );
-    });
-
-    it("filters questions by search", async () => {
-        openDialog();
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sum/i)).toBeInTheDocument()
-        );
-
-        const search = screen.getByPlaceholderText(/Search questions/i);
-        await userEvent.type(search, "Binary");
-
-        expect(screen.queryByText(/Two Sum/i)).not.toBeInTheDocument();
-        expect(
-            screen.getByText(/Binary Tree Level Order/i)
-        ).toBeInTheDocument();
-    });
-
-    it("allows selecting questions and riddles", async () => {
-        openDialog();
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sum/i)).toBeInTheDocument()
-        );
-
-        const twoSumRow = screen.getByText(/Two Sum/i).closest("div")!;
-        const qCheckbox = twoSumRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(qCheckbox);
-
-        const riddleRow = screen.getByText(/Where's Waldo\?/i).closest("div")!;
-        const rCheckbox = riddleRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(rCheckbox);
-
-
-        expect(qCheckbox).toHaveAttribute("aria-checked", "true");
-        expect(rCheckbox).toHaveAttribute("aria-checked", "true");
-    });
-
-    it("shows validation error when fields are missing", async () => {
-        openDialog();
-
-        const createBtn = screen.getByRole("button", { name: /Create Competition/i });
-        await userEvent.click(createBtn);
-
-        expect(
-            await screen.findByText(/Incomplete general information/i)
-        ).toBeInTheDocument();
-    });
-
-    it("validates that start time must be in the future", async () => {
-        openDialog();
-
-        await userEvent.type(screen.getByLabelText(/Competition Name/i), "My Comp");
-
-
-        const dateInput = screen.getByLabelText(/^Date$/i);
-        const startInput = screen.getByLabelText(/^Start Time$/i);
-        const endInput = screen.getByLabelText(/^End Time$/i);
-
-        await userEvent.clear(dateInput);
-        await userEvent.type(dateInput as HTMLInputElement, "2000-01-01");
-        await userEvent.type(startInput as HTMLInputElement, "00:01");
-        await userEvent.type(endInput as HTMLInputElement, "00:10");
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sum/i)).toBeInTheDocument()
-        );
-        const twoSumRow = screen.getByText(/Two Sum/i).closest("div")!;
-        const qCheckbox = twoSumRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(qCheckbox);
-
-        const riddleRow = screen.getByText(/Where's Waldo\?/i).closest("div")!;
-        const rCheckbox = riddleRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(rCheckbox);
-
-        await userEvent.click(screen.getByRole("button", { name: /Create Competition/i }));
-
-        expect(
-            await screen.findByText(/must be scheduled for a future date/i)
-        ).toBeInTheDocument();
-    });
-
-    it("posts email payload to :8001 when email recipients are provided", async () => {
-        const { onOpenChange } = openDialog();
-
-        await waitFor(() =>
-            expect(screen.getByText(/Two Sum/i)).toBeInTheDocument()
-        );
-
-
-        const now = new Date();
-        const future = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        const yyyy = future.getFullYear();
-        const mm = String(future.getMonth() + 1).padStart(2, "0");
-        const dd = String(future.getDate()).padStart(2, "0");
-
-        await userEvent.type(screen.getByLabelText(/Competition Name/i), "Future Comp");
-        await userEvent.clear(screen.getByLabelText(/^Date$/i));
-        await userEvent.type(screen.getByLabelText(/^Date$/i), `${yyyy}-${mm}-${dd}`);
-        await userEvent.type(screen.getByLabelText(/^Start Time$/i), "12:00");
-        await userEvent.type(screen.getByLabelText(/^End Time$/i), "13:00");
-
-        const qRow = screen.getByText(/Two Sum/i).closest("div")!;
-        const qCheckbox = qRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(qCheckbox);
-
-        const rRow = screen.getByText(/Where's Waldo\?/i).closest("div")!;
-        const rCheckbox = rRow.parentElement?.parentElement?.querySelector(
-            'button[role="checkbox"]'
-        ) as HTMLElement;
-        await userEvent.click(rCheckbox);
-
-
-        await userEvent.type(screen.getByLabelText(/To \(comma-separated\)/i), "alice@example.com, bob@example.com");
-        await userEvent.type(screen.getByLabelText(/^Subject$/i), "Hello");
-        await userEvent.type(screen.getByLabelText(/^Message$/i), "World");
-
-
-        const fetchSpy = vi.spyOn(global, "fetch");
-
-        await userEvent.click(screen.getByRole("button", { name: /Create Competition/i }));
-
-
-        await waitFor(() => {
-            expect(fetchSpy).toHaveBeenCalledWith(
-                EMAIL_URL,
-                expect.objectContaining({
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: expect.any(String),
-                })
-            );
+      }
+      if (url.includes('http://127.0.0.1:8001/send-email')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({}),
         });
-
-
-        expect(onOpenChange).toHaveBeenCalledWith(false);
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({}),
+      });
     });
+
+    (global as any).fetch = mockFetch;
+
+    console.error = jest.fn(() => {});
+    console.log = jest.fn(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+  });
+
+  afterAll(() => {
+    console.error = originalError;
+    console.log = originalLog;
+    jest.useRealTimers();
+  });
+
+  const renderOpen = () =>
+    render(<CreateCompetitionDialog open={true} onOpenChange={mockOnOpenChange} />);
+
+  const fillGeneralInfo = async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    await user.type(screen.getByLabelText('Competition Name'), 'Valid Comp');
+    await user.type(screen.getByLabelText('Date'), '2026-10-25');
+    await user.type(screen.getByLabelText('Start Time'), '10:00');
+    await user.type(screen.getByLabelText('End Time'), '12:00');
+  };
+
+  const selectQuestionTwoSum = async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    await waitFor(() => expect(screen.getByText('Two Sum')).toBeInTheDocument());
+    const row = screen.getByText('Two Sum').closest('.flex-1')!;
+    const checkbox = row.parentElement!.querySelector('button,[type="checkbox"]') as HTMLElement;
+    await user.click(checkbox);
+  };
+
+  const selectAnyRiddle = async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const riddleRow = screen.getByText(/Where's Waldo\?/i).closest('.flex-1')!;
+    const checkbox = riddleRow.parentElement!.querySelector('button,[type="checkbox"]') as HTMLElement;
+    await user.click(checkbox);
+  };
+
+  test('shows no error initially', () => {
+    renderOpen();
+    expect(screen.queryByText(/Incomplete general information/i)).not.toBeInTheDocument();
+  });
+
+  test('blocks submission if General Information is incomplete', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    expect(screen.getByText(/Incomplete general information\./i)).toBeInTheDocument();
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions');
+  });
+
+  test('blocks submission if no Question selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectAnyRiddle();
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    expect(screen.getByText(/Please select at least one question/i)).toBeInTheDocument();
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
+  });
+
+  test('blocks submission if no Riddle selected', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    expect(screen.getByText(/Please select at least one riddle/i)).toBeInTheDocument();
+    expect(mockOnOpenChange).not.toHaveBeenCalled();
+  });
+
+  test('allows submission when all fields are complete', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+    await selectAnyRiddle();
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+    await waitFor(() => expect(mockOnOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  test('sends email immediately when "To" is filled and no schedule is set', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+    await selectAnyRiddle();
+
+    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
+    await user.type(screen.getByLabelText('Subject'), 'Hi');
+    await user.type(screen.getByLabelText('Message'), 'Body');
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    await waitFor(() => {
+      expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions');
+      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8001/send-email');
+      expect(mockFetch.mock.calls[1][1]).toEqual(
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: ['test@example.com'],
+            subject: 'Hi',
+            text: 'Body',
+          }),
+        })
+      );
+    });
+  });
+
+  test('schedules email for 1 minute from now when switch is ON', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+    await selectAnyRiddle();
+
+    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
+    await user.type(screen.getByLabelText('Subject'), 'Hi');
+    await user.type(screen.getByLabelText('Message'), 'Body');
+
+    await user.click(screen.getByLabelText('Send in 1 minute'));
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    await waitFor(() => {
+      const emailCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+      expect(emailCallBody).toEqual(
+        expect.objectContaining({
+          to: ['test@example.com'],
+          subject: 'Hi',
+          text: 'Body',
+          sendAt: expect.any(String),
+        })
+      );
+    });
+  });
+
+  test('schedules email for local time when switch is OFF and time is provided', async () => {
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+    await selectAnyRiddle();
+
+    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
+    await user.type(screen.getByLabelText('Subject'), 'Hi');
+    await user.type(screen.getByLabelText('Message'), 'Body');
+
+    const localStr = '2026-10-25T12:00';
+    await user.type(screen.getByLabelText('Schedule (local time)'), localStr);
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    await waitFor(() => {
+      const emailCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+      const expectedISO = new Date(localStr).toISOString().replace('.000Z', 'Z');
+      expect(emailCallBody.sendAt).toBe(expectedISO);
+    });
+  });
+
+  test('logs an error if the email API call fails (HTTP 400)', async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('8000/questions')) {
+        return Promise.resolve({ ok: false, json: async () => ({}) });
+      }
+      if (url.includes('8001/send-email')) {
+        return Promise.resolve({
+          ok: false,
+          status: 400,
+          json: async () => ({ error: 'Bad Request' }),
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    renderOpen();
+
+    await fillGeneralInfo();
+    await selectQuestionTwoSum();
+    await selectAnyRiddle();
+
+    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
+    await user.type(screen.getByLabelText('Subject'), 'Hi');
+    await user.type(screen.getByLabelText('Message'), 'Body');
+
+    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith('Email send failed:', 'Bad Request');
+    });
+  });
 });

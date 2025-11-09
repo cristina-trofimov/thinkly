@@ -18,6 +18,7 @@ import {
   type CreateCompetitionDialogProps,
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
+import type { Question } from "../interfaces/Question";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -59,7 +60,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
 
   // Hardcoded questions (used as initial/fallback)
   const fallbackQuestions = [
-    { id: 1, title: "Two Sums", difficulty: "Easy" },
+    { id: 1, title: "Two Sum", difficulty: "Easy" },
   ];
 
   // 🔄 Replace hardcoded list with backend (with fallback)
@@ -71,10 +72,9 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
         const res = await fetch("http://127.0.0.1:8000/questions");
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !Array.isArray(body)) throw new Error();
-        const normalized = body.map((q: any, i: number) => ({
+        const normalized = body.map((q: Question, i: number) => ({
           id: typeof q.id === "string" ? Number(q.id) : (q.id ?? i + 1),
           title: q.title ?? `Question ${i + 1}`,
-          // normalize difficulty to "Easy|Medium|Hard" if present
           difficulty: q.difficulty
             ? String(q.difficulty).toLowerCase() === "easy" ? "Easy"
             : String(q.difficulty).toLowerCase() === "medium" ? "Medium"
