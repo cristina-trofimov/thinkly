@@ -156,7 +156,7 @@ def google_login():
         with SessionLocal() as db:
             user = get_user_by_email(db,email)
             if not user:
-                new_user = create_user(
+                 create_user(
                         db,
                         username=email,
                         email=email,
