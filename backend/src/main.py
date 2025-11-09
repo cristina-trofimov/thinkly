@@ -26,6 +26,7 @@ def root():
 # Include your leaderboards API
 try:
     app.include_router(leaderboards_api.router)
+    app.include_router(homepage_api.router)
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py. Make sure it defines `router = APIRouter()`.")
 
