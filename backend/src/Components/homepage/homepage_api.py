@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from DB_Methods.crudOperations import (
     SessionLocal,
 )
-from models.schema import User, Competition, Scoreboard, UserResult
+from models.schema import User, Competition, BaseQuestion
 
 router = APIRouter()
 
@@ -14,11 +14,11 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/homepage")
+@router.get("/get-questions")
 def get_all_questions(db: Session = Depends(get_db)):
     questions = db.query(BaseQuestion).all()
     result = []
-    for user in users:
+    for q in questions:
         result.append({
             "id": q.question_id,
             "questionTitle": q.title,

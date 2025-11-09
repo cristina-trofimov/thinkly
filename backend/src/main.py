@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from Components.leaderboards import leaderboards_api
+from Components.homepage import homepage_api
 import os
 app = FastAPI(title="My Backend API")
 

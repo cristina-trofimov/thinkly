@@ -5,10 +5,42 @@ import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/co
 import { columns } from "../components/HomePageQuestions/questionsColumns"
 import type { Questions } from "../components/HomePageQuestions/questionsColumns"
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
+import { config } from "./../config";
+
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const questions: Questions[] = []
+  const [questions, setQuestions] = React.useState<Questions[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+
+  React.useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await fetch(config.backendUrl + "/get-questions");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
+
+        const formatted: Questions[] = data.map((q: any) =>({
+          id: q.id,
+          questionTitle: q.questionTitle,
+          date: new Date(q.date),
+          difficulty: q.difficulty,
+        }));
+
+        setQuestions(formatted)
+      } catch (err) {
+        console.error("Error fetching questions:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchQuestions()
+  }, [])
+
 
   const competitions = [
     //once we get the db connection we need to switch this maybe something
