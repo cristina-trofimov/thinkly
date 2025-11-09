@@ -1,4 +1,3 @@
-// src/lib/axiosClient.tsx
 import axios from "axios";
 
 // Get API URL - works in both Vite and Jest environments
