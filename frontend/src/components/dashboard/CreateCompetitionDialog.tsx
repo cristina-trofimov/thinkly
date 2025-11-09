@@ -14,18 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
-
-interface CreateCompetitionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-interface EmailPayload {
-  to: string[];
-  subject: string;
-  text: string;
-  sendAt?: string;
-}
+import {
+  type CreateCompetitionDialogProps,
+  type EmailPayload
+} from "../interfaces/CreateCompetitionTypes";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;

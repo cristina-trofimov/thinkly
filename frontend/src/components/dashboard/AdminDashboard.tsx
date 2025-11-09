@@ -18,7 +18,7 @@ export function AdminDashboard() {
           <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
           <Button 
             onClick={() => setDialogOpen(true)}
-            className="bg-[#8065CD] hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]"
+            className="bg-primary hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]"
           >
             <IconCirclePlusFilled className="h-4 w-4 text-white" />
             <span className="text-sm font-medium">Create Competition</span>
