@@ -2,6 +2,12 @@
 
 [Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
 
+## Diversity Statement
+The Thinkly platform is built to be fair and welcoming for everyone. We ensure equal access by making the system free (no paywalls) and easily used on any device through a simple web browser. To support diversity in learning, our coding judge accepts many programming languages, allowing users to learn or use what they prefer. 
+</br></br>
+For more information, please visit our [wiki page](https://github.com/cristina-trofimov/thinkly/wiki/Diversity-statement).
+
+
 ## CI information
 *(Add badges or links to your CI pipeline here, e.g., GitHub Actions, Jenkins, CircleCI.)* </br>
 
