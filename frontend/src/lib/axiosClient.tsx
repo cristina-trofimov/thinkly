@@ -1,12 +1,20 @@
+// src/lib/axiosClient.tsx
 import axios from "axios";
 
-// Use a function to get the API URL, making it easier to mock in tests
+// Get API URL - works in both Vite and Jest environments
 const getApiUrl = (): string => {
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  // Check if we're in a Vite environment
+  if (typeof window !== 'undefined' && (window as any).VITE_BACKEND_URL) {
+    return (window as any).VITE_BACKEND_URL;
   }
-  // Fallback for non-Vite environments (like Jest)
-  return process.env.VITE_BACKEND_URL || "http://localhost:8000";
+
+  // Try process.env for Jest/Node environments
+  if (typeof process !== 'undefined' && process.env?.VITE_BACKEND_URL) {
+    return process.env.VITE_BACKEND_URL;
+  }
+
+  // Default fallback
+  return "http://localhost:8000";
 };
 
 const API_URL = getApiUrl();
@@ -45,6 +53,5 @@ axiosClient.interceptors.response.use(
   }
 );
 
-
-export { API_URL };
 export default axiosClient;
+export { API_URL };
