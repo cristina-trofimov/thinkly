@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 
-const API_BASE = "http://127.0.0.1:8000"
+//const API_BASE = "http://127.0.0.1:8000"
 
 const schema = z.object({
     to: z.string().min(3, "Enter at least one recipient (comma-separated)"),
@@ -67,11 +67,19 @@ export default function SendEmailForm({ className }: { className?: string }) {
             return
         }
 
-        const payload: Record<string, any> = {
+        interface EmailPayload {
+            to: string[];       // or string, depending on your code
+            subject: string;
+            text: string;
+            sendAt?: string;
+        }
+
+        const payload: EmailPayload = {
             to: toList,
             subject: values.subject,
             text: values.text,
         }
+
 
         const sendAt = values.sendInOneMinute
             ? oneMinuteFromNowISO()
@@ -107,8 +115,10 @@ export default function SendEmailForm({ className }: { className?: string }) {
                 sendAtLocal: "",
                 sendInOneMinute: false,
             })
-        } catch (e: any) {
-            toast.error("Network error", { description: e?.message ?? String(e) })
+        } catch (e: unknown) {
+            const description =
+            e instanceof Error ? e.message : String(e);
+            toast.error("Network error", { description });
         } finally {
             setSubmitting(false)
         }

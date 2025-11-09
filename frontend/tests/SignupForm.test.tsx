@@ -416,10 +416,11 @@ describe("SignupForm", () => {
             fireEvent.change(passwordInput, { target: { value: "password123" } });
             fireEvent.change(confirmPasswordInput, { target: { value: "password123" } });
 
+            // <-- Put it here -->
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText("Signup failed")).toBeInTheDocument();
+                expect(screen.getByText(/network error/i)).toBeInTheDocument();
             });
         });
 

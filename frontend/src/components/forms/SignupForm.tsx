@@ -57,6 +57,10 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
             try {
                 const { token } = await login({ email: formData.email, password: formData.password });
+                if (!token) {
+                    throw new Error("Login failed: token missing");
+                }
+
                 localStorage.setItem("token", token);
 
                 console.log(localStorage.getItem("token"));
@@ -64,24 +68,36 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 const decoded = jwtDecode<DecodedToken>(token);
                 console.log("Logged in as:", decoded.sub);
 
-                // Optionally redirect based on role
-                const role = decoded.sub.role;
                 if (decoded) {
                     navigate('/app/home');
                 }
 
-            } catch (err) {
-                console.error(err);
-                setError("Invalid email or password");
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    console.error(err);
+                    setError("Invalid email or password");
+                } else {
+                    console.error("Unknown error during login", err);
+                    setError("Invalid email or password");
+                }
             } finally {
                 setLoading(false);
             }
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Signup failed");
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message || "Signup failed");
+            } else if (typeof err === "object" && err !== null && "response" in err) {
+                // Optionally handle Axios error shape
+                // @ts-expect-error TS cannot infer 'response' property
+                setError(err.response?.data?.error || "Signup failed");
+            } else {
+                setError("Signup failed");
+            }
         } finally {
             setLoading(false);
         }
     }
+
 
 
     return (

@@ -5,7 +5,7 @@ from DB_Methods.crudOperations import (
     get_all_competitions,
     get_scoreboard_for_competition
 )
-from models.schema import User, Competition, Scoreboard, UserResult
+from models.schema import UserResult
 router = APIRouter()
 
 

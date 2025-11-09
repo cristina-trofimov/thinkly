@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import type { ProblemInfo } from '../interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, } from 'react'
+import { useLayoutEffect, useRef, } from 'react'
 import { motion, AnimatePresence } from "motion/react";
 import type { SubmissionType } from '../interfaces/SubmissionType'
 import type { LeaderboardType } from '../interfaces/LeaderboardType'
@@ -14,7 +14,7 @@ import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui
 
 
 const CodeDescArea = (
-    { problemInfo, submissions, leaderboard, comments }: 
+    { problemInfo, submissions, leaderboard }:
     { problemInfo: ProblemInfo, submissions: SubmissionType[],
       leaderboard: LeaderboardType[], comments: CommentType[]
 }) => {
