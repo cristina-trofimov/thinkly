@@ -70,13 +70,6 @@ const CodeDescArea = (
         return () => observer.disconnect()
     }, [initialWidth])
 
-    // useLayoutEffect(() => {
-    //     const updateWidth = () => { setContainerWidth(containerRef.current?.offsetWidth || 0) }
-    //     updateWidth();
-    //     window.addEventListener('resize', updateWidth)
-    //     return () => window.removeEventListener('resize', updateWidth)
-    // }, [])
-
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
     if (fullSize) {

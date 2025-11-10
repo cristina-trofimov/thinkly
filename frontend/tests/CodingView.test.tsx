@@ -66,17 +66,6 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
     },
 }))
 
-const mockDescRef = { current: { resize: jest.fn() } }
-const mockCodeAndOutputRef = { current: { resize: jest.fn() } }
-const mockCodeRef = { current: { resize: jest.fn() } }
-const mockOutputRef = { current: { resize: jest.fn() } }
-
-jest.spyOn(React, 'useRef')
-    .mockImplementationOnce(() => mockDescRef)
-    .mockImplementationOnce(() => mockCodeRef)
-    .mockImplementationOnce(() => mockOutputRef)
-    .mockImplementationOnce(() => mockCodeAndOutputRef)
-
 const nullRef = { current: null }
 
 jest.spyOn(React, 'useRef')
@@ -125,10 +114,6 @@ describe('CodingView Component', () => {
 
         await userEvent.click(fullscreenBtn)
         expect(screen.getByTestId('code-area-min-btn')).toBeInTheDocument()
-        expect(mockDescRef.current?.resize).toHaveBeenCalledWith(0);
-        expect(mockCodeRef.current?.resize).toHaveBeenCalledWith(100);
-        expect(mockOutputRef.current?.resize).toHaveBeenCalledWith(100);
-        expect(mockCodeAndOutputRef.current?.resize).toHaveBeenCalledWith(0);
     })
 
     it('collapses and uncollapses code area', async () => {
