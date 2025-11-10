@@ -30,7 +30,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
 
     <CardContent className="px-0 overflow-hidden text-left">
       <div className="flex flex-col ml-6">
-        {items.map((item, _i) => (
+        {items.map((item) => (
           <div key={item.name} className="px-6">
             <div className="flex items-center gap-4 py-3">
               {item.avatarUrl ? (
