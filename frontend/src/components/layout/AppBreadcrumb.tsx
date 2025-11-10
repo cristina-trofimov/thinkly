@@ -29,7 +29,7 @@ export function AppBreadcrumbs({ items }: Readonly<BreadcrumbWithCustomSeparator
           const isLast = index === items.length - 1;
           
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={item.title}>
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage className="text-[#8065CD]">{item.title}</BreadcrumbPage>
