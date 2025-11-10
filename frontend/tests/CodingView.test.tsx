@@ -3,7 +3,7 @@ import '@testing-library/jest-dom'
 import { jest } from '@jest/globals';
 import { beforeEach } from 'node:test'
 import userEvent from '@testing-library/user-event'
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, act } from "@testing-library/react"
 import CodingView from '../src/components/codingPage/CodingView'
 
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
@@ -66,10 +66,30 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
     },
 }))
 
+const mockDescRef = { current: { resize: jest.fn() } }
+const mockCodeAndOutputRef = { current: { resize: jest.fn() } }
+const mockCodeRef = { current: { resize: jest.fn() } }
+const mockOutputRef = { current: { resize: jest.fn() } }
+
+jest.spyOn(React, 'useRef')
+    .mockImplementationOnce(() => mockDescRef)
+    .mockImplementationOnce(() => mockCodeRef)
+    .mockImplementationOnce(() => mockOutputRef)
+    .mockImplementationOnce(() => mockCodeAndOutputRef)
+
+const nullRef = { current: null }
+
+jest.spyOn(React, 'useRef')
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+
 describe('CodingView Component', () => {
     beforeEach(() => {
         jest.clearAllMocks()
     })
+    
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
         render(<CodingView />)
         expect(screen.getAllByTestId("resizable-panel").length).toBe(4)
@@ -78,6 +98,15 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId("sandbox-console")).toBeInTheDocument()
         expect(screen.getByTestId("sandbox-provider")).toBeInTheDocument()
         expect(screen.getByTestId("desc-area")).toBeInTheDocument()
+    })
+    
+    it("doesn't call panelRef.current.resize when refs are not set", async () => {
+        render(<CodingView />)
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('code-area-fullscreen'))
+        })
+
+        expect(nullRef.current?.resize).toBeUndefined();
     })
 
     it('shows dropdown with languages and updates selected language', async () => {
@@ -96,14 +125,18 @@ describe('CodingView Component', () => {
 
         await userEvent.click(fullscreenBtn)
         expect(screen.getByTestId('code-area-min-btn')).toBeInTheDocument()
+        expect(mockDescRef.current?.resize).toHaveBeenCalledWith(0);
+        expect(mockCodeRef.current?.resize).toHaveBeenCalledWith(100);
+        expect(mockOutputRef.current?.resize).toHaveBeenCalledWith(100);
+        expect(mockCodeAndOutputRef.current?.resize).toHaveBeenCalledWith(0);
     })
 
     it('collapses and uncollapses code area', async () => {
         render(<CodingView />)
-        const fullscreenBtn = screen.getByTestId('code-area-collapse')
+        const collapseAreaBtn = screen.getByTestId('code-area-collapse')
         expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
+        await userEvent.click(collapseAreaBtn)
         expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
     })
 
@@ -118,10 +151,32 @@ describe('CodingView Component', () => {
 
     it('collapses and uncollapses output area', async () => {
         render(<CodingView />)
-        const fullscreenBtn = screen.getByTestId('output-area-collapse')
+        const collapseOutputBtn = screen.getByTestId('output-area-collapse')
         expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
+        await userEvent.click(collapseOutputBtn)
         expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+    })
+
+    it('collapses both areas when output area is collapsed and console is already collapsed', async () => {
+        render(<CodingView />)
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+        expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+        
+        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
+    })
+
+    it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
+        render(<CodingView />)
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+        expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+        
+        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
     })
 })
