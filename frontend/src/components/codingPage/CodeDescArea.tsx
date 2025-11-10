@@ -2,27 +2,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import type { ProblemInfo } from '../interfaces/ProblemInfo'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
-import { useLayoutEffect, useRef, } from 'react'
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState, } from 'react'
 import type { SubmissionType } from '../interfaces/SubmissionType'
-import type { LeaderboardType } from '../interfaces/LeaderboardType'
-import type { CommentType } from '../interfaces/CommentType'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
+import { ScoreboardDataTable } from '../leaderboards/ScoreboardDataTable'
+import type { Participant } from '../interfaces/Participant'
 
 
 const CodeDescArea = (
-    { problemInfo, submissions, leaderboard }:
+    { problemInfo, submissions, leaderboard }: 
     { problemInfo: ProblemInfo, submissions: SubmissionType[],
-      leaderboard: LeaderboardType[], comments: CommentType[]
+      leaderboard: Participant[]
 }) => {
     
     const tabs = [
-        {"id": "description", "text":  "Description", "icon": <FileText />},
-        {"id": "submissions", "text":  "Submissions", "icon": <History />},
-        {"id": "leaderboard", "text":  "Leaderboard", "icon": <Trophy />},
+        {"id": "description", "label":  "Description", "icon": <FileText />},
+        {"id": "submissions", "label":  "Submissions", "icon": <History />},
+        {"id": "leaderboard", "label":  "Leaderboard", "icon": <Trophy />},
     ]
 
     const code = [
@@ -30,24 +29,24 @@ const CodeDescArea = (
           language: 'jsx',
           filename: 'MyComponent.jsx',
           code: `function MyComponent(props) {
-        return (
-          <div>
-            <h1>Hello, {props.name}!</h1>
-            <p>This is an example React component.</p>
-          </div>
-        );
+    return (
+        <div>
+        <h1>Hello, {props.name}!</h1>
+        <p>This is an example React component.</p>
+        </div>
+    );
       }`,
         },
         {
           language: 'tsx',
           filename: 'MyComponent.tsx',
           code: `function MyComponent(props: { name: string }) {
-        return (
-          <div>
-            <h1>Hello, {props.name}!</h1>
-            <p>This is an example React component.</p>
-          </div>
-        );
+    return (
+        <div>
+        <h1>Hello, {props.name}!</h1>
+        <p>This is an example React component.</p>
+        </div>
+    );
       }`,
         },
       ];
@@ -56,13 +55,22 @@ const CodeDescArea = (
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useStateCallback(0)
+    const [initialWidth, setInitialWidth] = useState<number | null>(null)
 
-    useLayoutEffect(() => {
-        const updateWidth = () => { setContainerWidth(containerRef.current?.offsetWidth || 0) }
-        updateWidth();
-        window.addEventListener('resize', updateWidth)
-        return () => window.removeEventListener('resize', updateWidth)
-    }, [])
+    useEffect(() => {
+        if (!containerRef.current) return
+
+        const observer = new ResizeObserver(entries => {
+            // for now, entries is guaranteed to not be empty
+            if (entries.length === 0) return
+            const width = entries[0].contentRect.width
+            setContainerWidth(width)
+            if (initialWidth === null) setInitialWidth(width)
+        })
+
+        observer.observe(containerRef.current)
+        return () => observer.disconnect()
+    }, [initialWidth])
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
@@ -95,10 +103,12 @@ const CodeDescArea = (
 
     
   return (
-    <Tabs data-testid="tabs" defaultValue='description' className='w-full' >
-        <TabsList data-testid="tabs-list" //ref={containerRef}
-            className={`w-full flex rounded-none h-10 bg-muted 
-                        border-b border-border/75 dark:border-border/50 py-0 px-4`}
+    <Tabs data-testid="tabs" defaultValue='description'
+        value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
+    >
+        <TabsList data-testid="tabs-list" ref={containerRef}
+            className={`w-full h-10 py-0 px-4 bg-muted rounded-none
+                        border-b border-border/75 dark:border-border/50`}
         >
             {tabs.map(t => {
                 const isActive = activeTab === t.id
@@ -106,20 +116,8 @@ const CodeDescArea = (
                 if (containerWidth < halfSize && !isActive) showText = false
                 if (containerWidth < quarterSize && isActive) showText = false
 
-                return <motion.div
-                        key={t.id} layout initial={false}
-                        onClick={() => setActiveTab(t.id)}
-                        className={`flex items-center justify-center overflow-hidden cursor-pointer
-                            ${isActive ? 'flex-grow basis-0' : 'flex-grow-0 flex-shrink basis-auto'}`}
-                        animate={{ flexGrow: isActive ? 1 : 0}}
-                        transition={{
-                            type: "tween",
-                            stiffness: 400,
-                            damping: 25
-                        }}
-                >
-                    <TabsTrigger data-testid="tabs-trigger" value={t.id} asChild
-                        className='w-full bg-muted rounded-none
+                return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
+                        className={`bg-muted rounded-none
                             data-[state=active]:border-primary
                             data-[state=active]:text-primary
                             data-[state=active]:bg-muted
@@ -128,37 +126,19 @@ const CodeDescArea = (
                             data-[state=active]:border-x-0
                             data-[state=active]:border-t-0
                             dark:data-[state=active]:border-primary
-                        '
+                            flex items-center gap-2 transition-all
+                            ${ showText ? 'px-4' : 'px-2' }
+                        `}
                     >
-                        <motion.div
-                            className={`flex items-center justify-center gap-2 w-full`}
-                            animate={{ filter: 'blur(0px)' }}
-                            exit={{ filter: 'blur(2px)' }}
-                            transition={{ duration: 0.25, ease: 'easeOut' }}
-                        >
-                            {t.icon}
-                            <AnimatePresence initial={false}>
-                            {showText && (
-                                <motion.span
-                                    className='font-medium'
-                                    initial={{ opacity: 0, scaleX: 0.8 }}
-                                    animate={{ opacity: 1, scaleX: 1 }}
-                                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                                    style={{ originX: 0 }}
-                                >
-                                    {t.text}
-                                </motion.span>
-                            )}
-                            </AnimatePresence>
-                        </motion.div>
+                        {t.icon}
+                        {showText && t.label}
                     </TabsTrigger>
-                </motion.div>
             })}
         </TabsList>
 
         {/* Description */}
         <TabsContent value='description' data-testid="tabs-content-description" >
-            <div className='p-6' >
+            <div className='h-full p-6' >
                 <h1 className='font-bold mb-3 '>
                     {problemInfo.title}
                 </h1>
@@ -191,7 +171,7 @@ const CodeDescArea = (
 
         {/* Submissions */}
         <TabsContent value='submissions' data-testid="tabs-content-submissions" >
-            <div className='p-6' >
+            <div className='h-full p-6' >
                 {selectedSubmission === null ? 
                 <Table data-testid="table" >
                     <TableHeader>
@@ -205,8 +185,6 @@ const CodeDescArea = (
 
                     <TableBody>
                         {submissions.map((s, idx) => {
-                            
-
                             return (
                             <TableRow key={`submission ${idx+1}`} >
                                 <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
@@ -255,35 +233,11 @@ const CodeDescArea = (
 
         {/* Leaderboard */}
         <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
-            <div className='p-6' >
-                <Table data-testid="table" >
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[100px]"></TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Points</TableHead>
-                            <TableHead className="text-right">Problem Solved</TableHead>
-                            <TableHead className="text-right">Runtime</TableHead>
-                        </TableRow>
-                    </TableHeader>
-
-                    <TableBody>
-                        {leaderboard.map((l, idx) => {
-                            return <TableRow key={`rank #${idx+1}`} >
-                                <TableCell className="font-medium">#{idx+1}</TableCell>
-                                <TableCell className='font-semibold text-primary'>{l.name}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.points}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.solved}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{l.runtime}</TableCell>
-                        </TableRow>
-                        })}
-                    </TableBody>
-
-                    <TableFooter className='mt-3' >
-                        <TableRow><TableCell colSpan={5} className='text-gray-500' >{leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}</TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
+            <div className='h-full p-6' >
+                <ScoreboardDataTable participants={leaderboard} />
+                <div className='mt-3 text-gray-500' >
+                    {leaderboard.length} participant{(leaderboard.length > 1 || leaderboard.length === 0) ? 's' : ''}
+                </div>
             </div>
         </TabsContent>
     </Tabs>
