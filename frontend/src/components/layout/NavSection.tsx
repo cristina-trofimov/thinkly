@@ -11,17 +11,16 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-export function NavSection({
-  link,
-  label,
-}: {
+interface NavSectionProps {
   link: {
     name: string
     url: string
     icon: LucideIcon
   }[]
   label: string
-}) {
+}
+
+export function NavSection({ link, label }: Readonly<NavSectionProps>) {
   useSidebar()
 
   return (
