@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from DB_Methods.crudOperations import (
     SessionLocal,
     delete_user_full,
+    get_user_by_id
 )
 from models.schema import User, Competition, Scoreboard, UserResult
 
@@ -36,32 +38,44 @@ def get_all_users(db: Session = Depends(get_db)):
 
 @router.delete("/users/batch-delete")
 def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
-    """
-    Delete multiple users by their IDs.
-    Expects JSON body: {"user_ids": [1, 2, 3]}
-    """
     if not request.user_ids:
         raise HTTPException(status_code=400, detail="No user IDs provided")
-    
+
     deleted_count = 0
+    deleted_users = []
     errors = []
-    
+
     for uid in request.user_ids:
         try:
-            delete_user_full(db, uid)
+            with db.begin():
+                user = get_user_by_id(db, uid)
+                delete_user_full(db, uid)
             deleted_count += 1
+            deleted_users.append({
+                "user_id": user.user_id,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "type": user.type,
+            })
         except ValueError as e:
+            db.rollback()
             errors.append({"user_id": uid, "error": str(e)})
         except Exception as e:
+            db.rollback()
             errors.append({"user_id": uid, "error": f"Unexpected error: {str(e)}"})
-    
-    response = {
-        "message": f"Deleted {deleted_count} users successfully",
-        "deleted_count": deleted_count,
-        "total_requested": len(request.user_ids)
-    }
-    
-    if errors:
-        response["errors"] = errors
-    
-    return response
+
+    if deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to delete any users.")
+
+    status_code = 200 if not errors else 207
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "message": f"Deleted {deleted_count} users successfully",
+            "deleted_count": deleted_count,
+            "deleted_users": deleted_users,
+            "total_requested": len(request.user_ids),
+            "errors": errors if errors else None,
+        },
+    )

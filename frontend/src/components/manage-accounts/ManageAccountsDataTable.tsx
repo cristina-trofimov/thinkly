@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Account } from "./ManageAccountsColumns";
 import { config } from "../../config";
+import { toast } from "sonner";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -121,25 +122,40 @@ export function ManageAccountsDataTable<TData, TValue>({
       const data = await response.json();
 
       console.log("Delete response:", data);
+      console.log("Response ok:", response);
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to delete users: ${data.detail || "Unknown error"}`
+      if (response.status >= 400 && response.status < 500) {
+        toast.error(
+          data?.detail || "Bad request — failed to delete selected user(s)."
         );
+        return;
       }
 
-      if (data.errors && data.errors.length > 0) {
-        console.error("Errors occurred during deletion:", data.errors);
-      } else {
-        console.log(`Successfully deleted ${data.deleted_count} users`);
+      if (response.status >= 500) {
+        toast.error("Server error — could not delete selected user(s).");
+        return;
       }
 
-      setIsEditMode(false);
-      setRowSelection({});
+      if (response.status === 200) {
+        toast.success(`Successfully deleted ${data.deleted_count} user(s).`);
+        console.log("Deleted users:", data.deleted_users);
+      } else if (response.status === 207) {
+        toast.success(
+          `Deleted ${data.deleted_count}/${data.total_requested} user(s) successfully.`
+        );
+        console.log("Deleted users:", data.deleted_users);
 
-      window.location.reload();
+        if (data.errors && data.errors.length > 0) {
+          console.warn("Partial deletion errors:", data.errors);
+          toast.warning(`${data.errors.length} users could not be deleted.`);
+        }
+      }
+
     } catch (error) {
       console.error("Error deleting users:", error);
+    } finally {
+      setIsEditMode(false);
+      setRowSelection({});
     }
   };
 

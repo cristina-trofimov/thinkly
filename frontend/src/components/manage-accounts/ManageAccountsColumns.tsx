@@ -133,7 +133,6 @@ export const columns: ColumnDef<Account>[] = [
           </DropdownMenu>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            {/* <DialogContent className="sm:max-w-screen-sm md:max-w-3xl lg:max-w-5xl"> */}
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Edit User</DialogTitle>

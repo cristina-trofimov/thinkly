@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
 import LoginPage from './views/LogInPage.tsx'; // currently using HomePage as login page
+import { Toaster } from '@/components/ui/sonner';
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -120,6 +121,7 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <Toaster position="top-center" />
       <RouterProvider router={router} />
     </GoogleOAuthProvider>
   </StrictMode>,
