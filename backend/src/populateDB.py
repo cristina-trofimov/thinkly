@@ -1,7 +1,7 @@
 # do /backend/src and run:  python -m populateDB
 
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 from DB_Methods.crudOperations import engine, SessionLocal
@@ -123,7 +123,7 @@ def main():
                 # optional fields -> use provided or None
                 media=q.get("media"),
                 user_id=q.get("user_id"),
-                created_at = datetime.utcnow()
+                created_at = datetime.now(timezone.utc)
             )
             objects.append(obj)
 

@@ -172,12 +172,14 @@ const CodeDescArea = (
                         <div className='ml-4 flex flex-col gap-1' >
                             <p className='font-bold'>Inputs <span className='font-normal'>
                                 {e.inputs.map((i, i_idx) => {
-                                    return `${i.name}: ${i.type}${i_idx < e.inputs.length - 1 ? `, ` : `\n`}`
+                                    const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
+                                    return `${i.name}: ${i.type}${separator}`
                                 })}
                             </span></p>
                             <p className='font-bold'>Outputs <span className='font-normal'>
                                 {e.outputs.map((o, o_idx) => {
-                                    return `${o.name}: ${o.type}${o_idx < e.outputs.length - 1 ? `, ` : `\n`}`
+                                    const separator = o_idx < e.outputs.length - 1 ? `, ` : `\n`
+                                    return `${o.name}: ${o.type}${separator}`
                                 })}
                             </span></p>
                             <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>

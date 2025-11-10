@@ -55,7 +55,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     C: {
         fileExt: "c",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars) =>
+        codeBuilder: (_problemName, inputVars) =>
         `#include <stdio.h>
             void solution(${inputVars.map(v => `${v.type} ${v.name}`).join(', ')}) {
                 // TODO
@@ -104,7 +104,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Kotlin": {
         fileExt: "kt",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars) =>
+        codeBuilder: (_problemName, inputVars) =>
         `fun main(){
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
             solution(${inputVars.map(v => v.name).join(', ')})
@@ -148,7 +148,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
     "Rust": {
         fileExt: "rs",
         template: 'vanilla',
-        codeBuilder: (problemName, inputVars) =>
+        codeBuilder: (_problemName, inputVars) =>
         `fn main() {
             ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n')}
             solution(${inputVars.map(v => v.name).join(', ')})
