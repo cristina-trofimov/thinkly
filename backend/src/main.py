@@ -4,7 +4,7 @@ from endpoints.leaderboards_api import leaderboards_router
 from endpoints.authentification import auth_router
 from endpoints.questions_api import questions_router
 from endpoints.send_email import email_router
-from Components.homepage import homepage_api
+from endpoints.homepage_api import homepage_router
 import os
 
 app = FastAPI(title="My Backend API")
@@ -41,7 +41,7 @@ try:
     app.include_router(email_router, prefix="/email")
     app.include_router(leaderboards_router, prefix="/leaderboards")
     app.include_router(questions_router, prefix="/questions")
-    app.include_router(homepage_api.router)
+    app.include_router(homepage_router, prefix="/homepage")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 

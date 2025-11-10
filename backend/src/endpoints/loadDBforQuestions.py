@@ -1,4 +1,4 @@
-#  do /backend and run python -m src.Components.homepage.loadDBforQuestions
+#  do /backend and run python -m src.endpoints.loadDBforQuestions
 from sqlalchemy.orm import Session
 from datetime import datetime
 

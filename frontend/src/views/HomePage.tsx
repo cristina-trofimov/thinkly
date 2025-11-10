@@ -18,7 +18,7 @@ function HomePage() {
   React.useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(config.backendUrl + "/get-questions");
+        const response = await fetch(config.backendUrl + "/homepage/get-questions");
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
@@ -48,7 +48,7 @@ function HomePage() {
   React.useEffect(() => {
     const fetchCompetitions = async () => {
       try {
-        const response = await fetch(config.backendUrl + "/get-competitions");
+        const response = await fetch(config.backendUrl + "/homepage/get-competitions");
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }

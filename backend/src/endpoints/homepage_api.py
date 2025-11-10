@@ -5,7 +5,7 @@ from DB_Methods.crudOperations import (
 )
 from models.schema import Competition, BaseQuestion
 
-router = APIRouter()
+homepage_router = APIRouter(tags=["Homepage"])
 
 def get_db():
     db = SessionLocal()
@@ -14,7 +14,7 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/get-questions")
+@homepage_router.get("/get-questions")
 def get_all_questions(db: Session = Depends(get_db)):
     questions = db.query(BaseQuestion).all()
     result = []
@@ -27,7 +27,7 @@ def get_all_questions(db: Session = Depends(get_db)):
         })
     return result
 
-@router.get("/get-competitions")
+@homepage_router.get("/get-competitions")
 def get_all_competitions(db: Session = Depends(get_db)):
     competitions = db.query(Competition).all()
     result = []
