@@ -5,8 +5,9 @@ import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/HomePageQuestions/questionsColumns"
 import type { Questions } from "../components/HomePageQuestions/questionsColumns"
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
-import { config } from "./../config";
-import type { CompetitionItem } from "@/components/interfaces/CompetitionItem"
+import type { CompetitionItem } from "@/types/CompetitionItem"
+import {getCompetitions } from "@/api/homepageComp";
+import {getQuestions} from "@/api/homepageQuestions";
 
 
 function HomePage() {
@@ -18,25 +19,8 @@ function HomePage() {
   React.useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(config.backendUrl + "/homepage/get-questions");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-
-        const formatted: Questions[] = data.map((q: {
-          id: number; 
-          questionTitle: string; 
-          date: string; 
-          difficulty: "Easy" | "Medium" | "Hard";} 
-        ) =>({
-          id: q.id,
-          questionTitle: q.questionTitle,
-          date: new Date(q.date),
-          difficulty: q.difficulty,
-        }));
-
-        setQuestions(formatted)
+        const data = await getQuestions();
+        setQuestions(data);
       } catch (err) {
         console.error("Error fetching questions:", err)
       } 
@@ -48,25 +32,12 @@ function HomePage() {
   React.useEffect(() => {
     const fetchCompetitions = async () => {
       try {
-        const response = await fetch(config.backendUrl + "/homepage/get-competitions");
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        const data = await response.json();
-
-        const formatted: CompetitionItem[] = data.map((c:{ 
-          competitionTitle: string; 
-          date: string }) =>({
-          competitionTitle: c.competitionTitle,
-          date: new Date(c.date),
-        }));
-
-        setCompetitions(formatted)
+          const data = await getCompetitions();
+          setCompetitions(data);
       } catch (err) {
-        console.error("Error fetching questions:", err)
+        console.error("Error fetching competitions:", err)
       } 
-    }
-
+    };
     fetchCompetitions()
   }, [])
 

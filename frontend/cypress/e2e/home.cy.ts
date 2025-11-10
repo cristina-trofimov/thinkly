@@ -6,7 +6,7 @@ describe('Check Home page', () => {
     });})
   
     it('Visits the home page and filters questions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-questions*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-questions*`, {
         statusCode: 200,
         body: [
           {
@@ -24,7 +24,7 @@ describe('Check Home page', () => {
         ],
       }).as('getQuestions');
 
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-competitions`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
         statusCode: 200,
         body: [],
       }).as('getCompetitions');
@@ -40,7 +40,7 @@ describe('Check Home page', () => {
     });
     
     it('Shows upcoming competitions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-competitions*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
         statusCode: 200,
         body: [
           {
