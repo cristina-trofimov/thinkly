@@ -26,3 +26,16 @@ def get_all_questions(db: Session = Depends(get_db)):
             "difficulty": q.difficulty,
         })
     return result
+
+@router.get("/get-competitions")
+def get_all_competitions(db: Session = Depends(get_db)):
+    competitions = db.query(Competition).all()
+    result = []
+    for c in competitions:
+        result.append({
+            "id": c.competition_id,
+            "competitionTitle": c.name,
+            "date": c.date,
+            "users": c.used_id,
+        })
+    return result
