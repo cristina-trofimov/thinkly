@@ -45,6 +45,18 @@ import {
   Trash2,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -164,16 +176,27 @@ export function ManageAccountsDataTable<TData, TValue>({
           </Button>
         ) : (
           <div className="ml-auto flex gap-2">
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={Object.keys(rowSelection).length === 0}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="ml-2 hidden md:inline-flex items-center">
-                Delete
-              </span>
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger>
+                <Button variant="destructive">
+                  <Trash2 className="h-4 w-4" />
+                    Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    the accounts and remove their data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button variant="outline" onClick={handleCancel}>
               <span className="ml-2 hidden md:inline-flex items-center">
                 Cancel
@@ -240,7 +263,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between py-4">
+      <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1">
           {isEditMode ? (
             <div className="text-sm text-muted-foreground">
