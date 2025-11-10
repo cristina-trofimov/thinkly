@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/HomePageQuestions/questionsColumns"
 import type { Questions } from "../components/HomePageQuestions/questionsColumns"
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
@@ -68,6 +68,15 @@ function HomePage() {
     fetchCompetitions()
   }, [])
 
+  const competitionsForSelectedDate = React.useMemo(() => {
+    if (!date) return []
+    return competitions.filter(
+      (c) => c.date.toDateString() === date.toDateString()
+    )
+  }, [date, competitions])
+
+  const competitionDates = competitions.map((c) => c.date)
+
   return (
     <>
       <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem]">
@@ -101,15 +110,21 @@ function HomePage() {
               onSelect={setDate}
               className=" rounded-md border shadow-sm self-end w-full"
               captionLayout="dropdown"
+              modifiers={{ competition: competitionDates }}
+              modifiersClassNames={{
+              competition:
+                  "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",}}
             />
 
-            <h2 className="text-xl font-semibold mb-2">Upcoming Competitions</h2>
+          <h2 className="text-xl font-semibold mb-2 text-center">
+                  Competitions on {date?.toLocaleDateString() ?? "—"}
+                </h2>
 
             <div className=" w-[300px] flex flex-col gap-2">
-            {competitions.length === 0 ? (
-                <p className="text-center text-gray-500 italic">No competitions found</p>
+            {competitionsForSelectedDate.length === 0 ? (
+                <p className="text-center text-gray-500 italic">No competitions on this date</p>
               ) : (
-                competitions.map((competition) => (
+                competitionsForSelectedDate.map((competition) => (
                   <Item key={competition.competitionTitle} variant="outline" className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden">
                     <ItemContent className="w-[70%] overflow-hidden justify-center items-center">
                       <ItemTitle className="truncate font-semibold text-center">{competition.competitionTitle}-{competition.date.toLocaleDateString()}</ItemTitle>
