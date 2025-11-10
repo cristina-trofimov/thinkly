@@ -6,16 +6,32 @@ describe('Check Home page', () => {
     });})
   
     it('Visits the home page and filters questions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/problems*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-questions*`, {
         statusCode: 200,
         body: [
-          { id: 1, title: "Valid Parentheses", difficulty: "Easy" },
-          { id: 2, title: "Two Sum", difficulty: "Easy" },
+          {
+            "id": 1,
+            "questionTitle": "Two Sum",
+            "date": "2025-11-09T18:36:41.166298",
+            "difficulty": "easy"
+          },
+          {
+            "id": 2,
+            "questionTitle": "Valid Parentheses",
+            "date": "2025-11-09T18:36:41.207719",
+            "difficulty": "easy"
+          },
         ],
-      }).as('getProblems');
+      }).as('getQuestions');
+
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-competitions`, {
+        statusCode: 200,
+        body: [],
+      }).as('getCompetitions');
       
-      cy.visit('http://localhost:5173/app/leaderboards');
-      cy.wait('@getProblems');
+      cy.visit('http://localhost:5173/app/home');
+      cy.wait('@getQuestions');
+      cy.wait('@getCompetitions');
       
       cy.contains("It's Competition Time!").should('be.visible');
       cy.contains('Filter Difficulties').should('be.visible').click();
@@ -24,18 +40,24 @@ describe('Check Home page', () => {
     });
     
     it('Shows upcoming competitions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/competitions*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/get-competitions*`, {
         statusCode: 200,
         body: [
-          { id: 1, name: "AI Coding Sprint", date: "2025-11-09T00:00:00Z" },
+          {
+            "id": 2,
+            "competitionTitle": "AI Coding Sprint",
+            "date": "2025-11-12",
+            "user_id": null
+          },
         ],
       }).as('getCompetitions');
       
-      cy.visit('http://localhost:5173/app/leaderboards');
+      cy.visit('http://localhost:5173/app/home');
       cy.wait('@getCompetitions');
       
       cy.contains("Competitions on").should('be.visible');
-      cy.contains("AI Coding Sprint").should('be.visible');
+      cy.get('button.rdp-day').contains('11').click();
+      cy.contains("AI Coding Sprint-11/11/2025").should('be.visible');
     });
   }
   );
