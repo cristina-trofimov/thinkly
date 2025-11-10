@@ -137,6 +137,9 @@ const CodingView = () => {
       min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
+        <Button>
+          Submit
+        </Button>
         <ResizablePanelGroup direction="horizontal" className='h-full w-full flex' >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"

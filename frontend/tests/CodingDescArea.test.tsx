@@ -4,11 +4,6 @@ import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
 
 
-jest.mock('../src/components/codingPage/CodingArea', () => ({
-    __esModule: true,
-    default: () => <div data-testid="coding-area" />
-}))
-
 jest.mock('../src/components/ui/button', () => ({
   __esModule: true,
   Button: ({ children, ...props }: any) => (
