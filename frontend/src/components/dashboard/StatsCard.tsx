@@ -20,7 +20,7 @@ export const StatsCard = ({
   showStar = false,
   className,
 }: StatsCardProps) => {
-  const isPositive = !trend || !trend.trim().startsWith("-");
+  const isPositive = trend?.trim().startsWith("-");
 
   return (
     <Card className={`border-[#E5E5E5] rounded-2xl w-[245.5px] h-[210px] ${className || ""}`}>
