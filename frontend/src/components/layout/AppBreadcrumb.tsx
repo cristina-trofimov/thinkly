@@ -23,7 +23,7 @@ export function AppBreadcrumbs({ items }: BreadcrumbWithCustomSeparatorProps) {
   }
 
   return (
-    <Breadcrumb>
+    <Breadcrumb className="px-4 pt-4 pb-2">
       <BreadcrumbList>
         {items.map((item, index) => {
           const isLast = index === items.length - 1;

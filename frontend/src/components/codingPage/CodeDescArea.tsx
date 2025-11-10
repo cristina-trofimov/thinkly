@@ -109,10 +109,10 @@ const CodeDescArea = (
     
   return (
     <Tabs data-testid="tabs" defaultValue='description'
-        value={activeTab} onValueChange={setActiveTab} className='w-full flex-none'
+        value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
     >
         <TabsList data-testid="tabs-list" ref={containerRef}
-            className={`w-full rounded-none h-10 bg-muted py-0 px-4
+            className={`w-full h-10 py-0 px-4 bg-muted rounded-none
                         border-b border-border/75 dark:border-border/50`}
         >
             {tabs.map(t => {
@@ -143,7 +143,7 @@ const CodeDescArea = (
 
         {/* Description */}
         <TabsContent value='description' data-testid="tabs-content-description" >
-            <div className='p-6' >
+            <div className='h-full p-6' >
                 <h1 className='font-bold mb-3 '>
                     {problemInfo.title}
                 </h1>
@@ -174,7 +174,7 @@ const CodeDescArea = (
 
         {/* Submissions */}
         <TabsContent value='submissions' data-testid="tabs-content-submissions" >
-            <div className='p-6' >
+            <div className='h-full p-6' >
                 {selectedSubmission === null ? 
                 <Table data-testid="table" >
                     <TableHeader>
@@ -236,7 +236,7 @@ const CodeDescArea = (
 
         {/* Leaderboard */}
         <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
-            <div className='p-6' >
+            <div className='h-full p-6' >
                 <ScoreboardDataTable participants={leaderboard} />
                 <div className='mt-3 text-gray-500' >
                     {leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}

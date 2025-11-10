@@ -133,7 +133,8 @@ const CodingView = () => {
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
       template={template} files={files}
       options={{ autorun: true, activeFile: Object.keys(files)[0], }}
-      className='h-[725px] px-2 min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+      className='px-2 h-[750px] min-h-[calc(100vh-4rem)]
+      min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
         <ResizablePanelGroup direction="horizontal" >
@@ -154,7 +155,7 @@ const CodingView = () => {
           <ResizablePanel data-testid="second-panel"
             defaultSize={50} ref={codeAndOutputPanelRef}
             >
-            <ResizablePanelGroup direction="vertical">
+            <ResizablePanelGroup direction="vertical" >
               {/* Coding area panel */}
               <ResizablePanel
                 defaultSize={65} ref={codePanelRef}
