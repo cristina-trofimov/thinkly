@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from Components.leaderboards_api import leaderboards_router
-from Components.authentification import auth_router
-# from Components.send_email import email_router
+from endpoints.leaderboards_api import leaderboards_router
+from endpoints.authentification import auth_router
+# from endpoints.send_email import email_router
 import os
 
 app = FastAPI(title="My Backend API")

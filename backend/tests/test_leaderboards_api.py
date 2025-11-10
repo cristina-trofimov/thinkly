@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from Components.leaderboards_api import leaderboards_router, get_db
+from endpoints.leaderboards_api import leaderboards_router, get_db
 from main import app
 
 client = TestClient(app)
@@ -64,7 +64,7 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[]):
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[]):
             response = client.get("/leaderboards")
 
             assert response.status_code == 200
@@ -81,8 +81,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition', return_value=[]):
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition', return_value=[]):
                 response = client.get("/leaderboards")
 
                 assert response.status_code == 200
@@ -118,8 +118,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition', return_value=[mock_scoreboard]):
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition', return_value=[mock_scoreboard]):
                 response = client.get("/leaderboards")
 
                 assert response.status_code == 200
@@ -162,8 +162,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition',
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        return_value=[mock_scoreboard]):
                 response = client.get("/leaderboards")
 
@@ -187,8 +187,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition',
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        return_value=[mock_scoreboard]):
                 response = client.get("/leaderboards")
 
@@ -243,8 +243,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[comp1, comp2]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition',
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[comp1, comp2]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        side_effect=get_scoreboard_side_effect):
                 response = client.get("/leaderboards")
 
@@ -296,8 +296,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards_api.get_scoreboard_for_competition',
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        return_value=[scoreboard1, scoreboard2]):
                 response = client.get("/leaderboards")
 
@@ -315,7 +315,7 @@ class TestDatabaseDependency:
 
     def test_get_db_yields_session(self):
         """Test that get_db yields a database session"""
-        with patch('Components.leaderboards_api.SessionLocal') as mock_session_local:
+        with patch('endpoints.leaderboards_api.SessionLocal') as mock_session_local:
             mock_db = Mock()
             mock_session_local.return_value = mock_db
 
@@ -327,7 +327,7 @@ class TestDatabaseDependency:
 
     def test_get_db_closes_session(self):
         """Test that get_db closes the session after use"""
-        with patch('Components.leaderboards_api.SessionLocal') as mock_session_local:
+        with patch('endpoints.leaderboards_api.SessionLocal') as mock_session_local:
             mock_db = Mock()
             mock_session_local.return_value = mock_db
 
