@@ -17,7 +17,7 @@ interface BreadcrumbWithCustomSeparatorProps {
   items: BreadcrumbItemData[];
 }
 
-export function AppBreadcrumbs({ items }: BreadcrumbWithCustomSeparatorProps) {
+export function AppBreadcrumbs({ items }: Readonly<BreadcrumbWithCustomSeparatorProps>) {
   if (!items || items.length === 0) {
     return null;
   }
