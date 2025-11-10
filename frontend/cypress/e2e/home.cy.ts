@@ -8,15 +8,15 @@ describe('Check Home page', () => {
       .click({ force: true });
 
     // Test Medium filter
-    cy.get('[data-testid="filter-medium"]')
+    cy.get('[data-testid="filter-easy"]')
       .should('be.visible')
       .click({ force: true });
-    cy.contains("Palindrome").should('be.visible');
+    cy.contains("Valid Parentheses").should('be.visible');
 
   });
   it('is Upcomming Competitions present', () => {
     cy.visit('http://localhost:5173/app/home');
     cy.contains("Competitions on").should('be.visible');
-    cy.contains("AI Coding Sprint").should('be.visible');//tested for today's competition
+    cy.contains("AI Coding Sprint-11/9/2025").should('be.visible');//tested for today's competition
   });
 });
