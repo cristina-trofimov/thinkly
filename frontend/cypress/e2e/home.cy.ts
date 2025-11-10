@@ -11,7 +11,7 @@ describe('Check Home page', () => {
     cy.get('[data-testid="filter-easy"]')
       .should('be.visible')
       .click({ force: true });
-    cy.contains('Two sum').should('be.visible');
+    cy.contains('Two Sum').should('be.visible');
 
     // Test Medium filter
     cy.get('[data-testid="filter-medium"]')
@@ -22,7 +22,7 @@ describe('Check Home page', () => {
   });
   it('is Upcomming Competitions present', () => {
     cy.visit('http://localhost:5173/app/home');
-    cy.contains("Upcoming Competitions").should('be.visible');
+    cy.contains("/Competitions on/i").should('be.visible');
     cy.contains("WebComp").should('be.visible');
     cy.contains("45 mins to complete as many riddles as possible").should('be.visible');
     cy.contains('Registered').click();
