@@ -17,19 +17,19 @@ interface BreadcrumbWithCustomSeparatorProps {
   items: BreadcrumbItemData[];
 }
 
-export function AppBreadcrumbs({ items }: BreadcrumbWithCustomSeparatorProps) {
+export function AppBreadcrumbs({ items }: Readonly<BreadcrumbWithCustomSeparatorProps>) {
   if (!items || items.length === 0) {
     return null;
   }
 
   return (
-    <Breadcrumb>
+    <Breadcrumb className="px-4 pt-4 pb-2">
       <BreadcrumbList>
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           
           return (
-            <React.Fragment key={index}>
+            <React.Fragment key={item.title}>
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage className="text-[#8065CD]">{item.title}</BreadcrumbPage>

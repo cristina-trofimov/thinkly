@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from endpoints.leaderboards_api import leaderboards_router
 from endpoints.authentification import auth_router
 from endpoints.questions_api import questions_router
-# from endpoints.send_email import email_router
+from endpoints.send_email import email_router
 from Components.homepage import homepage_api
 import os
 
@@ -38,7 +38,7 @@ def root():
 # Include your leaderboards API
 try:
     app.include_router(auth_router, prefix="/auth")
-    # app.include_router(email_router, prefix="/email")
+    app.include_router(email_router, prefix="/email")
     app.include_router(leaderboards_router, prefix="/leaderboards")
     app.include_router(questions_router, prefix="/questions")
     app.include_router(homepage_api.router)

@@ -4,20 +4,7 @@ import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import { config } from '../../config';
-
-type Competitor = {
-  name: string;
-  points: number;
-  problemsSolved: number;
-  totalTime: string;
-};
-
-export type Competition = {
-  id: string;
-  name: string;
-  date: string;
-  participants: Competitor[];
-};
+import type { Competition } from "../interfaces/Competition";
 
 export function Leaderboards(){
   const [competitions, setCompetitions] = useState<Competition[]>([]);

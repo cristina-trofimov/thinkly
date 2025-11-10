@@ -12,7 +12,7 @@ from src.crud_operations import create_user, login_user, create_competition, ...
 All functions commit on success and rollback on exception.
 """
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from datetime import timedelta
 from sqlalchemy.orm import Session
@@ -95,7 +95,7 @@ def generate_jwt(user_id: int):
     """Generate a JWT access token."""
     payload = {
         "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(hours=SESSION_DURATION_HOURS)
+        "exp": datetime.now(timezone.utc) + timedelta(hours=SESSION_DURATION_HOURS)
     }
     return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -119,7 +119,7 @@ def login_user(db: Session, username: str, password: str):
     db.commit()
 
     jwt_token = generate_jwt(user.user_id)
-    expires_at = datetime.utcnow() + timedelta(hours=SESSION_DURATION_HOURS)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=SESSION_DURATION_HOURS)
 
     new_session = UserSession(
         session_id=str(uuid.uuid4()),
@@ -237,16 +237,16 @@ def set_user_preferences(db: Session, user_id: int, theme: Optional[str]=None, n
 
 # --------------------------- 4) User creating a new competition ---------------------------
 
-def create_competition(db: Session, user_id: int, name: str, location: str, date: [datetime]=None, cooldown_time: Optional[int]=None, start_time: Optional[datetime]=None, end_time: Optional[datetime]=None) -> Competition:
+def create_competition(db: Session, user_id: int, name: str, location: str, date: Optional[datetime]=None, cooldown_time: Optional[int]=None, start_time: Optional[datetime]=None, end_time: Optional[datetime]=None) -> Competition:
     comp = Competition(
         name=name,
         user_id=user_id,
         location=location,
-        date=date or datetime.utcnow(),
+        date=date or datetime.now(timezone.utc),
         cooldown_time=cooldown_time,
         start_time=start_time,
         end_time=end_time,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     db.add(comp)
     _commit_or_rollback(db)
@@ -262,11 +262,11 @@ def create_full_competition( db: Session, owner_user_id: int, name: str, locatio
         name=name,
         user_id=owner_user_id,
         location=location,
-        date=date or datetime.utcnow(),
+        date=date or datetime.now(timezone.utc),
         cooldown_time=cooldown_time,
         start_time=start_time,
         end_time=end_time,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     db.add(comp)
     db.flush()
@@ -286,6 +286,8 @@ def update_competition( db: Session, competition_id: int, name: Optional[str] = 
     if not comp:
         raise ValueError("Competition not found")
 
+    if name is not None:
+        comp.name = name
     if location is not None:
         comp.location = location
     if date is not None:
@@ -473,7 +475,7 @@ def get_questions_by_tag(db: Session, tag_value: str) -> List[QuestionTag]:
 # --------------------------- 7) Add question to a set (and create a set) ---------------------------
 
 def create_question_set(db: Session, set_name: str, week: Optional[int]=None) -> QuestionSet:
-    qs = QuestionSet(set_name=set_name, week=week, created_at=datetime.utcnow())
+    qs = QuestionSet(set_name=set_name, week=week, created_at=datetime.now(timezone.utc))
     db.add(qs)
     _commit_or_rollback(db)
     db.refresh(qs)
@@ -958,7 +960,7 @@ def upsert_user_answer(db: Session, user_id: int, question_id: int, answer_text:
         ua = UserAnswer(user_id=user_id, question_id=question_id)
         db.add(ua)
     ua.answer_text = answer_text
-    ua.submission_datetime = datetime.utcnow()
+    ua.submission_datetime = datetime.now(timezone.utc)
     _commit_or_rollback(db)
     db.refresh(ua)
     return ua
@@ -996,7 +998,7 @@ def upsert_scoreboard(db: Session, user_id: int, competition_id: int, total_scor
         sb.total_score = total_score
     if rank is not None:
         sb.rank = rank
-    sb.updated_at = datetime.utcnow()
+    sb.updated_at = datetime.now(timezone.utc)
     _commit_or_rollback(db)
     db.refresh(sb)
     return sb

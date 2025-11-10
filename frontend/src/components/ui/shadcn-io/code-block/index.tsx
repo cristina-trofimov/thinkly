@@ -352,7 +352,7 @@ export const CodeBlockFilename = ({
   const { value: activeValue } = useContext(CodeBlockContext);
   const defaultIcon = Object.entries(filenameIconMap).find(([pattern]) => {
     const regex = new RegExp(
-      `^${pattern.replace(/\\/g, '\\\\').replace(/\./g, '\\.').replace(/\*/g, '.*')}$`
+      `^${pattern.replaceAll('\\', '\\\\').replaceAll('.', '\\.').replaceAll('*', '.*')}$`
     );
     return regex.test(children as string);
   })?.[1];
@@ -448,7 +448,7 @@ export const CodeBlockCopyButton = ({
 
   const copyToClipboard = () => {
     if (
-      typeof window === 'undefined' ||
+      globalThis.window === undefined ||
       !navigator.clipboard.writeText ||
       !code
     ) {

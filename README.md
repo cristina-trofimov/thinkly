@@ -92,3 +92,15 @@ backend </br>
 2- ```ruff check src/```</br>
 or </br>
 2- ```ruff check src/ --fix``` (will auto-fix some issues)</br>
+
+## If you have any issues with creating your database
+1. Download pgAdmin4
+2. Right click on Servers, select Register then Server
+3. Name it whatever you want in the General tab
+4. Go to Connection tab, name it  ```localhost``` again and set Port to 5432 (if you change either of these, then make sure to update src/db.py so the local provider can match the postgres one)
+5. Set username and password (we set both to postgres by default but you can change it to whatever, just make sure to update db.py)
+6. Still in pgAdmin4, right click on Databases, and create a new one
+7. Name it ThinklyDB
+8. Make sure the Locale Provider under the Definition tab matches the template you use (libc or icu, or whatever else)
+9. In your terminal, cd backend then run ```python src/init_db.py```
+10. Then cd src (still in backend) and run ```python -m populateDB``

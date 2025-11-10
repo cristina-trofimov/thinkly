@@ -23,7 +23,7 @@ import type { Question } from "../interfaces/Question";
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
   const localDate = new Date(dtLocal);
-  if (isNaN(localDate.getTime())) {
+  if (Number.isNaN(localDate.getTime())) {
     console.error("Invalid date string provided:", dtLocal);
     return undefined;
   }
@@ -35,7 +35,7 @@ function oneMinuteFromNowISO() {
   return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
 }
 
-export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps) {
+export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly<CreateCompetitionDialogProps>) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -69,18 +69,14 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/questions");
+        const res = await fetch("http://127.0.0.1:8000/questions/");
         const body = await res.json().catch(() => ({}));
-        if (!res.ok || !Array.isArray(body)) throw new Error();
+        if (!res.ok) throw new Error("Error occurred while fetching questions"); 
+        if (!Array.isArray(body)) throw new Error("Fetched questions is not in the correct format");
         const normalized = body.map((q: Question, i: number) => ({
           id: typeof q.id === "string" ? Number(q.id) : (q.id ?? i + 1),
           title: q.title ?? `Question ${i + 1}`,
-          difficulty: q.difficulty
-            ? String(q.difficulty).toLowerCase() === "easy" ? "Easy"
-            : String(q.difficulty).toLowerCase() === "medium" ? "Medium"
-            : String(q.difficulty).toLowerCase() === "hard" ? "Hard"
-            : q.difficulty
-            : "Unknown",
+          difficulty: q.difficulty ? { easy: "Easy", medium: "Medium", hard: "Hard" }[q.difficulty.toLowerCase()] || "Unknown" : "Unknown"
         }));
         if (!cancelled) setQuestions(normalized);
       } catch {
@@ -173,17 +169,17 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
         if (sendAt) payload.sendAt = sendAt;
 
         try {
-          const res = await fetch('http://127.0.0.1:8001/send-email', {
+          const res = await fetch('http://127.0.0.1:8000/email/send', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           });
           const body = await res.json().catch(() => ({}));
 
-          if (!res.ok) {
-            console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
-          } else {
+          if (res.ok) {
             console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
+          } else {
+            console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
           }
         } catch (e: unknown) {
           const error = e as { message?: string };
@@ -306,22 +302,14 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
                   className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
                 >
                   <Checkbox
-                    checked={selectedQuestions.includes(question.id as number)}
-                    onCheckedChange={() => toggleQuestion(question.id as number)}
+                    checked={selectedQuestions.includes(question.id)}
+                    onCheckedChange={() => toggleQuestion(question.id)}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{question.title}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded ${
-                          question.difficulty === "Easy"
-                            ? "bg-green-100 text-green-700"
-                            : question.difficulty === "Medium"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : question.difficulty === "Hard"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
+                        className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}
                       >
                         {question.difficulty}
                       </span>
@@ -475,4 +463,13 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
       </DialogContent>
     </Dialog>
   );
+}
+
+function getDifficultyClasses(difficulty: string): string {
+  const classMap: Record<string, string> = {
+    "Easy": "bg-green-100 text-green-700",
+    "Medium": "bg-yellow-100 text-yellow-700",
+    "Hard": "bg-red-100 text-red-700",
+  };
+  return classMap[difficulty] || "bg-gray-100 text-gray-700";
 }
