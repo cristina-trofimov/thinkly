@@ -40,9 +40,9 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
                     {item.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-              ) : item.color ? (
+              ) : item.color && (
                 <div className="h-8 w-8 rounded-full" style={{ backgroundColor: item.color }} />
-              ) : null}
+              )}
 
               <div className="min-w-0">
                 {item.href ? (
