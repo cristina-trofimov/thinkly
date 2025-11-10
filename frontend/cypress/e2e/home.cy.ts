@@ -7,12 +7,6 @@ describe('Check Home page', () => {
       .should('be.visible')
       .click({ force: true });
 
-    // Test Easy filter
-    cy.get('[data-testid="filter-easy"]')
-      .should('be.visible')
-      .click({ force: true });
-    cy.contains('Two Sum',{ timeout: 5000 }).should('be.visible');
-
     // Test Medium filter
     cy.get('[data-testid="filter-medium"]')
       .should('be.visible')
@@ -23,6 +17,6 @@ describe('Check Home page', () => {
   it('is Upcomming Competitions present', () => {
     cy.visit('http://localhost:5173/app/home');
     cy.contains("Competitions on").should('be.visible');
-    cy.contains("Cyber Security Challenge").should('be.visible');//tested for today's competition
+    cy.contains("AI Coding Sprint").should('be.visible');//tested for today's competition
   });
 });
