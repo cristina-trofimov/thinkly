@@ -91,8 +91,8 @@ def send_email():
     except EmailNotValidError as e:
         return jsonify({"error": f"Invalid senderEmail: {e}"}), 400
 
-    scheduledAt = normalize_iso_utc(send_at_raw)
-    if send_at_raw and not scheduledAt:
+    scheduled_at = normalize_iso_utc(send_at_raw)
+    if send_at_raw and not scheduled_at:
         return jsonify({"error": "Field 'sendAt' must be a valid ISO8601 timestamp (e.g., 2025-10-26T20:00:00Z)."}), 400
 
     #JSON payload for Brevo
@@ -104,8 +104,8 @@ def send_email():
 
     if text:
         payload["textContent"] = text
-    if scheduledAt:
-        payload["scheduledAt"] = scheduledAt
+    if scheduled_at:
+        payload["scheduledAt"] = scheduled_at
 
     headers = {
         "accept": "application/json",
@@ -130,7 +130,7 @@ def send_email():
             "detail": detail
         }), 502
 
-    return jsonify({"ok": True, "brevo": resp.json(), "scheduledAt": scheduledAt}), 200
+    return jsonify({"ok": True, "brevo": resp.json(), "scheduledAt": scheduled_at}), 200
 
 
 @app.get("/health")
