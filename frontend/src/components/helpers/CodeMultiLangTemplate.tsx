@@ -61,6 +61,8 @@ if __name__ == "__main__":
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `#include <stdio.h>
+// ${problemName}
+// ${outputType}
 void solution(${inputVars.map(v => `${v.type} ${v.name}`).join(', ')}) {
     // TODO
 }
@@ -97,6 +99,7 @@ public class ${problemName} {
         codeBuilder: (problemName, inputVars, outputType) =>
 `#include <iostream>
 using namespace std;
+// ${problemName}
 
 ${outputType} Solution(${inputVars.map(v => `${v.type} ${v.name}`).join(", ")}) {
     // TODO
@@ -116,6 +119,8 @@ int main() {
         codeBuilder: (problemName, inputVars, outputType) =>
 `fun main(){
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
+    // ${problemName}
+    // ${outputType}
     solution(${inputVars.map(v => v.name).join(', ')})
 }
 
@@ -141,6 +146,7 @@ export default ${problemName};`.trim()
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `function ${problemName}(${inputVars.map(v => v.name).join(', ')}) {
+    // ${outputType}
     // TODO
 }
 
@@ -152,6 +158,7 @@ module.exports = ${problemName}`.trim()
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
 `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
+    # ${outputType}
     # TODO
 end
 
@@ -167,6 +174,8 @@ end`.trim()
         codeBuilder: (problemName, inputVars, outputType) =>
 `fn main() {
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
+    // ${problemName}
+    // ${outputType}
     solution(${inputVars.map(v => v.name).join(', ')})
 }
 
@@ -182,6 +191,9 @@ fn solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}) {
         codeBuilder: (problemName, inputVars, outputType) =>
 `-module(${problemName.toLowerCase()}).
 -export([main/0]).
+
+% ${problemName}
+% ${outputType}
     
 main() ->
     ${inputVars.map(v => `% ${v.name} = ...`).join("\n    ")}
