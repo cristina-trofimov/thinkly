@@ -15,6 +15,7 @@ import CodingView from './components/codingPage/CodingView.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
 import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
+import ErrorPage from './components/ErrorPage.tsx';
 
 const router = createBrowserRouter([
   {
