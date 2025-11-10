@@ -92,7 +92,7 @@ const CodingView = () => {
       || !codePanelRef.current || !outputPanelRef.current)
       return;
 
-    let descSize = 50, codeAndOutputSize = 50, codeSize = 65, outputSize = 35;
+    let descSize, codeAndOutputSize, codeSize, outputSize;
 
     if (fullCode) {
       descSize = 0;
