@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 
-from src.DB_Methods.crudOperations import engine, SessionLocal
+from DB_Methods.crudOperations import engine, SessionLocal
 
-from src.models.schema import Base, BaseQuestion
+from models.schema import Base, BaseQuestion
 
 
 DIFFICULTIES = ["easy", "medium", "hard"]

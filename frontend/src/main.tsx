@@ -8,13 +8,13 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const GOOGLE_CLIENT_ID = "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.googleusercontent.com";
 
-import { Layout } from './endpoints/layout/AppLayout.tsx'
-import { Leaderboards } from './endpoints/leaderboards/Leaderboards'
-import { AdminDashboard } from './endpoints/dashboard/AdminDashboard'
-import CodingView from './endpoints/codingPage/CodingView.tsx'
+import { Layout } from './components/layout/AppLayout.tsx'
+import { Leaderboards } from './components/leaderboards/Leaderboards'
+import { AdminDashboard } from './components/dashboard/AdminDashboard'
+import CodingView from './components/codingPage/CodingView.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
-import ManageCompetitions from './endpoints/manage-competitions/ManageCompetitionsPage.tsx'
+import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
 
 const router = createBrowserRouter([
   {
