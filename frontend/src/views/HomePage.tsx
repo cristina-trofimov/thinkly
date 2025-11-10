@@ -6,12 +6,14 @@ import { columns } from "../components/HomePageQuestions/questionsColumns"
 import type { Questions } from "../components/HomePageQuestions/questionsColumns"
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
 import { config } from "./../config";
+import type { CompetitionItem } from "@/components/interfaces/CompetitionItem"
 
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
   const [questions, setQuestions] = React.useState<Questions[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [competitions, setCompetitions] = React.useState<CompetitionItem[]>([])
 
 
   React.useEffect(() => {
@@ -41,25 +43,31 @@ function HomePage() {
     fetchQuestions()
   }, [])
 
+  React.useEffect(() => {
+    const fetchCompetitions = async () => {
+      try {
+        const response = await fetch(config.backendUrl + "/get-competitions");
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const data = await response.json();
 
-  const competitions = [
-    //once we get the db connection we need to switch this maybe something
-    // with the list of attendees and when 
-    //an attendee is in we change the status 
-    {
-      competitionTitle: "WebComp",
-      competitionDesc: "3 hours to build an aesthetic website",
-      date: new Date('2025-11-03'),
-      status: "Registered",
-    },
-    {
-      competitionTitle: "CyberComp",
-      competitionDesc: "45 mins to complete as many riddles as possible",
-      date: new Date(),
-      status: "Join",
-    },
+        const formatted: CompetitionItem[] = data.map((c: any) =>({
+          competitionTitle: c.competitionTitle,
+          date: new Date(c.date),
+        }));
 
-  ]
+        setCompetitions(formatted)
+      } catch (err) {
+        console.error("Error fetching questions:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCompetitions()
+  }, [])
+
   return (
     <>
       <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem]">
@@ -94,22 +102,21 @@ function HomePage() {
               className=" rounded-md border shadow-sm self-end w-full"
               captionLayout="dropdown"
             />
-            Upcoming Competitions
+
+            <h2 className="text-xl font-semibold mb-2">Upcoming Competitions</h2>
 
             <div className=" w-[300px] flex flex-col gap-2">
-              {competitions.map((competition) => (
-                <Item key={competition.competitionTitle} variant="outline" className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden">
-                  <ItemContent className="w-[70%] overflow-hidden">
-                    <ItemTitle className="truncate font-semibold">{competition.competitionTitle}-{competition.date.toLocaleDateString()}</ItemTitle>
-                    <ItemDescription className="truncate text-sm text-gray-600 text-left">{competition.competitionDesc}</ItemDescription>
-                  </ItemContent>
-                  <ItemActions className="w-[30%] flex justify-end">
-                    <Button data-testid={`competition-button-${competition.status.toLowerCase()}`} variant="outline" size="sm" className=" truncate text-[#8065CD] max-w-[80px]" >
-                      {competition.status}
-                    </Button>
-                  </ItemActions>
-                </Item>
-              ))}
+            {competitions.length === 0 ? (
+                <p className="text-center text-gray-500 italic">No competitions found</p>
+              ) : (
+                competitions.map((competition) => (
+                  <Item key={competition.competitionTitle} variant="outline" className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden">
+                    <ItemContent className="w-[70%] overflow-hidden justify-center items-center">
+                      <ItemTitle className="truncate font-semibold text-center">{competition.competitionTitle}-{competition.date.toLocaleDateString()}</ItemTitle>
+                    </ItemContent>
+                  </Item>
+                ))
+              )}
             </div>
           </div>
         </div>

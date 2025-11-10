@@ -35,7 +35,7 @@ def get_all_competitions(db: Session = Depends(get_db)):
         result.append({
             "id": c.competition_id,
             "competitionTitle": c.name,
-            "date": c.date,
-            "users": c.used_id,
+            "date": c.date.isoformat() if c.date else None,
+            "user_id": c.user_id,
         })
     return result
