@@ -29,14 +29,14 @@ export const columns: ColumnDef<Account>[] = [
     header: ({ table }) => (
       <Checkbox
         checked={
-          table.getIsAllPageRowsSelected()
+          table.getIsAllRowsSelected()
             ? true
-            : table.getIsSomePageRowsSelected()
+            : table.getIsSomeRowsSelected()
             ? "indeterminate"
             : false
         }
         onCheckedChange={(value) => {
-          table.toggleAllPageRowsSelected(!!value);
+          table.toggleAllRowsSelected(!!value);
         }}
         aria-label="Select all"
       />
