@@ -17,9 +17,9 @@ For more information, please visit our [wiki page](https://github.com/cristina-t
 ## Release Demos
 This section will be updated with links to demo videos for each release.
 
-- [Release 1 Demo](#)  
-- [Release 2 Demo](#)  
-- [Release 3 Demo](#)  
+- [Release 1 Demo](#)
+- [Release 2 Demo](#)
+- [Release 3 Demo](#)
 
 
 
@@ -72,7 +72,7 @@ create virtual environement</br>
 2- ```python -m venv .venv```</br>
 install python dependencies</br>
 1- ```cd backend```</br>
-2- ```pip install -r backend/requirements.txt```</br></br>
+2- ```pip install -r src/requirements.txt```</br></br>
 to run python</br>
 1- ```cd backend```</br>
 2- ```python src/main.py```</br></br>
@@ -84,7 +84,7 @@ LINTING</br>
 frontend </br>
 1- ```cd frontend```</br>
 2- ```npm run lint```</br>
-or 
+or
 2- ```npm run lint -- --fix``` (will auto-fix some issues) </br>
 
 backend </br>

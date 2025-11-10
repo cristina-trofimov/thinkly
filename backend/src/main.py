@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.leaderboards_api import leaderboards_router
 from endpoints.authentification import auth_router
+from endpoints.questions_api import questions_router
 # from endpoints.send_email import email_router
 import os
 
@@ -38,8 +39,9 @@ try:
     app.include_router(auth_router, prefix="/auth")
     # app.include_router(email_router, prefix="/email")
     app.include_router(leaderboards_router, prefix="/leaderboards")
+    app.include_router(questions_router, prefix="/questions")
 except AttributeError:
-    print("⚠️ No router found in leaderboards_api.py. Make sure it defines `router = APIRouter()`.")
+    print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 
 #  Run server
 if __name__ == "__main__":

@@ -39,3 +39,5 @@ def get_leaderboards(db: Session = Depends(get_db)):
             "participants": participants
         })
     return result
+
+

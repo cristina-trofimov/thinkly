@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   type CreateCompetitionDialogProps,
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
+import type { Question } from "../interfaces/Question";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -57,17 +58,39 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [selectedRiddles, setSelectedRiddles] = useState<number[]>([]);
 
-  // Hardcoded questions data
-  const questions = [
+
+  const fallbackQuestions = [
     { id: 1, title: "Two Sum", difficulty: "Easy" },
-    { id: 2, title: "Reverse Linked List", difficulty: "Easy" },
-    { id: 3, title: "Binary Tree Level Order", difficulty: "Medium" },
-    { id: 4, title: "Maximum Subarray", difficulty: "Medium" },
-    { id: 5, title: "Merge K Sorted Lists", difficulty: "Hard" },
-    { id: 6, title: "Trapping Rain Water", difficulty: "Hard" },
   ];
 
-  // Hardcoded riddles data
+
+  const [questions, setQuestions] = useState(fallbackQuestions);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/questions");
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !Array.isArray(body)) throw new Error();
+        const normalized = body.map((q: Question, i: number) => ({
+          id: typeof q.id === "string" ? Number(q.id) : (q.id ?? i + 1),
+          title: q.title ?? `Question ${i + 1}`,
+          difficulty: q.difficulty
+            ? String(q.difficulty).toLowerCase() === "easy" ? "Easy"
+            : String(q.difficulty).toLowerCase() === "medium" ? "Medium"
+            : String(q.difficulty).toLowerCase() === "hard" ? "Hard"
+            : q.difficulty
+            : "Unknown",
+        }));
+        if (!cancelled) setQuestions(normalized);
+      } catch {
+        // keep fallbackQuestions
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hardcoded riddles data (unchanged)
   const riddles = [
     { id: 1, title: "Where's Waldo?" },
     { id: 2, title: "I speak without a mouth" },
@@ -97,7 +120,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     );
   };
 
-const validateForm = (): boolean => {
+  const validateForm = (): boolean => {
     if (formData.name.trim() === '' || formData.date === '' || formData.startTime === '' || formData.endTime === '') {
       setValidationError("Incomplete general information.");
       return false;
@@ -150,7 +173,7 @@ const validateForm = (): boolean => {
         if (sendAt) payload.sendAt = sendAt;
 
         try {
-          const res = await fetch('http://127.0.0.1:8000/send-email', {
+          const res = await fetch('http://127.0.0.1:8001/send-email', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -283,8 +306,8 @@ const validateForm = (): boolean => {
                   className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
                 >
                   <Checkbox
-                    checked={selectedQuestions.includes(question.id)}
-                    onCheckedChange={() => toggleQuestion(question.id)}
+                    checked={selectedQuestions.includes(question.id as number)}
+                    onCheckedChange={() => toggleQuestion(question.id as number)}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -295,7 +318,9 @@ const validateForm = (): boolean => {
                             ? "bg-green-100 text-green-700"
                             : question.difficulty === "Medium"
                             ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
+                            : question.difficulty === "Hard"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-700"
                         }`}
                       >
                         {question.difficulty}
