@@ -27,16 +27,16 @@ import {
 import { logout } from "@/api/auth"
 import { useNavigate } from "react-router-dom"
 
-export function NavUser({
-  user,
-}: {
+interface NavUserProps {
   user: {
     firstName: string
     lastName: string
     email: string
     avatar: string
   }
-}) {
+}
+
+export function NavUser({ user }: Readonly<NavUserProps>) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate();
 
