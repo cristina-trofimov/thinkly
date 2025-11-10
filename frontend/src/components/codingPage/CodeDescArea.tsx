@@ -234,7 +234,7 @@ const CodeDescArea = (
             <div className='h-full p-6' >
                 <ScoreboardDataTable participants={leaderboard} />
                 <div className='mt-3 text-gray-500' >
-                    {leaderboard.length} participant{leaderboard.length > 1 ? 's' : ''}
+                    {leaderboard.length} participant{leaderboard.length === 1 ? 's' : ''}
                 </div>
             </div>
         </TabsContent>
