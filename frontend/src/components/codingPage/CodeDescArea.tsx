@@ -61,6 +61,7 @@ const CodeDescArea = (
         if (!containerRef.current) return
 
         const observer = new ResizeObserver(entries => {
+            if (entries.length === 0) return
             const width = entries[0].contentRect.width
             setContainerWidth(width)
             if (initialWidth === null) setInitialWidth(width)
