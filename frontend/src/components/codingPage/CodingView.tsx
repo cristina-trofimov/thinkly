@@ -88,11 +88,8 @@ const CodingView = () => {
   const [closeOutput, setCloseOutput] = useStateCallback(false)
 
   useEffect(() => {
-    changePanelSizes()
-  }, [fullCode, fullOutput, closeCode, closeOutput])
-
-  const changePanelSizes = () => {
-    if (!descPanelRef.current || !codeAndOutputPanelRef.current || !codePanelRef.current || !outputPanelRef.current)
+    if (!descPanelRef.current || !codeAndOutputPanelRef.current
+      || !codePanelRef.current || !outputPanelRef.current)
       return;
 
     let descSize = 50, codeAndOutputSize = 50, codeSize = 65, outputSize = 35;
@@ -107,56 +104,54 @@ const CodingView = () => {
       codeAndOutputSize = 100;
       codeSize = 0;
       outputSize = 100;
+    } else if (closeCode && closeOutput) {
+      descSize = 50;
+      codeAndOutputSize = 50;
+      codeSize = 65;
+      outputSize = 35;
+      setCloseCode(false)
+      setCloseOutput(false)
     } else if (closeCode) {
       descSize = 50;
       codeAndOutputSize = 50;
-      codeSize = 15;
-      outputSize = 85;
+      codeSize = 5;
+      outputSize = 95;
     } else if (closeOutput) {
       descSize = 50;
       codeAndOutputSize = 50;
-      codeSize = 85;
-      outputSize = 15;
+      codeSize = 95;
+      outputSize = 5;
     }
 
     descPanelRef.current.resize(descSize);
     codeAndOutputPanelRef.current.resize(codeAndOutputSize);
     codePanelRef.current.resize(codeSize);
     outputPanelRef.current.resize(outputSize);
-  }
+  }, [fullCode, fullOutput, closeCode, closeOutput])
 
   return (
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
       template={template} files={files}
-      options={{
-        autorun: true,
-        activeFile: Object.keys(files)[0],
-      }}
-      // className='flex-none relative h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
-      className='h-[725px] px-2 w-[calc(100vw - var(--sidebar-width - 1.5rem))]'
+      options={{ autorun: true, activeFile: Object.keys(files)[0], }}
+      className='h-[725px] px-2 min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
-        <ResizablePanelGroup
-          direction="horizontal"
-          className='h-full w-full'
-        >
+        <ResizablePanelGroup direction="horizontal" >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"
             defaultSize={50} ref={descPanelRef}
-            className="mr-[3px] rounded-md border shrink-0"
+            className='mr-[3px] rounded-md border'
           >
-            <div className='flex flex-row w-full' >
-              <CodeDescArea problemInfo={problemInfo}
-                submissions={submissions} leaderboard={leaderboard}
-              />
-            </div>
+            <CodeDescArea problemInfo={problemInfo}
+              submissions={submissions} leaderboard={leaderboard}
+            />
           </ResizablePanel>
 
           <ResizableHandle withHandle className="w-[0.35px] mx-[1.5px] border-none"
             style={{ background: "transparent" }} />
 
           {/* Second panel */}
-          <ResizablePanel data-testid="second-panel" className='shrink-0'
+          <ResizablePanel data-testid="second-panel"
             defaultSize={50} ref={codeAndOutputPanelRef}
             >
             <ResizablePanelGroup direction="vertical">
@@ -174,7 +169,7 @@ const CodingView = () => {
                     <div className="grid grid-cols-4 gap-1">
                       {/* Size buttons */}
                       <Button  className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        <Play size={22} color="green" />
+                        <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                       </Button>
                       <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         <RotateCcw size={22} color="black" />
@@ -232,7 +227,7 @@ const CodingView = () => {
                 defaultSize={35} ref={outputPanelRef}
                 className="ml-[3px] mt-1 rounded-md border"
               >
-                {/* <CodeOutputArea /> */} 
+
                 <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
                   <SandboxTabsList
                     className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
