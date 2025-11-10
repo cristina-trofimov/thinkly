@@ -240,25 +240,35 @@ export function ManageAccountsDataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-          <ChevronRight className="h-4 w-4 text-primary ml-auto" />
-        </Button>
+      <div className="flex items-center justify-between py-4">
+        <div className="flex-1">
+          {isEditMode ? (
+            <div className="text-sm text-muted-foreground">
+              {Object.keys(rowSelection).length} of{" "}
+              {table.getFilteredRowModel().rows.length} row(s) selected
+            </div>
+          ) : null}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+            <ChevronRight className="h-4 w-4 text-primary ml-auto" />
+          </Button>
+        </div>
       </div>
     </div>
   );
