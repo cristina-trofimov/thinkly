@@ -81,7 +81,7 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('end.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
             with patch('endpoints.leaderboards_api.get_scoreboard_for_competition', return_value=[]):
                 response = client.get("/leaderboards")
 

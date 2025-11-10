@@ -23,16 +23,6 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 180
 
-#Hardcoded
-users = [
-    {
-        "id": 1,
-        "email": "admin@example.com",
-        "password_hash": bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode(),
-        "provider": "local",
-        "role": "admin"
-    }
-]
 
 # ---------------- Models ----------------
 class SignupRequest(BaseModel):
