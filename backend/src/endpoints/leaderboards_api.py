@@ -6,7 +6,7 @@ from DB_Methods.crudOperations import (
     get_scoreboard_for_competition
 )
 from models.schema import UserResult
-router = APIRouter()
+leaderboards_router = APIRouter(tags=["Leaderboards"])
 
 
 def get_db():
@@ -16,7 +16,7 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/leaderboards")
+@leaderboards_router.get("/")
 def get_leaderboards(db: Session = Depends(get_db)):
     competitions = get_all_competitions(db)
     result = []
@@ -39,3 +39,5 @@ def get_leaderboards(db: Session = Depends(get_db)):
             "participants": participants
         })
     return result
+
+

@@ -2,6 +2,12 @@
 
 [Project Board](https://github.com/users/cristina-trofimov/projects/4/views/1)
 
+## Diversity Statement
+The Thinkly platform is built to be fair and welcoming for everyone. We ensure equal access by making the system free (no paywalls) and easily used on any device through a simple web browser. To support diversity in learning, our coding judge accepts many programming languages, allowing users to learn or use what they prefer. 
+</br></br>
+For more information, please visit our [wiki page](https://github.com/cristina-trofimov/thinkly/wiki/Diversity-statement).
+
+
 ## CI information
 *(Add badges or links to your CI pipeline here, e.g., GitHub Actions, Jenkins, CircleCI.)* </br>
 
@@ -11,9 +17,9 @@
 ## Release Demos
 This section will be updated with links to demo videos for each release.
 
-- [Release 1 Demo](#)  
-- [Release 2 Demo](#)  
-- [Release 3 Demo](#)  
+- [Release 1 Demo](#)
+- [Release 2 Demo](#)
+- [Release 3 Demo](#)
 
 
 
@@ -38,7 +44,7 @@ Provide setup instructions, dependencies, and commands here.
 ### Installation
 
 Docker commands (to run in root of project)</br>
-- have docker desktop installed and opened
+**have docker desktop installed and opened**</br>
 1-  ```docker compose up --build``` (this will build and run) </br>
 2-  ```docker compose up -d``` (run in bakcground)</br>
 3-  ```docker compose down``` (clean shut down)</br>
@@ -66,7 +72,7 @@ create virtual environement</br>
 2- ```python -m venv .venv```</br>
 install python dependencies</br>
 1- ```cd backend```</br>
-2- ```pip install -r backend/requirements.txt```</br></br>
+2- ```pip install -r src/requirements.txt```</br></br>
 to run python</br>
 1- ```cd backend```</br>
 2- ```python src/main.py```</br></br>
@@ -78,11 +84,11 @@ LINTING</br>
 frontend </br>
 1- ```cd frontend```</br>
 2- ```npm run lint```</br>
-or 
+or
 2- ```npm run lint -- --fix``` (will auto-fix some issues) </br>
 
 backend </br>
 1- ```cd backend```</br>
 2- ```ruff check src/```</br>
 or </br>
-2- ```ruff check src/ --fix```</br> (will auto-fix some issues)
+2- ```ruff check src/ --fix``` (will auto-fix some issues)</br>

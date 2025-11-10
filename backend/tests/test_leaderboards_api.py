@@ -4,10 +4,9 @@ from unittest.mock import Mock, patch, MagicMock
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-
-
-from Components.leaderboards.leaderboards_api import get_db
+from endpoints.leaderboards_api import leaderboards_router, get_db
 from main import app
+
 client = TestClient(app)
 
 
@@ -60,29 +59,41 @@ class TestGetLeaderboards:
 
     def test_get_leaderboards_empty(self, mock_db):
         """Test leaderboards endpoint with no competitions"""
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[]):
-            with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                response = client.get("/leaderboards")
+        def override_get_db():
+            yield mock_db
 
-                assert response.status_code == 200
-                assert response.json() == []
+        app.dependency_overrides[get_db] = override_get_db
+
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[]):
+            response = client.get("/leaderboards")
+
+            assert response.status_code == 200
+            assert response.json() == []
+
+        app.dependency_overrides.clear()
 
     def test_get_leaderboards_single_competition_no_participants(
             self, mock_db, mock_competition
     ):
         """Test leaderboards with one competition but no participants"""
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition', return_value=[]):
-                with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                    response = client.get("/leaderboards")
+        def override_get_db():
+            yield mock_db
 
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert len(data) == 1
-                    assert data[0]["id"] == "1"
-                    assert data[0]["name"] == "Spring Code Challenge 2024"
-                    assert data[0]["date"] == "2024-03-15"
-                    assert data[0]["participants"] == []
+        app.dependency_overrides[get_db] = override_get_db
+
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition', return_value=[]):
+                response = client.get("/leaderboards")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data) == 1
+                assert data[0]["id"] == "1"
+                assert data[0]["name"] == "Spring Code Challenge 2024"
+                assert data[0]["date"] == "2024-03-15"
+                assert data[0]["participants"] == []
+
+        app.dependency_overrides.clear()
 
     def test_get_leaderboards_with_participants(
             self, mock_db, mock_competition, mock_scoreboard,
@@ -94,7 +105,10 @@ class TestGetLeaderboards:
         mock_scoreboard.user_id = 1
         mock_scoreboard.competition_id = 1
 
-        mock_db.query.return_value.get.return_value = mock_user_result
+        # Setup mock query chain
+        mock_query = Mock()
+        mock_query.get.return_value = mock_user_result
+        mock_db.query.return_value = mock_query
 
         mock_user.first_name = "John"
         mock_user.last_name = "Doe"
@@ -104,8 +118,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition', return_value=[mock_scoreboard]):
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition', return_value=[mock_scoreboard]):
                 response = client.get("/leaderboards")
 
                 assert response.status_code == 200
@@ -124,41 +138,7 @@ class TestGetLeaderboards:
                 assert participant["problemsSolved"] == 8
                 assert participant["totalTime"] == "45.5 min"
 
-    def test_get_leaderboards_participant_no_user_result(
-            self, mock_db, mock_competition, mock_scoreboard, mock_user
-    ):
-        """Test participant without user result data"""
-        mock_scoreboard.user = mock_user
-        mock_db.query.return_value.get.return_value = None
-
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition',
-                       return_value=[mock_scoreboard]):
-                with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                    response = client.get("/leaderboards")
-
-                    assert response.status_code == 200
-                    data = response.json()
-                    participant = data[0]["participants"][0]
-                    assert participant["problemsSolved"] == 0
-                    assert participant["totalTime"] == "0.0 min"
-
-    def test_get_leaderboards_scoreboard_no_user(
-            self, mock_db, mock_competition
-    ):
-        """Test scoreboard entry without associated user"""
-        mock_scoreboard = Mock()
-        mock_scoreboard.user = None
-
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition',
-                       return_value=[mock_scoreboard]):
-                with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                    response = client.get("/leaderboards")
-
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert len(data[0]["participants"]) == 0
+        app.dependency_overrides.clear()
 
     def test_get_leaderboards_participant_no_user_result(
             self, mock_db, mock_competition, mock_scoreboard, mock_user
@@ -169,7 +149,10 @@ class TestGetLeaderboards:
         mock_scoreboard.user_id = 1
         mock_scoreboard.competition_id = 1
 
-        mock_db.query.return_value.get.return_value = None  # simulate no UserResult
+        # Setup mock query chain to return None
+        mock_query = Mock()
+        mock_query.get.return_value = None
+        mock_db.query.return_value = mock_query
 
         mock_user.first_name = "John"
         mock_user.last_name = "Doe"
@@ -179,9 +162,8 @@ class TestGetLeaderboards:
 
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions',
-                   return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition',
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        return_value=[mock_scoreboard]):
                 response = client.get("/leaderboards")
 
@@ -190,6 +172,31 @@ class TestGetLeaderboards:
                 participant = data[0]["participants"][0]
                 assert participant["problemsSolved"] == 0
                 assert participant["totalTime"] == "0.0 min"
+
+        app.dependency_overrides.clear()
+
+    def test_get_leaderboards_scoreboard_no_user(
+            self, mock_db, mock_competition
+    ):
+        """Test scoreboard entry without associated user"""
+        mock_scoreboard = Mock()
+        mock_scoreboard.user = None
+
+        def override_get_db():
+            yield mock_db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
+                       return_value=[mock_scoreboard]):
+                response = client.get("/leaderboards")
+
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data[0]["participants"]) == 0
+
+        app.dependency_overrides.clear()
 
     def test_get_leaderboards_multiple_competitions(
             self, mock_db, mock_user, mock_user_result
@@ -221,30 +228,39 @@ class TestGetLeaderboards:
         scoreboard2.competition_id = 2
         scoreboard2.total_score = 92
 
-        mock_db.query.return_value.get.return_value = mock_user_result
+        # Setup mock query chain
+        mock_query = Mock()
+        mock_query.get.return_value = mock_user_result
+        mock_db.query.return_value = mock_query
 
         def get_scoreboard_side_effect(db, comp_id):
             if comp_id == 1:
                 return [scoreboard1]
             return [scoreboard2]
 
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[comp1, comp2]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition',
+        def override_get_db():
+            yield mock_db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[comp1, comp2]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        side_effect=get_scoreboard_side_effect):
-                with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                    response = client.get("/leaderboards")
+                response = client.get("/leaderboards")
 
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert len(data) == 2
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data) == 2
 
-                    assert data[0]["name"] == "Spring Challenge"
-                    assert data[0]["participants"][0]["name"] == "John Doe"
-                    assert data[0]["participants"][0]["points"] == 85
+                assert data[0]["name"] == "Spring Challenge"
+                assert data[0]["participants"][0]["name"] == "John Doe"
+                assert data[0]["participants"][0]["points"] == 85
 
-                    assert data[1]["name"] == "Fall Challenge"
-                    assert data[1]["participants"][0]["name"] == "Jane Smith"
-                    assert data[1]["participants"][0]["points"] == 92
+                assert data[1]["name"] == "Fall Challenge"
+                assert data[1]["participants"][0]["name"] == "Jane Smith"
+                assert data[1]["participants"][0]["points"] == 92
+
+        app.dependency_overrides.clear()
 
     def test_get_leaderboards_multiple_participants(
             self, mock_db, mock_competition, mock_user_result
@@ -270,19 +286,28 @@ class TestGetLeaderboards:
         scoreboard2.competition_id = 1
         scoreboard2.total_score = 85
 
-        mock_db.query.return_value.get.return_value = mock_user_result
+        # Setup mock query chain
+        mock_query = Mock()
+        mock_query.get.return_value = mock_user_result
+        mock_db.query.return_value = mock_query
 
-        with patch('Components.leaderboards.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
-            with patch('Components.leaderboards.leaderboards_api.get_scoreboard_for_competition',
+        def override_get_db():
+            yield mock_db
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        with patch('endpoints.leaderboards_api.get_all_competitions', return_value=[mock_competition]):
+            with patch('endpoints.leaderboards_api.get_scoreboard_for_competition',
                        return_value=[scoreboard1, scoreboard2]):
-                with patch('Components.leaderboards.leaderboards_api.get_db', return_value=mock_db):
-                    response = client.get("/leaderboards")
+                response = client.get("/leaderboards")
 
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert len(data[0]["participants"]) == 2
-                    assert data[0]["participants"][0]["name"] == "Alice Johnson"
-                    assert data[0]["participants"][1]["name"] == "Bob Williams"
+                assert response.status_code == 200
+                data = response.json()
+                assert len(data[0]["participants"]) == 2
+                assert data[0]["participants"][0]["name"] == "Alice Johnson"
+                assert data[0]["participants"][1]["name"] == "Bob Williams"
+
+        app.dependency_overrides.clear()
 
 
 class TestDatabaseDependency:
@@ -290,7 +315,7 @@ class TestDatabaseDependency:
 
     def test_get_db_yields_session(self):
         """Test that get_db yields a database session"""
-        with patch('Components.leaderboards.leaderboards_api.SessionLocal') as mock_session_local:
+        with patch('endpoints.leaderboards_api.SessionLocal') as mock_session_local:
             mock_db = Mock()
             mock_session_local.return_value = mock_db
 
@@ -302,7 +327,7 @@ class TestDatabaseDependency:
 
     def test_get_db_closes_session(self):
         """Test that get_db closes the session after use"""
-        with patch('Components.leaderboards.leaderboards_api.SessionLocal') as mock_session_local:
+        with patch('endpoints.leaderboards_api.SessionLocal') as mock_session_local:
             mock_db = Mock()
             mock_session_local.return_value = mock_db
 
