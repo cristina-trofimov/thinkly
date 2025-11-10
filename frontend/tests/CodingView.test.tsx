@@ -1,9 +1,10 @@
 import React from 'react'
 import '@testing-library/jest-dom'
+import { jest } from '@jest/globals';
+import { beforeEach } from 'node:test'
 import userEvent from '@testing-library/user-event'
 import { render, screen } from "@testing-library/react"
 import CodingView from '../src/components/codingPage/CodingView'
-import { beforeEach } from 'node:test'
 
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     __esModule: true,
@@ -14,13 +15,16 @@ jest.mock("../src/components/ui/shadcn-io/sandbox", () => ({
     SandboxProvider: ({ children }: any) => <div data-testid="sandbox-provider" >{children}</div>,
     SandboxLayout: ({ children }: any) => <div data-testid="sandbox-layout" >{children}</div>,
     SandboxTabs: ({ children }: any) => <div data-testid="sandbox-tabs" >{children}</div>,
-    // SandboxTabsContent: ({ children }: any) => <div data-testid="sandbox-tabs-content" >{children}</div>,
+    SandboxTabsList: ({ children }: any) => <div data-testid="sandbox-tabs-list" >{children}</div>,
+    SandboxTabsTrigger: ({ children }: any) => <div data-testid='sandbox-tabs-trigger' >{children}</div>,
+    SandboxTabsContent: ({ children }) => <div data-testid='sandbox-tabs-content'>{children}</div>,
     SandboxPreview: () => <div data-testid="sandbox-preview" />,
     SandboxConsole: () => <div data-testid="sandbox-console" />,
     SandboxCodeEditor: () => <div data-testid="sandbox-code-editor" />,
 }))
 
 jest.mock("../src/components/ui/dropdown-menu", () => ({
+    __esModule: true,
     DropdownMenu: ({ children }: any) => <div data-testid="languageDropdown" >{children}</div>,
     DropdownMenuTrigger: ({ children, asChild, ...props }: any) => 
         asChild ? React.cloneElement(children, props) : <button data-testid="languageBtn" {...props} >{children}</button>,
@@ -29,6 +33,7 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
 }))
 
 jest.mock("../src/components/ui/resizable", () => ({
+    __esModule: true,
     ResizablePanelGroup: ({ children }: any) => <div data-testid="resizable-group" >{children}</div>,
     ResizablePanel: React.forwardRef(({ children }: any, ref) => {
       React.useImperativeHandle(ref, () => ({
@@ -40,19 +45,21 @@ jest.mock("../src/components/ui/resizable", () => ({
 }))
 
 jest.mock("../src/components/helpers/SandpackConfig", () => ({
+    __esModule: true,
     getSandpackConfigs: jest.fn(() => ({
-      javascript: {
-        template: "react",
-        files: { "/App.js": "console.log('test');" },
-      },
-      python: {
+      Javascript: {
         template: "vanilla",
-        files: { "/main.py": "print('Hello world')" },
+        files: { "/index.js": { code: "console.log('test javascript')"} },
+      },
+      Typescript: {
+        template: "vanilla-ts",
+        files: { "/index.ts": { code: "console.log('test typescript')"} },
       },
     })),
 }))
 
 jest.mock("../src/components/helpers/UseStateCallback", () => ({
+    __esModule: true,
     useStateCallback: (initial: any) => {
       const [value, setValue] = React.useState(initial)
       return [value, (v: any) => setValue(v), jest.fn()]

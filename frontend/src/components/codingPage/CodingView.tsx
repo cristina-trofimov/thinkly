@@ -64,7 +64,7 @@ const CodingView = () => {
   const templates = getSandpackConfigs(problemName, inputVars, outputType)
   const sampleTemps = {
     "Javascript": templates.Javascript,
-    "typescript": templates.Typescript,
+    "Typescript": templates.Typescript,
   }
   
   const languages = Object.keys(sampleTemps) as Array<keyof typeof sampleTemps>
@@ -137,7 +137,7 @@ const CodingView = () => {
       min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       <SandboxLayout data-testid="sandbox-layout" >
-        <ResizablePanelGroup direction="horizontal" >
+        <ResizablePanelGroup direction="horizontal" className='h-full w-full flex' >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"
             defaultSize={50} ref={descPanelRef}
@@ -230,7 +230,7 @@ const CodingView = () => {
               >
 
                 <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
-                  <SandboxTabsList
+                  <SandboxTabsList data-testid="sandbox-tabs-list"
                     className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                         border-b border-border/75 dark:border-border/50 py-1.5"
                   >
@@ -238,7 +238,7 @@ const CodingView = () => {
                         border-b border-border/75 dark:border-border/50 py-0 px-4'
                     >
                       {outputTabs.map(tab => 
-                        {return <SandboxTabsTrigger value={tab.id} key={tab.id}
+                        {return <SandboxTabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
                         className='bg-muted rounded-none
                           data-[state=active]:border-primary
                           data-[state=active]:text-primary
