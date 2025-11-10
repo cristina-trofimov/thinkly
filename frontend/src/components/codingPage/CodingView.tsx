@@ -6,7 +6,7 @@ import { SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxPreview, Sandb
           SandboxTabsList,
           SandboxTabsTrigger} from "../ui/shadcn-io/sandbox";
 import CodeDescArea from "./CodeDescArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -138,7 +138,7 @@ const CodingView = () => {
     >
       <SandboxLayout data-testid="sandbox-layout" >
         <Button>
-          Submit
+          <CloudUpload size={16} />Submit
         </Button>
         <ResizablePanelGroup direction="horizontal" className='h-full w-full flex' >
           {/* Description panel */}
