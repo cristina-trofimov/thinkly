@@ -1,4 +1,4 @@
-# do /backend and run:  python -m src.Components.leaderboards.populateDB
+# do /backend and run:  python -m src.endpoints.leaderboards.populateDB
 
 from sqlalchemy.orm import Session
 from datetime import datetime

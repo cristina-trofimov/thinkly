@@ -6,7 +6,7 @@ from DB_Methods.crudOperations import (
     SessionLocal,
 )
 from models.schema import BaseQuestion
-router = APIRouter()
+questions_router = APIRouter(tags=["Questions"])
 
 
 def get_db():
@@ -16,7 +16,7 @@ def get_db():
     finally:
         db.close()
         
-@router.get("/questions")
+@questions_router.get("/")
 def get_all_questions(db: Session = Depends(get_db)):
     try:
         
@@ -46,6 +46,5 @@ def get_all_questions(db: Session = Depends(get_db)):
         return [to_dict(q) for q in rows]
 
     except Exception as e:
-        # Log full error to server console; return 500 with short message
         logger.exception("Failed to fetch /questions")
         raise HTTPException(status_code=500, detail=f"/questions error: {type(e).__name__}: {e}")
