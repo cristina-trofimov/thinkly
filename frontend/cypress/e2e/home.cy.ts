@@ -1,4 +1,10 @@
 describe('Check Home page', () => {
+  beforeEach(() => {
+  // Inject config into window before the page loads
+  Cypress.on('window:before:load', (win) => {
+    win.config = { backendUrl: Cypress.env('BACKEND_URL') || 'http://localhost:8000' };
+  });})
+
   it('Visits the home page and filter for different questions', () => {
     cy.visit('http://localhost:5173/app/home');
     cy.contains("It's Competition Time!").should('be.visible');
@@ -19,4 +25,5 @@ describe('Check Home page', () => {
     cy.contains("Competitions on").should('be.visible');
     cy.contains("AI Coding Sprint-11/9/2025").should('be.visible');//tested for today's competition
   });
-});
+}
+);
