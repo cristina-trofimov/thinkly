@@ -1,11 +1,19 @@
 import React from "react"
-import { render, screen, waitFor} from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
+import { render,fireEvent, screen, waitFor} from "@testing-library/react"
+import '@testing-library/jest-dom'
 import HomePage from "../src/views/HomePage"
+import * as compApi from '../src/api/homepageComp';
+import * as questionsApi from '../src/api/homepageQuestions';
 
 jest.mock('../src/config', () => ({
-  config: { backendUrl: 'http://localhost:8000' },
+  config: {
+    backendUrl: 'http://localhost:8000'
+  }
 }));
+
+jest.mock('../src/api/homepageComp');
+jest.mock('../src/api/homepageQuestions');
+
 
 jest.mock("../src/components/ui/button", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
@@ -41,43 +49,26 @@ jest.mock("@/components/ui/calendar", () => ({
 
 describe("HomePage", () => {
   beforeEach(() => {
-    // Mock fetch globally
-    global.fetch = jest.fn((url) => {
-      const urlString = url?.toString() || ''
-      
-      if (urlString.includes("/get-questions")) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve([
-              { id: 1, questionTitle: "Two sum", date: "2025-08-02", difficulty: "Easy" },
-              { id: 2, questionTitle: "Palindrome", date: "2025-08-15", difficulty: "Medium" },
-              { id: 3, questionTitle: "Merge K Sorted Lists", date: "2025-07-01", difficulty: "Hard" },
-              { id: 4, questionTitle: "Christmas Tree", date: "2025-07-12", difficulty: "Easy" },
-              { id: 5, questionTitle: "Inverse String", date: "2025-08-03", difficulty: "Easy" },
-              { id: 6, questionTitle: "Hash Map", date: "2025-08-03", difficulty: "Medium" },
-              { id: 7, questionTitle: "Binary Tree", date: "2025-08-19", difficulty: "Hard" },
-            ]),
-        } as any)
-      }
+    // Mock getQuestions to return formatted data (already converted to Date objects)
+    (questionsApi.getQuestions as jest.Mock).mockResolvedValue([
+      { id: "1", questionTitle: "Two sum", date: new Date("2025-08-02"), difficulty: "Easy" },
+      { id: "2", questionTitle: "Palindrome", date: new Date("2025-08-15"), difficulty: "Medium" },
+      { id: "3", questionTitle: "Merge K Sorted Lists", date: new Date("2025-07-01"), difficulty: "Hard" },
+      { id: "4", questionTitle: "Christmas Tree", date: new Date("2025-07-12"), difficulty: "Easy" },
+      { id: "5", questionTitle: "Inverse String", date: new Date("2025-08-03"), difficulty: "Easy" },
+      { id: "6", questionTitle: "Hash Map", date: new Date("2025-08-03"), difficulty: "Medium" },
+      { id: "7", questionTitle: "Binary Tree", date: new Date("2025-08-19"), difficulty: "Hard" },
+    ]);
 
-      if (urlString.includes("/get-competitions")) {
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve([
-              { competitionTitle: "WebComp", date: "2025-11-03" },
-              { competitionTitle: "CyberComp", date: "2025-11-09" },
-            ]),
-        } as any)
-      }
-
-      return Promise.reject(new Error("Unknown URL"))
-    }) as jest.Mock
+    // Mock getCompetitions to return formatted data (already converted to Date objects)
+    (compApi.getCompetitions as jest.Mock).mockResolvedValue([
+      { competitionTitle: "WebComp", date: new Date("2025-11-03") },
+      { competitionTitle: "CyberComp", date: new Date("2025-11-09") },
+    ]);
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    jest.clearAllMocks()
   })
 
   test("renders main competition button", () => {
@@ -107,19 +98,17 @@ describe("HomePage", () => {
     
     // Wait for competitions to be fetched
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/get-competitions")
-      )
+      expect(compApi.getCompetitions).toHaveBeenCalled()
     })
   
     // Select Nov 3 using the test button
     const selectNov3Button = screen.getByTestId("select-nov-3")
-    selectNov3Button.click()
+    fireEvent.click(selectNov3Button)
   
     // Now check if WebComp appears
     await waitFor(() => {
       expect(screen.getByText(/WebComp/i)).toBeInTheDocument()
-    })
+    }, { timeout: 3000 })
   })
   
   test("shows CyberComp when November 9th is selected", async () => {
@@ -127,9 +116,7 @@ describe("HomePage", () => {
     
     // Wait for competitions to load
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/get-competitions")
-      )
+      expect(compApi.getCompetitions).toHaveBeenCalled()
     })
   
     // Select Nov 9 using the test button
@@ -147,9 +134,7 @@ describe("HomePage", () => {
     
     // Wait for initial load - today's date likely has no competitions
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/get-competitions")
-      )
+      expect(compApi.getCompetitions).toHaveBeenCalled()
     })
 
     // Should show "No competitions on this date" initially
