@@ -69,7 +69,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/questions");
+        const res = await fetch("http://127.0.0.1:8000/questions/");
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error("Error occurred while fetching questions"); 
         if (!Array.isArray(body)) throw new Error("Fetched questions is not in the correct format");
@@ -169,7 +169,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
         if (sendAt) payload.sendAt = sendAt;
 
         try {
-          const res = await fetch('http://127.0.0.1:8001/send-email', {
+          const res = await fetch('http://127.0.0.1:8000/email/send', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
