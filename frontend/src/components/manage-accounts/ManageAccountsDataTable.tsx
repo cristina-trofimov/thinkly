@@ -56,6 +56,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { Account } from "./ManageAccountsColumns";
+import { config } from "../../config";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -96,14 +98,49 @@ export function ManageAccountsDataTable<TData, TValue>({
     setRowSelection({});
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const selectedRows = table
       .getSelectedRowModel()
-      .rows.map((row) => row.original);
+      .rows.map((row) => row.original as Account);
+
     console.log("Deleting rows: ", selectedRows);
 
-    setIsEditMode(false);
-    setRowSelection({});
+    const userIds = selectedRows.map((row) => row.id);
+
+    try {
+      const response = await fetch(config.backendUrl + "/users/batch-delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_ids: userIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      console.log("Delete response:", data);
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to delete users: ${data.detail || "Unknown error"}`
+        );
+      }
+
+      if (data.errors && data.errors.length > 0) {
+        console.error("Errors occurred during deletion:", data.errors);
+      } else {
+        console.log(`Successfully deleted ${data.deleted_count} users`);
+      }
+
+      setIsEditMode(false);
+      setRowSelection({});
+
+      window.location.reload();
+    } catch (error) {
+      console.error("Error deleting users:", error);
+    }
   };
 
   return (
