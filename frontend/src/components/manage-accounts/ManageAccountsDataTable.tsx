@@ -178,7 +178,10 @@ export function ManageAccountsDataTable<TData, TValue>({
           <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
+                <Button
+                  variant="destructive"
+                  disabled={Object.keys(rowSelection).length === 0}
+                >
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>
@@ -193,7 +196,12 @@ export function ManageAccountsDataTable<TData, TValue>({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleDelete}>Delete</AlertDialogAction>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive/90"
+                    onClick={handleDelete}
+                  >
+                    Delete
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
