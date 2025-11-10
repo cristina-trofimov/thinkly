@@ -15,6 +15,15 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import React from "react";
 
 export type Account = {
   id: string;
@@ -106,27 +115,51 @@ export const columns: ColumnDef<Account>[] = [
     id: "actions",
     cell: ({ row }) => {
       const user = row.original;
+      const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.id)}
-            >
-              Copy user ID
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View User</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(user.id)}
+              >
+                Copy user ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>View User</DropdownMenuItem>
+              <DropdownMenuItem>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+                Edit User
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          {/* <DialogContent className="sm:max-w-screen-sm md:max-w-3xl lg:max-w-5xl"> */}
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Make changes to the user account here.
+              </DialogDescription>
+            </DialogHeader>
+            <div>
+              <p>User ID: {user.id}</p>
+              <p>Name: {user.name}</p>
+              <p>Email: {user.email}</p>
+              <p>Account Type: {user.accountType}</p>
+            </div>
+          </DialogContent>
+        </Dialog>
+        </>
       );
     },
   },
