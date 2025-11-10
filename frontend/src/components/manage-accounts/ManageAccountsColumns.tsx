@@ -141,12 +141,36 @@ export const columns: ColumnDef<Account>[] = [
                   Make changes to the user account here.
                 </DialogDescription>
               </DialogHeader>
-              <div>
-                <AvatarInitials name={user.name} size="xl" className="mb-4" />
-                <p>User ID: {user.id}</p>
-                <p>Name: {user.name}</p>
-                <p>Email: {user.email}</p>
-                <p>Account Type: {user.accountType}</p>
+              <div className="flex gap-6">
+                <div className="items-center justify-center">
+                  <AvatarInitials name={user.name} size="xl" className="mb-4" />
+                </div>
+                <div>
+                  <p>Name: {user.name}</p>
+                  <p>Email: {user.email}</p>
+                  <div className="flex gap-3 items-center">
+                    <p>Account Type:</p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline">{user.accountType}</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem>Participant</DropdownMenuItem>
+                        <DropdownMenuItem>Admin</DropdownMenuItem>
+                        <DropdownMenuItem>Owner</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button className="ml-2">Save Changes</Button>
               </div>
             </DialogContent>
           </Dialog>
