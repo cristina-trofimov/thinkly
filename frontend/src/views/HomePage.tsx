@@ -12,7 +12,6 @@ import type { CompetitionItem } from "@/components/interfaces/CompetitionItem"
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
   const [questions, setQuestions] = React.useState<Questions[]>([])
-  const [loading, setLoading] = React.useState(true)
   const [competitions, setCompetitions] = React.useState<CompetitionItem[]>([])
 
 
@@ -25,7 +24,12 @@ function HomePage() {
         }
         const data = await response.json();
 
-        const formatted: Questions[] = data.map((q: any) =>({
+        const formatted: Questions[] = data.map((q: {
+          id: number; 
+          questionTitle: string; 
+          date: string; 
+          difficulty: "Easy" | "Medium" | "Hard";} 
+        ) =>({
           id: q.id,
           questionTitle: q.questionTitle,
           date: new Date(q.date),
@@ -35,9 +39,7 @@ function HomePage() {
         setQuestions(formatted)
       } catch (err) {
         console.error("Error fetching questions:", err)
-      } finally {
-        setLoading(false)
-      }
+      } 
     }
 
     fetchQuestions()
@@ -52,7 +54,9 @@ function HomePage() {
         }
         const data = await response.json();
 
-        const formatted: CompetitionItem[] = data.map((c: any) =>({
+        const formatted: CompetitionItem[] = data.map((c:{ 
+          competitionTitle: string; 
+          date: string }) =>({
           competitionTitle: c.competitionTitle,
           date: new Date(c.date),
         }));
@@ -60,9 +64,7 @@ function HomePage() {
         setCompetitions(formatted)
       } catch (err) {
         console.error("Error fetching questions:", err)
-      } finally {
-        setLoading(false)
-      }
+      } 
     }
 
     fetchCompetitions()

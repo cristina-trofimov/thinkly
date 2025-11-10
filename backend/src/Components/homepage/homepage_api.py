@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from DB_Methods.crudOperations import (
     SessionLocal,
 )
-from models.schema import User, Competition, BaseQuestion
+from models.schema import Competition, BaseQuestion
 
 router = APIRouter()
 

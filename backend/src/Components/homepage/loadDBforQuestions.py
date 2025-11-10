@@ -1,6 +1,5 @@
 #  do /backend and run python -m src.Components.homepage.loadDBforQuestions
 from sqlalchemy.orm import Session
-from random import choice
 from datetime import datetime
 
 # Reuse your existing engine/Session factory
@@ -71,7 +70,7 @@ def main():
         db.add_all(objects)
         db.commit()
 
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
     finally:
