@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist','tests/**',]),
+  globalIgnores(['dist','tests/**','src/lib/axiosClient.tsx']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

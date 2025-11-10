@@ -4,6 +4,8 @@ changelog:
       labels:
         - epic
         - User Story
+        - frontend
+        - backend
     - title: 🐛 Bug Fixes
       labels:
         - bug

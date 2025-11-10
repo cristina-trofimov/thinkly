@@ -1,8 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from Components.leaderboards import leaderboards_api
+from Components.leaderboards_api import leaderboards_router
+from Components.authentification import auth_router
+# from Components.send_email import email_router
 import os
+
 app = FastAPI(title="My Backend API")
+
+# --- Request Logging Middleware ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
+    response = await call_next(request)
+    return response
 
 # --- Allow frontend requests (CORS setup) ---
 origins = [
@@ -25,7 +35,9 @@ def root():
 
 # Include your leaderboards API
 try:
-    app.include_router(leaderboards_api.router)
+    app.include_router(auth_router, prefix="/auth")
+    # app.include_router(email_router, prefix="/email")
+    app.include_router(leaderboards_router, prefix="/leaderboards")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py. Make sure it defines `router = APIRouter()`.")
 
