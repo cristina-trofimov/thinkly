@@ -121,6 +121,11 @@ const CodingView = () => {
       codeAndOutputSize = 50;
       codeSize = 95;
       outputSize = 5;
+    } else {
+      descSize = 50;
+      codeAndOutputSize = 50;
+      codeSize = 75;
+      outputSize = 25;
     }
 
     descPanelRef.current.resize(descSize);

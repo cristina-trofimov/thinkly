@@ -39,7 +39,7 @@ import { Button } from "../ui/button"
   export function DataTable<TData, TValue>({
     columns,
     data,
-  }: DataTableProps<TData, TValue>) {
+  }: Readonly<DataTableProps<TData, TValue>>) {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
       )
