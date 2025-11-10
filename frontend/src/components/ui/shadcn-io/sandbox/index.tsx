@@ -89,7 +89,7 @@ export const SandboxTabs = ({
   onValueChange,
   ...props
 }: SandboxTabsProps): ReactNode => {
-  const [selectedTab, setSelectedTabState] = useState(value || defaultValue);
+  const [selectedTabState, setSelectedTabState] = useState(value || defaultValue);
 
   useEffect(() => {
     if (value !== undefined) {
@@ -108,14 +108,14 @@ export const SandboxTabs = ({
   );
 
   return (
-    <SandboxTabsContext.Provider value={{ selectedTab, setSelectedTab }}>
+    <SandboxTabsContext.Provider value={{ selectedTab: selectedTabState, setSelectedTab }}>
       <div
         className={cn(
           'group relative flex size-full flex-col overflow-hidden rounded-lg border text-sm',
           className
         )}
         {...props}
-        data-selected={selectedTab}
+        data-selected={selectedTabState}
       >
         {props.children}
       </div>
