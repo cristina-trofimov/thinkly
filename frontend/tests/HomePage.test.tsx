@@ -1,11 +1,11 @@
 import React from "react"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import HomePage from "../src/HomePage"
+import HomePage from "../src/views/HomePage"
 
 jest.mock("../src/components/ui/button", () => ({
-    Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-  }))
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+}))
 
 // Mock DataTable to avoid needing actual table implementation
 jest.mock("../src/components/HomePageQuestions/questionDataTable", () => ({

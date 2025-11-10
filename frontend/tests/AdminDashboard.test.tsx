@@ -1,4 +1,14 @@
-import { render, screen } from "@testing-library/react";
+// Add TextEncoder/TextDecoder polyfill for Jest
+import { TextEncoder, TextDecoder } from 'util';
+Object.assign(global, { TextEncoder, TextDecoder });
+
+// Mock useNavigate
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
+import { render, screen, fireEvent } from "@testing-library/react";
 import { AdminDashboard } from "../src/components/dashboard/AdminDashboard";
 
 // Mock child components
@@ -35,6 +45,10 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 describe("AdminDashboard", () => {
+  beforeEach(() => {
+    mockNavigate.mockClear();
+  });
+
   it("renders the dashboard title", () => {
     render(<AdminDashboard />);
     expect(screen.getByText("Overview")).toBeInTheDocument();
@@ -111,5 +125,22 @@ describe("AdminDashboard", () => {
     const { container } = render(<AdminDashboard />);
     const manageSections = container.querySelectorAll(".flex.gap-4.mt-6.px-6");
     expect(manageSections.length).toBeGreaterThan(0);
+  });
+
+  it("navigates to competitions page when Manage Competitions card is clicked", () => {
+    render(<AdminDashboard />);
+    const manageCards = screen.getAllByTestId("manage-card");
+    
+    // The second manage card is "Manage Competitions" (wrapped in onClick div)
+    const manageCompetitionsCard = manageCards[1];
+    fireEvent.click(manageCompetitionsCard);
+    
+    expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/competitions');
+  });
+
+  it("Manage Competitions card has cursor-pointer class", () => {
+    const { container } = render(<AdminDashboard />);
+    const clickableDiv = container.querySelector('.cursor-pointer');
+    expect(clickableDiv).toBeInTheDocument();
   });
 });

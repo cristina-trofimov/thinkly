@@ -27,7 +27,7 @@ describe('Check leaderboards page', () => {
   });
 
   it('Visits the leaderboards page and filter for different leaderboards', () => {
-    cy.visit('http://localhost:5173/leaderboards');
+    cy.visit('http://localhost:5173/app/leaderboards');
     cy.contains("Competition 1").should('be.visible');
     cy.contains('Competition 1').click();
     cy.contains("John Doe").should('be.visible');

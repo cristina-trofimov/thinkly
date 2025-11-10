@@ -11,13 +11,15 @@ from src.crud_operations import create_user, login_user, create_competition, ...
 
 All functions commit on success and rollback on exception.
 """
+from dotenv import load_dotenv
 from datetime import datetime
-from typing import Optional, List, Tuple
-from datetime import datetime, timedelta
+from typing import Optional, List
+from datetime import timedelta
 from sqlalchemy.orm import Session
-import uuid, bcrypt, jwt
+import uuid
+import bcrypt
+import jwt
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.exc import IntegrityError
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,7 +28,6 @@ from sqlalchemy.orm import sessionmaker
 from models.schema import (
     User,
     UserPreferences,
-    Session as SessionModel,
     Competition,
     BaseQuestion,
     CompetitionQuestion,
@@ -41,7 +42,7 @@ from models.schema import (
     Scoreboard,
     UserCooldown
 )
-from models import User, SessionModel as UserSession
+from models import SessionModel as UserSession
 
 #---------------------------- Config Values (to be changed) ------------
 JWT_SECRET_KEY = "YOUR_SECRET_KEY"   # should come from env var
@@ -49,7 +50,7 @@ JWT_ALGORITHM = "HS256"
 SESSION_DURATION_HOURS = 2
 
 
-
+load_dotenv()
 
 # ---------------- DATABASE CONNECTION SETUP ----------------
 DATABASE_URL = os.getenv(
@@ -102,25 +103,7 @@ def generate_jwt(user_id: int):
 
 # --------------------------- 1) Authentication / account ---------------------------
 
-def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'user'):
-    # Prevent multiple owners
-    if type == 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
-        if existing_owner:
-            raise ValueError("An owner already exists. Only one owner is allowed.")
 
-    new_user = User(
-        username=username,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        salt=password_hash,
-        type=type,
-    )
-    db.add(new_user)
-    _commit_or_rollback(db)
-    db.refresh(new_user)
-    return new_user
 
 
 def login_user(db: Session, username: str, password: str):
@@ -131,7 +114,7 @@ def login_user(db: Session, username: str, password: str):
 
     db.query(UserSession).filter(
         UserSession.user_id == user.user_id,
-        UserSession.is_active == True
+        UserSession.is_active
     ).update({"is_active": False})
     db.commit()
 
@@ -161,7 +144,7 @@ def logout_user(db: Session, user_id: int, token: str):
     session = db.query(UserSession).filter(
         UserSession.user_id == user_id,
         UserSession.jwt_token == token,
-        UserSession.is_active == True
+        UserSession.is_active
     ).first()
 
     if not session:
@@ -180,14 +163,7 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
     """Retrieve a user by username."""
     return db.query(User).filter(User.username == username).first()
 
-def search_users(db: Session, keyword: str) -> List[User]:
-    """Search for users by name or email."""
-    return db.query(User).filter(
-        (User.username.ilike(f"%{keyword}%")) |
-        (User.email.ilike(f"%{keyword}%")) |
-        (User.first_name.ilike(f"%{keyword}%")) |
-        (User.last_name.ilike(f"%{keyword}%"))
-    ).all()
+
 
 def update_user(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
     user = db.query(User).filter(User.user_id == user_id).first()
@@ -697,16 +673,6 @@ def delete_competition_or_algotime_question_full(db: Session, question_id: int) 
     return True
 
 
-def delete_competition_or_algotime_question_full(db: Session, question_id: int) -> bool:
-    """Deleting a competition or AlgoTime question also deletes its base question."""
-
-    db.query(CompetitionQuestion).filter(CompetitionQuestion.question_id == question_id).delete()
-    db.query(AlgoTimeQuestion).filter(AlgoTimeQuestion.question_id == question_id).delete()
-    db.query(BaseQuestion).filter(BaseQuestion.question_id == question_id).delete()
-
-    _commit_or_rollback(db)
-    return True
-
 def create_algotime_question(db: Session, question_id: int, base_score_value: Optional[int]=None) -> AlgoTimeQuestion:
     atq = AlgoTimeQuestion(question_id=question_id, base_score_value=base_score_value)
     db.add(atq)
@@ -889,17 +855,6 @@ def get_user_algotime_stats(db: Session, question_id: int, user_id: Optional[int
         q = q.filter(UserAlgoTimeStats.user_id == user_id)
     return q.all()
 
-def get_competition_question_stats(
-    db: Session, question_id: int, user_id: Optional[int] = None
-) -> List[CompetitionQuestionStats]:
-    """Retrieve competition question stats (optionally for a specific user)."""
-    q = db.query(CompetitionQuestionStats).filter(
-        CompetitionQuestionStats.question_id == question_id
-    )
-    if user_id is not None:
-        q = q.filter(CompetitionQuestionStats.user_id == user_id)
-    return q.all()
-
 def get_all_competition_stats_for_user(db: Session, user_id: int) -> List[CompetitionQuestionStats]:
     """Retrieve all competition stats for a user."""
     return db.query(CompetitionQuestionStats).filter(
@@ -942,17 +897,6 @@ def delete_all_algotime_stats_for_question(db: Session, question_id: int) -> int
     ).delete()
     _commit_or_rollback(db)
     return count
-
-def get_user_algotime_stats(
-    db: Session, question_id: int, user_id: Optional[int] = None
-) -> List[UserAlgoTimeStats]:
-    """Retrieve AlgoTime stats for a question (optionally filtered by user)."""
-    q = db.query(UserAlgoTimeStats).filter(
-        UserAlgoTimeStats.question_id == question_id
-    )
-    if user_id is not None:
-        q = q.filter(UserAlgoTimeStats.user_id == user_id)
-    return q.all()
 
 def get_all_algotime_stats_for_user(db: Session, user_id: int) -> List[UserAlgoTimeStats]:
     """Retrieve all AlgoTime stats for a specific user."""

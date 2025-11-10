@@ -5,22 +5,46 @@ const tsJestTransformCfg = createDefaultPreset().transform;
 
 export default {
   preset: 'ts-jest',
-  testEnvironment: 'jest-environment-jsdom',
-  globals: {
-    'ts-jest': {
+  testEnvironment: 'jsdom', // Remove duplicate, keep only one
+  // Move ts-jest config into transform (removes deprecation warning)
+  transform: {
+    ...tsJestTransformCfg,
+    '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: 'tsconfig.jest.json'
+    }],
+  },
+  globals: {
+    'import.meta': {
+      env: {
+        VITE_BACKEND_URL: 'http://localhost:8000'
+      }
+    },
+    'ts-jest': {
+      "extends": "./tsconfig.json",
+      "compilerOptions": {
+        "module": "commonjs"
+      },
+      "include": ["tests/**/*", "src/**/*"]
     }
   },
-  transform: { ...tsJestTransformCfg },
   transformIgnorePatterns: [
     'node_modules/(?!(@radix-ui)/)',
   ],
+
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/tests/__mocks__/fileMock.js',
     "^@/(.*)$": "<rootDir>/src/$1",
   },
+  testMatch: [
+    '<rootDir>/tests/**/*.test.ts',
+    '<rootDir>/tests/**/*.test.tsx'
+  ],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/main.tsx',
+    '!src/vite-env.d.ts'
+  ],
   setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
 };
-
-

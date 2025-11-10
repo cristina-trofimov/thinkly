@@ -24,6 +24,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { logout } from "@/api/auth"
+import { useNavigate } from "react-router-dom"
 
 export function NavUser({
   user,
@@ -36,6 +38,29 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      alert("You have been logged out.");
+      navigate('/');
+    } catch (err: unknown) {
+      console.error("Logout failed:", err);
+
+      // Narrow the type
+      if (err instanceof Error) {
+        alert(err.message);
+      } else if (typeof err === "object" && err !== null && "response" in err) {
+        // For Axios-like errors
+        // @ts-expect-error TS can't infer 'response' property
+        alert(err.response?.data?.error);
+      } else {
+        alert(String(err));
+      }
+    }
+  };
+
 
   return (
     <SidebarMenu>
@@ -47,7 +72,7 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar}/>
+                <AvatarImage src={user.avatar} />
                 <AvatarFallback className="rounded-lg">
                   {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
                 </AvatarFallback>
@@ -68,10 +93,10 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar}/>
+                  <AvatarImage src={user.avatar} />
                   <AvatarFallback className="rounded-lg">
                     {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
-                </AvatarFallback>
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.firstName} {user.lastName}</span>
@@ -91,7 +116,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

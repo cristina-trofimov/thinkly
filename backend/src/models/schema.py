@@ -10,7 +10,8 @@ algo_question_set = Table(
     'algo_question_set',
     Base.metadata,
     Column('question_id', Integer, ForeignKey('algo_time_question.question_id', ondelete='CASCADE'), primary_key=True),
-    Column('set_id', Integer, ForeignKey('question_set.set_id', ondelete='CASCADE'), primary_key=True)
+    Column('set_id', Integer, ForeignKey('question_set.set_id', ondelete='CASCADE'), primary_key=True),
+    extend_existing=True
 )
 
 
@@ -85,6 +86,7 @@ class BaseQuestion(Base):
     media = Column(String)
     difficulty = Column(Enum('easy', 'medium', 'hard', name='difficulty_enum'), nullable=False)
     solution = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey('user.user_id', ondelete='SET NULL'))  # ← added
 
     user = relationship('User', back_populates='questions')
