@@ -9,7 +9,8 @@
     }
   ],
   "compilerOptions": {
-    "module": "esnext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "types": ["jest", "@testing-library/jest-dom", "node"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
