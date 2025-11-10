@@ -21,9 +21,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import React from "react";
+
+import { AvatarInitials } from "../AvatarInitials";
 
 export type Account = {
   id: string;
@@ -64,19 +65,10 @@ export const columns: ColumnDef<Account>[] = [
     header: () => <div className="text-left">Name</div>,
     cell: ({ row }) => {
       const name: string = row.getValue("name");
-      const nameSeparated = name.trim().split(" ").filter(Boolean);
-
-      const firstInitial = nameSeparated[0]?.[0].toUpperCase() ?? "";
-      const lastInitial =
-        nameSeparated[nameSeparated.length - 1]?.[0].toUpperCase() ?? "";
-
-      const initials = `${firstInitial}${lastInitial}`;
 
       return (
         <div className="flex text-left font-medium gap-3 items-center">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-primary text-sm font-semibold">
-            {initials}
-          </span>
+          <AvatarInitials name={name} size="md" />
           <span className="font-semibold">{name}</span>
         </div>
       );
@@ -134,8 +126,6 @@ export const columns: ColumnDef<Account>[] = [
                 Copy user ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>View User</DropdownMenuItem>
-              <DropdownMenuItem>Delete</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
                 Edit User
               </DropdownMenuItem>
@@ -143,22 +133,23 @@ export const columns: ColumnDef<Account>[] = [
           </DropdownMenu>
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          {/* <DialogContent className="sm:max-w-screen-sm md:max-w-3xl lg:max-w-5xl"> */}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Make changes to the user account here.
-              </DialogDescription>
-            </DialogHeader>
-            <div>
-              <p>User ID: {user.id}</p>
-              <p>Name: {user.name}</p>
-              <p>Email: {user.email}</p>
-              <p>Account Type: {user.accountType}</p>
-            </div>
-          </DialogContent>
-        </Dialog>
+            {/* <DialogContent className="sm:max-w-screen-sm md:max-w-3xl lg:max-w-5xl"> */}
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription>
+                  Make changes to the user account here.
+                </DialogDescription>
+              </DialogHeader>
+              <div>
+                <AvatarInitials name={user.name} size="xl" className="mb-4" />
+                <p>User ID: {user.id}</p>
+                <p>Name: {user.name}</p>
+                <p>Email: {user.email}</p>
+                <p>Account Type: {user.accountType}</p>
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       );
     },
