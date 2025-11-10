@@ -286,6 +286,8 @@ def update_competition( db: Session, competition_id: int, name: Optional[str] = 
     if not comp:
         raise ValueError("Competition not found")
 
+    if name is not None:
+        comp.name = name
     if location is not None:
         comp.location = location
     if date is not None:
