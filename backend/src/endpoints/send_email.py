@@ -71,7 +71,7 @@ def normalize_iso_utc(iso_str):
 
 # Routes
     
-@email_router.post("/send-email")
+@email_router.post("/send")
 async def send_email(request: SendEmailRequest):
     """Send an email via Brevo API"""
     sender_email = DEFAULT_SENDER_EMAIL

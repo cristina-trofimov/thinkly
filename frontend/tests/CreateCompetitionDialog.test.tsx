@@ -23,13 +23,13 @@ describe('CreateCompetitionDialog', () => {
     mockFetch = jest.fn();
 
     mockFetch.mockImplementation((url: string) => {
-      if (url.includes('http://127.0.0.1:8000/questions')) {
+      if (url.includes('http://127.0.0.1:8000/questions/')) {
         return Promise.resolve({
           ok: false,
           json: async () => ({}),
         });
       }
-      if (url.includes('http://127.0.0.1:8000/send-email')) {
+      if (url.includes('http://127.0.0.1:8000/email/send')) {
         return Promise.resolve({
           ok: true,
           json: async () => ({}),
@@ -99,7 +99,7 @@ describe('CreateCompetitionDialog', () => {
     expect(mockOnOpenChange).not.toHaveBeenCalled();
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions');
+    expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions/');
   });
 
   test('blocks submission if no Question selected', async () => {
@@ -155,8 +155,8 @@ describe('CreateCompetitionDialog', () => {
     await user.click(screen.getByRole('button', { name: /Create Competition/i }));
 
     await waitFor(() => {
-      expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions');
-      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8001/send-email');
+      expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions/');
+      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8000/email/send');
       expect(mockFetch.mock.calls[1][1]).toEqual(
         expect.objectContaining({
           method: 'POST',
@@ -225,10 +225,10 @@ describe('CreateCompetitionDialog', () => {
 
   test('logs an error if the email API call fails (HTTP 400)', async () => {
     mockFetch.mockImplementation((url: string) => {
-      if (url.includes('8000/questions')) {
+      if (url.includes('8000/questions/')) {
         return Promise.resolve({ ok: false, json: async () => ({}) });
       }
-      if (url.includes('8001/send-email')) {
+      if (url.includes('8000/email/send')) {
         return Promise.resolve({
           ok: false,
           status: 400,
