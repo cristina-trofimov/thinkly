@@ -1,5 +1,6 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, logger
+from fastapi import APIRouter, Depends, HTTPException
+import logging
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from DB_Methods.crudOperations import (
@@ -7,6 +8,7 @@ from DB_Methods.crudOperations import (
 )
 from models.schema import BaseQuestion
 questions_router = APIRouter(tags=["Questions"])
+logger = logging.getLogger(__name__)
 
 
 def get_db():

@@ -69,7 +69,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/questions");
+        const res = await fetch("http://127.0.0.1:8000/questions/");
         const body = await res.json().catch(() => ({}));
         if (!res.ok || !Array.isArray(body)) throw new Error();
         const normalized = body.map((q: Question, i: number) => ({
@@ -173,7 +173,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
         if (sendAt) payload.sendAt = sendAt;
 
         try {
-          const res = await fetch('http://127.0.0.1:8001/send-email', {
+          const res = await fetch('http://127.0.0.1:8000/email/send', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),

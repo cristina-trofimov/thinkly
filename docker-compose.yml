@@ -12,7 +12,8 @@ services:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ThinklyDB
     extra_hosts:
       - "host.docker.internal:host-gateway"  # For Linux
-
+    env_file:
+      - ./backend/src/.env
 
   frontend:
     build: ./frontend
