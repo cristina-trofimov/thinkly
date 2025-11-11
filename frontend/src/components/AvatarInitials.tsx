@@ -1,3 +1,4 @@
+// helper component to display user initials as avatar in the manage accounts table and when you click edit user
 interface AvatarInitialsProps {
   name: string;
   size?: "sm" | "md" | "lg" | "xl";

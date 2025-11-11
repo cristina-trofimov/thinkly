@@ -6,9 +6,11 @@ from pydantic import BaseModel
 from DB_Methods.crudOperations import (
     SessionLocal,
     delete_user_full,
-    get_user_by_id
+    get_user_by_id,
+    update_user as crud_update_user,
 )
 from models.schema import User, Competition, Scoreboard, UserResult
+from Components.manage_accounts.UserUpdateSchema import UserUpdateSchema
 
 router = APIRouter()
 
@@ -79,3 +81,13 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
             "errors": errors if errors else None,
         },
     )
+
+@router.patch("/users/{user_id}")
+def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_db)):
+    fields_to_update = user.dict(exclude_unset=True)
+
+    try:
+        updated_user = crud_update_user(db, user_id=user_id, **fields_to_update)
+        return updated_user
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
