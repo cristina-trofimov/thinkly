@@ -63,11 +63,13 @@ import { toast } from "sonner";
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onDeleteUsers?: (deletedUserIds: string[]) => void;
 }
 
 export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
+  onDeleteUsers,
 }: ManageAccountsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -139,6 +141,7 @@ export function ManageAccountsDataTable<TData, TValue>({
       if (response.status === 200) {
         toast.success(`Successfully deleted ${data.deleted_count} user(s).`);
         console.log("Deleted users:", data.deleted_users);
+        onDeleteUsers?.(userIds);
       } else if (response.status === 207) {
         toast.success(
           `Deleted ${data.deleted_count}/${data.total_requested} user(s) successfully.`
@@ -148,6 +151,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         if (data.errors && data.errors.length > 0) {
           console.warn("Partial deletion errors:", data.errors);
           toast.warning(`${data.errors.length} users could not be deleted.`);
+          onDeleteUsers?.(userIds);
         }
       }
 
