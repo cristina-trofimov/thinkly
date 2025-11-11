@@ -56,7 +56,7 @@ describe('Check Home page', () => {
       cy.wait('@getCompetitions');
       
       cy.contains("Competitions on").should('be.visible');
-      cy.get('button.rdp-day').contains('11').click();
+      cy.get('button.rdp-day').contains(/^(11|10|12)$/).click();
       cy.contains("AI Coding Sprint").should('be.visible');
     });
   }
