@@ -1,76 +1,55 @@
 import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/HomePageQuestions/questionsColumns"
 import type { Questions } from "../components/HomePageQuestions/questionsColumns"
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
+import type { CompetitionItem } from "@/types/CompetitionItem"
+import {getCompetitions } from "@/api/homepageComp";
+import {getQuestions} from "@/api/homepageQuestions";
+
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const questions: Questions[] = [
-    {
-      id: "1",
-      questionTitle: "Two sum",
-      date: new Date('2025-08-02'),
-      difficulty: "Easy",
-    },
-    {
-      id: "2",
-      questionTitle: "Palindrome",
-      date: new Date('2025-08-15'),
-      difficulty: "Medium",
-    },
-    {
-      id: "3",
-      questionTitle: "Two sum",
-      date: new Date('2025-07-01'),
-      difficulty: "Hard",
-    },
-    {
-      id: "4",
-      questionTitle: "Christmas Tree",
-      date: new Date('2025-07-12'),
-      difficulty: "Easy",
-    },
-    {
-      id: "5",
-      questionTitle: "Inverse String",
-      date: new Date('2025-08-03'),
-      difficulty: "Easy",
-    },
-    {
-      id: "6",
-      questionTitle: "Hash Map",
-      date: new Date('2025-08-03'),
-      difficulty: "Medium",
-    },
-    {
-      id: "7",
-      questionTitle: "Binary Tree",
-      date: new Date("2025-08-19"),
-      difficulty: "Hard",
+  const [questions, setQuestions] = React.useState<Questions[]>([])
+  const [competitions, setCompetitions] = React.useState<CompetitionItem[]>([])
+
+
+  React.useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const data = await getQuestions();
+        setQuestions(data);
+      } catch (err) {
+        console.error("Error fetching questions:", err)
+      } 
     }
-  ]
 
-  const competitions = [
-    //once we get the db connection we need to switch this maybe something
-    // with the list of attendees and when 
-    //an attendee is in we change the status 
-    {
-      competitionTitle: "WebComp",
-      competitionDesc: "3 hours to build an aesthetic website",
-      date: new Date('2025-11-03'),
-      status: "Registered",
-    },
-    {
-      competitionTitle: "CyberComp",
-      competitionDesc: "45 mins to complete as many riddles as possible",
-      date: new Date(),
-      status: "Join",
-    },
+    fetchQuestions()
+  }, [])
 
-  ]
+  React.useEffect(() => {
+    const fetchCompetitions = async () => {
+      try {
+          const data = await getCompetitions();
+          setCompetitions(data);
+      } catch (err) {
+        console.error("Error fetching competitions:", err)
+      } 
+    };
+    fetchCompetitions()
+  }, [])
+
+  const competitionsForSelectedDate = React.useMemo(() => {
+    if (!date) return []
+    return competitions.filter(
+      (c) => c.date.toDateString() === date.toDateString()
+    )
+  }, [date, competitions])
+
+  const competitionDates = competitions.map((c) => c.date)
+
   return (
     <>
       <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem]">
@@ -104,23 +83,28 @@ function HomePage() {
               onSelect={setDate}
               className=" rounded-md border shadow-sm self-end w-full"
               captionLayout="dropdown"
+              modifiers={{ competition: competitionDates }}
+              modifiersClassNames={{
+              competition:
+                  "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",}}
             />
-            Upcoming Competitions
+
+          <h2 className="text-xl font-semibold mb-2 text-center">
+                  Competitions on {date?.toLocaleDateString() ?? "—"}
+                </h2>
 
             <div className=" w-[300px] flex flex-col gap-2">
-              {competitions.map((competition) => (
-                <Item key={competition.competitionTitle} variant="outline" className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden">
-                  <ItemContent className="w-[70%] overflow-hidden">
-                    <ItemTitle className="truncate font-semibold">{competition.competitionTitle}-{competition.date.toLocaleDateString()}</ItemTitle>
-                    <ItemDescription className="truncate text-sm text-gray-600 text-left">{competition.competitionDesc}</ItemDescription>
-                  </ItemContent>
-                  <ItemActions className="w-[30%] flex justify-end">
-                    <Button data-testid={`competition-button-${competition.status.toLowerCase()}`} variant="outline" size="sm" className=" truncate text-[#8065CD] max-w-[80px]" >
-                      {competition.status}
-                    </Button>
-                  </ItemActions>
-                </Item>
-              ))}
+            {competitionsForSelectedDate.length === 0 ? (
+                <p className="text-center text-gray-500 italic">No competitions on this date</p>
+              ) : (
+                competitionsForSelectedDate.map((competition) => (
+                  <Item key={competition.competitionTitle} variant="outline" className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden">
+                    <ItemContent className="w-[70%] overflow-hidden justify-center items-center">
+                      <ItemTitle className="truncate font-semibold text-center">{competition.competitionTitle}-{competition.date.toLocaleDateString()}</ItemTitle>
+                    </ItemContent>
+                  </Item>
+                ))
+              )}
             </div>
           </div>
         </div>

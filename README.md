@@ -9,7 +9,9 @@ For more information, please visit our [wiki page](https://github.com/cristina-t
 
 
 ## CI information
-*(Add badges or links to your CI pipeline here, e.g., GitHub Actions, Jenkins, CircleCI.)* </br>
+[CI Pipeline](https://github.com/cristina-trofimov/thinkly/blob/main/.github/workflows/CI_Pipeline.yml)
+[SonarQube Pipeline](https://github.com/cristina-trofimov/thinkly/blob/main/.github/workflows/sonarqube.yml)
+[Pipelines wiki](https://github.com/cristina-trofimov/thinkly/wiki/Github-Pipelines)
 
 
 
