@@ -124,7 +124,6 @@ export function ManageAccountsDataTable<TData, TValue>({
       const data = await response.json();
 
       console.log("Delete response:", data);
-      console.log("Response ok:", response);
 
       if (response.status >= 400 && response.status < 500) {
         toast.error(
@@ -164,7 +163,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   };
 
   const handleUpdate = async () => {
-    
+
   }
 
   return (

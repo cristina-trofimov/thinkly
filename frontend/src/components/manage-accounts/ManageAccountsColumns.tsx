@@ -44,7 +44,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@radix-ui/react-switch";
+import { config } from "../../config";
+import { toast } from "sonner";
 
 export type Account = {
   id: string;
@@ -128,6 +129,74 @@ export const columns: ColumnDef<Account>[] = [
     cell: ({ row }) => {
       const user = row.original;
       const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+      const [firstName, setFirstName] = React.useState(user.name.split(" ")[0]);
+      const [lastName, setLastName] = React.useState(user.name.split(" ")[1]);
+      const [email, setEmail] = React.useState(user.email);
+      const [accountType, setAccountType] = React.useState(
+        user.accountType.toLowerCase()
+      );
+
+      const handleSaveChanges = async () => {
+        const updatedFields: Record<string, string> = {};
+
+        if (firstName !== user.name.split(" ")[0]) {
+          updatedFields["first_name"] = firstName;
+        }
+        if (lastName !== user.name.split(" ")[1]) {
+          updatedFields["last_name"] = lastName;
+        }
+        if (email !== user.email) {
+          updatedFields["email"] = email;
+        }
+        if (accountType.toLowerCase() !== user.accountType.toLowerCase()) {
+          updatedFields["type"] = accountType;
+        }
+
+        if (Object.keys(updatedFields).length === 0) {
+          console.log("No changes made. Skipping update.");
+          setIsDialogOpen(false);
+          return;
+        }
+
+        console.log("Updating user: ", user);
+
+        try {
+          const response = await fetch(
+            `${config.backendUrl}/users/${user.id}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedFields),
+            }
+          );
+
+          const jsonResponse = await response.json();
+          console.log("Update response:", jsonResponse);
+
+          if (!response.ok) {
+            throw new Error(jsonResponse.detail);
+          }
+          else {
+            toast.success("User updated successfully!");
+            console.log("User updated successfully:");
+          }
+        } catch (error) {
+          toast.error("Failed to update user.");
+          console.error("Failed to update user:", error);
+        } finally {
+          setIsDialogOpen(false);
+        }
+      }
+
+      const handleCancel = () => {
+        setFirstName(user.name.split(" ")[0]);
+        setLastName(user.name.split(" ")[1]);
+        setEmail(user.email);
+        setAccountType(user.accountType.toLowerCase());
+        setIsDialogOpen(false);
+      };
 
       return (
         <>
@@ -155,7 +224,7 @@ export const columns: ColumnDef<Account>[] = [
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
               <FieldSet>
-                <FieldLegend>Edit User</FieldLegend>
+                <FieldLegend className="font-semibold">Edit User</FieldLegend>
                 <FieldDescription>
                   Make changes to the user account here.
                 </FieldDescription>
@@ -165,7 +234,8 @@ export const columns: ColumnDef<Account>[] = [
                     <Input
                       id="first_name"
                       autoComplete="off"
-                      value={user.name.split(" ")[0]}
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
                     />
                   </Field>
                   <Field>
@@ -173,7 +243,8 @@ export const columns: ColumnDef<Account>[] = [
                     <Input
                       id="last_name"
                       autoComplete="off"
-                      value={user.name.split(" ")[1]}
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
                     />
                   </Field>
                   <Field>
@@ -182,12 +253,13 @@ export const columns: ColumnDef<Account>[] = [
                       type="email"
                       id="email"
                       autoComplete="off"
-                      value={user.email}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                     />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="account_type">Account Type</FieldLabel>
-                    <Select defaultValue={user.accountType.toLowerCase()}>
+                    <Select defaultValue={accountType} onValueChange={setAccountType}>
                       <SelectTrigger>
                         <SelectValue placeholder="Choose department" />
                       </SelectTrigger>
@@ -202,11 +274,11 @@ export const columns: ColumnDef<Account>[] = [
                     <Button
                       variant="outline"
                       type="button"
-                      onClick={() => setIsDialogOpen(false)}
+                      onClick={handleCancel}
                     >
                       Cancel
                     </Button>
-                    <Button type="submit">Save Changes</Button>
+                    <Button type="submit" onClick={handleSaveChanges}>Save Changes</Button>
                   </Field>
                 </FieldGroup>
               </FieldSet>
