@@ -46,7 +46,7 @@ describe('Check Home page', () => {
           {
             "id": 2,
             "competitionTitle": "AI Coding Sprint",
-            "date": "2025-11-11",
+            "date": "2025-11-11T00:00:00Z",
             "user_id": null
           },
         ],
@@ -56,7 +56,7 @@ describe('Check Home page', () => {
       cy.wait('@getCompetitions');
       
       cy.contains("Competitions on").should('be.visible');
-      cy.get('button.rdp-day').contains(/^(11|10|12)$/).click();
+      cy.get('button.rdp-day').contains("11").click();
       cy.contains("AI Coding Sprint").should('be.visible');
     });
   }
