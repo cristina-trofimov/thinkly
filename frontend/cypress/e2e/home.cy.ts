@@ -46,7 +46,7 @@ describe('Check Home page', () => {
           {
             "id": 2,
             "competitionTitle": "AI Coding Sprint",
-            "date": "2025-11-11T00:00:00Z",
+            "date": "2025-11-11",
             "user_id": null
           },
         ],
