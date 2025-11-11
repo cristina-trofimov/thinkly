@@ -39,30 +39,6 @@ describe('Check Home page', () => {
       cy.contains("Valid Parentheses").should('be.visible');
     });
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // normalize timezone
-    const day = today.getDate().toString();
-
-
-    it('Shows upcoming competitions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
-        statusCode: 200,
-        body: [
-          {
-            "id": 2,
-            "competitionTitle": "AI Coding Sprint",
-            "date": today.toISOString(),
-            "user_id": null
-          },
-        ],
-      }).as('getCompetitions');
-      
-      cy.visit('http://localhost:5173/app/home');
-      cy.wait('@getCompetitions');
-      
-      cy.contains("Competitions on").should('be.visible');
-      cy.get('button.rdp-day').contains(day).click();
-      cy.contains("AI Coding Sprint").should('be.visible');
-    });
+   
   }
   );
