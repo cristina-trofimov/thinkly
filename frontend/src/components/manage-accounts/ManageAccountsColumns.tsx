@@ -26,6 +26,26 @@ import React from "react";
 
 import { AvatarInitials } from "../AvatarInitials";
 
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@radix-ui/react-switch";
+
 export type Account = {
   id: string;
   name: string;
@@ -134,13 +154,69 @@ export const columns: ColumnDef<Account>[] = [
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogContent>
-              <DialogHeader>
+              <FieldSet>
+                <FieldLegend>Edit User</FieldLegend>
+                <FieldDescription>
+                  Make changes to the user account here.
+                </FieldDescription>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="first_name">First Name</FieldLabel>
+                    <Input
+                      id="first_name"
+                      autoComplete="off"
+                      value={user.name.split(" ")[0]}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
+                    <Input
+                      id="last_name"
+                      autoComplete="off"
+                      value={user.name.split(" ")[1]}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                    <Input
+                      type="email"
+                      id="email"
+                      autoComplete="off"
+                      value={user.email}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="account_type">Account Type</FieldLabel>
+                    <Select defaultValue={user.accountType.toLowerCase()}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="participant">Participant</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="owner">Owner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field orientation="horizontal" className="justify-end">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit">Save Changes</Button>
+                  </Field>
+                </FieldGroup>
+              </FieldSet>
+              {/* <DialogHeader>
                 <DialogTitle>Edit User</DialogTitle>
                 <DialogDescription>
                   Make changes to the user account here.
                 </DialogDescription>
-              </DialogHeader>
-              <div className="flex gap-6">
+              </DialogHeader> */}
+              {/* <div className="flex gap-6">
                 <div className="items-center justify-center">
                   <AvatarInitials name={user.name} size="xl" className="mb-4" />
                 </div>
@@ -170,7 +246,7 @@ export const columns: ColumnDef<Account>[] = [
                   Cancel
                 </Button>
                 <Button className="ml-2">Save Changes</Button>
-              </div>
+              </div> */}
             </DialogContent>
           </Dialog>
         </>

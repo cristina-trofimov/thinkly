@@ -163,6 +163,10 @@ export function ManageAccountsDataTable<TData, TValue>({
     }
   };
 
+  const handleUpdate = async () => {
+    
+  }
+
   return (
     <div>
       <div className="flex items-center py-4 gap-3">
