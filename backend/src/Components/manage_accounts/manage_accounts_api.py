@@ -43,6 +43,7 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
     if not request.user_ids:
         raise HTTPException(status_code=400, detail="No user IDs provided")
 
+    status_code = 200
     deleted_count = 0
     deleted_users = []
     errors = []
@@ -70,7 +71,8 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
     if deleted_count == 0:
         raise HTTPException(status_code=500, detail="Failed to delete any users.")
 
-    status_code = 200 if not errors else 207
+    if (errors):
+        status_code = 207
     return JSONResponse(
         status_code=status_code,
         content={
@@ -84,10 +86,22 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
 
 @router.patch("/users/{user_id}")
 def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_db)):
-    fields_to_update = user.dict(exclude_unset=True)
+    fields_to_update = user.model_dump(exclude_unset=True)
 
     try:
         updated_user = crud_update_user(db, user_id=user_id, **fields_to_update)
-        return updated_user
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "User updated successfully",
+                "user": {
+                    "user_id": updated_user.user_id,
+                    "email": updated_user.email,
+                    "first_name": updated_user.first_name,
+                    "last_name": updated_user.last_name,
+                    "type": updated_user.type,
+                },
+            },
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
