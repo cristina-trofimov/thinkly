@@ -43,9 +43,15 @@ export default function ManageAccountsPage() {
     return <div>Error: {error}</div>;
   }
 
+  const handleDeleteUsers = (deletedUserIds: string[]) => {
+    setData(prevData => 
+      prevData.filter(account => !deletedUserIds.includes(account.id))
+    );
+  };
+
   return (
     <div className="container mx-auto py-10">
-      <ManageAccountsDataTable columns={columns} data={data} />
+      <ManageAccountsDataTable columns={columns} data={data} onDeleteUsers={handleDeleteUsers} />
     </div>
   );
 }
