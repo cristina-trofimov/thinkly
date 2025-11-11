@@ -263,7 +263,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               </AlertDialogContent>
             </AlertDialog>
             <Button variant="outline" onClick={handleCancel}>
-              <span className="ml-2 hidden md:inline-flex items-center">
+              <span className="hidden md:inline-flex items-center">
                 Cancel
               </span>
             </Button>

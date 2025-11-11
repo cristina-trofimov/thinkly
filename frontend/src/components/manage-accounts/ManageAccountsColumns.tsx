@@ -145,13 +145,13 @@ export const columns: ColumnDef<Account>[] = [
                   <AvatarInitials name={user.name} size="xl" className="mb-4" />
                 </div>
                 <div>
-                  <p>Name: {user.name}</p>
-                  <p>Email: {user.email}</p>
+                  <p><span className="text-primary font-semibold">Name:</span> {user.name}</p>
+                  <p><span className="text-primary font-semibold">Email:</span> {user.email}</p>
                   <div className="flex gap-3 items-center">
-                    <p>Account Type:</p>
+                    <p><span className="text-primary font-semibold">Account Type:</span></p>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline">{user.accountType}</Button>
+                        <Button size="sm" variant="outline">{user.accountType}</Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem>Participant</DropdownMenuItem>
@@ -167,7 +167,7 @@ export const columns: ColumnDef<Account>[] = [
                   variant="secondary"
                   onClick={() => setIsDialogOpen(false)}
                 >
-                  Close
+                  Cancel
                 </Button>
                 <Button className="ml-2">Save Changes</Button>
               </div>
