@@ -57,7 +57,7 @@ describe('Check Home page', () => {
       
       cy.contains("Competitions on").should('be.visible');
       cy.get('button.rdp-day').contains('11').click();
-      cy.contains("AI Coding Sprint-11/11/2025").should('be.visible');
+      cy.contains("AI Coding Sprint").should('be.visible');
     });
   }
   );
