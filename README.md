@@ -105,4 +105,4 @@ or </br>
 7. Name it ThinklyDB
 8. Make sure the Locale Provider under the Definition tab matches the template you use (libc or icu, or whatever else)
 9. In your terminal, cd backend then run ```python src/init_db.py```
-10. Then cd src (still in backend) and run ```python -m populateDB``
+10. Then cd src (still in backend) and run ```python -m populateDB```
