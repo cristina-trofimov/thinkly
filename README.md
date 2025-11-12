@@ -19,7 +19,7 @@ For more information, please visit our [wiki page](https://github.com/cristina-t
 ## Release Demos
 This section will be updated with links to demo videos for each release.
 
-- [Release 1 Demo](#)
+- [Release 1 Demo](https://drive.google.com/file/d/1UY-UVQ_1-taIfA-uz4j2in5PnTHg-oaL/view?usp=sharing)
 - [Release 2 Demo](#)
 - [Release 3 Demo](#)
 
