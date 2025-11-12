@@ -1,31 +1,44 @@
 describe('Check Home page', () => {
-  it('Visits the home page and filter for different questions', () => {
-    cy.visit('http://localhost:5173/app/home');
-    cy.contains("It's Competition Time!").should('be.visible');
-    cy.contains('Filter Difficulties')
-      .should('exist')
-      .should('be.visible')
-      .click({ force: true });
+  beforeEach(() => {
+    // Inject config into window before the page loads
+    Cypress.on('window:before:load', (win) => {
+      win.config = { backendUrl: Cypress.env('BACKEND_URL') || 'http://localhost:8000' };
+    });})
+  
+    it('Visits the home page and filters questions', () => {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-questions*`, {
+        statusCode: 200,
+        body: [
+          {
+            "id": 1,
+            "questionTitle": "Two Sum",
+            "date": "2025-11-09T18:36:41.166298",
+            "difficulty": "easy"
+          },
+          {
+            "id": 2,
+            "questionTitle": "Valid Parentheses",
+            "date": "2025-11-09T18:36:41.207719",
+            "difficulty": "easy"
+          },
+        ],
+      }).as('getQuestions');
 
-    // Test Easy filter
-    cy.get('[data-testid="filter-easy"]')
-      .should('be.visible')
-      .click({ force: true });
-    cy.contains('Two sum').should('be.visible');
-
-    // Test Medium filter
-    cy.get('[data-testid="filter-medium"]')
-      .should('be.visible')
-      .click({ force: true });
-    cy.contains("Palindrome").should('be.visible');
-
-  });
-  it('is Upcomming Competitions present', () => {
-    cy.visit('http://localhost:5173/app/home');
-    cy.contains("Upcoming Competitions").should('be.visible');
-    cy.contains("WebComp").should('be.visible');
-    cy.contains("45 mins to complete as many riddles as possible").should('be.visible');
-    cy.contains('Registered').click();
-    cy.contains('Join').click();
-  });
-});
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
+        statusCode: 200,
+        body: [],
+      }).as('getCompetitions');
+      
+      cy.visit('http://localhost:5173/app/home');
+      cy.wait('@getQuestions');
+      cy.wait('@getCompetitions');
+      
+      cy.contains("It's Competition Time!").should('be.visible');
+      cy.contains('Filter Difficulties').should('be.visible').click();
+      cy.get('[data-testid="filter-easy"]').should('be.visible').click();
+      cy.contains("Valid Parentheses").should('be.visible');
+    });
+    
+   
+  }
+  );

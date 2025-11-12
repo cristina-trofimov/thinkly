@@ -1,63 +1,84 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import CodingView from '../src/components/codingPage/CodingView'
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { jest } from '@jest/globals';
+import { beforeEach } from 'node:test'
 import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen, act } from "@testing-library/react"
+import CodingView from '../src/components/codingPage/CodingView'
 
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     __esModule: true,
     default: () => <div data-testid="desc-area" />
 }))
 
-jest.mock('../src/components/codingPage/CodingArea', () => ({
-    __esModule: true,
-    default: () => <div data-testid="coding-area" />
-}))
-
 jest.mock("../src/components/ui/shadcn-io/sandbox", () => ({
     SandboxProvider: ({ children }: any) => <div data-testid="sandbox-provider" >{children}</div>,
     SandboxLayout: ({ children }: any) => <div data-testid="sandbox-layout" >{children}</div>,
     SandboxTabs: ({ children }: any) => <div data-testid="sandbox-tabs" >{children}</div>,
-    SandboxTabsContent: ({ children }: any) => <div data-testid="sandbox-tabs-content" >{children}</div>,
+    SandboxTabsList: ({ children }: any) => <div data-testid="sandbox-tabs-list" >{children}</div>,
+    SandboxTabsTrigger: ({ children }: any) => <div data-testid='sandbox-tabs-trigger' >{children}</div>,
+    SandboxTabsContent: ({ children }) => <div data-testid='sandbox-tabs-content'>{children}</div>,
     SandboxPreview: () => <div data-testid="sandbox-preview" />,
     SandboxConsole: () => <div data-testid="sandbox-console" />,
+    SandboxCodeEditor: () => <div data-testid="sandbox-code-editor" />,
 }))
 
 jest.mock("../src/components/ui/dropdown-menu", () => ({
+    __esModule: true,
     DropdownMenu: ({ children }: any) => <div data-testid="languageDropdown" >{children}</div>,
-    DropdownMenuTrigger: ({ children, asChild }: any) => asChild ? children : <button data-testid="languageBtn">{children}</button>,
+    DropdownMenuTrigger: ({ children, asChild, ...props }: any) => 
+        asChild ? React.cloneElement(children, props) : <button data-testid="languageBtn" {...props} >{children}</button>,
     DropdownMenuContent: ({ children }: any) => <div data-testid="languageMenu" >{children}</div>,
     DropdownMenuItem: ({ children, ...props }: any) => <div data-testid={`languageItem-${children}`} {...props} role='menuitem' >{children}</div>,
 }))
 
 jest.mock("../src/components/ui/resizable", () => ({
-    ResizablePanelGroup: ({ children }: any) => <div data-testid="resizable-group">{children}</div>,
+    __esModule: true,
+    ResizablePanelGroup: ({ children }: any) => <div data-testid="resizable-group" >{children}</div>,
     ResizablePanel: React.forwardRef(({ children }: any, ref) => {
       React.useImperativeHandle(ref, () => ({
         resize: jest.fn(), // allow testing of resize() calls
       }));
-      return <div data-testid="resizable-panel">{children}</div>;
+      return <div data-testid="resizable-panel" >{children}</div>;
     }),
     ResizableHandle: () => <div data-testid="resizable-handle" />,
 }))
 
 jest.mock("../src/components/helpers/SandpackConfig", () => ({
+    __esModule: true,
     getSandpackConfigs: jest.fn(() => ({
-      javascript: {
-        template: "react",
-        files: { "/App.js": "console.log('test');" },
+      Javascript: {
+        template: "vanilla",
+        files: { "/index.js": { code: "console.log('test javascript')"} },
+      },
+      Typescript: {
+        template: "vanilla-ts",
+        files: { "/index.ts": { code: "console.log('test typescript')"} },
       },
     })),
 }))
 
 jest.mock("../src/components/helpers/UseStateCallback", () => ({
+    __esModule: true,
     useStateCallback: (initial: any) => {
       const [value, setValue] = React.useState(initial)
       return [value, (v: any) => setValue(v), jest.fn()]
     },
 }))
 
+const nullRef = { current: null }
+
+jest.spyOn(React, 'useRef')
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+    .mockImplementationOnce(() => nullRef)
+
 describe('CodingView Component', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+    
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
         render(<CodingView />)
         expect(screen.getAllByTestId("resizable-panel").length).toBe(4)
@@ -65,6 +86,16 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId("sandbox-preview")).toBeInTheDocument()
         expect(screen.getByTestId("sandbox-console")).toBeInTheDocument()
         expect(screen.getByTestId("sandbox-provider")).toBeInTheDocument()
+        expect(screen.getByTestId("desc-area")).toBeInTheDocument()
+    })
+    
+    it("doesn't call panelRef.current.resize when refs are not set", async () => {
+        render(<CodingView />)
+        await act(async () => {
+            fireEvent.click(screen.getByTestId('code-area-fullscreen'))
+        })
+
+        expect(nullRef.current?.resize).toBeUndefined();
     })
 
     it('shows dropdown with languages and updates selected language', async () => {
@@ -87,10 +118,10 @@ describe('CodingView Component', () => {
 
     it('collapses and uncollapses code area', async () => {
         render(<CodingView />)
-        const fullscreenBtn = screen.getByTestId('code-area-collapse')
+        const collapseAreaBtn = screen.getByTestId('code-area-collapse')
         expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
+        await userEvent.click(collapseAreaBtn)
         expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
     })
 
@@ -105,10 +136,32 @@ describe('CodingView Component', () => {
 
     it('collapses and uncollapses output area', async () => {
         render(<CodingView />)
-        const fullscreenBtn = screen.getByTestId('output-area-collapse')
+        const collapseOutputBtn = screen.getByTestId('output-area-collapse')
         expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
+        await userEvent.click(collapseOutputBtn)
         expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+    })
+
+    it('collapses both areas when output area is collapsed and console is already collapsed', async () => {
+        render(<CodingView />)
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+        expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+        
+        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
+    })
+
+    it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
+        render(<CodingView />)
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+        expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+        
+        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
     })
 })

@@ -1,19 +1,25 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { IconCirclePlusFilled } from "@tabler/icons-react";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
+import CreateCompetitionDialog from "./CreateCompetitionDialog"
 import { useNavigate } from "react-router-dom"; 
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <div className="flex flex-col w-full">
       <div className="border-b border-[#E5E5E5] bg-white">
         <div className="flex justify-between items-center py-4 px-10">
           <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
-          <Button className="bg-[#8065CD] hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]">
+          <Button 
+            onClick={() => setDialogOpen(true)}
+            className="bg-primary hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]"
+          >
             <IconCirclePlusFilled className="h-4 w-4 text-white" />
             <span className="text-sm font-medium">Create Competition</span>
           </Button>
@@ -53,9 +59,7 @@ export function AdminDashboard() {
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
-        </div>
-        
-        <div onClick={() => navigate('competitions')} className="cursor-pointer">
+        <div onClick={() => navigate('/app/dashboard/competitions')} className="cursor-pointer">
           <ManageCard
             title="Manage Competitions"
             items={[
@@ -74,6 +78,12 @@ export function AdminDashboard() {
       </div>
 
       <TechnicalIssuesChart />
+
+      <CreateCompetitionDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen}
+        key={dialogOpen ? 'open' : 'closed'}
+      />
     </div>
   );
 }

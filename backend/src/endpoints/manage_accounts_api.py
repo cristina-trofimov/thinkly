@@ -10,12 +10,20 @@ from DB_Methods.crudOperations import (
     update_user as crud_update_user,
 )
 from models.schema import User, Competition, Scoreboard, UserResult
-from Components.manage_accounts.UserUpdateSchema import UserUpdateSchema
+from typing import Optional
 
 router = APIRouter()
 
 class BatchDeleteRequest(BaseModel):
     user_ids: List[int]
+
+class UserUpdateSchema(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    password_hash: Optional[str] = None
+    type: Optional[str] = None
 
 def get_db():
     db = SessionLocal()

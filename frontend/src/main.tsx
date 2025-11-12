@@ -16,6 +16,7 @@ import CodingView from './components/codingPage/CodingView.tsx'
 import HomePage from './views/HomePage.tsx';
 import SignupPage from './views/SignupPage.tsx';
 import ManageCompetitions from './components/manage-competitions/ManageCompetitionsPage.tsx'
+import ErrorPage from './components/ErrorPage.tsx';
 import ManageAccountsPage from './components/manage-accounts/ManageAccountsPage.tsx';
 
 const router = createBrowserRouter([
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
   {
     path: "/app", // 👈 everything else under /app
     element: <Layout />,
+    errorElement: <ErrorPage />,
     handle: {
       crumb: { title: "Home" }
     },

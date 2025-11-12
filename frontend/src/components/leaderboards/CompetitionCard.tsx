@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { Competition } from "./Leaderboards";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
+import type { Competition } from "../interfaces/Competition";
 
 interface Props {
   readonly competition: Competition;

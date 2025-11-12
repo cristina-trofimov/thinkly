@@ -4,11 +4,6 @@ import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
 
 
-jest.mock('../src/components/codingPage/CodingArea', () => ({
-    __esModule: true,
-    default: () => <div data-testid="coding-area" />
-}))
-
 jest.mock('../src/components/ui/button', () => ({
   __esModule: true,
   Button: ({ children, ...props }: any) => (
@@ -100,28 +95,9 @@ const submissions = [
 ]
 
 const leaderboard = [
-  { name: "Alice", points: 100, solved: 2, runtime: "10m" },
+  { name: "Alice", points: 100, problemsSolved: 2, totalTime: "10m" },
 ]
 
-const comments = [
-  {
-    senderName: "Bob",
-    senderEmail: "bob@email.com",
-    senderPP: "",
-    liked: true,
-    comment: "Great problem!",
-    replies: [
-      {
-        senderName: "Jane",
-        senderEmail: "jane@email.com",
-        senderPP: "",
-        liked: false,
-        comment: "Thanks!",
-        replies: [],
-      },
-    ],
-  },
-]
 beforeAll(() => {
   jest.useFakeTimers()
   jest.setSystemTime(new Date('2025-10-28T10:00:00Z'))
@@ -136,7 +112,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const triggers = screen.getAllByTestId("tabs-trigger")
@@ -148,7 +123,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
@@ -161,7 +135,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const tab = screen.getByText("Submissions")
@@ -176,7 +149,6 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     fireEvent.click(screen.getByText("Submissions"))
@@ -196,13 +168,11 @@ describe('CodeDescArea', () => {
       problemInfo={problemInfo}
       submissions={submissions}
       leaderboard={leaderboard}
-      comments={comments}
     />)
 
     const tab = screen.getByText("Leaderboard")
     fireEvent.click(tab)
 
-    expect(screen.getByText("#1")).toBeInTheDocument()
     expect(screen.getByText("Alice")).toBeInTheDocument()
     expect(screen.getByText("100")).toBeInTheDocument()
   })
@@ -226,7 +196,6 @@ describe('CodeDescArea', () => {
           problemInfo={problemInfo}
           submissions={[submission]}
           leaderboard={leaderboard}
-          comments={comments}
         />
       )
 

@@ -4,20 +4,7 @@ import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import { config } from '../../config';
-
-type Competitor = {
-  name: string;
-  points: number;
-  problemsSolved: number;
-  totalTime: string;
-};
-
-export type Competition = {
-  id: string;
-  name: string;
-  date: string;
-  participants: Competitor[];
-};
+import type { Competition } from "../interfaces/Competition";
 
 export function Leaderboards(){
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -26,8 +13,19 @@ export function Leaderboards(){
 
   // Fetch from FastAPI backend
 useEffect(() => {
-  fetch(config.backendUrl + "/leaderboards")
-    .then((res) => res.json())
+  fetch(config.backendUrl + "/leaderboards/", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include", // Important for cookies/JWT
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
     .then((data) => setCompetitions(data))
     .catch((err) => console.error("Error loading leaderboards:", err));
 }, []);
