@@ -1,100 +1,105 @@
 name: Code Analysis
 on:
- push:
-   branches:
-     - '**'
- pull_request:
-  types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
     
 jobs:
- analysis:
-   name: SonarQube and CodeCov
-   runs-on: ubuntu-latest
-   steps:
-     - uses: actions/checkout@v4
-       with:
-         fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+  analysis:
+    name: SonarQube and CodeCov
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
  
-    # Frontend setup
-     - name: Set up Node
-       uses: actions/setup-node@v4
+      # Frontend setup
+      - name: Set up Node
+        uses: actions/setup-node@v4
 
-     - name: Install dependencies
-       run: npm install
-       working-directory: ./frontend
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./frontend
 
-     - name: Run tests with coverage
-       run: npm test -- --coverage --coverageDirectory=coverage
-       working-directory: ./frontend
+      - name: Run tests with coverage
+        run: npm test -- --coverage --coverageDirectory=coverage
+        working-directory: ./frontend
 
-    #  Backend setup
+      #  Backend setup
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r ./src/requirements.txt
+        working-directory: ./backend
 
-     - name: Create virtual environment and install dependencies
-       run: |
-        python -m venv .venv
-        source .venv/bin/activate
-        pip install -r ./src/requirements.txt
-       working-directory: ./backend
+      - name: Run backend tests with coverage
+        run: |
+          source .venv/bin/activate
+          pytest --cov=src --cov-branch --cov-report=xml:coverage.xml
+        working-directory: ./backend
+        env:
+          PYTHONPATH: .
+          BREVO_API_KEY: test-brevo-key
+          DEFAULT_SENDER_EMAIL: test@example.com
 
-     - name: Run backend tests with coverage
-       run: |
-        source .venv/bin/activate
-        pytest --cov=src --cov-branch --cov-report=xml:coverage.xml
-       working-directory: ./backend
-       env:
-         PYTHONPATH: .
-         BREVO_API_KEY: test-brevo-key
-         DEFAULT_SENDER_EMAIL: test@example.com
+      - name: Debug - Frontend coverage directory
+        run: ls -la ./frontend/coverage || echo "Frontend coverage directory not found"
+      
+      - name: Debug - Check for lcov.info
+        run: cat ./frontend/coverage/lcov.info || echo "lcov.info not found"
 
-     - name: Debug - Frontend coverage directory
-       run: ls -la ./frontend/coverage || echo "Frontend coverage directory not found"
-     
-     - name: Debug - Check for lcov.info
-       run: cat ./frontend/coverage/lcov.info || echo "lcov.info not found"
+      - name: Debug - Backend coverage directory
+        run: ls -la ./backend/coverage.xml || echo "Backend coverage directory not found"
+      
+      - name: Debug - Check for coverage.xml
+        run: cat ./backend/coverage.xml || echo "coverage.xml not found"
+          
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.verbose=true
+            -Dsonar.projectBaseDir=.
+            -Dsonar.sources=./frontend/src,./backend/src
+            -Dsonar.tests=./frontend/tests,./backend/tests
+            -Dsonar.javascript.lcov.reportPaths=./frontend/coverage/lcov.info
+            -Dsonar.python.coverage.reportPaths=./backend/coverage.xml
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-     - name: Debug - Backend coverage directory
-       run: ls -la ./backend/coverage.xml || echo "Backend coverage directory not found"
-     
-     - name: Debug - Check for coverage.xml
-       run: cat ./backend/coverage.xml || echo "coverage.xml not found"
-        
-     - name: SonarQube Scan
-       uses: SonarSource/sonarqube-scan-action@v6
-       env:
-         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        #  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-       with:
-        args: >
-          -Dsonar.verbose=true
-          -Dsonar.projectBaseDir=.
-          -Dsonar.sources=./frontend/src,./backend/src
-          -Dsonar.tests=./frontend/tests,./backend/tests
-          -Dsonar.javascript.lcov.reportPaths=./frontend/coverage/lcov.info
-          -Dsonar.python.coverage.reportPaths=./backend/coverage.xml
-          -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-          -Dsonar.pullrequest.branch=${{ github.head_ref }}
-          -Dsonar.pullrequest.base=${{ github.base_ref }}
+      - name: Fetch full git history for Codecov
+        run: |
+          git fetch --unshallow || true
+          git fetch origin +refs/heads/*:refs/remotes/origin/*        
 
-     - name: Upload frontend coverage to Codecov
-       uses: codecov/codecov-action@v5
-       with:
-         token: ${{ secrets.CODECOV_TOKEN }}
-         files: ./frontend/coverage/lcov.info
-         working-directory: ./frontend
-         flags: frontend
-         name: frontend
-         cwd: frontend
-         fail_ci_if_error: false
-         verbose: true
+      - name: Upload frontend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          commit_parent: ${{ github.event.pull_request.base.sha }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          working-directory: ./frontend
+          flags: frontend
+          name: frontend
+          cwd: frontend
+          fail_ci_if_error: false
+          verbose: true
 
-     - name: Upload backend coverage to Codecov
-       uses: codecov/codecov-action@v5
-       with:
-         token: ${{ secrets.CODECOV_TOKEN }}
-         files: ./backend/coverage.xml
-         working-directory: ./backend
-         flags: backend
-         name: backend
-         cwd: backend
-         fail_ci_if_error: false
-         verbose: true
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          commit_parent: ${{ github.event.pull_request.base.sha }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/coverage.xml
+          working-directory: ./backend
+          flags: backend
+          name: backend
+          cwd: backend
+          fail_ci_if_error: false
+          verbose: true
