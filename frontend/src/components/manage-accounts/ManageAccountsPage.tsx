@@ -49,11 +49,11 @@ export default function ManageAccountsPage() {
     );
   };
 
-  const handleUserUpdate = (updatedUser: Account) => {
-    setData(prevData =>
-      prevData.map(account => account.id === updatedUser.id ? updatedUser : account)
-    );
-  }
+  // const handleUserUpdate = (updatedUser: Account) => {
+  //   setData(prevData =>
+  //     prevData.map(account => account.id === updatedUser.id ? updatedUser : account)
+  //   );
+  // }
 
   return (
     <div className="container mx-auto py-10">

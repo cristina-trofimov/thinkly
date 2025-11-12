@@ -256,7 +256,7 @@ export const columns: ColumnDef<Account>[] = [
                     <FieldLabel htmlFor="account_type">Account Type</FieldLabel>
                     <Select defaultValue={accountType} onValueChange={setAccountType}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose department" />
+                        <SelectValue placeholder="Choose account type" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="participant">Participant</SelectItem>
@@ -277,43 +277,6 @@ export const columns: ColumnDef<Account>[] = [
                   </Field>
                 </FieldGroup>
               </FieldSet>
-              {/* <DialogHeader>
-                <DialogTitle>Edit User</DialogTitle>
-                <DialogDescription>
-                  Make changes to the user account here.
-                </DialogDescription>
-              </DialogHeader> */}
-              {/* <div className="flex gap-6">
-                <div className="items-center justify-center">
-                  <AvatarInitials name={user.name} size="xl" className="mb-4" />
-                </div>
-                <div>
-                  <p><span className="text-primary font-semibold">Name:</span> {user.name}</p>
-                  <p><span className="text-primary font-semibold">Email:</span> {user.email}</p>
-                  <div className="flex gap-3 items-center">
-                    <p><span className="text-primary font-semibold">Account Type:</span></p>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="outline">{user.accountType}</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem>Participant</DropdownMenuItem>
-                        <DropdownMenuItem>Admin</DropdownMenuItem>
-                        <DropdownMenuItem>Owner</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <Button
-                  variant="secondary"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button className="ml-2">Save Changes</Button>
-              </div> */}
             </DialogContent>
           </Dialog>
         </>

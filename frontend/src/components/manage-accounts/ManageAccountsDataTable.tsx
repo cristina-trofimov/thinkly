@@ -43,6 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Plus,
 } from "lucide-react";
 
 import {
@@ -59,6 +60,26 @@ import {
 import type { Account } from "./ManageAccountsColumns";
 import { config } from "../../config";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "../ui/dialog";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "../ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -76,6 +97,7 @@ export function ManageAccountsDataTable<TData, TValue>({
     []
   );
 
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState({});
   const [isEditMode, setIsEditMode] = React.useState(false);
 
@@ -155,7 +177,6 @@ export function ManageAccountsDataTable<TData, TValue>({
           onDeleteUsers?.(deletedIds);
         }
       }
-
     } catch (error) {
       console.error("Error deleting users:", error);
     } finally {
@@ -226,16 +247,77 @@ export function ManageAccountsDataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
         {!isEditMode ? (
-          <Button
-            variant={"secondary"}
-            className="ml-auto"
-            onClick={() => setIsEditMode(true)}
-          >
-            <SquarePen className="h-4 w-4 text-primary" />
-            <span className="ml-2 hidden md:inline-flex items-center">
-              Edit
-            </span>
-          </Button>
+          <div className="ml-auto flex gap-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="ml-auto">
+                  <Plus strokeWidth={2.5} />
+                  <span className="hidden md:inline-flex">Create User</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <FieldSet>
+                  <FieldLegend className="font-semibold">Create User</FieldLegend>
+                  <FieldDescription>
+                    Fill out the details to create a new user account.
+                  </FieldDescription>
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="first_name">First Name</FieldLabel>
+                      <Input id="first_name" autoComplete="off" placeholder="John" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
+                      <Input id="last_name" autoComplete="off" placeholder="Doe" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="email">Email</FieldLabel>
+                      <Input type="email" id="email" autoComplete="off" placeholder="johndoe@example.com" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="password">Password</FieldLabel>
+                      <Input type="password" id="password" autoComplete="off" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="confirm_password">Confirm Password</FieldLabel>
+                      <Input type="password" id="confirm_password" autoComplete="off" required />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="account_type">
+                        Account Type
+                      </FieldLabel>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose account type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="participant">
+                            Participant
+                          </SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="owner">Owner</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field orientation="horizontal" className="justify-end">
+                      <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit">Create</Button>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              className="ml-auto"
+              onClick={() => setIsEditMode(true)}
+            >
+              <SquarePen className="text-primary" />
+              <span className="hidden md:inline-flex">Edit</span>
+            </Button>
+          </div>
         ) : (
           <div className="ml-auto flex gap-2">
             <AlertDialog>
@@ -268,9 +350,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               </AlertDialogContent>
             </AlertDialog>
             <Button variant="outline" onClick={handleCancel}>
-              <span className="hidden md:inline-flex items-center">
-                Cancel
-              </span>
+              <span className="hidden md:inline-flex items-center">Cancel</span>
             </Button>
           </div>
         )}
