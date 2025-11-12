@@ -12,7 +12,7 @@ from DB_Methods.crudOperations import (
 from models.schema import User, Competition, Scoreboard, UserResult
 from typing import Optional
 
-router = APIRouter()
+manage_accounts_router = APIRouter(tags=["Manage Accounts"])
 
 class BatchDeleteRequest(BaseModel):
     user_ids: List[int]
@@ -32,7 +32,7 @@ def get_db():
     finally:
         db.close()
 
-@router.get("/users")
+@manage_accounts_router.get("/users")
 def get_all_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     result = []
@@ -46,7 +46,7 @@ def get_all_users(db: Session = Depends(get_db)):
         })
     return result
 
-@router.delete("/users/batch-delete")
+@manage_accounts_router.delete("/users/batch-delete")
 def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
     if not request.user_ids:
         raise HTTPException(status_code=400, detail="No user IDs provided")
@@ -92,7 +92,7 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
         },
     )
 
-@router.patch("/users/{user_id}")
+@manage_accounts_router.patch("/users/{user_id}")
 def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_db)):
     fields_to_update = user.model_dump(exclude_unset=True)
 

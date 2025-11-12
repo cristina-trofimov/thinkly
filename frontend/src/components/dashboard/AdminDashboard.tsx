@@ -25,7 +25,7 @@ export function AdminDashboard() {
           </Button>
         </div>
       </div>
-
+      
       <div className="flex gap-6 mt-6 px-6">
         <StatsCard
           title="New Accounts"
@@ -49,9 +49,8 @@ export function AdminDashboard() {
           showStar
         />
       </div>
-
       <div className="flex gap-4 mt-6 px-6">
-        <div onClick={() => navigate('manage-accounts')} className="cursor-pointer">
+        <div onClick={() => navigate('/app/dashboard/manage-accounts')} className="cursor-pointer">
           <ManageCard
           title="Manage Accounts"
           items={[
@@ -59,6 +58,7 @@ export function AdminDashboard() {
             { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
           ]}
         />
+        </div>
         <div onClick={() => navigate('/app/dashboard/competitions')} className="cursor-pointer">
           <ManageCard
             title="Manage Competitions"
@@ -76,9 +76,7 @@ export function AdminDashboard() {
           ]}
         />
       </div>
-
       <TechnicalIssuesChart />
-
       <CreateCompetitionDialog 
         open={dialogOpen} 
         onOpenChange={setDialogOpen}
@@ -87,5 +85,4 @@ export function AdminDashboard() {
     </div>
   );
 }
-
 export default AdminDashboard;
