@@ -137,20 +137,22 @@ export function ManageAccountsDataTable<TData, TValue>({
         return;
       }
 
+      const deletedIds = data.deleted_users.map((user: any) => user.user_id);
+
       if (response.status === 200) {
         toast.success(`Successfully deleted ${data.deleted_count} user(s).`);
         console.log("Deleted users:", data.deleted_users);
-        onDeleteUsers?.(userIds);
+        onDeleteUsers?.(deletedIds);
       } else if (response.status === 207) {
         toast.success(
-          `Deleted ${data.deleted_count}/${data.total_requested} user(s) successfully.`
+          `Deleted ${data.deleted_count}/${data.total_requested} users successfully.`
         );
         console.log("Deleted users:", data.deleted_users);
 
         if (data.errors && data.errors.length > 0) {
           console.warn("Partial deletion errors:", data.errors);
           toast.warning(`${data.errors.length} users could not be deleted.`);
-          onDeleteUsers?.(userIds);
+          onDeleteUsers?.(deletedIds);
         }
       }
 
@@ -162,9 +164,9 @@ export function ManageAccountsDataTable<TData, TValue>({
     }
   };
 
-  const handleUpdate = async () => {
+  // const handleUpdate = async () => {
 
-  }
+  // }
 
   return (
     <div>
