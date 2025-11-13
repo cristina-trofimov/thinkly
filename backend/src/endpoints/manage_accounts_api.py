@@ -9,7 +9,7 @@ from DB_Methods.crudOperations import (
     get_user_by_id,
     update_user as crud_update_user,
 )
-from models.schema import User, Competition, Scoreboard, UserResult
+from models.schema import User
 from typing import Optional
 
 manage_accounts_router = APIRouter(tags=["Manage Accounts"])

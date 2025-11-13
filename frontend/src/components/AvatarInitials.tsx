@@ -12,7 +12,7 @@ const sizeClasses = {
   xl: "h-30 w-30 text-4xl",
 };
 
-export function getInitials(name: string): string {
+function getInitials(name: string): string {
   const nameSeparated = name.trim().split(" ").filter(Boolean);
   
   const firstInitial = nameSeparated[0]?.[0].toUpperCase() ?? "";

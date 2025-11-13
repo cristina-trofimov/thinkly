@@ -15,9 +15,10 @@ export default function ManageAccountsPage() {
         const users = await getAccounts();
 
         setData(users);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Failed to fetch users:", error);
-        setError(error.message);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+        setError(errorMessage);
       } finally {
         setLoading(false);
       }

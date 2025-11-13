@@ -61,7 +61,7 @@ import { toast } from "sonner";
 import { deleteAccounts } from "@/api/manageAccounts";
 
 declare module "@tanstack/react-table" {
-  interface TableMeta<TData extends unknown> {
+  interface TableMeta<TData> {
     onUserUpdate?: (updatedUser: Account) => void;
   }
 }
@@ -125,9 +125,7 @@ export function ManageAccountsDataTable<TData, TValue>({
 
       console.log("Delete response:", response);
 
-      const deletedIds = response.deleted_users.map(
-        (user: any) => user.user_id
-      );
+      const deletedIds = response.deleted_users.map((user) => user.user_id);
 
       if (
         response.errors &&
@@ -148,11 +146,13 @@ export function ManageAccountsDataTable<TData, TValue>({
         console.log("Deleted users:", response.deleted_users);
         onDeleteUsers?.(deletedIds);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting users:", error);
 
+      const axiosError = error as { response?: { data?: { detail?: string } } };
       const errorMessage =
-        error.response?.data?.detail || "Failed to delete selected user(s).";
+        axiosError.response?.data?.detail ||
+        "Failed to delete selected user(s).";
 
       toast.error(errorMessage);
     } finally {
