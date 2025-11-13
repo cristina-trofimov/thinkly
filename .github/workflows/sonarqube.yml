@@ -1,10 +1,9 @@
 name: Code Analysis
 on:
   push:
-    branches:
-      - '**'
+    branches: [main] # Upload coverage for base branch
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened] # re-run when opening or re-opening a pr, on new commits are made to it
     
 jobs:
   analysis:
@@ -14,22 +13,29 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.head_ref || github.ref_name }}
  
       # Frontend setup
       - name: Set up Node
         uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm install
         working-directory: ./frontend
 
-      - name: Run tests with coverage
+      - name: Run frontent tests with coverage
         run: npm test -- --coverage --coverageDirectory=coverage
         working-directory: ./frontend
 
       #  Backend setup
-      - name: Create virtual environment and install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create virtual environment and install backend dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -60,6 +66,7 @@ jobs:
           
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
+        if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
@@ -76,6 +83,7 @@ jobs:
 
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v5
+        if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./frontend/coverage/lcov.info
@@ -88,6 +96,7 @@ jobs:
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
+        if: ${{ github.event_name == 'pull_request' || github.ref_name == 'main' }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./backend/coverage.xml
