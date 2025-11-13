@@ -43,7 +43,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
-  Plus,
 } from "lucide-react";
 
 import {
@@ -59,41 +58,23 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Account } from "./ManageAccountsColumns";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "../ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { deleteAccounts } from "@/api/manageAccounts";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onDeleteUsers?: (deletedUserIds: number[]) => void;
+  onUserUpdate?: (updatedUser: Account) => void;
 }
 
 export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
   onDeleteUsers,
+  onUserUpdate,
 }: ManageAccountsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [isEditMode, setIsEditMode] = React.useState(false);
 
@@ -133,9 +114,15 @@ export function ManageAccountsDataTable<TData, TValue>({
 
       console.log("Delete response:", response);
 
-      const deletedIds = response.deleted_users.map((user: any) => user.user_id);
+      const deletedIds = response.deleted_users.map(
+        (user: any) => user.user_id
+      );
 
-      if (response.errors && response.errors.length && response.deleted_count > 0) {
+      if (
+        response.errors &&
+        response.errors.length &&
+        response.deleted_count > 0
+      ) {
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
@@ -143,14 +130,14 @@ export function ManageAccountsDataTable<TData, TValue>({
         console.warn("Partial deletion errors:", response.errors);
         toast.warning(`${response.errors.length} users could not be deleted.`);
         onDeleteUsers?.(deletedIds);
-      }
-      else {
-        toast.success(`Successfully deleted ${response.deleted_count} user(s).`);
+      } else {
+        toast.success(
+          `Successfully deleted ${response.deleted_count} user(s).`
+        );
         console.log("Deleted users:", response.deleted_users);
         onDeleteUsers?.(deletedIds);
       }
     } catch (error: any) {
-
       console.error("Error deleting users:", error);
 
       const errorMessage =
@@ -225,111 +212,14 @@ export function ManageAccountsDataTable<TData, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
         {!isEditMode ? (
-          <div className="ml-auto flex gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="ml-auto">
-                  <Plus strokeWidth={2.5} />
-                  <span className="hidden md:inline-flex">Create User</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <FieldSet>
-                  <FieldLegend className="font-semibold">
-                    Create User
-                  </FieldLegend>
-                  <FieldDescription>
-                    Fill out the details to create a new user account.
-                  </FieldDescription>
-                  <FieldGroup>
-                    <Field>
-                      <FieldLabel htmlFor="first_name">First Name</FieldLabel>
-                      <Input
-                        id="first_name"
-                        autoComplete="off"
-                        placeholder="John"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
-                      <Input
-                        id="last_name"
-                        autoComplete="off"
-                        placeholder="Doe"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="email">Email</FieldLabel>
-                      <Input
-                        type="email"
-                        id="email"
-                        autoComplete="off"
-                        placeholder="johndoe@example.com"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="password">Password</FieldLabel>
-                      <Input
-                        type="password"
-                        id="password"
-                        autoComplete="off"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="confirm_password">
-                        Confirm Password
-                      </FieldLabel>
-                      <Input
-                        type="password"
-                        id="confirm_password"
-                        autoComplete="off"
-                        required
-                      />
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="account_type">
-                        Account Type
-                      </FieldLabel>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose account type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="participant">
-                            Participant
-                          </SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="owner">Owner</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field orientation="horizontal" className="justify-end">
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => setIsDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit">Create</Button>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-              </DialogContent>
-            </Dialog>
-            <Button
-              variant="outline"
-              className="ml-auto"
-              onClick={() => setIsEditMode(true)}
-            >
-              <SquarePen className="text-primary" />
-              <span className="hidden md:inline-flex">Edit</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            className="ml-auto"
+            onClick={() => setIsEditMode(true)}
+          >
+            <SquarePen className="text-primary" />
+            <span className="hidden md:inline-flex">Edit</span>
+          </Button>
         ) : (
           <div className="ml-auto flex gap-2">
             <AlertDialog>

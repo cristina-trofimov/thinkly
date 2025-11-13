@@ -12,11 +12,12 @@ export async function getAccounts(): Promise<Account[]> {
         email: string;
         type: "Participant" | "Admin" | "Owner";
       }[]
-    >(`${config.backendUrl}/manage-accounts/users`);
+    >("/manage-accounts/users");
 
     const formattedAccounts: Account[] = response.data.map((user) => ({
       id: user.user_id,
-      name: `${user.first_name} ${user.last_name}`,
+      firstName: user.first_name,
+      lastName: user.last_name,
       email: user.email,
       accountType: user.type,
     }));
@@ -37,7 +38,7 @@ export async function deleteAccounts(userIds: number[]): Promise<{
 }> {
   try {
     const response = await axiosClient.delete(
-      "manage-accounts/users/batch-delete",
+      "/manage-accounts/users/batch-delete",
       {
         data: { user_ids: userIds.map((id) => id) },
       }
@@ -45,6 +46,38 @@ export async function deleteAccounts(userIds: number[]): Promise<{
     return response.data;
   } catch (err) {
     console.error("Error deleting users:", err);
+    throw err;
+  }
+}
+
+export async function updateAccount(
+  userId: number,
+  updatedFields: Record<string, string>
+): Promise<Account[]> {
+  try {
+    const updatedAccount = await axiosClient.patch<
+      {
+        user_id: number;
+        first_name: string;
+        last_name: string;
+        email: string;
+        type: "Participant" | "Admin" | "Owner";
+      }
+    >(`/manage-accounts/users/${userId}`, updatedFields);
+
+    const formattedAccounts: Account[] = [
+      {
+        id: updatedAccount.data.user_id,
+        firstName: updatedAccount.data.first_name,
+        lastName: updatedAccount.data.last_name,
+        email: updatedAccount.data.email,
+        accountType: updatedAccount.data.type,
+      },
+    ];
+
+    return formattedAccounts;
+  } catch (err) {
+    console.error("Error updating user:", err);
     throw err;
   }
 }

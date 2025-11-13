@@ -101,14 +101,11 @@ def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_
         return JSONResponse(
             status_code=200,
             content={
-                "message": "User updated successfully",
-                "user": {
-                    "user_id": updated_user.user_id,
-                    "email": updated_user.email,
-                    "first_name": updated_user.first_name,
-                    "last_name": updated_user.last_name,
-                    "type": updated_user.type,
-                },
+                "user_id": updated_user.user_id,
+                "email": updated_user.email,
+                "first_name": updated_user.first_name,
+                "last_name": updated_user.last_name,
+                "type": updated_user.type,
             },
         )
     except ValueError as e:

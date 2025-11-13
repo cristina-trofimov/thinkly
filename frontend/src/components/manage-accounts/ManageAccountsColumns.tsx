@@ -15,10 +15,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import React from "react";
 
 import { AvatarInitials } from "../AvatarInitials";
@@ -39,12 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { config } from "../../config";
 import { toast } from "sonner";
+import { updateAccount } from "@/api/manageAccounts";
 
 export type Account = {
   id: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   accountType: "Participant" | "Admin" | "Owner";
 };
@@ -80,7 +78,7 @@ export const columns: ColumnDef<Account>[] = [
     accessorKey: "name",
     header: () => <div className="text-left">Name</div>,
     cell: ({ row }) => {
-      const name: string = row.getValue("name");
+      const name: string = row.original.firstName + " " + row.original.lastName;
 
       return (
         <div className="flex text-left font-medium gap-3 items-center">
@@ -121,11 +119,11 @@ export const columns: ColumnDef<Account>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const user = row.original;
       const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-      const [firstName, setFirstName] = React.useState(user.name.split(" ")[0]);
-      const [lastName, setLastName] = React.useState(user.name.split(" ")[1]);
+      const [firstName, setFirstName] = React.useState(user.firstName);
+      const [lastName, setLastName] = React.useState(user.lastName);
       const [email, setEmail] = React.useState(user.email);
       const [accountType, setAccountType] = React.useState(
         user.accountType.toLowerCase()
@@ -134,10 +132,10 @@ export const columns: ColumnDef<Account>[] = [
       const handleSaveChanges = async () => {
         const updatedFields: Record<string, string> = {};
 
-        if (firstName !== user.name.split(" ")[0]) {
+        if (firstName !== user.firstName) {
           updatedFields["first_name"] = firstName;
         }
-        if (lastName !== user.name.split(" ")[1]) {
+        if (lastName !== user.lastName) {
           updatedFields["last_name"] = lastName;
         }
         if (email !== user.email) {
@@ -153,41 +151,25 @@ export const columns: ColumnDef<Account>[] = [
           return;
         }
 
-        console.log("Updating user: ", user);
+        console.log("Attempting to update user: ", user);
 
         try {
-          const response = await fetch(
-            `${config.backendUrl}/users/${user.id}`,
-            {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(updatedFields),
-            }
-          );
+          const response = await updateAccount(user.id, updatedFields);
 
-          const jsonResponse = await response.json();
-          console.log("Update response:", jsonResponse);
-
-          if (!response.ok) {
-            throw new Error(jsonResponse.detail);
-          }
-          else {
-            toast.success("User updated successfully!");
-            console.log("User updated successfully:");
-          }
+          console.log("Update response:", response);
+          toast.success("User updated successfully!");
+          
         } catch (error) {
-          toast.error("Failed to update user.");
           console.error("Failed to update user:", error);
+          toast.error("Failed to update user.");
         } finally {
           setIsDialogOpen(false);
         }
-      }
+      };
 
       const handleCancel = () => {
-        setFirstName(user.name.split(" ")[0]);
-        setLastName(user.name.split(" ")[1]);
+        setFirstName(user.firstName);
+        setLastName(user.lastName);
         setEmail(user.email);
         setAccountType(user.accountType.toLowerCase());
         setIsDialogOpen(false);
@@ -205,7 +187,9 @@ export const columns: ColumnDef<Account>[] = [
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id.toString())}
+                onClick={() =>
+                  navigator.clipboard.writeText(user.id.toString())
+                }
               >
                 Copy user ID
               </DropdownMenuItem>
@@ -254,7 +238,10 @@ export const columns: ColumnDef<Account>[] = [
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="account_type">Account Type</FieldLabel>
-                    <Select defaultValue={accountType} onValueChange={setAccountType}>
+                    <Select
+                      defaultValue={accountType}
+                      onValueChange={setAccountType}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose account type" />
                       </SelectTrigger>
@@ -273,7 +260,9 @@ export const columns: ColumnDef<Account>[] = [
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" onClick={handleSaveChanges}>Save Changes</Button>
+                    <Button type="submit" onClick={handleSaveChanges}>
+                      Save Changes
+                    </Button>
                   </Field>
                 </FieldGroup>
               </FieldSet>

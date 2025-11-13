@@ -38,15 +38,15 @@ export default function ManageAccountsPage() {
     );
   };
 
-  // const handleUserUpdate = (updatedUser: Account) => {
-  //   setData(prevData =>
-  //     prevData.map(account => account.id === updatedUser.id ? updatedUser : account)
-  //   );
-  // }
+  const handleUserUpdate = (updatedUser: Account) => {
+    setData(prevData =>
+      prevData.map(account => account.id === updatedUser.id ? updatedUser : account)
+    );
+  }
 
   return (
-    <div className="container mx-auto py-10">
-      <ManageAccountsDataTable columns={columns} data={data} onDeleteUsers={handleDeleteUsers} />
+    <div className="container mx-auto p-6">
+      <ManageAccountsDataTable columns={columns} data={data} onDeleteUsers={handleDeleteUsers} onUserUpdate={handleUserUpdate} />
     </div>
   );
 }
