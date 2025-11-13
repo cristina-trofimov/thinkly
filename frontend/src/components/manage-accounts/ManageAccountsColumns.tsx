@@ -38,14 +38,15 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { updateAccount } from "@/api/manageAccounts";
+import type { Account } from "@/types/Account";
 
-export type Account = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  accountType: "Participant" | "Admin" | "Owner";
-};
+// export type Account = {
+//   id: number;
+//   firstName: string;
+//   lastName: string;
+//   email: string;
+//   accountType: "Participant" | "Admin" | "Owner";
+// };
 
 export const columns: ColumnDef<Account>[] = [
   {

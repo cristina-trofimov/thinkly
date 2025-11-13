@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Account } from "../components/manage-accounts/ManageAccountsColumns";
+import type { Account } from "@/types/Account";
 
 export async function getAccounts(): Promise<Account[]> {
   try {

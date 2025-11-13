@@ -56,7 +56,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Account } from "./ManageAccountsColumns";
+import type { Account } from "@/types/Account";
 import { toast } from "sonner";
 import { deleteAccounts } from "@/api/manageAccounts";
 
