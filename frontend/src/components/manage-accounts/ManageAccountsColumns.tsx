@@ -43,7 +43,7 @@ import { config } from "../../config";
 import { toast } from "sonner";
 
 export type Account = {
-  id: string;
+  id: number;
   name: string;
   email: string;
   accountType: "Participant" | "Admin" | "Owner";
@@ -205,7 +205,7 @@ export const columns: ColumnDef<Account>[] = [
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id)}
+                onClick={() => navigator.clipboard.writeText(user.id.toString())}
               >
                 Copy user ID
               </DropdownMenuItem>

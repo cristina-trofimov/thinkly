@@ -32,7 +32,7 @@ export default function ManageAccountsPage() {
     return <div>Error: {error}</div>;
   }
 
-  const handleDeleteUsers = (deletedUserIds: string[]) => {
+  const handleDeleteUsers = (deletedUserIds: number[]) => {
     setData(prevData => 
       prevData.filter(account => !deletedUserIds.includes(account.id))
     );

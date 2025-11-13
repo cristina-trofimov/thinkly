@@ -58,13 +58,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Account } from "./ManageAccountsColumns";
-import { config } from "../../config";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from "../ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
 import {
   Field,
   FieldDescription,
@@ -80,11 +75,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { deleteAccounts } from "@/api/manageAccounts";
 
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  onDeleteUsers?: (deletedUserIds: string[]) => void;
+  onDeleteUsers?: (deletedUserIds: number[]) => void;
 }
 
 export function ManageAccountsDataTable<TData, TValue>({
@@ -130,55 +126,37 @@ export function ManageAccountsDataTable<TData, TValue>({
 
     console.log("Deleting rows: ", selectedRows);
 
-    const userIds = selectedRows.map((row) => row.id);
+    const userIds = selectedRows.map((row) => Number(row.id));
 
     try {
-      const response = await fetch(config.backendUrl + "/users/batch-delete", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_ids: userIds,
-        }),
-      });
+      const response = await deleteAccounts(userIds);
 
-      const data = await response.json();
+      console.log("Delete response:", response);
 
-      console.log("Delete response:", data);
+      const deletedIds = response.deleted_users.map((user: any) => user.user_id);
 
-      if (response.status >= 400 && response.status < 500) {
-        toast.error(
-          data?.detail || "Bad request — failed to delete selected user(s)."
-        );
-        return;
-      }
-
-      if (response.status >= 500) {
-        toast.error("Server error — could not delete selected user(s).");
-        return;
-      }
-
-      const deletedIds = data.deleted_users.map((user: any) => user.user_id);
-
-      if (response.status === 200) {
-        toast.success(`Successfully deleted ${data.deleted_count} user(s).`);
-        console.log("Deleted users:", data.deleted_users);
-        onDeleteUsers?.(deletedIds);
-      } else if (response.status === 207) {
+      if (response.errors && response.errors.length && response.deleted_count > 0) {
         toast.success(
-          `Deleted ${data.deleted_count}/${data.total_requested} users successfully.`
+          `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
-        console.log("Deleted users:", data.deleted_users);
-
-        if (data.errors && data.errors.length > 0) {
-          console.warn("Partial deletion errors:", data.errors);
-          toast.warning(`${data.errors.length} users could not be deleted.`);
-          onDeleteUsers?.(deletedIds);
-        }
+        console.log("Deleted users:", response.deleted_users);
+        console.warn("Partial deletion errors:", response.errors);
+        toast.warning(`${response.errors.length} users could not be deleted.`);
+        onDeleteUsers?.(deletedIds);
       }
-    } catch (error) {
+      else {
+        toast.success(`Successfully deleted ${response.deleted_count} user(s).`);
+        console.log("Deleted users:", response.deleted_users);
+        onDeleteUsers?.(deletedIds);
+      }
+    } catch (error: any) {
+
       console.error("Error deleting users:", error);
+
+      const errorMessage =
+        error.response?.data?.detail || "Failed to delete selected user(s).";
+
+      toast.error(errorMessage);
     } finally {
       setIsEditMode(false);
       setRowSelection({});
@@ -257,30 +235,60 @@ export function ManageAccountsDataTable<TData, TValue>({
               </DialogTrigger>
               <DialogContent>
                 <FieldSet>
-                  <FieldLegend className="font-semibold">Create User</FieldLegend>
+                  <FieldLegend className="font-semibold">
+                    Create User
+                  </FieldLegend>
                   <FieldDescription>
                     Fill out the details to create a new user account.
                   </FieldDescription>
                   <FieldGroup>
                     <Field>
                       <FieldLabel htmlFor="first_name">First Name</FieldLabel>
-                      <Input id="first_name" autoComplete="off" placeholder="John" required />
+                      <Input
+                        id="first_name"
+                        autoComplete="off"
+                        placeholder="John"
+                        required
+                      />
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="last_name">Last Name</FieldLabel>
-                      <Input id="last_name" autoComplete="off" placeholder="Doe" required />
+                      <Input
+                        id="last_name"
+                        autoComplete="off"
+                        placeholder="Doe"
+                        required
+                      />
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="email">Email</FieldLabel>
-                      <Input type="email" id="email" autoComplete="off" placeholder="johndoe@example.com" required />
+                      <Input
+                        type="email"
+                        id="email"
+                        autoComplete="off"
+                        placeholder="johndoe@example.com"
+                        required
+                      />
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="password">Password</FieldLabel>
-                      <Input type="password" id="password" autoComplete="off" required />
+                      <Input
+                        type="password"
+                        id="password"
+                        autoComplete="off"
+                        required
+                      />
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="confirm_password">Confirm Password</FieldLabel>
-                      <Input type="password" id="confirm_password" autoComplete="off" required />
+                      <FieldLabel htmlFor="confirm_password">
+                        Confirm Password
+                      </FieldLabel>
+                      <Input
+                        type="password"
+                        id="confirm_password"
+                        autoComplete="off"
+                        required
+                      />
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="account_type">
@@ -300,7 +308,11 @@ export function ManageAccountsDataTable<TData, TValue>({
                       </Select>
                     </Field>
                     <Field orientation="horizontal" className="justify-end">
-                      <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                      <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
                         Cancel
                       </Button>
                       <Button type="submit">Create</Button>
