@@ -77,10 +77,12 @@ export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
   onDeleteUsers,
-  onUserUpdate
+  onUserUpdate,
 }: ManageAccountsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
   const [rowSelection, setRowSelection] = React.useState({});
   const [isEditMode, setIsEditMode] = React.useState(false);
 
@@ -159,10 +161,6 @@ export function ManageAccountsDataTable<TData, TValue>({
     }
   };
 
-  // const handleUpdate = async () => {
-
-  // }
-
   return (
     <div>
       <div className="flex items-center py-4 gap-3">
@@ -179,7 +177,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-0.5">
+            <Button variant="outline" className="gap-0.5 cursor-pointer">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
                 {(table.getColumn("accountType")?.getFilterValue() as string) ??
@@ -191,6 +189,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue(undefined)
               }
@@ -198,6 +197,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               All
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Participant")
               }
@@ -205,6 +205,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               Participant
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Admin")
               }
@@ -212,6 +213,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               Admin
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Owner")
               }
@@ -222,8 +224,8 @@ export function ManageAccountsDataTable<TData, TValue>({
         </DropdownMenu>
         {!isEditMode ? (
           <Button
-            variant="outline"
-            className="ml-auto"
+            variant="secondary"
+            className="ml-auto cursor-pointer"
             onClick={() => setIsEditMode(true)}
           >
             <SquarePen className="text-primary" />
@@ -234,6 +236,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
+                  className="cursor-pointer"
                   variant="destructive"
                   disabled={Object.keys(rowSelection).length === 0}
                 >
@@ -250,9 +253,11 @@ export function ManageAccountsDataTable<TData, TValue>({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="cursor-pointer">
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90"
+                    className="bg-destructive hover:bg-destructive/90 cursor-pointer"
                     onClick={handleDelete}
                   >
                     Delete
@@ -261,7 +266,9 @@ export function ManageAccountsDataTable<TData, TValue>({
               </AlertDialogContent>
             </AlertDialog>
             <Button variant="outline" onClick={handleCancel}>
-              <span className="hidden md:inline-flex items-center">Cancel</span>
+              <span className="hidden md:inline-flex items-center cursor-pointer">
+                Cancel
+              </span>
             </Button>
           </div>
         )}
@@ -335,6 +342,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         </div>
         <div className="flex items-center space-x-2">
           <Button
+            className="cursor-pointer"
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
@@ -344,6 +352,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             Previous
           </Button>
           <Button
+            className="cursor-pointer"
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}

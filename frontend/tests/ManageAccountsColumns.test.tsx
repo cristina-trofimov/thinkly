@@ -1,18 +1,21 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { columns } from "./../src/manage-accounts/ManageAccountsColumns";
-import type { Account } from "./../src/manage-accounts/ManageAccountsColumns";
+import userEvent from "@testing-library/user-event";
+import { columns } from "./../src/components/manage-accounts/ManageAccountsColumns";
+import type { Account } from "./../src/types/Account";
 
 const mockAccount: Account = {
-  id: "1",
-  name: "John Doe",
+  id: 1,
+  firstName: "John",
+  lastName: "Doe",
   email: "john@example.com",
   accountType: "Admin",
 };
 
 const createMockTable = (overrides = {}) => ({
-  getIsAllPageRowsSelected: jest.fn(() => false),
-  getIsSomePageRowsSelected: jest.fn(() => false),
-  toggleAllPageRowsSelected: jest.fn(),
+  getIsAllRowsSelected: jest.fn(() => false),
+  getIsSomeRowsSelected: jest.fn(() => false),
+  toggleAllRowsSelected: jest.fn(),
+  options: { meta: {} },
   ...overrides,
 });
 
@@ -33,9 +36,6 @@ const createMockColumn = (overrides = {}) => ({
 describe("Account Columns", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.assign(navigator, {
-      clipboard: { writeText: jest.fn() },
-    });
   });
 
   describe("Select Column", () => {
@@ -50,7 +50,7 @@ describe("Account Columns", () => {
     });
 
     it("renders header checkbox checked when all selected", () => {
-      const table = createMockTable({ getIsAllPageRowsSelected: () => true });
+      const table = createMockTable({ getIsAllRowsSelected: () => true });
       const Header = selectColumn.header as Function;
       render(<>{Header({ table })}</>);
       
@@ -58,7 +58,7 @@ describe("Account Columns", () => {
     });
 
     it("renders header checkbox indeterminate when some selected", () => {
-      const table = createMockTable({ getIsSomePageRowsSelected: () => true });
+      const table = createMockTable({ getIsSomeRowsSelected: () => true });
       const Header = selectColumn.header as Function;
       const { container } = render(<>{Header({ table })}</>);
       
@@ -71,7 +71,7 @@ describe("Account Columns", () => {
       render(<>{Header({ table })}</>);
       
       fireEvent.click(screen.getByRole("checkbox"));
-      expect(table.toggleAllPageRowsSelected).toHaveBeenCalledWith(true);
+      expect(table.toggleAllRowsSelected).toHaveBeenCalledWith(true);
     });
 
     it("renders and toggles row checkbox", () => {
@@ -90,7 +90,7 @@ describe("Account Columns", () => {
   describe("Name Column", () => {
     const nameColumn = columns[1];
 
-    it("renders name with initials", () => {
+    it("renders name with initials from firstName and lastName", () => {
       const row = createMockRow();
       const Cell = nameColumn.cell as Function;
       render(<>{Cell({ row })}</>);
@@ -99,25 +99,27 @@ describe("Account Columns", () => {
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
 
-    it("handles single name", () => {
+    it("handles single firstName only", () => {
       const row = createMockRow({
-        getValue: (key: string) => key === "name" ? "John" : mockAccount[key as keyof Account],
+        original: { ...mockAccount, firstName: "John", lastName: "" },
       });
       const Cell = nameColumn.cell as Function;
       render(<>{Cell({ row })}</>);
       
-      expect(screen.getByText("JJ")).toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
     });
 
-    it("handles empty name", () => {
+    it("handles empty firstName and lastName", () => {
       const row = createMockRow({
-        getValue: (key: string) => key === "name" ? "" : mockAccount[key as keyof Account],
+        original: { ...mockAccount, firstName: "", lastName: "" },
       });
       const Cell = nameColumn.cell as Function;
       const { container } = render(<>{Cell({ row })}</>);
       
-      const initialsSpan = container.querySelector('.bg-muted');
-      expect(initialsSpan).toHaveTextContent("");
+      // Check that the name span exists and is empty
+      const nameSpan = container.querySelector('.font-semibold');
+      expect(nameSpan).toBeInTheDocument();
+      expect(nameSpan?.textContent).toBe("");
     });
   });
 
@@ -176,26 +178,39 @@ describe("Account Columns", () => {
 
     it("renders dropdown menu trigger", () => {
       const row = createMockRow();
-      const Cell = actionsColumn.cell as Function;
-      render(<>{Cell({ row })}</>);
+      const table = createMockTable();
+      
+      // Need to render in a proper React component context for hooks to work
+      const TestComponent = () => {
+        const Cell = actionsColumn.cell as Function;
+        return <>{Cell({ row, table })}</>;
+      };
+      
+      render(<TestComponent />);
       
       expect(screen.getByRole("button")).toBeInTheDocument();
     });
 
-    it("copies user ID to clipboard", () => {
+    it("opens edit dialog when Edit User is clicked", async () => {
+      const user = userEvent.setup();
       const row = createMockRow();
-      const Cell = actionsColumn.cell as Function;
-      const { container } = render(<>{Cell({ row })}</>);
+      const table = createMockTable();
+      
+      const TestComponent = () => {
+        const Cell = actionsColumn.cell as Function;
+        return <>{Cell({ row, table })}</>;
+      };
+      
+      render(<TestComponent />);
       
       const button = screen.getByRole("button");
-      fireEvent.click(button);
+      await user.click(button);
       
-      const dropdownItem = container.querySelector('[role="menuitem"]');
-      if (dropdownItem) {
-        fireEvent.click(dropdownItem);
-      }
+      // Wait for dropdown to appear
+      const editMenuItem = await screen.findByText("Edit User");
+      await user.click(editMenuItem);
       
-      expect(button).toBeInTheDocument();
+      expect(await screen.findByText("Make changes to the user account here.")).toBeInTheDocument();
     });
   });
 });

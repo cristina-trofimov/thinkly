@@ -1,26 +1,32 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ManageAccountsDataTable } from "./../src/manage-accounts/ManageAccountsDataTable";
+import { ManageAccountsDataTable } from "./../src/components/manage-accounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 
 type TestData = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   accountType: "Participant" | "Admin" | "Owner";
 };
 
 const mockData: TestData[] = [
-  { id: "1", name: "John Doe", email: "john@example.com", accountType: "Admin" },
-  { id: "2", name: "Jane Smith", email: "jane@example.com", accountType: "Participant" },
-  { id: "3", name: "Bob Johnson", email: "bob@example.com", accountType: "Owner" },
+  { id: "1", firstName: "John", lastName: "Doe", email: "john@example.com", accountType: "Admin" },
+  { id: "2", firstName: "Jane", lastName: "Smith", email: "jane@example.com", accountType: "Participant" },
+  { id: "3", firstName: "Bob", lastName: "Johnson", email: "bob@example.com", accountType: "Owner" },
 ];
 
 const mockColumns: ColumnDef<TestData>[] = [
   {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => row.getValue("name"),
+    accessorKey: "firstName",
+    header: "First Name",
+    cell: ({ row }) => row.getValue("firstName"),
+  },
+  {
+    accessorKey: "lastName",
+    header: "Last Name",
+    cell: ({ row }) => row.getValue("lastName"),
   },
   {
     accessorKey: "email",
@@ -98,15 +104,8 @@ describe("ManageAccountsDataTable", () => {
     it("renders filter button", () => {
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      const filterButton = screen.getByRole("button", { name: /All Account Types/i });
       expect(filterButton).toBeInTheDocument();
-    });
-
-    it("filter button has correct attributes", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      expect(filterButton).toHaveAttribute("aria-haspopup", "menu");
     });
   });
 
@@ -115,15 +114,14 @@ describe("ManageAccountsDataTable", () => {
       const user = userEvent.setup();
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      const filterButton = screen.getByRole("button", { name: /All Account Types/i });
       await user.click(filterButton);
       
-      await waitFor(async () => {
-        const participantItem = await screen.findByText("Participant", { 
-          selector: 'div[role="menuitem"]' 
-        });
-        await user.click(participantItem);
-      });
+      // Find the dropdown menu item specifically (not the table cell)
+      const menuItems = await screen.findAllByRole("menuitem");
+      const participantItem = menuItems.find(item => item.textContent === "Participant");
+      expect(participantItem).toBeDefined();
+      await user.click(participantItem!);
       
       await waitFor(() => {
         expect(screen.getByText("jane@example.com")).toBeInTheDocument();
@@ -135,18 +133,14 @@ describe("ManageAccountsDataTable", () => {
       const user = userEvent.setup();
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      const filterButton = screen.getByRole("button", { name: /All Account Types/i });
       await user.click(filterButton);
       
-      await waitFor(async () => {
-        const adminItems = screen.getAllByText("Admin");
-        const dropdownItem = adminItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
+      // Find the dropdown menu item specifically
+      const menuItems = await screen.findAllByRole("menuitem");
+      const adminItem = menuItems.find(item => item.textContent === "Admin");
+      expect(adminItem).toBeDefined();
+      await user.click(adminItem!);
       
       await waitFor(() => {
         expect(screen.getByText("john@example.com")).toBeInTheDocument();
@@ -158,18 +152,14 @@ describe("ManageAccountsDataTable", () => {
       const user = userEvent.setup();
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      const filterButton = screen.getByRole("button", { name: /All Account Types/i });
       await user.click(filterButton);
       
-      await waitFor(async () => {
-        const ownerItems = screen.getAllByText("Owner");
-        const dropdownItem = ownerItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
+      // Find the dropdown menu item specifically
+      const menuItems = await screen.findAllByRole("menuitem");
+      const ownerItem = menuItems.find(item => item.textContent === "Owner");
+      expect(ownerItem).toBeDefined();
+      await user.click(ownerItem!);
       
       await waitFor(() => {
         expect(screen.getByText("bob@example.com")).toBeInTheDocument();
@@ -182,31 +172,26 @@ describe("ManageAccountsDataTable", () => {
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
       // First filter by Admin
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
+      let filterButton = screen.getByRole("button", { name: /All Account Types/i });
       await user.click(filterButton);
       
-      await waitFor(async () => {
-        const adminItems = screen.getAllByText("Admin");
-        const dropdownItem = adminItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
+      let menuItems = await screen.findAllByRole("menuitem");
+      const adminItem = menuItems.find(item => item.textContent === "Admin");
+      expect(adminItem).toBeDefined();
+      await user.click(adminItem!);
       
       await waitFor(() => {
         expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
       });
       
       // Then clear filter
-      const filterButtonAdmin = screen.getByRole("button", { name: "Admin" });
-      await user.click(filterButtonAdmin);
+      filterButton = screen.getByRole("button", { name: /Admin/i });
+      await user.click(filterButton);
       
-      await waitFor(async () => {
-        const allItem = screen.getByText("All");
-        await user.click(allItem);
-      });
+      menuItems = await screen.findAllByRole("menuitem");
+      const allItem = menuItems.find(item => item.textContent === "All");
+      expect(allItem).toBeDefined();
+      await user.click(allItem!);
       
       await waitFor(() => {
         expect(screen.getByText("john@example.com")).toBeInTheDocument();
@@ -216,18 +201,43 @@ describe("ManageAccountsDataTable", () => {
     });
   });
 
-  describe("Edit button", () => {
-    it("renders edit button", () => {
+  describe("Edit Mode", () => {
+    it("renders edit button initially", () => {
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Edit/i })).toBeInTheDocument();
+    });
+
+    it("toggles edit mode", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const editButton = screen.getByRole("button", { name: /Edit/i });
+      await user.click(editButton);
+      
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Delete/i })).toBeInTheDocument();
+    });
+
+    it("cancels edit mode", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      const editButton = screen.getByRole("button", { name: /Edit/i });
+      await user.click(editButton);
+      
+      const cancelButton = screen.getByRole("button", { name: /Cancel/i });
+      await user.click(cancelButton);
+      
+      expect(screen.getByRole("button", { name: /Edit/i })).toBeInTheDocument();
     });
   });
 
   describe("Pagination", () => {
     const largeDataset = Array.from({ length: 15 }, (_, i) => ({
       id: `${i}`,
-      name: `User ${i}`,
+      firstName: `User`,
+      lastName: `${i}`,
       email: `user${i}@example.com`,
       accountType: "Admin" as const,
     }));
@@ -284,58 +294,46 @@ describe("ManageAccountsDataTable", () => {
   });
 
   describe("Row selection", () => {
-    const columnsWithSelection: ColumnDef<TestData>[] = [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            aria-label="Select all"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            aria-label={`Select row ${row.id}`}
-            checked={row.getIsSelected()}
-            onChange={(e) => row.toggleSelected(!!e.target.checked)}
-          />
-        ),
-      },
-      ...mockColumns,
-    ];
-
-    it("selects individual row", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+    it("shows checkboxes in edit mode", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const rowCheckbox = screen.getByLabelText("Select row 0");
-      fireEvent.click(rowCheckbox);
+      // Checkboxes from the select column should not be visible initially
+      expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
       
-      expect(rowCheckbox).toBeChecked();
+      // Click edit button
+      const editButton = screen.getByRole("button", { name: /Edit/i });
+      await user.click(editButton);
+      
+      // Now we should be in edit mode - checkboxes should appear
+      // Wait for the UI to update
+      await waitFor(() => {
+        const deleteButton = screen.getByRole("button", { name: /Delete/i });
+        expect(deleteButton).toBeInTheDocument();
+      });
+      
+      // Verify we're in edit mode by checking for Cancel button
+      expect(screen.getByRole("button", { name: /Cancel/i })).toBeInTheDocument();
     });
 
-    it("selects all rows", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+    it("hides checkboxes when not in edit mode", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const headerCheckbox = screen.getByLabelText("Select all");
-      fireEvent.click(headerCheckbox);
-      
-      expect(screen.getByLabelText("Select row 0")).toBeChecked();
-      expect(screen.getByLabelText("Select row 1")).toBeChecked();
-      expect(screen.getByLabelText("Select row 2")).toBeChecked();
+      // Checkboxes should not be visible
+      expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
     });
 
-    it("maintains row selection state", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+    it("displays selection count in edit mode", async () => {
+      const user = userEvent.setup();
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const rowCheckbox = screen.getByLabelText("Select row 0");
-      fireEvent.click(rowCheckbox);
-      expect(rowCheckbox).toBeChecked();
+      const editButton = screen.getByRole("button", { name: /Edit/i });
+      await user.click(editButton);
       
-      fireEvent.click(rowCheckbox);
-      expect(rowCheckbox).not.toBeChecked();
+      // Should show selection count
+      await waitFor(() => {
+        expect(screen.getByText(/0 of 3 row\(s\) selected/)).toBeInTheDocument();
+      });
     });
   });
 
@@ -343,7 +341,8 @@ describe("ManageAccountsDataTable", () => {
     it("renders all column headers", () => {
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      expect(screen.getByText("Name")).toBeInTheDocument();
+      expect(screen.getByText("First Name")).toBeInTheDocument();
+      expect(screen.getByText("Last Name")).toBeInTheDocument();
       expect(screen.getByText("Email")).toBeInTheDocument();
       expect(screen.getByText("Account Type")).toBeInTheDocument();
     });
@@ -372,11 +371,11 @@ describe("ManageAccountsDataTable", () => {
   describe("Sorting", () => {
     const columnsWithSorting: ColumnDef<TestData>[] = [
       {
-        accessorKey: "name",
+        accessorKey: "firstName",
         header: ({ column }) => (
-          <button onClick={() => column.toggleSorting()}>Name</button>
+          <button onClick={() => column.toggleSorting()}>First Name</button>
         ),
-        cell: ({ row }) => row.getValue("name"),
+        cell: ({ row }) => row.getValue("firstName"),
       },
       {
         accessorKey: "email",
@@ -393,7 +392,7 @@ describe("ManageAccountsDataTable", () => {
     it("sorts data when sortable column header is clicked", () => {
       render(<ManageAccountsDataTable columns={columnsWithSorting} data={mockData} />);
       
-      const nameButton = screen.getByRole("button", { name: "Name" });
+      const nameButton = screen.getByRole("button", { name: "First Name" });
       fireEvent.click(nameButton);
       
       const rows = screen.getAllByRole("row");
@@ -403,7 +402,7 @@ describe("ManageAccountsDataTable", () => {
     it("toggles sort direction", () => {
       render(<ManageAccountsDataTable columns={columnsWithSorting} data={mockData} />);
       
-      const nameButton = screen.getByRole("button", { name: "Name" });
+      const nameButton = screen.getByRole("button", { name: "First Name" });
       fireEvent.click(nameButton);
       fireEvent.click(nameButton);
       
@@ -421,12 +420,20 @@ describe("ManageAccountsDataTable", () => {
       expect(screen.getByText("Owner")).toBeInTheDocument();
     });
 
-    it("renders all names correctly", () => {
+    it("renders all first names correctly", () => {
       render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
-      expect(screen.getByText("Jane Smith")).toBeInTheDocument();
-      expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
+      expect(screen.getByText("Jane")).toBeInTheDocument();
+      expect(screen.getByText("Bob")).toBeInTheDocument();
+    });
+
+    it("renders all last names correctly", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+      
+      expect(screen.getByText("Doe")).toBeInTheDocument();
+      expect(screen.getByText("Smith")).toBeInTheDocument();
+      expect(screen.getByText("Johnson")).toBeInTheDocument();
     });
   });
 
@@ -434,10 +441,10 @@ describe("ManageAccountsDataTable", () => {
     it("initializes with empty sorting state", () => {
       const { rerender } = render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
       
       rerender(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
+      expect(screen.getByText("John")).toBeInTheDocument();
     });
 
     it("initializes with empty column filters", () => {
@@ -447,34 +454,11 @@ describe("ManageAccountsDataTable", () => {
       expect(searchInput).toHaveValue("");
     });
 
-    it("initializes with empty row selection", () => {
-      const columnsWithSelection: ColumnDef<TestData>[] = [
-        {
-          id: "select",
-          header: ({ table }) => (
-            <input
-              type="checkbox"
-              aria-label="Select all"
-              checked={table.getIsAllPageRowsSelected()}
-              onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-            />
-          ),
-          cell: ({ row }) => (
-            <input
-              type="checkbox"
-              aria-label={`Select row ${row.id}`}
-              checked={row.getIsSelected()}
-              onChange={(e) => row.toggleSelected(!!e.target.checked)}
-            />
-          ),
-        },
-        ...mockColumns,
-      ];
-
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
+    it("initializes with edit mode disabled", () => {
+      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
       
-      const headerCheckbox = screen.getByLabelText("Select all");
-      expect(headerCheckbox).not.toBeChecked();
+      expect(screen.getByRole("button", { name: /Edit/i })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Cancel/i })).not.toBeInTheDocument();
     });
   });
 

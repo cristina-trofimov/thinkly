@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { columns } from "../components/manage-accounts/ManageAccountsColumns";
-import type { Account } from "../components/manage-accounts/ManageAccountsColumns";
+import type { Account } from "@/types/Account";
 import { ManageAccountsDataTable } from "../components/manage-accounts/ManageAccountsDataTable";
 import { getAccounts } from "@/api/manageAccounts";
 
