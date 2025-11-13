@@ -1,6 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Account } from "../components/manage-accounts/ManageAccountsColumns";
-import { config } from "../config";
 
 export async function getAccounts(): Promise<Account[]> {
   try {
@@ -53,27 +52,23 @@ export async function deleteAccounts(userIds: number[]): Promise<{
 export async function updateAccount(
   userId: number,
   updatedFields: Record<string, string>
-): Promise<Account[]> {
+): Promise<Account> {
   try {
-    const updatedAccount = await axiosClient.patch<
-      {
-        user_id: number;
-        first_name: string;
-        last_name: string;
-        email: string;
-        type: "Participant" | "Admin" | "Owner";
-      }
-    >(`/manage-accounts/users/${userId}`, updatedFields);
+    const updatedAccount = await axiosClient.patch<{
+      user_id: number;
+      first_name: string;
+      last_name: string;
+      email: string;
+      type: "Participant" | "Admin" | "Owner";
+    }>(`/manage-accounts/users/${userId}`, updatedFields);
 
-    const formattedAccounts: Account[] = [
-      {
+    const formattedAccounts: Account = {
         id: updatedAccount.data.user_id,
         firstName: updatedAccount.data.first_name,
         lastName: updatedAccount.data.last_name,
         email: updatedAccount.data.email,
         accountType: updatedAccount.data.type,
-      },
-    ];
+      };
 
     return formattedAccounts;
   } catch (err) {

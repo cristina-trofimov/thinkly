@@ -60,6 +60,12 @@ import type { Account } from "./ManageAccountsColumns";
 import { toast } from "sonner";
 import { deleteAccounts } from "@/api/manageAccounts";
 
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData extends unknown> {
+    onUserUpdate?: (updatedUser: Account) => void;
+  }
+}
+
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -71,7 +77,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
   onDeleteUsers,
-  onUserUpdate,
+  onUserUpdate
 }: ManageAccountsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -88,6 +94,9 @@ export function ManageAccountsDataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
+    meta: {
+      onUserUpdate,
+    },
     state: {
       sorting,
       columnFilters,
