@@ -19,9 +19,9 @@ For more information, please visit our [wiki page](https://github.com/cristina-t
 ## Release Demos
 This section will be updated with links to demo videos for each release.
 
-- [Release 1 Demo](#)
-- [Release 2 Demo](#)
-- [Release 3 Demo](#)
+- [Release 1 Demo](https://drive.google.com/drive/folders/1IHm0oKIzjOYb3NXHU9eBGZ0HI0JRKwAN?usp=sharing)
+- [Release 2 Demo](https://drive.google.com/drive/folders/12FV8AMvpoIW5p8ssOJuk0g9RFR56MdsN?usp=sharing)
+- [Release 3 Demo](https://drive.google.com/drive/folders/1puGLNScmyAk6Il7cm_1U-D8dlgG0KH_W?usp=sharing)
 
 
 
@@ -105,4 +105,4 @@ or </br>
 7. Name it ThinklyDB
 8. Make sure the Locale Provider under the Definition tab matches the template you use (libc or icu, or whatever else)
 9. In your terminal, cd backend then run ```python src/init_db.py```
-10. Then cd src (still in backend) and run ```python -m populateDB``
+10. Then cd src (still in backend) and run ```python -m populateDB```
