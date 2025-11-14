@@ -11,21 +11,24 @@ import type { Account } from "@/types/Account";
 export const columns: ColumnDef<Account>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllRowsSelected()
-            ? true
-            : table.getIsSomeRowsSelected()
-            ? "indeterminate"
-            : false
-        }
-        onCheckedChange={(value) => {
-          table.toggleAllRowsSelected(!!value);
-        }}
-        aria-label="Select all"
-      />
-    ),
+    header: ({ table }) => {
+      const isAllSelected = table.getIsAllRowsSelected();
+      const isSomeSelected = table.getIsSomeRowsSelected();
+
+      const checkedState = isAllSelected
+        ? true
+        : isSomeSelected
+        ? "indeterminate"
+        : false;
+
+      return (
+        <Checkbox
+          checked={checkedState}
+          onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      );
+    },
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -43,7 +46,11 @@ export const columns: ColumnDef<Account>[] = [
 
       return (
         <div className="flex text-left font-medium gap-3 items-center">
-          <AvatarInitials name={name} size="md" />
+          <AvatarInitials
+            firstName={row.original.firstName}
+            lastName={row.original.lastName}
+            size="md"
+          />
           <span className="font-semibold">{name}</span>
         </div>
       );

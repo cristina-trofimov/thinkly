@@ -1,6 +1,7 @@
 // helper component to display user initials as avatar in the manage accounts table and when you click edit user
 interface AvatarInitialsProps {
-  name: string;
+  firstName: string;
+  lastName: string;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
@@ -12,23 +13,21 @@ const sizeClasses = {
   xl: "h-30 w-30 text-4xl",
 };
 
-function getInitials(name: string): string {
-  const nameSeparated = name.trim().split(" ").filter(Boolean);
-  
-  const firstInitial = nameSeparated[0]?.[0].toUpperCase() ?? "";
-  const lastInitial =
-    nameSeparated[nameSeparated.length - 1]?.[0].toUpperCase() ?? "";
-  
+function getInitials(firstName: string, lastName: string): string {
+  const firstInitial = firstName?.[0]?.toUpperCase() ?? "";
+  const lastInitial = lastName?.[0]?.toUpperCase() ?? "";
+
   return `${firstInitial}${lastInitial}`;
 }
 
 export function AvatarInitials({
-  name,
+  firstName,
+  lastName,
   size = "md",
   className = "",
-}: AvatarInitialsProps) {
-  const initials = getInitials(name);
-  
+}: Readonly<AvatarInitialsProps>) {
+  const initials = getInitials(firstName, lastName);
+
   return (
     <span
       className={`flex items-center justify-center rounded-full bg-muted text-primary font-semibold ${sizeClasses[size]} ${className}`}

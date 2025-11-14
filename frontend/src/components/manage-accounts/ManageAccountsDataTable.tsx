@@ -78,7 +78,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   data,
   onDeleteUsers,
   onUserUpdate,
-}: ManageAccountsDataTableProps<TData, TValue>) {
+}: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -127,11 +127,7 @@ export function ManageAccountsDataTable<TData, TValue>({
 
       const deletedIds = response.deleted_users.map((user) => user.user_id);
 
-      if (
-        response.errors &&
-        response.errors.length &&
-        response.deleted_count > 0
-      ) {
+      if (response?.errors?.length) {
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
@@ -222,16 +218,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {!isEditMode ? (
-          <Button
-            variant="secondary"
-            className="ml-auto cursor-pointer"
-            onClick={() => setIsEditMode(true)}
-          >
-            <SquarePen className="text-primary" />
-            <span className="hidden md:inline-flex">Edit</span>
-          </Button>
-        ) : (
+        {isEditMode ? (
           <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -271,6 +258,15 @@ export function ManageAccountsDataTable<TData, TValue>({
               </span>
             </Button>
           </div>
+        ) : (
+          <Button
+            variant="secondary"
+            className="ml-auto cursor-pointer"
+            onClick={() => setIsEditMode(true)}
+          >
+            <SquarePen className="text-primary" />
+            <span className="hidden md:inline-flex">Edit</span>
+          </Button>
         )}
       </div>
       <div className="overflow-hidden rounded-md border">
