@@ -70,10 +70,7 @@ export function AdminDashboard() {
             ]}
           />
         </Link>
-        <div
-          onClick={() => navigate("/app/dashboard/competitions")}
-          className="cursor-pointer"
-        >
+        <Link to="/app/dashboard/competitions" className="cursor-pointer block">
           <ManageCard
             title="Manage Competitions"
             items={[
@@ -81,7 +78,7 @@ export function AdminDashboard() {
               { color: "#F2D340", name: "Comp2", info: "06/12/25" },
             ]}
           />
-        </div>
+        </Link>
         <ManageCard
           title="Manage Questions"
           items={[
