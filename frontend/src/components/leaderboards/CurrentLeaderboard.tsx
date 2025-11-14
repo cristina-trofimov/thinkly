@@ -62,7 +62,7 @@ export function CurrentLeaderboard() {
     );
   }
 
-  if (!standings || !standings.participants || standings.participants.length === 0) {
+  if (!(standings?.participants?.length)) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-gray-500">No active competition</div>
