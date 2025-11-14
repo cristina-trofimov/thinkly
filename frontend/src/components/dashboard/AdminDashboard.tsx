@@ -50,7 +50,7 @@ export function AdminDashboard() {
       </div>
       <div className="flex gap-4 mt-6 px-6">
         <Link
-          to="/app/dashboard/manage-accounts"
+          to="/app/dashboard/manageAccounts"
           className="cursor-pointer block"
         >
           <ManageCard

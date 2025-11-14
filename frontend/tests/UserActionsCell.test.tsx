@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ActionsCell } from "./../src/components/manage-accounts/UserActionsCell";
+import { ActionsCell } from "./../src/components/manageAccounts/UserActionsCell";
 import type { Account } from "./../src/types/Account";
 import { toast } from "sonner";
 

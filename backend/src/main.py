@@ -43,7 +43,7 @@ try:
     app.include_router(leaderboards_router, prefix="/leaderboards")
     app.include_router(questions_router, prefix="/questions")
     app.include_router(homepage_router, prefix="/homepage")
-    app.include_router(manage_accounts_router, prefix="/manage-accounts")
+    app.include_router(manage_accounts_router, prefix="/manageAccounts")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 

@@ -112,7 +112,7 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "dashboard/manage-accounts",
+        path: "dashboard/manageAccounts",
         element: <ManageAccountsPage />,
         handle: {
           crumb: { title: "Manage Accounts" },

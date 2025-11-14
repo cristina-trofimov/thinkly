@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { columns } from "./../src/components/manage-accounts/ManageAccountsColumns";
+import { columns } from "../src/components/manageAccounts/ManageAccountsColumns";
 import type { Account } from "./../src/types/Account";
 
 const mockAccount: Account = {
@@ -45,7 +45,7 @@ describe("Account Columns", () => {
       const table = createMockTable();
       const Header = selectColumn.header as Function;
       render(<>{Header({ table })}</>);
-      
+
       expect(screen.getByRole("checkbox")).not.toBeChecked();
     });
 
@@ -53,7 +53,7 @@ describe("Account Columns", () => {
       const table = createMockTable({ getIsAllRowsSelected: () => true });
       const Header = selectColumn.header as Function;
       render(<>{Header({ table })}</>);
-      
+
       expect(screen.getByRole("checkbox")).toBeChecked();
     });
 
@@ -61,15 +61,17 @@ describe("Account Columns", () => {
       const table = createMockTable({ getIsSomeRowsSelected: () => true });
       const Header = selectColumn.header as Function;
       const { container } = render(<>{Header({ table })}</>);
-      
-      expect(container.querySelector('[data-state="indeterminate"]')).toBeInTheDocument();
+
+      expect(
+        container.querySelector('[data-state="indeterminate"]')
+      ).toBeInTheDocument();
     });
 
     it("toggles all rows on header checkbox change", () => {
       const table = createMockTable();
       const Header = selectColumn.header as Function;
       render(<>{Header({ table })}</>);
-      
+
       fireEvent.click(screen.getByRole("checkbox"));
       expect(table.toggleAllRowsSelected).toHaveBeenCalledWith(true);
     });
@@ -78,10 +80,10 @@ describe("Account Columns", () => {
       const row = createMockRow();
       const Cell = selectColumn.cell as Function;
       render(<>{Cell({ row })}</>);
-      
+
       const checkbox = screen.getByRole("checkbox");
       expect(checkbox).toBeInTheDocument();
-      
+
       fireEvent.click(checkbox);
       expect(row.toggleSelected).toHaveBeenCalledWith(true);
     });
@@ -94,7 +96,7 @@ describe("Account Columns", () => {
       const row = createMockRow();
       const Cell = nameColumn.cell as Function;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("JD")).toBeInTheDocument();
       expect(screen.getByText("John Doe")).toBeInTheDocument();
     });
@@ -105,7 +107,7 @@ describe("Account Columns", () => {
       });
       const Cell = nameColumn.cell as Function;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("John")).toBeInTheDocument();
     });
 
@@ -115,8 +117,8 @@ describe("Account Columns", () => {
       });
       const Cell = nameColumn.cell as Function;
       const { container } = render(<>{Cell({ row })}</>);
-      
-      const nameSpan = container.querySelector('.font-semibold');
+
+      const nameSpan = container.querySelector(".font-semibold");
       expect(nameSpan).toBeInTheDocument();
       expect(nameSpan?.textContent).toBe("");
     });
@@ -129,7 +131,7 @@ describe("Account Columns", () => {
       const column = createMockColumn();
       const Header = emailColumn.header as Function;
       render(<>{Header({ column })}</>);
-      
+
       expect(screen.getByText("Email")).toBeInTheDocument();
     });
 
@@ -137,7 +139,7 @@ describe("Account Columns", () => {
       const column = createMockColumn();
       const Header = emailColumn.header as Function;
       render(<>{Header({ column })}</>);
-      
+
       fireEvent.click(screen.getByRole("button"));
       expect(column.toggleSorting).toHaveBeenCalledWith(false);
     });
@@ -146,7 +148,7 @@ describe("Account Columns", () => {
       const column = createMockColumn({ getIsSorted: () => "asc" });
       const Header = emailColumn.header as Function;
       render(<>{Header({ column })}</>);
-      
+
       fireEvent.click(screen.getByRole("button"));
       expect(column.toggleSorting).toHaveBeenCalledWith(true);
     });
@@ -155,7 +157,7 @@ describe("Account Columns", () => {
       const row = createMockRow();
       const Cell = emailColumn.cell as Function;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("john@example.com")).toBeInTheDocument();
     });
   });
@@ -167,7 +169,7 @@ describe("Account Columns", () => {
       const row = createMockRow();
       const Cell = accountTypeColumn.cell as Function;
       render(<>{Cell({ row })}</>);
-      
+
       expect(screen.getByText("Admin")).toBeInTheDocument();
     });
   });
@@ -178,14 +180,14 @@ describe("Account Columns", () => {
     it("renders dropdown menu trigger", () => {
       const row = createMockRow();
       const table = createMockTable();
-      
+
       const TestComponent = () => {
         const Cell = actionsColumn.cell as Function;
         return <>{Cell({ row, table })}</>;
       };
-      
+
       render(<TestComponent />);
-      
+
       expect(screen.getByRole("button")).toBeInTheDocument();
     });
 
@@ -193,21 +195,23 @@ describe("Account Columns", () => {
       const user = userEvent.setup();
       const row = createMockRow();
       const table = createMockTable();
-      
+
       const TestComponent = () => {
         const Cell = actionsColumn.cell as Function;
         return <>{Cell({ row, table })}</>;
       };
-      
+
       render(<TestComponent />);
-      
+
       const button = screen.getByRole("button");
       await user.click(button);
-      
+
       const editMenuItem = await screen.findByText("Edit User");
       await user.click(editMenuItem);
-      
-      expect(await screen.findByText("Make changes to the user account here.")).toBeInTheDocument();
+
+      expect(
+        await screen.findByText("Make changes to the user account here.")
+      ).toBeInTheDocument();
     });
   });
 });

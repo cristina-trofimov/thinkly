@@ -39,7 +39,7 @@ class TestManageAccountsAPI:
         app.dependency_overrides[get_db] = override_get_db
 
         with patch("endpoints.manage_accounts_api.get_all_users", return_value=[]):
-            response = client.get("/manage-accounts/users")
+            response = client.get("/manageAccounts/users")
             assert response.status_code == 200
             assert response.json() == []
 
@@ -52,7 +52,7 @@ class TestManageAccountsAPI:
         app.dependency_overrides[get_db] = override_get_db
 
         with patch("endpoints.manage_accounts_api.get_all_users", return_value=[mock_user]):
-            response = client.get("/manage-accounts/users")
+            response = client.get("/manageAccounts/users")
             data = response.json()
             assert response.status_code == 200
             assert len(data) == 1
@@ -75,7 +75,7 @@ class TestManageAccountsAPI:
         app.dependency_overrides[get_db] = override_get_db
 
         with patch("endpoints.manage_accounts_api.get_all_users", return_value=users_list):
-            response = client.get("/manage-accounts/users")
+            response = client.get("/manageAccounts/users")
             data = response.json()
             assert response.status_code == 200
             assert len(data) == 2
@@ -99,7 +99,7 @@ class TestManageAccountsAPI:
         with patch("endpoints.manage_accounts_api.get_user_by_id", return_value=mock_user), \
              patch("endpoints.manage_accounts_api.delete_user_full") as mock_delete:
             payload = {"user_ids": [10]}
-            response = client.request("DELETE", "/manage-accounts/users/batch-delete", json=payload)
+            response = client.request("DELETE", "/manageAccounts/users/batch-delete", json=payload)
             data = response.json()
 
             assert response.status_code == 200
@@ -133,7 +133,7 @@ class TestManageAccountsAPI:
         with patch("endpoints.manage_accounts_api.get_user_by_id", side_effect=get_user_side_effect), \
              patch("endpoints.manage_accounts_api.delete_user_full") as mock_delete:
             payload = {"user_ids": [1, 2]}
-            response = client.request("DELETE", "/manage-accounts/users/batch-delete", json=payload)
+            response = client.request("DELETE", "/manageAccounts/users/batch-delete", json=payload)
             data = response.json()
 
             assert response.status_code == 200
@@ -161,7 +161,7 @@ class TestManageAccountsAPI:
         with patch("endpoints.manage_accounts_api.get_user_by_id", side_effect=get_user_side_effect), \
              patch("endpoints.manage_accounts_api.delete_user_full") as mock_delete:
             payload = {"user_ids": [1, 2]}
-            response = client.request("DELETE", "/manage-accounts/users/batch-delete", json=payload)
+            response = client.request("DELETE", "/manageAccounts/users/batch-delete", json=payload)
             data = response.json()
 
             assert response.status_code == 207
@@ -182,7 +182,7 @@ class TestManageAccountsAPI:
         app.dependency_overrides[get_db] = override_get_db
 
         payload = {"user_ids": []}
-        response = client.request("DELETE", "/manage-accounts/users/batch-delete", json=payload)
+        response = client.request("DELETE", "/manageAccounts/users/batch-delete", json=payload)
         assert response.status_code == 400
         assert response.json()["detail"] == "No user IDs provided"
 
@@ -198,7 +198,7 @@ class TestManageAccountsAPI:
             raise ValueError("User not found")
 
         with patch("endpoints.manage_accounts_api.get_user_by_id", side_effect=failing_get_user):
-            response = client.request("DELETE", "/manage-accounts/users/batch-delete", json={"user_ids": [1, 2]})
+            response = client.request("DELETE", "/manageAccounts/users/batch-delete", json={"user_ids": [1, 2]})
             assert response.status_code == 500
             assert response.json()["detail"] == "Failed to delete any users."
 
@@ -215,7 +215,7 @@ class TestManageAccountsAPI:
         with patch("endpoints.manage_accounts_api.get_user_by_id", return_value=user), \
              patch("endpoints.manage_accounts_api.delete_user_full", side_effect=Exception("Database error")):
             payload = {"user_ids": [1]}
-            response = client.request("DELETE", "/manage-accounts/users/batch-delete", json=payload)
+            response = client.request("DELETE", "/manageAccounts/users/batch-delete", json=payload)
             data = response.json()
 
             assert response.status_code == 500
@@ -239,7 +239,7 @@ class TestManageAccountsAPI:
 
         with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user):
             response = client.patch(
-                "/manage-accounts/users/2",
+                "/manageAccounts/users/2",
                 json={"email": "newemail@example.com", "type": "admin"},
             )
             data = response.json()
@@ -260,7 +260,7 @@ class TestManageAccountsAPI:
 
         with patch("endpoints.manage_accounts_api.crud_update_user", side_effect=ValueError("Invalid data")):
             response = client.patch(
-                "/manage-accounts/users/99",
+                "/manageAccounts/users/99",
                 json={"email": "bad@example.com"},
             )
             assert response.status_code == 400
@@ -283,7 +283,7 @@ class TestManageAccountsAPI:
         )
 
         with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user):
-            response = client.patch("/manage-accounts/users/5", json={"email": "partial@example.com"})
+            response = client.patch("/manageAccounts/users/5", json={"email": "partial@example.com"})
             data = response.json()
             assert response.status_code == 200
             assert data["email"] == "partial@example.com"
@@ -309,7 +309,7 @@ class TestManageAccountsAPI:
 
         with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user) as mock_update:
             response = client.patch(
-                "/manage-accounts/users/3",
+                "/manageAccounts/users/3",
                 json={
                     "email": "newemail@example.com",
                     "first_name": "NewFirst",
@@ -342,7 +342,7 @@ class TestManageAccountsAPI:
 
         with patch("endpoints.manage_accounts_api.crud_update_user", side_effect=ValueError("User not found")):
             response = client.patch(
-                "/manage-accounts/users/999",
+                "/manageAccounts/users/999",
                 json={"email": "test@example.com"},
             )
             assert response.status_code == 400
@@ -365,7 +365,7 @@ class TestManageAccountsAPI:
         )
 
         with patch("endpoints.manage_accounts_api.crud_update_user", return_value=existing_user) as mock_update:
-            response = client.patch("/manage-accounts/users/7", json={})
+            response = client.patch("/manageAccounts/users/7", json={})
             data = response.json()
             assert response.status_code == 200
             assert data["user_id"] == 7
