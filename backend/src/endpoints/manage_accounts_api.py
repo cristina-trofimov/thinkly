@@ -5,6 +5,7 @@ from typing import List
 from pydantic import BaseModel
 from DB_Methods.crudOperations import (
     SessionLocal,
+    get_all_users,
     delete_user_full,
     get_user_by_id,
     update_user as crud_update_user,
@@ -33,8 +34,8 @@ def get_db():
         db.close()
 
 @manage_accounts_router.get("/users")
-def get_all_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
+def get_users(db: Session = Depends(get_db)):
+    users = get_all_users(db)
     result = []
     for user in users:
         result.append({

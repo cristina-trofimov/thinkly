@@ -215,6 +215,10 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     _commit_or_rollback(db)
     return True
 
+def get_all_users(db: Session) -> List[User]:
+    """Retrieve all users."""
+    return db.query(User).all()
+
 # --------------------------- 2) Set user preference (while logged in) ---------------------------
 
 # ASSUMED: USER LOGGED IN
