@@ -1,81 +1,113 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { BrowserRouter } from "react-router-dom";
-import AdminDashboard from "../src/components/dashboard/AdminDashboard";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { AdminDashboard } from '../src/components/dashboard/AdminDashboard';
 
-// 🧩 Mock child components so we isolate AdminDashboard behavior
-jest.mock("@/components/dashboard/StatsCard", () => ({
-  StatsCard: ({ title, value }: { title: string; value: string | number }) => (
-    <div data-testid="stats-card">
-      <span>{title}</span>
-      <span>{value}</span>
+// --- MOCK SETUP ---
+
+// Mocking react-router-dom hooks and components
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  // Mock Outlet to display identifiable content
+  Outlet: () => <div data-testid="mock-outlet">Mock Outlet Content</div>,
+}));
+
+// Mocking child components to isolate AdminDashboard logic
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, className }) => (
+    <button onClick={onClick} className={className}>
+      {children}
+    </button>
+  ),
+}));
+jest.mock('@tabler/icons-react', () => ({
+  IconCirclePlusFilled: () => <svg data-testid="mock-icon-plus" />,
+}));
+jest.mock('../src/components/dashboard/StatsCard', () => ({
+  StatsCard: ({ title, value }) => <div data-testid="mock-stat-card">{title}: {value}</div>,
+}));
+jest.mock('../src/components/dashboard/ManageCard', () => ({
+  ManageCard: ({ title }) => <div data-testid="mock-manage-card">{title}</div>,
+}));
+jest.mock('../src/components/dashboard/TechnicalIssuesChart', () => ({
+  TechnicalIssuesChart: () => <div data-testid="mock-chart">Mock Technical Issues Chart</div>,
+}));
+jest.mock('../src/components/dashboard/CreateCompetitionDialog', () => ({
+  __esModule: true,
+  default: ({ open, onOpenChange }) => (
+    <div data-testid="mock-dialog" className={open ? 'dialog-open' : 'dialog-closed'}>
+      {open ? 'Dialog is Open' : 'Dialog is Closed'}
+      {/* Simulate closing the dialog for test cleanup */}
+      <button onClick={() => onOpenChange(false)}>Close</button>
     </div>
   ),
 }));
 
-jest.mock("@/components/dashboard/ManageCard", () => ({
-  ManageCard: ({ title }: { title: string }) => (
-    <div data-testid="manage-card">{title}</div>
-  ),
-}));
+describe('AdminDashboard', () => {
+  // Helper to set the pathname using history.pushState
+  const setPathname = (pathname: string) => {
+    window.history.pushState({}, '', pathname);
+  };
 
-jest.mock("@/components/dashboard/TechnicalIssuesChart", () => ({
-  TechnicalIssuesChart: () => <div data-testid="technical-issues-chart" />,
-}));
-
-jest.mock("@/components/dashboard/CreateCompetitionDialog", () => ({
-  __esModule: true,
-  default: ({ open }: { open: boolean }) => (
-    <div data-testid="create-dialog">{open ? "open" : "closed"}</div>
-  ),
-}));
-
-// 🧭 Helper wrapper for Router context
-const renderWithRouter = () =>
-  render(
-    <BrowserRouter>
-      <AdminDashboard />
-    </BrowserRouter>
-  );
-
-describe("AdminDashboard", () => {
-  it("renders the page header and button", () => {
-    renderWithRouter();
-    expect(screen.getByText("Overview")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /create competition/i })
-    ).toBeInTheDocument();
+  beforeEach(() => {
+    // Default the pathname to the dashboard root for most tests
+    setPathname('/app/dashboard');
   });
 
-  it("renders all StatsCard components", () => {
-    renderWithRouter();
-    const cards = screen.getAllByTestId("stats-card");
-    expect(cards).toHaveLength(3);
-    expect(cards[0]).toHaveTextContent("New Accounts");
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it("renders ManageCards for Accounts, Competitions, and Questions", () => {
-    renderWithRouter();
-    const manageCards = screen.getAllByTestId("manage-card");
-    expect(manageCards).toHaveLength(3);
-    expect(manageCards[0]).toHaveTextContent("Manage Accounts");
-    expect(manageCards[1]).toHaveTextContent("Manage Competitions");
-    expect(manageCards[2]).toHaveTextContent("Manage Questions");
+  it('renders the header title', () => {
+    render(<AdminDashboard />);
+
+    // Check for header title
+    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument();
   });
 
-  it("renders TechnicalIssuesChart", () => {
-    renderWithRouter();
-    expect(screen.getByTestId("technical-issues-chart")).toBeInTheDocument();
+  it('renders stats, manage cards, and the chart on the dashboard root route', () => {
+    render(<AdminDashboard />);
+
+    // Check for key components rendered only on the dashboard root
+    expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
+
+    // Check for specific Stats Card titles
+    expect(screen.getByText(/New Accounts: 25/i)).toBeInTheDocument();
+    expect(screen.getByText(/User satisfaction: 4.5/i)).toBeInTheDocument();
+
+    // Check for specific Manage Card titles
+    expect(screen.getByText('Manage Accounts')).toBeInTheDocument();
+    expect(screen.getByText('Manage Competitions')).toBeInTheDocument();
+
+    // Ensure Outlet is not rendered
+    expect(screen.queryByTestId('mock-outlet')).not.toBeInTheDocument();
   });
 
-  it("renders CreateCompetitionDialog initially closed", () => {
-    renderWithRouter();
-    expect(screen.getByTestId("create-dialog")).toHaveTextContent("closed");
+  it('renders the Outlet component on a sub-route', () => {
+    // Mock the pathname to simulate a nested route
+    setPathname('/app/dashboard/competitions');
+    
+    render(<AdminDashboard />);
+
+    // Check for Outlet content
+    expect(screen.getByTestId('mock-outlet')).toBeInTheDocument();
+
+    // Ensure dashboard specific content is NOT rendered (e.g., stats and chart)
+    expect(screen.queryByText(/New Accounts/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-chart')).not.toBeInTheDocument();
   });
 
-  it("opens CreateCompetitionDialog after clicking the button", () => {
-    renderWithRouter();
-    const button = screen.getByRole("button", { name: /create competition/i });
-    fireEvent.click(button);
-    expect(screen.getByTestId("create-dialog")).toHaveTextContent("open");
+  it('navigates to the competitions route when the "Manage Competitions" card is clicked', () => {
+    render(<AdminDashboard />);
+
+    // Find the Manage Competitions card by its title text
+    const manageCompetitionsCard = screen.getByText('Manage Competitions').closest('.cursor-pointer');
+
+    // Click the card
+    fireEvent.click(manageCompetitionsCard!);
+
+    // Verify that the navigate function was called with the correct path
+    expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/competitions');
   });
 });

@@ -37,9 +37,7 @@ const router = createBrowserRouter([
     path: "/app", // 👈 everything else under /app
     element: <Layout />,
     errorElement: <ErrorPage />,
-    handle: {
-      crumb: { title: "Home" },
-    },
+
     children: [
       {
         index: true,
@@ -101,22 +99,28 @@ const router = createBrowserRouter([
         path: "dashboard",
         element: <AdminDashboard />,
         handle: {
-          crumb: { title: "Admin Dashboard" },
+          crumb: { title: "Admin Dashboard" }
         },
-      },
-      {
-        path: "dashboard/competitions",
-        element: <ManageCompetitions />,
-        handle: {
-          crumb: { title: "Manage Competitions" },
-        },
-      },
-      {
-        path: "dashboard/manageAccounts",
-        element: <ManageAccountsPage />,
-        handle: {
-          crumb: { title: "Manage Accounts" },
-        },
+        children: [
+          {
+            index: true,
+            element: <div>Admin Dashboard</div>,
+          },
+          {
+            path: "competitions",
+            element: <ManageCompetitions />,
+            handle: {
+              crumb: { title: "Manage Competitions" }
+            }
+          },
+          {
+            path: "manageAccounts",
+            element: <ManageAccountsPage />,
+            handle: {
+              crumb: { title: "Manage Accounts" }
+            }
+          }
+        ]
       },
       {
         path: "code",
