@@ -5,10 +5,9 @@ import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
 import CreateCompetitionDialog from "./CreateCompetitionDialog";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export function AdminDashboard() {
-  const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
