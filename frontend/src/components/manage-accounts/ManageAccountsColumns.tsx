@@ -15,11 +15,13 @@ export const columns: ColumnDef<Account>[] = [
       const isAllSelected = table.getIsAllRowsSelected();
       const isSomeSelected = table.getIsSomeRowsSelected();
 
-      const checkedState = isAllSelected
-        ? true
-        : isSomeSelected
-        ? "indeterminate"
-        : false;
+      let checkedState: boolean | "indeterminate" = false;
+
+      if (isAllSelected) {
+        checkedState = true;
+      } else if (isSomeSelected) {
+        checkedState = "indeterminate";
+      }
 
       return (
         <Checkbox

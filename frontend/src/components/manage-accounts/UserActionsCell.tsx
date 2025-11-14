@@ -37,7 +37,7 @@ interface ActionsCellProps {
   onUserUpdate?: (updatedUser: Account) => void;
 }
 
-export function ActionsCell({ user, onUserUpdate }: ActionsCellProps) {
+export function ActionsCell({ user, onUserUpdate } : Readonly<ActionsCellProps>) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [firstName, setFirstName] = React.useState(user.firstName);
   const [lastName, setLastName] = React.useState(user.lastName);

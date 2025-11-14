@@ -4,8 +4,8 @@ import { IconCirclePlusFilled } from "@tabler/icons-react";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
-import CreateCompetitionDialog from "./CreateCompetitionDialog"
-import { useNavigate } from "react-router-dom"; 
+import CreateCompetitionDialog from "./CreateCompetitionDialog";
+import { Link, useNavigate } from "react-router-dom";
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export function AdminDashboard() {
       <div className="border-b border-[#E5E5E5] bg-white">
         <div className="flex justify-between items-center py-4 px-10">
           <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
-          <Button 
+          <Button
             onClick={() => setDialogOpen(true)}
             className="bg-primary hover:bg-[#6a51b8] text-white flex items-center gap-2 rounded-lg w-[177px] h-[32px]"
           >
@@ -25,7 +25,7 @@ export function AdminDashboard() {
           </Button>
         </div>
       </div>
-      
+
       <div className="flex gap-6 mt-6 px-6">
         <StatsCard
           title="New Accounts"
@@ -50,16 +50,30 @@ export function AdminDashboard() {
         />
       </div>
       <div className="flex gap-4 mt-6 px-6">
-        <div onClick={() => navigate('/app/dashboard/manage-accounts')} className="cursor-pointer">
+        <Link
+          to="/app/dashboard/manage-accounts"
+          className="cursor-pointer block"
+        >
           <ManageCard
-          title="Manage Accounts"
-          items={[
-            { avatarUrl: "../public/assets/user_avatar.jpg", name: "shadcn", info: "shadcn@vercel.com" },
-            { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
-          ]}
-        />
-        </div>
-        <div onClick={() => navigate('/app/dashboard/competitions')} className="cursor-pointer">
+            title="Manage Accounts"
+            items={[
+              {
+                avatarUrl: "../public/assets/user_avatar.jpg",
+                name: "shadcn",
+                info: "shadcn@vercel.com",
+              },
+              {
+                avatarUrl: "../public/assets/user_avatar.jpg",
+                name: "maxleiter",
+                info: "maxleiter@vercel.com",
+              },
+            ]}
+          />
+        </Link>
+        <div
+          onClick={() => navigate("/app/dashboard/competitions")}
+          className="cursor-pointer"
+        >
           <ManageCard
             title="Manage Competitions"
             items={[
@@ -77,10 +91,10 @@ export function AdminDashboard() {
         />
       </div>
       <TechnicalIssuesChart />
-      <CreateCompetitionDialog 
-        open={dialogOpen} 
+      <CreateCompetitionDialog
+        open={dialogOpen}
         onOpenChange={setDialogOpen}
-        key={dialogOpen ? 'open' : 'closed'}
+        key={dialogOpen ? "open" : "closed"}
       />
     </div>
   );
