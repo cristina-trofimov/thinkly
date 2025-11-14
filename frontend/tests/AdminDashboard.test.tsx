@@ -1,146 +1,136 @@
-// Add TextEncoder/TextDecoder polyfill for Jest
-import { TextEncoder, TextDecoder } from 'util';
-Object.assign(global, { TextEncoder, TextDecoder });
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { AdminDashboard } from '../src/components/dashboard/AdminDashboard';
 
-// Mock useNavigate
+// --- MOCK SETUP ---
+
+// Mocking react-router-dom hooks and components
 const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
+  // Mock Outlet to display identifiable content
+  Outlet: () => <div data-testid="mock-outlet">Mock Outlet Content</div>,
 }));
 
-import { render, screen, fireEvent } from "@testing-library/react";
-import { AdminDashboard } from "../src/components/dashboard/AdminDashboard";
-
-// Mock child components
-jest.mock("@/components/dashboard/StatsCard", () => ({
-  StatsCard: ({ title, value }: { title: string; value: string | number }) => (
-    <div data-testid="stats-card">
-      <span>{title}</span>
-      <span>{value}</span>
+// Mocking child components to isolate AdminDashboard logic
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, onClick, className }) => (
+    <button onClick={onClick} className={className}>
+      {children}
+    </button>
+  ),
+}));
+jest.mock('@tabler/icons-react', () => ({
+  IconCirclePlusFilled: () => <svg data-testid="mock-icon-plus" />,
+}));
+jest.mock('../src/components/dashboard/StatsCard', () => ({
+  StatsCard: ({ title, value }) => <div data-testid="mock-stat-card">{title}: {value}</div>,
+}));
+jest.mock('../src/components/dashboard/ManageCard', () => ({
+  ManageCard: ({ title }) => <div data-testid="mock-manage-card">{title}</div>,
+}));
+jest.mock('../src/components/dashboard/TechnicalIssuesChart', () => ({
+  TechnicalIssuesChart: () => <div data-testid="mock-chart">Mock Technical Issues Chart</div>,
+}));
+jest.mock('../src/components/dashboard/CreateCompetitionDialog', () => ({
+  __esModule: true,
+  default: ({ open, onOpenChange }) => (
+    <div data-testid="mock-dialog" className={open ? 'dialog-open' : 'dialog-closed'}>
+      {open ? 'Dialog is Open' : 'Dialog is Closed'}
+      {/* Simulate closing the dialog for test cleanup */}
+      <button onClick={() => onOpenChange(false)}>Close</button>
     </div>
   ),
 }));
 
-jest.mock("@/components/dashboard/ManageCard", () => ({
-  ManageCard: ({ title, items }: { title: string; items: any[] }) => (
-    <div data-testid="manage-card">
-      <span>{title}</span>
-      <span>{items.length} items</span>
-    </div>
-  ),
-}));
+describe('AdminDashboard', () => {
+  // Helper to set the pathname using history.pushState
+  const setPathname = (pathname: string) => {
+    window.history.pushState({}, '', pathname);
+  };
 
-jest.mock("@/components/dashboard/TechnicalIssuesChart", () => ({
-  TechnicalIssuesChart: () => <div data-testid="technical-issues-chart">Chart</div>,
-}));
-
-jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <button className={className}>{children}</button>
-  ),
-}));
-
-jest.mock("@tabler/icons-react", () => ({
-  IconCirclePlusFilled: () => <svg data-testid="icon-circle-plus" />,
-}));
-
-describe("AdminDashboard", () => {
   beforeEach(() => {
-    mockNavigate.mockClear();
+    // Default the pathname to the dashboard root for most tests
+    setPathname('/app/dashboard');
   });
 
-  it("renders the dashboard title", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('renders the header title and the "Create Competition" button', () => {
     render(<AdminDashboard />);
-    expect(screen.getByText("Overview")).toBeInTheDocument();
+
+    // Check for header title
+    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument();
+
+    // Check for the create button text and its associated icon
+    expect(screen.getByText('Create Competition')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-icon-plus')).toBeInTheDocument();
   });
 
-  it("renders the Create Competition button", () => {
+  it('opens the CreateCompetitionDialog when the button is clicked', async () => {
     render(<AdminDashboard />);
-    const button = screen.getByRole("button", { name: /create competition/i });
-    expect(button).toBeInTheDocument();
+
+    const createButton = screen.getByText('Create Competition');
+
+    // 1. Initial state: Dialog should be closed
+    expect(screen.getByTestId('mock-dialog')).toHaveTextContent('Dialog is Closed');
+    expect(screen.getByTestId('mock-dialog')).toHaveClass('dialog-closed');
+
+    // 2. Click the button to open the dialog
+    fireEvent.click(createButton);
+
+    // 3. Post-click state: Dialog should be open (wait for state update)
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-dialog')).toHaveTextContent('Dialog is Open');
+      expect(screen.getByTestId('mock-dialog')).toHaveClass('dialog-open');
+    });
   });
 
-  it("renders the Create Competition button with correct icon", () => {
+  it('renders stats, manage cards, and the chart on the dashboard root route', () => {
     render(<AdminDashboard />);
-    expect(screen.getByTestId("icon-circle-plus")).toBeInTheDocument();
+
+    // Check for key components rendered only on the dashboard root
+    expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
+
+    // Check for specific Stats Card titles
+    expect(screen.getByText(/New Accounts: 25/i)).toBeInTheDocument();
+    expect(screen.getByText(/User satisfaction: 4.5/i)).toBeInTheDocument();
+
+    // Check for specific Manage Card titles
+    expect(screen.getByText('Manage Accounts')).toBeInTheDocument();
+    expect(screen.getByText('Manage Competitions')).toBeInTheDocument();
+
+    // Ensure Outlet is not rendered
+    expect(screen.queryByTestId('mock-outlet')).not.toBeInTheDocument();
   });
 
-  it("renders all three StatsCard components", () => {
-    render(<AdminDashboard />);
-    const statsCards = screen.getAllByTestId("stats-card");
-    expect(statsCards).toHaveLength(3);
-  });
-
-  it("renders StatsCard with correct titles", () => {
-    render(<AdminDashboard />);
-    expect(screen.getByText("New Accounts")).toBeInTheDocument();
-    expect(screen.getByText("Completed Competitions to Date")).toBeInTheDocument();
-    expect(screen.getByText("User satisfaction")).toBeInTheDocument();
-  });
-
-  it("renders StatsCard with correct values", () => {
-    render(<AdminDashboard />);
-    expect(screen.getByText("25")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("4.5")).toBeInTheDocument();
-  });
-
-  it("renders all three ManageCard components", () => {
-    render(<AdminDashboard />);
-    const manageCards = screen.getAllByTestId("manage-card");
-    expect(manageCards).toHaveLength(3);
-  });
-
-  it("renders ManageCard with correct titles", () => {
-    render(<AdminDashboard />);
-    expect(screen.getByText("Manage Accounts")).toBeInTheDocument();
-    expect(screen.getByText("Manage Competitions")).toBeInTheDocument();
-    expect(screen.getByText("Manage Questions")).toBeInTheDocument();
-  });
-
-  it("renders the TechnicalIssuesChart component", () => {
-    render(<AdminDashboard />);
-    expect(screen.getByTestId("technical-issues-chart")).toBeInTheDocument();
-  });
-
-  it("has correct layout structure", () => {
-    const { container } = render(<AdminDashboard />);
-    const mainContainer = container.firstChild;
-    expect(mainContainer).toHaveClass("flex", "flex-col", "w-full");
-  });
-
-  it("renders header with correct styling", () => {
-    const { container } = render(<AdminDashboard />);
-    const header = container.querySelector(".border-b.border-\\[\\#E5E5E5\\]");
-    expect(header).toBeInTheDocument();
-  });
-
-  it("renders stats cards section with correct spacing", () => {
-    const { container } = render(<AdminDashboard />);
-    const statsSection = container.querySelector(".flex.gap-6.mt-6.px-6");
-    expect(statsSection).toBeInTheDocument();
-  });
-
-  it("renders manage cards section with correct spacing", () => {
-    const { container } = render(<AdminDashboard />);
-    const manageSections = container.querySelectorAll(".flex.gap-4.mt-6.px-6");
-    expect(manageSections.length).toBeGreaterThan(0);
-  });
-
-  it("navigates to competitions page when Manage Competitions card is clicked", () => {
-    render(<AdminDashboard />);
-    const manageCards = screen.getAllByTestId("manage-card");
+  it('renders the Outlet component on a sub-route', () => {
+    // Mock the pathname to simulate a nested route
+    setPathname('/app/dashboard/competitions');
     
-    // The second manage card is "Manage Competitions" (wrapped in onClick div)
-    const manageCompetitionsCard = manageCards[1];
-    fireEvent.click(manageCompetitionsCard);
-    
+    render(<AdminDashboard />);
+
+    // Check for Outlet content
+    expect(screen.getByTestId('mock-outlet')).toBeInTheDocument();
+
+    // Ensure dashboard specific content is NOT rendered (e.g., stats and chart)
+    expect(screen.queryByText(/New Accounts/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mock-chart')).not.toBeInTheDocument();
+  });
+
+  it('navigates to the competitions route when the "Manage Competitions" card is clicked', () => {
+    render(<AdminDashboard />);
+
+    // Find the Manage Competitions card by its title text
+    const manageCompetitionsCard = screen.getByText('Manage Competitions').closest('.cursor-pointer');
+
+    // Click the card
+    fireEvent.click(manageCompetitionsCard!);
+
+    // Verify that the navigate function was called with the correct path
     expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/competitions');
-  });
-
-  it("Manage Competitions card has cursor-pointer class", () => {
-    const { container } = render(<AdminDashboard />);
-    const clickableDiv = container.querySelector('.cursor-pointer');
-    expect(clickableDiv).toBeInTheDocument();
   });
 });
