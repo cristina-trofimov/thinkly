@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AvatarInitials } from "../AvatarInitials";
+import { AvatarInitials } from "../helpers/AvatarInitials";
 import { ActionsCell } from "./UserActionsCell";
 import type { Account } from "@/types/Account";
 
