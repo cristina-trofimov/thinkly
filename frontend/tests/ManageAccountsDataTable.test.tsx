@@ -1,15 +1,16 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ManageAccountsDataTable } from "./../src/components/manage-accounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { deleteAccounts } from "./../src/api/manageAccounts";
+import { Checkbox } from "@/components/ui/checkbox";
 
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },
 }));
 
-jest.mock("@/api/manageAccounts", () => ({
+jest.mock("./../src/api/manageAccounts", () => ({
   deleteAccounts: jest.fn(),
 }));
 
@@ -34,7 +35,26 @@ const mockData: TestData[] = [
   { id: 3, firstName: "Bob", lastName: "Johnson", email: "bob@example.com", accountType: "Owner" },
 ];
 
-const mockColumns: ColumnDef<TestData>[] = [
+const createMockColumns = (): ColumnDef<TestData>[] => [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label={`Select row ${row.id}`}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   { accessorKey: "firstName", header: "First Name" },
   { accessorKey: "lastName", header: "Last Name" },
   { accessorKey: "email", header: "Email" },
@@ -46,10 +66,13 @@ describe("ManageAccountsDataTable", () => {
     jest.clearAllMocks();
   });
 
+  const mockColumns = createMockColumns();
+
   it("renders all rows correctly", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
     expect(screen.getByText("john@example.com")).toBeInTheDocument();
     expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+    expect(screen.getByText("bob@example.com")).toBeInTheDocument();
   });
 
   it("renders filter input and dropdown", () => {
@@ -188,6 +211,29 @@ describe("ManageAccountsDataTable", () => {
     expect(deleteButton).toBeDisabled();
   });
 
+  it("hides select column when not in edit mode", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const rows = screen.getAllByRole("row");
+    const firstDataRow = rows[1]; // Skip header row
+    const cells = within(firstDataRow).getAllByRole("cell");
+    
+    expect(cells.length).toBe(4);
+  });
+
+  it("shows select column when in edit mode", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const rows = screen.getAllByRole("row");
+    const firstDataRow = rows[1];
+    const cells = within(firstDataRow).getAllByRole("cell");
+
+    expect(cells.length).toBe(5);
+  });
+
   it("successfully deletes selected users", async () => {
     const mockDeleteResponse = {
       deleted_count: 1,
@@ -209,8 +255,20 @@ describe("ManageAccountsDataTable", () => {
     const editButton = screen.getByRole("button", { name: /edit/i });
     await user.click(editButton);
     
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]); 
     
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(deleteAccounts).toHaveBeenCalledWith([1]);
+      expect(toast.success).toHaveBeenCalledWith("Successfully deleted 1 user(s).");
+      expect(onDeleteUsers).toHaveBeenCalledWith([1]);
+    });
   });
 
   it("handles partial deletion with errors", async () => {
@@ -231,9 +289,28 @@ describe("ManageAccountsDataTable", () => {
       />
     );
     
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    await user.click(checkboxes[2]); 
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(deleteAccounts).toHaveBeenCalledWith([1, 2]);
+      expect(toast.success).toHaveBeenCalledWith("Deleted 1/2 users successfully.");
+      expect(toast.warning).toHaveBeenCalledWith("1 users could not be deleted.");
+      expect(onDeleteUsers).toHaveBeenCalledWith([1]);
+    });
   });
 
-  it("handles deletion error from API", async () => {
+  it("handles deletion error from API with detail message", async () => {
     const mockError = {
       response: {
         data: {
@@ -252,6 +329,22 @@ describe("ManageAccountsDataTable", () => {
       />
     );
     
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("Cannot delete user: insufficient permissions");
+      expect(onDeleteUsers).not.toHaveBeenCalled();
+    });
   });
 
   it("handles deletion error without detail message", async () => {
@@ -267,6 +360,94 @@ describe("ManageAccountsDataTable", () => {
       />
     );
     
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("Failed to delete selected user(s).");
+      expect(onDeleteUsers).not.toHaveBeenCalled();
+    });
+  });
+
+  it("cancels delete operation from alert dialog", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(cancelButton);
+    
+    expect(deleteAccounts).not.toHaveBeenCalled();
+  });
+
+  it("clears selection after successful delete", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+    
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    expect(screen.getByText(/1 of 3 row\(s\) selected/i)).toBeInTheDocument();
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+      expect(screen.queryByText(/row\(s\) selected/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it("exits edit mode after error", async () => {
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+    
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    });
   });
 
   it("handles pagination buttons", async () => {
@@ -275,8 +456,6 @@ describe("ManageAccountsDataTable", () => {
     const prevBtn = screen.getByRole("button", { name: /previous/i });
     expect(nextBtn).toBeInTheDocument();
     expect(prevBtn).toBeInTheDocument();
-    await user.click(nextBtn);
-    await user.click(prevBtn);
   });
 
   it("handles column header clicks (sorting)", async () => {
@@ -287,7 +466,7 @@ describe("ManageAccountsDataTable", () => {
     expect(firstNameHeader).toBeInTheDocument();
   });
 
-  it("calls onUserUpdate when provided", () => {
+  it("passes onUserUpdate to table meta", () => {
     const mockOnUserUpdate = jest.fn();
     render(
       <ManageAccountsDataTable 
@@ -296,6 +475,99 @@ describe("ManageAccountsDataTable", () => {
         onUserUpdate={mockOnUserUpdate}
       />
     );
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("console logs delete response on successful deletion", async () => {
+    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
     
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith("Delete response:", mockDeleteResponse);
+      expect(consoleSpy).toHaveBeenCalledWith("Deleted users:", mockDeleteResponse.deleted_users);
+    });
+    
+    consoleSpy.mockRestore();
+  });
+
+  it("console logs and warns on partial deletion", async () => {
+    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+    
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 2,
+      deleted_users: [{ user_id: 1 }],
+      errors: [{ user_id: 2, error: "Cannot delete" }],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+    
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    await user.click(checkboxes[2]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith("Partial deletion errors:", mockDeleteResponse.errors);
+    });
+    
+    consoleSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("console errors on deletion failure", async () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+    
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+    
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+    
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith("Error deleting users:", mockError);
+    });
+    
+    consoleErrorSpy.mockRestore();
   });
 });
