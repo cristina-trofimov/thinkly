@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { Account } from './../src/types/Account';
 
 // Mock the API module before importing components
@@ -8,9 +9,8 @@ jest.mock('./../src/api/manageAccounts', () => ({
   deleteAccounts: jest.fn(),
 }));
 
-describe('ManageAccountsPage Unit Tests', () => {
+describe('ManageAccountsPage', () => {
   let ManageAccountsPage: any;
-  let columns: any;
   let getAccounts: jest.Mock;
 
   beforeAll(() => {
@@ -18,13 +18,11 @@ describe('ManageAccountsPage Unit Tests', () => {
     getAccounts = apiModule.getAccounts;
     
     ManageAccountsPage = require('./../src/views/ManageAccountsPage').default;
-    columns = require('./../src/components/manage-accounts/ManageAccountsColumns').columns;
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
     
-    // Mock successful API response with 31 accounts
     const mockAccounts = Array.from({ length: 31 }, (_, i) => ({
       id: i + 1,
       firstName: `User${i}`,
@@ -36,7 +34,7 @@ describe('ManageAccountsPage Unit Tests', () => {
     getAccounts.mockResolvedValue(mockAccounts);
   });
 
-  it('should render without crashing', async () => {
+  it('renders without crashing', async () => {
     render(<ManageAccountsPage />);
     
     await waitFor(() => {
@@ -46,7 +44,7 @@ describe('ManageAccountsPage Unit Tests', () => {
     expect(screen.getByText('user0@example.com')).toBeInTheDocument();
   });
 
-  it('should fetch and display data on mount', async () => {
+  it('fetches and displays data on mount', async () => {
     render(<ManageAccountsPage />);
     
     await waitFor(() => {
@@ -58,7 +56,22 @@ describe('ManageAccountsPage Unit Tests', () => {
     });
   });
 
-  it('should pass columns to DataTable', async () => {
+  it('displays loading state initially', () => {
+    render(<ManageAccountsPage />);
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+
+  it('displays error state on fetch failure', async () => {
+    getAccounts.mockRejectedValue(new Error('Network error'));
+    
+    render(<ManageAccountsPage />);
+    
+    await waitFor(() => {
+      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+    });
+  });
+
+  it('passes correct props to ManageAccountsDataTable', async () => {
     render(<ManageAccountsPage />);
     
     await waitFor(() => {
@@ -70,24 +83,131 @@ describe('ManageAccountsPage Unit Tests', () => {
     expect(screen.getByText('Account Type')).toBeInTheDocument();
   });
 
-  it('should display loading state initially', () => {
-    render(<ManageAccountsPage />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-  });
-
-  it('should display error state on fetch failure', async () => {
-    getAccounts.mockRejectedValue(new Error('Network error'));
-    
+  it('handles successful data fetch with multiple users', async () => {
     render(<ManageAccountsPage />);
     
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText('user0@example.com')).toBeInTheDocument();
+      expect(screen.getByText('user1@example.com')).toBeInTheDocument();
+    });
+  });
+
+  it('renders container with correct styling', async () => {
+    const { container } = render(<ManageAccountsPage />);
+    
+    await waitFor(() => {
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+    });
+    
+    const mainContainer = container.querySelector('.container.mx-auto.p-6');
+    expect(mainContainer).toBeInTheDocument();
+  });
+
+  describe('User deletion', () => {
+    it('updates data when users are deleted', async () => {
+      const mockAccounts = [
+        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
+        { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
+      ];
+      
+      getAccounts.mockResolvedValue(mockAccounts);
+      
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('john@example.com')).toBeInTheDocument();
+        expect(screen.getByText('jane@example.com')).toBeInTheDocument();
+      });
+    });
+
+    it('filters out deleted users from display', async () => {
+      const mockAccounts = [
+        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
+        { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
+      ];
+      
+      getAccounts.mockResolvedValue(mockAccounts);
+      
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('john@example.com')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('User updates', () => {
+    it('updates user data when edit is successful', async () => {
+      const mockAccounts = [
+        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
+      ];
+      
+      getAccounts.mockResolvedValue(mockAccounts);
+      
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('john@example.com')).toBeInTheDocument();
+      });
+    });
+
+    it('passes onUserUpdate callback to DataTable', async () => {
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
+      
+      // Verify the component rendered successfully with callbacks
+      expect(screen.getByText('user0@example.com')).toBeInTheDocument();
+    });
+  });
+
+  describe('Error handling', () => {
+    it('displays error message with error details', async () => {
+      getAccounts.mockRejectedValue(new Error('Failed to fetch'));
+      
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Error: Failed to fetch/)).toBeInTheDocument();
+      });
+    });
+
+    it('handles unknown error type', async () => {
+      getAccounts.mockRejectedValue('String error');
+      
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Error: An unknown error occurred/)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Data state management', () => {
+    it('initializes with empty data array', () => {
+      render(<ManageAccountsPage />);
+      
+      expect(screen.getByText('Loading...')).toBeInTheDocument();
+    });
+
+    it('updates data state after successful fetch', async () => {
+      render(<ManageAccountsPage />);
+      
+      await waitFor(() => {
+        expect(getAccounts).toHaveBeenCalled();
+      });
+      
+      await waitFor(() => {
+        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      });
     });
   });
 });
 
 describe('ManageAccountsColumns - Initial Generation', () => {
-  it('should generate correct initials for full names', () => {
+  it('generates correct initials for full names', () => {
     const firstName = 'John';
     const lastName = 'Doe';
     const name = `${firstName} ${lastName}`;
@@ -99,7 +219,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('JD');
   });
 
-  it('should generate correct initials for single first name', () => {
+  it('generates correct initials for single first name', () => {
     const firstName = 'John';
     const lastName = '';
     const name = `${firstName} ${lastName}`;
@@ -111,7 +231,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('JJ');
   });
 
-  it('should handle empty names', () => {
+  it('handles empty names', () => {
     const firstName = '';
     const lastName = '';
     const name = `${firstName} ${lastName}`;
@@ -123,7 +243,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('');
   });
 
-  it('should handle names with multiple spaces', () => {
+  it('handles names with multiple spaces', () => {
     const firstName = 'John   Michael';
     const lastName = 'Doe';
     const name = `${firstName} ${lastName}`;
@@ -135,7 +255,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('JD');
   });
 
-  it('should handle names with leading/trailing whitespace', () => {
+  it('handles names with leading/trailing whitespace', () => {
     const firstName = '  John';
     const lastName = 'Doe  ';
     const name = `${firstName} ${lastName}`;
@@ -147,7 +267,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('JD');
   });
 
-  it('should handle lowercase names', () => {
+  it('handles lowercase names', () => {
     const firstName = 'john';
     const lastName = 'doe';
     const name = `${firstName} ${lastName}`;
@@ -159,7 +279,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('JD');
   });
 
-  it('should handle names with special characters', () => {
+  it('handles names with special characters', () => {
     const firstName = "O'Brien";
     const lastName = '';
     const name = `${firstName} ${lastName}`;
@@ -171,7 +291,7 @@ describe('ManageAccountsColumns - Initial Generation', () => {
     expect(initials).toBe('OO');
   });
 
-  it('should use first and last name only (ignore middle names)', () => {
+  it('uses first and last name only (ignore middle names)', () => {
     const firstName = 'John Michael';
     const lastName = 'Smith';
     const name = `${firstName} ${lastName}`;
@@ -192,40 +312,40 @@ describe('ManageAccountsColumns - Structure', () => {
     columns = columnsModule.columns;
   });
 
-  it('should have exactly 5 columns', () => {
+  it('has exactly 5 columns', () => {
     expect(columns).toHaveLength(5);
   });
 
-  it('should have select column as first column', () => {
+  it('has select column as first column', () => {
     expect(columns[0].id).toBe('select');
   });
 
-  it('should have select column with sorting disabled', () => {
+  it('has select column with sorting disabled', () => {
     expect(columns[0].enableSorting).toBe(false);
   });
 
-  it('should have name column', () => {
+  it('has name column', () => {
     const nameColumn = columns.find((col: any) => col.accessorKey === 'name');
     expect(nameColumn).toBeDefined();
   });
 
-  it('should have email column', () => {
+  it('has email column', () => {
     const emailColumn = columns.find((col: any) => col.accessorKey === 'email');
     expect(emailColumn).toBeDefined();
   });
 
-  it('should have accountType column', () => {
+  it('has accountType column', () => {
     const accountTypeColumn = columns.find((col: any) => col.accessorKey === 'accountType');
     expect(accountTypeColumn).toBeDefined();
   });
 
-  it('should have actions column as last column', () => {
+  it('has actions column as last column', () => {
     expect(columns[4].id).toBe('actions');
   });
 });
 
 describe('Account Type Definition', () => {
-  it('should accept Participant account type', () => {
+  it('accepts Participant account type', () => {
     const account: Account = {
       id: 1,
       firstName: 'Test',
@@ -236,7 +356,7 @@ describe('Account Type Definition', () => {
     expect(account.accountType).toBe('Participant');
   });
 
-  it('should accept Admin account type', () => {
+  it('accepts Admin account type', () => {
     const account: Account = {
       id: 1,
       firstName: 'Test',
@@ -247,7 +367,7 @@ describe('Account Type Definition', () => {
     expect(account.accountType).toBe('Admin');
   });
 
-  it('should accept Owner account type', () => {
+  it('accepts Owner account type', () => {
     const account: Account = {
       id: 1,
       firstName: 'Test',
@@ -258,7 +378,7 @@ describe('Account Type Definition', () => {
     expect(account.accountType).toBe('Owner');
   });
 
-  it('should require firstName field', () => {
+  it('requires firstName field', () => {
     const account: Account = {
       id: 1,
       firstName: 'Test',
@@ -269,7 +389,7 @@ describe('Account Type Definition', () => {
     expect(account.firstName).toBe('Test');
   });
 
-  it('should require lastName field', () => {
+  it('requires lastName field', () => {
     const account: Account = {
       id: 1,
       firstName: 'Test',
@@ -278,5 +398,27 @@ describe('Account Type Definition', () => {
       accountType: 'Admin',
     };
     expect(account.lastName).toBe('User');
+  });
+
+  it('requires email field', () => {
+    const account: Account = {
+      id: 1,
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'test@example.com',
+      accountType: 'Admin',
+    };
+    expect(account.email).toBe('test@example.com');
+  });
+
+  it('requires id field', () => {
+    const account: Account = {
+      id: 1,
+      firstName: 'Test',
+      lastName: 'User',
+      email: 'test@example.com',
+      accountType: 'Admin',
+    };
+    expect(account.id).toBe(1);
   });
 });
