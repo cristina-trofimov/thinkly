@@ -116,7 +116,6 @@ describe("Account Columns", () => {
       const Cell = nameColumn.cell as Function;
       const { container } = render(<>{Cell({ row })}</>);
       
-      // Check that the name span exists and is empty
       const nameSpan = container.querySelector('.font-semibold');
       expect(nameSpan).toBeInTheDocument();
       expect(nameSpan?.textContent).toBe("");
@@ -180,7 +179,6 @@ describe("Account Columns", () => {
       const row = createMockRow();
       const table = createMockTable();
       
-      // Need to render in a proper React component context for hooks to work
       const TestComponent = () => {
         const Cell = actionsColumn.cell as Function;
         return <>{Cell({ row, table })}</>;
@@ -206,7 +204,6 @@ describe("Account Columns", () => {
       const button = screen.getByRole("button");
       await user.click(button);
       
-      // Wait for dropdown to appear
       const editMenuItem = await screen.findByText("Edit User");
       await user.click(editMenuItem);
       
