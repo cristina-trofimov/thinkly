@@ -11,7 +11,7 @@ export default defineConfig([
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
-      tseslint.configs.recommended,
+      ...tseslint.configs.recommended,
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
     ],
@@ -23,8 +23,8 @@ export default defineConfig([
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
-          varsIgnorePattern: "^_",
-          argsIgnorePattern: "^_|^TData"
+          varsIgnorePattern: "^_|^TData$",
+          argsIgnorePattern: "^_"
         }
       ]
     }
