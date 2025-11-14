@@ -39,7 +39,7 @@ describe('ManageAccountsPage', () => {
     });
 
     it('displays loading state initially', () => {
-      getAccounts.mockImplementation(() => new Promise(() => {})); // Never resolves
+      getAccounts.mockImplementation(() => new Promise(() => {}));
       
       render(<ManageAccountsPage />);
       expect(screen.getByText('Loading...')).toBeInTheDocument();
