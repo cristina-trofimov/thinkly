@@ -3,21 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException
 import logging
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
-from DB_Methods.crudOperations import (
-    SessionLocal,
-)
 from models.schema import BaseQuestion
+from DB_Methods.database import get_db
+
 questions_router = APIRouter(tags=["Questions"])
 logger = logging.getLogger(__name__)
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        
 @questions_router.get("/")
 def get_all_questions(db: Session = Depends(get_db)):
     try:

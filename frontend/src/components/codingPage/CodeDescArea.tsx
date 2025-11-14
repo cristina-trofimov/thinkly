@@ -8,14 +8,12 @@ import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
-import { ScoreboardDataTable } from '../leaderboards/ScoreboardDataTable'
-import type { Participant } from '../interfaces/Participant'
+import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 
 
 const CodeDescArea = (
-    { problemInfo, submissions, leaderboard }: 
-    { problemInfo: ProblemInfo, submissions: SubmissionType[],
-      leaderboard: Participant[]
+    { problemInfo, submissions }:
+    { problemInfo: ProblemInfo, submissions: SubmissionType[]
 }) => {
     
     const tabs = [
@@ -234,10 +232,7 @@ const CodeDescArea = (
         {/* Leaderboard */}
         <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
             <div className='h-full p-6' >
-                <ScoreboardDataTable participants={leaderboard} />
-                <div className='mt-3 text-gray-500' >
-                    {leaderboard.length} participant{(leaderboard.length > 1 || leaderboard.length === 0) ? 's' : ''}
-                </div>
+                <CurrentLeaderboard/>
             </div>
         </TabsContent>
     </Tabs>
