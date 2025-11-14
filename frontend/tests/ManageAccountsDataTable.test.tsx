@@ -3,16 +3,21 @@ import userEvent from "@testing-library/user-event";
 import { ManageAccountsDataTable } from "./../src/components/manage-accounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
+import { deleteAccounts } from "./../src/api/manageAccounts";
 
-// ✅ Mock toast
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },
+}));
+
+jest.mock("@/api/manageAccounts", () => ({
+  deleteAccounts: jest.fn(),
 }));
 
 beforeAll(() => {
   Object.defineProperty(window.HTMLElement.prototype, "hasPointerCapture", { value: () => false });
   Object.defineProperty(window.HTMLElement.prototype, "releasePointerCapture", { value: () => {} });
 });
+
 const user = userEvent.setup();
 
 type TestData = {
@@ -26,6 +31,7 @@ type TestData = {
 const mockData: TestData[] = [
   { id: 1, firstName: "John", lastName: "Doe", email: "john@example.com", accountType: "Admin" },
   { id: 2, firstName: "Jane", lastName: "Smith", email: "jane@example.com", accountType: "Participant" },
+  { id: 3, firstName: "Bob", lastName: "Johnson", email: "bob@example.com", accountType: "Owner" },
 ];
 
 const mockColumns: ColumnDef<TestData>[] = [
@@ -36,7 +42,9 @@ const mockColumns: ColumnDef<TestData>[] = [
 ];
 
 describe("ManageAccountsDataTable", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
   it("renders all rows correctly", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
@@ -83,11 +91,182 @@ describe("ManageAccountsDataTable", () => {
     expect(filterButton).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("handles edit button click", async () => {
+  it("filters by Participant account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", { name: /all account types/i });
+    await user.click(filterButton);
+    const participantOption = screen.getByRole("menuitem", { name: /participant/i });
+    await user.click(participantOption);
+    
+    await waitFor(() => {
+      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("filters by Admin account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", { name: /all account types/i });
+    await user.click(filterButton);
+    const adminOption = screen.getByRole("menuitem", { name: /^admin$/i });
+    await user.click(adminOption);
+    
+    await waitFor(() => {
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("filters by Owner account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", { name: /all account types/i });
+    await user.click(filterButton);
+    const ownerOption = screen.getByRole("menuitem", { name: /owner/i });
+    await user.click(ownerOption);
+    
+    await waitFor(() => {
+      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("resets filter to show all account types", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", { name: /all account types/i });
+    
+    await user.click(filterButton);
+    await user.click(screen.getByRole("menuitem", { name: /^admin$/i }));
+    
+    await user.click(filterButton);
+    await user.click(screen.getByRole("menuitem", { name: /^all$/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
+      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+    });
+  });
+
+  it("enters edit mode when edit button is clicked", async () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
     const editButton = screen.getByRole("button", { name: /edit/i });
     await user.click(editButton);
-    expect(editButton).toBeEnabled();
+    
+    expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  it("exits edit mode when cancel button is clicked", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(cancelButton);
+    
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+  });
+
+  it("shows row selection count in edit mode", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    expect(screen.getByText(/0 of 3 row\(s\) selected/i)).toBeInTheDocument();
+  });
+
+  it("delete button is disabled when no rows are selected", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    expect(deleteButton).toBeDisabled();
+  });
+
+  it("successfully deletes selected users", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+    
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable 
+        columns={mockColumns} 
+        data={mockData} 
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+    
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+    
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    
+  });
+
+  it("handles partial deletion with errors", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 2,
+      deleted_users: [{ user_id: 1 }],
+      errors: [{ user_id: 2, error: "Cannot delete owner" }],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+    
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable 
+        columns={mockColumns} 
+        data={mockData} 
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+    
+  });
+
+  it("handles deletion error from API", async () => {
+    const mockError = {
+      response: {
+        data: {
+          detail: "Cannot delete user: insufficient permissions",
+        },
+      },
+    };
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+    
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable 
+        columns={mockColumns} 
+        data={mockData} 
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+    
+  });
+
+  it("handles deletion error without detail message", async () => {
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+    
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable 
+        columns={mockColumns} 
+        data={mockData} 
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+    
   });
 
   it("handles pagination buttons", async () => {
@@ -108,15 +287,15 @@ describe("ManageAccountsDataTable", () => {
     expect(firstNameHeader).toBeInTheDocument();
   });
 
-  it("handles simulated delete function for coverage", async () => {
-    // Fake internal function simulation
-    const fakeDelete = jest.fn(() => toast.success("Deleted!"));
-    fakeDelete();
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Deleted!"));
-  });
-
-  it("triggers warning toast manually for coverage", async () => {
-    toast.warning("No users selected");
-    await waitFor(() => expect(toast.warning).toHaveBeenCalledWith("No users selected"));
+  it("calls onUserUpdate when provided", () => {
+    const mockOnUserUpdate = jest.fn();
+    render(
+      <ManageAccountsDataTable 
+        columns={mockColumns} 
+        data={mockData}
+        onUserUpdate={mockOnUserUpdate}
+      />
+    );
+    
   });
 });
