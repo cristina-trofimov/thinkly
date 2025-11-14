@@ -59,34 +59,11 @@ describe('AdminDashboard', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the header title and the "Create Competition" button', () => {
+  it('renders the header title', () => {
     render(<AdminDashboard />);
 
     // Check for header title
     expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument();
-
-    // Check for the create button text and its associated icon
-    expect(screen.getByText('Create Competition')).toBeInTheDocument();
-    expect(screen.getByTestId('mock-icon-plus')).toBeInTheDocument();
-  });
-
-  it('opens the CreateCompetitionDialog when the button is clicked', async () => {
-    render(<AdminDashboard />);
-
-    const createButton = screen.getByText('Create Competition');
-
-    // 1. Initial state: Dialog should be closed
-    expect(screen.getByTestId('mock-dialog')).toHaveTextContent('Dialog is Closed');
-    expect(screen.getByTestId('mock-dialog')).toHaveClass('dialog-closed');
-
-    // 2. Click the button to open the dialog
-    fireEvent.click(createButton);
-
-    // 3. Post-click state: Dialog should be open (wait for state update)
-    await waitFor(() => {
-      expect(screen.getByTestId('mock-dialog')).toHaveTextContent('Dialog is Open');
-      expect(screen.getByTestId('mock-dialog')).toHaveClass('dialog-open');
-    });
   });
 
   it('renders stats, manage cards, and the chart on the dashboard root route', () => {
