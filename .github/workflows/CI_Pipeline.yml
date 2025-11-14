@@ -27,8 +27,7 @@ jobs:
           PYTHONPATH: .
           BREVO_API_KEY: test-brevo-key
           DEFAULT_SENDER_EMAIL: test@example.com
-          DATABASE_URL: postgresql://user:password@localhost:5432/dbname
-
+          DATABASE_URL: sqlite+pysqlite:///:memory:
         run: pytest --maxfail=1 --disable-warnings -q
 
   react-tests:
