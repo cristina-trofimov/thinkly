@@ -15,7 +15,6 @@ import type { ImperativePanelHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../interfaces/SubmissionType';
 import type { ProblemInfo } from '../interfaces/ProblemInfo';
 import { useStateCallback } from '../helpers/UseStateCallback';
-import type { Participant } from '../interfaces/Participant';
 
 
 const CodingView = () => {
@@ -52,13 +51,6 @@ const CodingView = () => {
     {"status": "Accepted", "language":  "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40"},
     {"status": "Runtime Error", "language":  "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-23 17:40"},
     {"status": "Wrong Answer", "language":  "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40"},
-  ]
-
-  const leaderboard: Participant[] = [
-    {"name": "Julia T.", "points":  259, "problemsSolved": 13, "totalTime": "34 min"},
-    {"name": "Law M.", "points":  209, "problemsSolved": 10, "totalTime": "24 min"},
-    {"name": "Boudour B.", "points":  109, "problemsSolved": 9, "totalTime": "18 min"},
-    {"name": "Alice T.", "points":  59, "problemsSolved": 3, "totalTime": "8 min"},
   ]
 
   const templates = getSandpackConfigs(problemName, inputVars, outputType)
@@ -152,8 +144,7 @@ const CodingView = () => {
             className='mr-[3px] rounded-md border'
           >
             <CodeDescArea problemInfo={problemInfo}
-              submissions={submissions} leaderboard={leaderboard}
-            />
+              submissions={submissions}/>
           </ResizablePanel>
 
           <ResizableHandle withHandle className="w-[0.35px] mx-[1.5px] border-none"

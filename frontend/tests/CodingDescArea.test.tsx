@@ -68,6 +68,10 @@ jest.mock("../src/components/ui/shadcn-io/code-block", () => ({
   CodeBlockItem: ({ children }: any) => <div data-testid="code-item" >{children}</div>,
   CodeBlockContent: ({ children }: any) => <div data-testid="code-content" >{children}</div>,
 }))
+jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
+  __esModule: true,
+  CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
+}));
 
 // Samples
 const problemInfo = {
@@ -111,7 +115,6 @@ describe('CodeDescArea', () => {
     render(<CodeDescArea
       problemInfo={problemInfo}
       submissions={submissions}
-      leaderboard={leaderboard}
     />)
 
     const triggers = screen.getAllByTestId("tabs-trigger")
@@ -122,7 +125,6 @@ describe('CodeDescArea', () => {
     render(<CodeDescArea
       problemInfo={problemInfo}
       submissions={submissions}
-      leaderboard={leaderboard}
     />)
 
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
@@ -134,7 +136,6 @@ describe('CodeDescArea', () => {
     render(<CodeDescArea
       problemInfo={problemInfo}
       submissions={submissions}
-      leaderboard={leaderboard}
     />)
 
     const tab = screen.getByText("Submissions")
@@ -148,7 +149,6 @@ describe('CodeDescArea', () => {
     render(<CodeDescArea
       problemInfo={problemInfo}
       submissions={submissions}
-      leaderboard={leaderboard}
     />)
 
     fireEvent.click(screen.getByText("Submissions"))
@@ -164,18 +164,17 @@ describe('CodeDescArea', () => {
   })
 
   it("can switch to Leaderboard tab", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-      leaderboard={leaderboard}
-    />)
+  render(<CodeDescArea
+    problemInfo={problemInfo}
+    submissions={submissions}
+  />);
 
-    const tab = screen.getByText("Leaderboard")
-    fireEvent.click(tab)
+  const tab = screen.getByText("Leaderboard");
+  fireEvent.click(tab);
 
-    expect(screen.getByText("Alice")).toBeInTheDocument()
-    expect(screen.getByText("100")).toBeInTheDocument()
-  })
+  // Assert the mocked leaderboard is rendered
+  expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
+});
 
   it('formats submission time properly', () => {
     const times = [
@@ -195,7 +194,6 @@ describe('CodeDescArea', () => {
         <CodeDescArea
           problemInfo={problemInfo}
           submissions={[submission]}
-          leaderboard={leaderboard}
         />
       )
 

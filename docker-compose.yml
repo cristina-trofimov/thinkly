@@ -9,7 +9,6 @@ services:
       - ./backend/src:/app
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ThinklyDB
     extra_hosts:
       - "host.docker.internal:host-gateway"  # For Linux
     env_file:

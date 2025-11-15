@@ -3,9 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
-from db import SessionLocal
 from models.schema import User
-from DB_Methods.crudOperations import _commit_or_rollback
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
@@ -13,7 +11,7 @@ from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import uuid
-
+from DB_Methods.database import get_db, _commit_or_rollback
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
@@ -40,13 +38,6 @@ class GoogleAuthRequest(BaseModel):
     credential: str
 
 # ---------------- DB helpers ----------------
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
