@@ -43,7 +43,7 @@ seed_users = [
         "first_name": "Jane",
         "last_name": "Smith",
         "salt": "random_salt_3",
-        "type": "particpant",
+        "type": "participant",
     },
 ]
 
@@ -144,7 +144,7 @@ def main():
                 password_hash="hashed_pw",
                 first_name=f"First{i}",
                 last_name=f"Last{i}",
-                type="user"
+                type="participant"
             )
             users.append(user)
         print("✅ Created 10 users.")
