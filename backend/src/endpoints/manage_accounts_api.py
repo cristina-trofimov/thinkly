@@ -5,12 +5,9 @@ from typing import List
 from pydantic import BaseModel
 from DB_Methods.crudOperations import (
     SessionLocal,
-    get_all_users,
-    delete_user_full,
-    get_user_by_id,
-    update_user as crud_update_user,
 )
 from typing import Optional
+from models.schema import BaseQuestion, Competition, User, UserPreferences
 
 manage_accounts_router = APIRouter(tags=["Manage Accounts"])
 
@@ -31,6 +28,71 @@ def get_db():
         yield db
     finally:
         db.close()
+
+def _commit_or_rollback(db: Session):
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+def get_all_users(db: Session) -> List[User]:
+    """Retrieve all users."""
+    return db.query(User).all()
+
+def delete_user_full(db: Session, user_id: int) -> bool:
+    """
+    Delete a user and all related data (sessions, cooldowns, results, preferences, etc.)
+    while keeping historical scoreboard entries and nullifying ownerships.
+    """
+
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+
+    # Set user_id = NULL for competitions and questions they created
+    db.query(Competition).filter(Competition.user_id == user_id).update({"user_id": None})
+    db.query(BaseQuestion).filter(BaseQuestion.user_id == user_id).update({"user_id": None})
+
+    # Delete user preferences explicitly (not handled via relationship)
+    db.query(UserPreferences).filter(UserPreferences.user_id == user_id).delete()
+
+    # Delete the user (cascades handle: sessions, results, cooldowns, stats, answers, participations)
+    db.delete(user)
+    _commit_or_rollback(db)
+    return True
+
+def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+    """Retrieve a user by ID."""
+    return db.query(User).filter(User.user_id == user_id).first()
+
+def update_user(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise ValueError("User not found")
+
+    # Prevent creating multiple owners
+    if type == 'owner' and user.type != 'owner':
+        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        if existing_owner:
+            raise ValueError("An owner already exists. Only one owner is allowed.")
+
+    if username is not None:
+        user.username = username
+    if email is not None:
+        user.email = email
+    if first_name is not None:
+        user.first_name = first_name
+    if last_name is not None:
+        user.last_name = last_name
+    if password_hash is not None:
+        user.salt = password_hash
+    if type is not None:
+        user.type = type
+
+    _commit_or_rollback(db)
+    db.refresh(user)
+    return user
 
 @manage_accounts_router.get("/users")
 def get_users(db: Session = Depends(get_db)):
