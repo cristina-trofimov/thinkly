@@ -237,7 +237,7 @@ class TestManageAccountsAPI:
             type="admin",
         )
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user):
+        with patch("endpoints.manage_accounts_api.update_user_in_db", return_value=updated_user):
             response = client.patch(
                 "/manageAccounts/users/2",
                 json={"email": "newemail@example.com", "type": "admin"},
@@ -258,7 +258,7 @@ class TestManageAccountsAPI:
             yield mock_db
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", side_effect=ValueError("Invalid data")):
+        with patch("endpoints.manage_accounts_api.update_user_in_db", side_effect=ValueError("Invalid data")):
             response = client.patch(
                 "/manageAccounts/users/99",
                 json={"email": "bad@example.com"},
@@ -282,7 +282,7 @@ class TestManageAccountsAPI:
             type="participant",
         )
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user):
+        with patch("endpoints.manage_accounts_api.update_user_in_db", return_value=updated_user):
             response = client.patch("/manageAccounts/users/5", json={"email": "partial@example.com"})
             data = response.json()
             assert response.status_code == 200
@@ -307,7 +307,7 @@ class TestManageAccountsAPI:
             type="admin",
         )
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", return_value=updated_user) as mock_update:
+        with patch("endpoints.manage_accounts_api.update_user_in_db", return_value=updated_user) as mock_update:
             response = client.patch(
                 "/manageAccounts/users/3",
                 json={
@@ -340,7 +340,7 @@ class TestManageAccountsAPI:
             yield mock_db
         app.dependency_overrides[get_db] = override_get_db
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", side_effect=ValueError("User not found")):
+        with patch("endpoints.manage_accounts_api.update_user_in_db", side_effect=ValueError("User not found")):
             response = client.patch(
                 "/manageAccounts/users/999",
                 json={"email": "test@example.com"},
@@ -364,7 +364,7 @@ class TestManageAccountsAPI:
             type="participant",
         )
 
-        with patch("endpoints.manage_accounts_api.crud_update_user", return_value=existing_user) as mock_update:
+        with patch("endpoints.manage_accounts_api.update_user_in_db", return_value=existing_user) as mock_update:
             response = client.patch("/manageAccounts/users/7", json={})
             data = response.json()
             assert response.status_code == 200
