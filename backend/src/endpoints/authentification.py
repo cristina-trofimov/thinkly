@@ -41,7 +41,7 @@ class GoogleAuthRequest(BaseModel):
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.query(User).filter(User.email == email).first()
 
-def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'user'):
+def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
     if type == 'owner':
         existing_owner = db.query(User).filter(User.type == 'owner').first()
         if existing_owner:
@@ -121,7 +121,7 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
         name = idinfo.get("name", "Unknown User")
         user = get_user_by_email(db, email)
         if not user:
-            create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="user")
+            create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="participant")
             user = get_user_by_email(db, email)
         token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
         return {"token": token}

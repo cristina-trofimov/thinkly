@@ -1,501 +1,641 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ManageAccountsDataTable } from "./../src/manage-accounts/ManageAccountsDataTable";
+import { ManageAccountsDataTable } from "../src/components/manageAccounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
+import { deleteAccounts } from "./../src/api/manageAccounts";
+import { Checkbox } from "@/components/ui/checkbox";
+
+jest.mock("sonner", () => ({
+  toast: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },
+}));
+
+jest.mock("./../src/api/manageAccounts", () => ({
+  deleteAccounts: jest.fn(),
+}));
+
+beforeAll(() => {
+  Object.defineProperty(window.HTMLElement.prototype, "hasPointerCapture", {
+    value: () => false,
+  });
+  Object.defineProperty(window.HTMLElement.prototype, "releasePointerCapture", {
+    value: () => {},
+  });
+});
+
+const user = userEvent.setup();
 
 type TestData = {
-  id: string;
-  name: string;
+  id: number;
+  firstName: string;
+  lastName: string;
   email: string;
   accountType: "Participant" | "Admin" | "Owner";
 };
 
 const mockData: TestData[] = [
-  { id: "1", name: "John Doe", email: "john@example.com", accountType: "Admin" },
-  { id: "2", name: "Jane Smith", email: "jane@example.com", accountType: "Participant" },
-  { id: "3", name: "Bob Johnson", email: "bob@example.com", accountType: "Owner" },
+  {
+    id: 1,
+    firstName: "John",
+    lastName: "Doe",
+    email: "john@example.com",
+    accountType: "Admin",
+  },
+  {
+    id: 2,
+    firstName: "Jane",
+    lastName: "Smith",
+    email: "jane@example.com",
+    accountType: "Participant",
+  },
+  {
+    id: 3,
+    firstName: "Bob",
+    lastName: "Johnson",
+    email: "bob@example.com",
+    accountType: "Owner",
+  },
 ];
 
-const mockColumns: ColumnDef<TestData>[] = [
+const createMockColumns = (): ColumnDef<TestData>[] => [
   {
-    accessorKey: "name",
-    header: "Name",
-    cell: ({ row }) => row.getValue("name"),
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label={`Select row ${row.id}`}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
   },
-  {
-    accessorKey: "email",
-    header: "Email",
-    cell: ({ row }) => row.getValue("email"),
-  },
-  {
-    accessorKey: "accountType",
-    header: "Account Type",
-    cell: ({ row }) => row.getValue("accountType"),
-  },
+  { accessorKey: "firstName", header: "First Name" },
+  { accessorKey: "lastName", header: "Last Name" },
+  { accessorKey: "email", header: "Email" },
+  { accessorKey: "accountType", header: "Account Type" },
 ];
 
 describe("ManageAccountsDataTable", () => {
-  it("renders table with data", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockColumns = createMockColumns();
+
+  it("renders all rows correctly", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-    
     expect(screen.getByText("john@example.com")).toBeInTheDocument();
     expect(screen.getByText("jane@example.com")).toBeInTheDocument();
     expect(screen.getByText("bob@example.com")).toBeInTheDocument();
   });
 
-  it("renders empty state when no data", () => {
+  it("renders filter input and dropdown", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    expect(screen.getByPlaceholderText("Filter emails...")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /all account types/i })
+    ).toBeInTheDocument();
+  });
+
+  it("filters rows when typing in the search box", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const input = screen.getByPlaceholderText("Filter emails...");
+    fireEvent.change(input, { target: { value: "john" } });
+    await waitFor(() => {
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows empty state when no match is found", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const input = screen.getByPlaceholderText("Filter emails...");
+    fireEvent.change(input, { target: { value: "nope@example.com" } });
+    await waitFor(() => {
+      expect(screen.getByText(/no results/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows empty state when no data provided", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={[]} />);
-    
-    expect(screen.getByText("No results.")).toBeInTheDocument();
+    expect(screen.getByText(/no results/i)).toBeInTheDocument();
   });
 
-  describe("Search functionality", () => {
-    it("filters by email", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      fireEvent.change(searchInput, { target: { value: "john" } });
-      
+  it("opens and closes account type dropdown", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", {
+      name: /all account types/i,
+    });
+    await user.click(filterButton);
+    expect(filterButton).toHaveAttribute("aria-expanded", "true");
+    await user.keyboard("{Escape}");
+    expect(filterButton).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("filters by Participant account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", {
+      name: /all account types/i,
+    });
+    await user.click(filterButton);
+    const participantOption = screen.getByRole("menuitem", {
+      name: /participant/i,
+    });
+    await user.click(participantOption);
+
+    await waitFor(() => {
+      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("filters by Admin account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", {
+      name: /all account types/i,
+    });
+    await user.click(filterButton);
+    const adminOption = screen.getByRole("menuitem", { name: /^admin$/i });
+    await user.click(adminOption);
+
+    await waitFor(() => {
       expect(screen.getByText("john@example.com")).toBeInTheDocument();
       expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
     });
+  });
 
-    it("shows no results when filter matches nothing", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      fireEvent.change(searchInput, { target: { value: "nonexistent@test.com" } });
-      
-      expect(screen.getByText("No results.")).toBeInTheDocument();
+  it("filters by Owner account type", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", {
+      name: /all account types/i,
+    });
+    await user.click(filterButton);
+    const ownerOption = screen.getByRole("menuitem", { name: /owner/i });
+    await user.click(ownerOption);
+
+    await waitFor(() => {
+      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+    });
+  });
+
+  it("resets filter to show all account types", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const filterButton = screen.getByRole("button", {
+      name: /all account types/i,
     });
 
-    it("clears search filter", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      fireEvent.change(searchInput, { target: { value: "john" } });
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
-      
-      fireEvent.change(searchInput, { target: { value: "" } });
+    await user.click(filterButton);
+    await user.click(screen.getByRole("menuitem", { name: /^admin$/i }));
+
+    await user.click(filterButton);
+    await user.click(screen.getByRole("menuitem", { name: /^all$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("john@example.com")).toBeInTheDocument();
       expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-    });
-
-    it("handles undefined email filter value", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      expect(searchInput).toHaveValue("");
+      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
     });
   });
 
-  describe("Filter UI", () => {
-    it("shows default filter text", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByText("All Account Types")).toBeInTheDocument();
-    });
+  it("enters edit mode when edit button is clicked", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
 
-    it("renders filter button", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      expect(filterButton).toBeInTheDocument();
-    });
+    expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+  });
 
-    it("filter button has correct attributes", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      expect(filterButton).toHaveAttribute("aria-haspopup", "menu");
+  it("exits edit mode when cancel button is clicked", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(cancelButton);
+
+    expect(
+      screen.queryByRole("button", { name: /delete/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+  });
+
+  it("shows row selection count in edit mode", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    expect(screen.getByText(/0 of 3 row\(s\) selected/i)).toBeInTheDocument();
+  });
+
+  it("delete button is disabled when no rows are selected", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    expect(deleteButton).toBeDisabled();
+  });
+
+  it("hides select column when not in edit mode", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const rows = screen.getAllByRole("row");
+    const firstDataRow = rows[1]; // Skip header row
+    const cells = within(firstDataRow).getAllByRole("cell");
+
+    expect(cells.length).toBe(4);
+  });
+
+  it("shows select column when in edit mode", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const rows = screen.getAllByRole("row");
+    const firstDataRow = rows[1];
+    const cells = within(firstDataRow).getAllByRole("cell");
+
+    expect(cells.length).toBe(5);
+  });
+
+  it("successfully deletes selected users", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(deleteAccounts).toHaveBeenCalledWith([1]);
+      expect(toast.success).toHaveBeenCalledWith(
+        "Successfully deleted 1 user(s)."
+      );
+      expect(onDeleteUsers).toHaveBeenCalledWith([1]);
     });
   });
 
-  describe("Account Type Filtering via Dropdown", () => {
-    it("filters by Participant from dropdown", async () => {
-      const user = userEvent.setup();
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      await user.click(filterButton);
-      
-      await waitFor(async () => {
-        const participantItem = await screen.findByText("Participant", { 
-          selector: 'div[role="menuitem"]' 
-        });
-        await user.click(participantItem);
-      });
-      
-      await waitFor(() => {
-        expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-        expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
-      });
-    });
+  it("handles partial deletion with errors", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 2,
+      deleted_users: [{ user_id: 1 }],
+      errors: [{ user_id: 2, error: "Cannot delete owner" }],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
 
-    it("filters by Admin from dropdown", async () => {
-      const user = userEvent.setup();
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      await user.click(filterButton);
-      
-      await waitFor(async () => {
-        const adminItems = screen.getAllByText("Admin");
-        const dropdownItem = adminItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
-      
-      await waitFor(() => {
-        expect(screen.getByText("john@example.com")).toBeInTheDocument();
-        expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
-      });
-    });
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
 
-    it("filters by Owner from dropdown", async () => {
-      const user = userEvent.setup();
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      await user.click(filterButton);
-      
-      await waitFor(async () => {
-        const ownerItems = screen.getAllByText("Owner");
-        const dropdownItem = ownerItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
-      
-      await waitFor(() => {
-        expect(screen.getByText("bob@example.com")).toBeInTheDocument();
-        expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
-      });
-    });
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
 
-    it("clears filter by selecting All from dropdown", async () => {
-      const user = userEvent.setup();
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      // First filter by Admin
-      const filterButton = screen.getByRole("button", { name: "All Account Types" });
-      await user.click(filterButton);
-      
-      await waitFor(async () => {
-        const adminItems = screen.getAllByText("Admin");
-        const dropdownItem = adminItems.find(item => 
-          item.closest('div[role="menuitem"]')
-        );
-        if (dropdownItem) {
-          await user.click(dropdownItem);
-        }
-      });
-      
-      await waitFor(() => {
-        expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
-      });
-      
-      // Then clear filter
-      const filterButtonAdmin = screen.getByRole("button", { name: "Admin" });
-      await user.click(filterButtonAdmin);
-      
-      await waitFor(async () => {
-        const allItem = screen.getByText("All");
-        await user.click(allItem);
-      });
-      
-      await waitFor(() => {
-        expect(screen.getByText("john@example.com")).toBeInTheDocument();
-        expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-        expect(screen.getByText("bob@example.com")).toBeInTheDocument();
-      });
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    await user.click(checkboxes[2]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(deleteAccounts).toHaveBeenCalledWith([1, 2]);
+      expect(toast.success).toHaveBeenCalledWith(
+        "Deleted 1/2 users successfully."
+      );
+      expect(toast.warning).toHaveBeenCalledWith(
+        "1 users could not be deleted."
+      );
+      expect(onDeleteUsers).toHaveBeenCalledWith([1]);
     });
   });
 
-  describe("Edit button", () => {
-    it("renders edit button", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-    });
-  });
-
-  describe("Pagination", () => {
-    const largeDataset = Array.from({ length: 15 }, (_, i) => ({
-      id: `${i}`,
-      name: `User ${i}`,
-      email: `user${i}@example.com`,
-      accountType: "Admin" as const,
-    }));
-
-    it("navigates to next page", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={largeDataset} />);
-      
-      expect(screen.getByText("user0@example.com")).toBeInTheDocument();
-      
-      const nextButton = screen.getByRole("button", { name: "Next" });
-      fireEvent.click(nextButton);
-      
-      expect(screen.queryByText("user0@example.com")).not.toBeInTheDocument();
-      expect(screen.getByText("user10@example.com")).toBeInTheDocument();
-    });
-
-    it("navigates to previous page", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={largeDataset} />);
-      
-      const nextButton = screen.getByRole("button", { name: "Next" });
-      const previousButton = screen.getByRole("button", { name: "Previous" });
-      
-      fireEvent.click(nextButton);
-      expect(screen.getByText("user10@example.com")).toBeInTheDocument();
-      
-      fireEvent.click(previousButton);
-      expect(screen.getByText("user0@example.com")).toBeInTheDocument();
-    });
-
-    it("disables previous button on first page", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={largeDataset} />);
-      
-      const previousButton = screen.getByRole("button", { name: "Previous" });
-      expect(previousButton).toBeDisabled();
-    });
-
-    it("disables next button on last page", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const nextButton = screen.getByRole("button", { name: "Next" });
-      expect(nextButton).toBeDisabled();
-    });
-
-    it("handles pagination state changes", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={largeDataset} />);
-      
-      const nextButton = screen.getByRole("button", { name: "Next" });
-      expect(nextButton).not.toBeDisabled();
-      
-      fireEvent.click(nextButton);
-      const previousButton = screen.getByRole("button", { name: "Previous" });
-      expect(previousButton).not.toBeDisabled();
-    });
-  });
-
-  describe("Row selection", () => {
-    const columnsWithSelection: ColumnDef<TestData>[] = [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            aria-label="Select all"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            aria-label={`Select row ${row.id}`}
-            checked={row.getIsSelected()}
-            onChange={(e) => row.toggleSelected(!!e.target.checked)}
-          />
-        ),
-      },
-      ...mockColumns,
-    ];
-
-    it("selects individual row", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
-      
-      const rowCheckbox = screen.getByLabelText("Select row 0");
-      fireEvent.click(rowCheckbox);
-      
-      expect(rowCheckbox).toBeChecked();
-    });
-
-    it("selects all rows", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
-      
-      const headerCheckbox = screen.getByLabelText("Select all");
-      fireEvent.click(headerCheckbox);
-      
-      expect(screen.getByLabelText("Select row 0")).toBeChecked();
-      expect(screen.getByLabelText("Select row 1")).toBeChecked();
-      expect(screen.getByLabelText("Select row 2")).toBeChecked();
-    });
-
-    it("maintains row selection state", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
-      
-      const rowCheckbox = screen.getByLabelText("Select row 0");
-      fireEvent.click(rowCheckbox);
-      expect(rowCheckbox).toBeChecked();
-      
-      fireEvent.click(rowCheckbox);
-      expect(rowCheckbox).not.toBeChecked();
-    });
-  });
-
-  describe("Table structure", () => {
-    it("renders all column headers", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByText("Name")).toBeInTheDocument();
-      expect(screen.getByText("Email")).toBeInTheDocument();
-      expect(screen.getByText("Account Type")).toBeInTheDocument();
-    });
-
-    it("renders search input", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByPlaceholderText("Filter emails...")).toBeInTheDocument();
-    });
-
-    it("renders correct number of rows for data", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const rows = screen.getAllByRole("row");
-      expect(rows).toHaveLength(mockData.length + 1);
-    });
-
-    it("renders table container with border", () => {
-      const { container } = render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const borderDiv = container.querySelector('.overflow-hidden.rounded-md.border');
-      expect(borderDiv).toBeInTheDocument();
-    });
-  });
-
-  describe("Sorting", () => {
-    const columnsWithSorting: ColumnDef<TestData>[] = [
-      {
-        accessorKey: "name",
-        header: ({ column }) => (
-          <button onClick={() => column.toggleSorting()}>Name</button>
-        ),
-        cell: ({ row }) => row.getValue("name"),
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => row.getValue("email"),
-      },
-      {
-        accessorKey: "accountType",
-        header: "Account Type",
-        cell: ({ row }) => row.getValue("accountType"),
-      },
-    ];
-
-    it("sorts data when sortable column header is clicked", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSorting} data={mockData} />);
-      
-      const nameButton = screen.getByRole("button", { name: "Name" });
-      fireEvent.click(nameButton);
-      
-      const rows = screen.getAllByRole("row");
-      expect(rows.length).toBeGreaterThan(1);
-    });
-
-    it("toggles sort direction", () => {
-      render(<ManageAccountsDataTable columns={columnsWithSorting} data={mockData} />);
-      
-      const nameButton = screen.getByRole("button", { name: "Name" });
-      fireEvent.click(nameButton);
-      fireEvent.click(nameButton);
-      
-      const rows = screen.getAllByRole("row");
-      expect(rows.length).toBeGreaterThan(1);
-    });
-  });
-
-  describe("Data rendering", () => {
-    it("renders all account types correctly", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByText("Admin")).toBeInTheDocument();
-      expect(screen.getByText("Participant")).toBeInTheDocument();
-      expect(screen.getByText("Owner")).toBeInTheDocument();
-    });
-
-    it("renders all names correctly", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
-      expect(screen.getByText("Jane Smith")).toBeInTheDocument();
-      expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
-    });
-  });
-
-  describe("State management", () => {
-    it("initializes with empty sorting state", () => {
-      const { rerender } = render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
-      
-      rerender(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      expect(screen.getByText("John Doe")).toBeInTheDocument();
-    });
-
-    it("initializes with empty column filters", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      expect(searchInput).toHaveValue("");
-    });
-
-    it("initializes with empty row selection", () => {
-      const columnsWithSelection: ColumnDef<TestData>[] = [
-        {
-          id: "select",
-          header: ({ table }) => (
-            <input
-              type="checkbox"
-              aria-label="Select all"
-              checked={table.getIsAllPageRowsSelected()}
-              onChange={(e) => table.toggleAllPageRowsSelected(!!e.target.checked)}
-            />
-          ),
-          cell: ({ row }) => (
-            <input
-              type="checkbox"
-              aria-label={`Select row ${row.id}`}
-              checked={row.getIsSelected()}
-              onChange={(e) => row.toggleSelected(!!e.target.checked)}
-            />
-          ),
+  it("handles deletion error from API with detail message", async () => {
+    const mockError = {
+      response: {
+        data: {
+          detail: "Cannot delete user: insufficient permissions",
         },
-        ...mockColumns,
-      ];
+      },
+    };
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
 
-      render(<ManageAccountsDataTable columns={columnsWithSelection} data={mockData} />);
-      
-      const headerCheckbox = screen.getByLabelText("Select all");
-      expect(headerCheckbox).not.toBeChecked();
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Cannot delete user: insufficient permissions"
+      );
+      expect(onDeleteUsers).not.toHaveBeenCalled();
     });
   });
 
-  describe("Filter and search interaction", () => {
-    it("handles search with special characters", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      fireEvent.change(searchInput, { target: { value: "@example" } });
-      
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
+  it("handles deletion error without detail message", async () => {
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+
+    const onDeleteUsers = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onDeleteUsers={onDeleteUsers}
+      />
+    );
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to delete selected user(s)."
+      );
+      expect(onDeleteUsers).not.toHaveBeenCalled();
+    });
+  });
+
+  it("cancels delete operation from alert dialog", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(cancelButton);
+
+    expect(deleteAccounts).not.toHaveBeenCalled();
+  });
+
+  it("clears selection after successful delete", async () => {
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    expect(screen.getByText(/1 of 3 row\(s\) selected/i)).toBeInTheDocument();
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+      expect(screen.queryByText(/row\(s\) selected/i)).not.toBeInTheDocument();
+    });
+  });
+
+  it("exits edit mode after error", async () => {
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+    });
+  });
+
+  it("handles pagination buttons", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const nextBtn = screen.getByRole("button", { name: /next/i });
+    const prevBtn = screen.getByRole("button", { name: /previous/i });
+    expect(nextBtn).toBeInTheDocument();
+    expect(prevBtn).toBeInTheDocument();
+  });
+
+  it("handles column header clicks (sorting)", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const firstNameHeader = screen.getByRole("columnheader", {
+      name: /first name/i,
+    });
+    await user.click(firstNameHeader);
+    await user.click(firstNameHeader);
+    expect(firstNameHeader).toBeInTheDocument();
+  });
+
+  it("passes onUserUpdate to table meta", () => {
+    const mockOnUserUpdate = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onUserUpdate={mockOnUserUpdate}
+      />
+    );
+    expect(screen.getByRole("table")).toBeInTheDocument();
+  });
+
+  it("console logs delete response on successful deletion", async () => {
+    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 1,
+      deleted_users: [{ user_id: 1 }],
+      errors: [],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Delete response:",
+        mockDeleteResponse
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        "Deleted users:",
+        mockDeleteResponse.deleted_users
+      );
     });
 
-    it("handles case-insensitive search", () => {
-      render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-      
-      const searchInput = screen.getByPlaceholderText("Filter emails...");
-      fireEvent.change(searchInput, { target: { value: "JOHN" } });
-      
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it("console logs and warns on partial deletion", async () => {
+    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+    const mockDeleteResponse = {
+      deleted_count: 1,
+      total_requested: 2,
+      deleted_users: [{ user_id: 1 }],
+      errors: [{ user_id: 2, error: "Cannot delete" }],
+    };
+    (deleteAccounts as jest.Mock).mockResolvedValue(mockDeleteResponse);
+
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+    await user.click(checkboxes[2]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        "Partial deletion errors:",
+        mockDeleteResponse.errors
+      );
     });
+
+    consoleSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("console errors on deletion failure", async () => {
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const mockError = new Error("Network error");
+    (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
+
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const editButton = screen.getByRole("button", { name: /edit/i });
+    await user.click(editButton);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
+    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(confirmButton);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Error deleting users:",
+        mockError
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 });

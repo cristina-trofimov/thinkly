@@ -1,24 +1,29 @@
 import { useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
-import CreateCompetitionDialog from "./CreateCompetitionDialog"
-import { Outlet, useNavigate } from "react-router-dom"; 
+import CreateCompetitionDialog from "./CreateCompetitionDialog";
 
 export function AdminDashboard() {
-  const navigate = useNavigate();
+  const location = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  const isRootDashboard =
+    location.pathname === "/app/dashboard" ||
+    location.pathname === "/app/dashboard/";
 
   return (
     <div className="flex flex-col w-full">
-      <div className="border-b border-[#E5E5E5] bg-white">
-        <div className="flex justify-between items-center py-4 px-10">
-          <h1 className="text-base font-semibold text-[#8065CD]">Overview</h1>
-        </div>
-      </div>
-
-      {window.location.pathname === '/app/dashboard' || window.location.pathname === '/app/dashboard/' ? (
+      {isRootDashboard ? (
         <>
+          <div className="border-b border-[#E5E5E5] bg-white">
+            <div className="flex justify-between items-center py-4 px-10">
+              <h1 className="text-base font-semibold text-[#8065CD]">
+                Overview
+              </h1>
+            </div>
+          </div>
           <div className="flex gap-6 mt-6 px-6">
             <StatsCard
               title="New Accounts"
@@ -42,16 +47,31 @@ export function AdminDashboard() {
               showStar
             />
           </div>
-
           <div className="flex gap-4 mt-6 px-6">
-            <ManageCard
-              title="Manage Accounts"
-              items={[
-                { avatarUrl: "../public/assets/user_avatar.jpg", name: "shadcn", info: "shadcn@vercel.com" },
-                { avatarUrl: "../public/assets/user_avatar.jpg", name: "maxleiter", info: "maxleiter@vercel.com" },
-              ]}
-            />
-            <div onClick={() => navigate('/app/dashboard/competitions')} className="cursor-pointer">
+            <Link
+              to="/app/dashboard/manageAccounts"
+              className="cursor-pointer block"
+            >
+              <ManageCard
+                title="Manage Accounts"
+                items={[
+                  {
+                    avatarUrl: "../public/assets/user_avatar.jpg",
+                    name: "shadcn",
+                    info: "shadcn@vercel.com",
+                  },
+                  {
+                    avatarUrl: "../public/assets/user_avatar.jpg",
+                    name: "maxleiter",
+                    info: "maxleiter@vercel.com",
+                  },
+                ]}
+              />
+            </Link>
+            <Link
+              to="/app/dashboard/competitions"
+              className="cursor-pointer block"
+            >
               <ManageCard
                 title="Manage Competitions"
                 items={[
@@ -59,7 +79,7 @@ export function AdminDashboard() {
                   { color: "#F2D340", name: "Comp2", info: "06/12/25" },
                 ]}
               />
-            </div>
+            </Link>
             <ManageCard
               title="Manage Questions"
               items={[
@@ -68,19 +88,17 @@ export function AdminDashboard() {
               ]}
             />
           </div>
-
           <TechnicalIssuesChart />
         </>
       ) : (
         <div className="px-6 mt-6">
-           <Outlet />
+          <Outlet />
         </div>
       )}
-
-      <CreateCompetitionDialog 
-        open={dialogOpen} 
+      <CreateCompetitionDialog
+        open={dialogOpen}
         onOpenChange={setDialogOpen}
-        key={dialogOpen ? 'open' : 'closed'}
+        key={dialogOpen ? "open" : "closed"}
       />
     </div>
   );

@@ -1,14 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { AdminDashboard } from '../src/components/dashboard/AdminDashboard';
 
 // --- MOCK SETUP ---
 
-// Mocking react-router-dom hooks and components
-const mockNavigate = jest.fn();
+// Mocking react-router-dom Outlet component
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
   // Mock Outlet to display identifiable content
   Outlet: () => <div data-testid="mock-outlet">Mock Outlet Content</div>,
 }));
@@ -50,6 +49,15 @@ describe('AdminDashboard', () => {
     window.history.pushState({}, '', pathname);
   };
 
+  // Helper to render component with Router wrapper
+  const renderWithRouter = () => {
+    return render(
+      <BrowserRouter>
+        <AdminDashboard />
+      </BrowserRouter>
+    );
+  };
+
   beforeEach(() => {
     // Default the pathname to the dashboard root for most tests
     setPathname('/app/dashboard');
@@ -60,14 +68,14 @@ describe('AdminDashboard', () => {
   });
 
   it('renders the header title', () => {
-    render(<AdminDashboard />);
+    renderWithRouter();
 
     // Check for header title
     expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument();
   });
 
   it('renders stats, manage cards, and the chart on the dashboard root route', () => {
-    render(<AdminDashboard />);
+    renderWithRouter();
 
     // Check for key components rendered only on the dashboard root
     expect(screen.getByTestId('mock-chart')).toBeInTheDocument();
@@ -88,7 +96,7 @@ describe('AdminDashboard', () => {
     // Mock the pathname to simulate a nested route
     setPathname('/app/dashboard/competitions');
     
-    render(<AdminDashboard />);
+    renderWithRouter();
 
     // Check for Outlet content
     expect(screen.getByTestId('mock-outlet')).toBeInTheDocument();
@@ -98,16 +106,36 @@ describe('AdminDashboard', () => {
     expect(screen.queryByTestId('mock-chart')).not.toBeInTheDocument();
   });
 
-  it('navigates to the competitions route when the "Manage Competitions" card is clicked', () => {
-    render(<AdminDashboard />);
+  it('renders link to manage accounts with correct href', () => {
+    renderWithRouter();
 
-    // Find the Manage Competitions card by its title text
-    const manageCompetitionsCard = screen.getByText('Manage Competitions').closest('.cursor-pointer');
+    // Find the link by looking for the ManageCard title within a link
+    const manageAccountsLink = screen.getByText('Manage Accounts').closest('a');
 
-    // Click the card
-    fireEvent.click(manageCompetitionsCard!);
+    // Verify the link exists and has the correct href
+    expect(manageAccountsLink).toBeInTheDocument();
+    expect(manageAccountsLink).toHaveAttribute('href', '/app/dashboard/manageAccounts');
+  });
 
-    // Verify that the navigate function was called with the correct path
-    expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/competitions');
+  it('renders link to manage competitions with correct href', () => {
+    renderWithRouter();
+
+    // Find the link by looking for the ManageCard title within a link
+    const manageCompetitionsLink = screen.getByText('Manage Competitions').closest('a');
+
+    // Verify the link exists and has the correct href
+    expect(manageCompetitionsLink).toBeInTheDocument();
+    expect(manageCompetitionsLink).toHaveAttribute('href', '/app/dashboard/competitions');
+  });
+
+  it('manage questions card is not a link', () => {
+    renderWithRouter();
+
+    // Find the Manage Questions card
+    const manageQuestionsCard = screen.getByText('Manage Questions');
+
+    // Verify it's not inside a link
+    const closestLink = manageQuestionsCard.closest('a');
+    expect(closestLink).not.toBeInTheDocument();
   });
 });
