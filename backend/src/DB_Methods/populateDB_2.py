@@ -35,7 +35,7 @@ seed_users = [
         "first_name": "John",
         "last_name": "Doe",
         "salt": "random_salt_2",
-        "type": "user",
+        "type": "participant",
     },
     {
         "username": "jane_smith",
@@ -43,7 +43,7 @@ seed_users = [
         "first_name": "Jane",
         "last_name": "Smith",
         "salt": "random_salt_3",
-        "type": "user",
+        "type": "particpant",
     },
 ]
 

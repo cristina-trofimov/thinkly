@@ -26,7 +26,7 @@ def mock_user():
     user.first_name = "John"
     user.last_name = "Doe"
     user.salt = "hashedpassword"
-    user.type = "user"
+    user.type = "particpant"
     return user
 
 
@@ -108,7 +108,7 @@ class TestAuthEndpoints:
     def test_google_login_new_user(self, mock_db):
         idinfo_mock = {"email": "google@example.com", "name": "Google User"}
         with patch("endpoints.authentification.id_token.verify_oauth2_token", return_value=idinfo_mock), \
-             patch("endpoints.authentification.get_user_by_email", side_effect=[None, SimpleNamespace(user_id=1, email="google@example.com", type="user")]), \
+             patch("endpoints.authentification.get_user_by_email", side_effect=[None, SimpleNamespace(user_id=1, email="google@example.com", type="particpant")]), \
              patch("endpoints.authentification.create_user", return_value=SimpleNamespace()), \
              patch("endpoints.authentification.create_access_token", return_value="jwt_token"):
 
@@ -130,13 +130,13 @@ class TestAuthEndpoints:
 
     def test_profile_success(self, mock_db):
         # token data for get_current_user
-        token_data = {"sub": "test@example.com", "role": "user", "id": 1}
+        token_data = {"sub": "test@example.com", "role": "particpant", "id": 1}
 
         # Use a SimpleNamespace so it is JSON serializable
         mock_user_obj = SimpleNamespace(
             user_id=1,
             email="test@example.com",
-            type="user"
+            type="particpant"
         )
 
         # Override DB dependency
@@ -149,7 +149,7 @@ class TestAuthEndpoints:
             response = client.get("/auth/profile", headers=headers)
 
         assert response.status_code == 200
-        assert response.json() == {"id": 1, "email": "test@example.com", "role": "user"}
+        assert response.json() == {"id": 1, "email": "test@example.com", "role": "particpant"}
 
         app.dependency_overrides.clear()
 
