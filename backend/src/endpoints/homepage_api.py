@@ -1,18 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from DB_Methods.crudOperations import (
-    SessionLocal,
-)
 from models.schema import Competition, BaseQuestion
+from DB_Methods.database import get_db
 
 homepage_router = APIRouter(tags=["Homepage"])
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @homepage_router.get("/get-questions")
 def get_all_questions(db: Session = Depends(get_db)):

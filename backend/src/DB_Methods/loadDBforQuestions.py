@@ -1,10 +1,10 @@
-#  do /backend and run python -m src.endpoints.loadDBforQuestions
+#  do /backend/src and run python -m DB_Methods.loadDBforQuestions
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-# Reuse your existing engine/Session factory
+
 from src.DB_Methods.crudOperations import engine, SessionLocal
-# Import Base + the model we’re seeding
+
 from src.models.schema import Base, BaseQuestion
 
 # ----- CONFIG -----
