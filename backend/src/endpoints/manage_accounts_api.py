@@ -3,9 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
-from DB_Methods.crudOperations import (
-    SessionLocal,
-)
+from DB_Methods.database import get_db, _commit_or_rollback
 from typing import Optional
 from models.schema import BaseQuestion, Competition, User, UserPreferences
 
@@ -21,20 +19,6 @@ class UserUpdateSchema(BaseModel):
     last_name: Optional[str] = None
     password_hash: Optional[str] = None
     type: Optional[str] = None
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def _commit_or_rollback(db: Session):
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
 
 def get_all_users(db: Session) -> List[User]:
     """Retrieve all users."""
@@ -66,7 +50,7 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """Retrieve a user by ID."""
     return db.query(User).filter(User.user_id == user_id).first()
 
-def update_user(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
+def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise ValueError("User not found")
@@ -159,7 +143,7 @@ def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_
     fields_to_update = user.model_dump(exclude_unset=True)
 
     try:
-        updated_user = crud_update_user(db, user_id=user_id, **fields_to_update)
+        updated_user = update_user_in_db(db, user_id=user_id, **fields_to_update)
         return JSONResponse(
             status_code=200,
             content={
