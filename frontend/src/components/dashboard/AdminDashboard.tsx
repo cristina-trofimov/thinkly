@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
 import CreateCompetitionDialog from "./CreateCompetitionDialog";
+import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart } from "./DashboardCharts";
+
 
 export function AdminDashboard() {
   const location = useLocation();
@@ -65,7 +68,9 @@ export function AdminDashboard() {
               ]}
             />
           </div>
-          <div className="flex gap-6 mt-6 px-6">
+  
+          {/* Stats Cards Row - Metrics and Charts */}
+          <div className="flex gap-4 mt-6 px-6">
             <StatsCard
               title="New Accounts"
               value="25"
@@ -73,20 +78,25 @@ export function AdminDashboard() {
               description="More users are joining Thinkly"
               trend="+10%"
             />
+            
             <StatsCard
-              title="Completed Competitions to Date"
-              value="3"
-              subtitle="Up compared to last year"
-              description="Engagement exceed targets"
-            />
+              title="Questions solved"
+              dateSubtitle="January - June 2025"
+            >
+              <QuestionsSolvedChart />
+            </StatsCard>
+            
             <StatsCard
-              title="User satisfaction"
-              value="4.5"
-              subtitle="Consistent performance"
-              description="Users are enjoying the competitions"
-              trend="+0.3"
-              showStar
-            />
+              title="Time to solve per type of question"
+            >
+              <TimeToSolveChart />
+            </StatsCard>
+            
+            <StatsCard
+              title="Number of logins"
+            >
+              <NumberOfLoginsChart />
+            </StatsCard>
           </div>
           <TechnicalIssuesChart />
         </>

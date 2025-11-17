@@ -3,13 +3,13 @@ import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 // Questions Solved Component
 export const QuestionsSolvedChart = () => {
   const data = [
-    { name: "Easy", value: 300, color: "#5B8DEE" },
-    { name: "Medium", value: 200, color: "#4A7FDB" },
-    { name: "Hard", value: 100, color: "#3B6FC7" },
+    { name: "Easy", value: 300, color: "#9B85DB" },
+    { name: "Medium", value: 200, color: "#8065CD" },
+    { name: "Hard", value: 100, color: "#6B51BF" },
   ];
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="80%" height={180}>
       <PieChart>
         <Pie
           data={data}
@@ -17,7 +17,7 @@ export const QuestionsSolvedChart = () => {
           cy="50%"
           innerRadius={60}
           outerRadius={90}
-          paddingAngle={2}
+          paddingAngle={0}
           dataKey="value"
         >
           {data.map((entry, index) => (
@@ -33,19 +33,17 @@ export const QuestionsSolvedChart = () => {
 // Time to Solve Chart Component
 export const TimeToSolveChart = () => {
   const data = [
-    { type: "Multiple Choice", time: 45, color: "#5B8DEE" },
-    { type: "True/False", time: 30, color: "#5B8DEE" },
-    { type: "Short Answer", time: 90, color: "#5B8DEE" },
-    { type: "Essay", time: 120, color: "#5B8DEE" },
-    { type: "Code", time: 75, color: "#5B8DEE" },
+    { type: "Easy", time: 45, color: "#9B85DB" },
+    { type: "Medium", time: 30, color: "#8065CD" },
+    { type: "Hard", time: 90, color: "#6B51BF" },
   ];
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="100%" height={180}>
       <BarChart
         data={data}
         layout="vertical"
-        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E5E5" />
         <XAxis type="number" stroke="#A3A3A3" />
@@ -79,10 +77,10 @@ export const NumberOfLoginsChart = () => {
   ];
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="100%" height={180}>
       <LineChart
         data={data}
-        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
         <XAxis 
@@ -95,9 +93,9 @@ export const NumberOfLoginsChart = () => {
         <Line
           type="monotone"
           dataKey="logins"
-          stroke="#7EBAFF"
+          stroke="#9B85DB"
           strokeWidth={2}
-          dot={{ fill: "#7EBAFF", r: 4 }}
+          dot={{ fill: "#8065CD", r: 4 }}
           activeDot={{ r: 6 }}
         />
       </LineChart>
