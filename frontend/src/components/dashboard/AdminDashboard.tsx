@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
-import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
 import CreateCompetitionDialog from "./CreateCompetitionDialog";
-import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart } from "./DashboardCharts";
+import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart, ParticipationOverTimeChart } from "./DashboardCharts";
+import { TechnicalIssuesChart } from "./TechnicalIssuesChart";
 
 
 export function AdminDashboard() {
@@ -98,7 +97,7 @@ export function AdminDashboard() {
               <NumberOfLoginsChart />
             </StatsCard>
           </div>
-          <TechnicalIssuesChart />
+          <ParticipationOverTimeChart />
         </>
       ) : (
         <div className="px-6 mt-6">
