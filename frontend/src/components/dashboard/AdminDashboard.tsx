@@ -24,30 +24,7 @@ export function AdminDashboard() {
               </h1>
             </div>
           </div>
-          <div className="flex gap-6 mt-6 px-6">
-            <StatsCard
-              title="New Accounts"
-              value="25"
-              subtitle="Up 10% this year"
-              description="More users are joining Thinkly"
-              trend="+10%"
-            />
-            <StatsCard
-              title="Completed Competitions to Date"
-              value="3"
-              subtitle="Up compared to last year"
-              description="Engagement exceed targets"
-            />
-            <StatsCard
-              title="User satisfaction"
-              value="4.5"
-              subtitle="Consistent performance"
-              description="Users are enjoying the competitions"
-              trend="+0.3"
-              showStar
-            />
-          </div>
-          <div className="flex gap-4 mt-6 px-6">
+           <div className="flex gap-4 mt-6 px-6">
             <Link
               to="/app/dashboard/manageAccounts"
               className="cursor-pointer block"
@@ -86,6 +63,29 @@ export function AdminDashboard() {
                 { name: "Q1", info: "Date added: 08/11/25" },
                 { name: "Q2", info: "Date added: 06/12/25" },
               ]}
+            />
+          </div>
+          <div className="flex gap-6 mt-6 px-6">
+            <StatsCard
+              title="New Accounts"
+              value="25"
+              subtitle="Up 10% this year"
+              description="More users are joining Thinkly"
+              trend="+10%"
+            />
+            <StatsCard
+              title="Completed Competitions to Date"
+              value="3"
+              subtitle="Up compared to last year"
+              description="Engagement exceed targets"
+            />
+            <StatsCard
+              title="User satisfaction"
+              value="4.5"
+              subtitle="Consistent performance"
+              description="Users are enjoying the competitions"
+              trend="+0.3"
+              showStar
             />
           </div>
           <TechnicalIssuesChart />
