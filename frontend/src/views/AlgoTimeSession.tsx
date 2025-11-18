@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
+import { AlertCircle, BadgeCheck} from "lucide-react"
 import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
@@ -26,7 +28,6 @@ function oneMinuteFromNowISO() {
 
 export default function ManageAlgoTimePage() {
   const [formData, setFormData] = useState({
-    name: "",
     date: "",
     startTime: "",
     endTime: "",
@@ -86,7 +87,7 @@ export default function ManageAlgoTimePage() {
   };
 
   const validateForm = (): boolean => {
-    if (formData.name.trim() === '' || formData.date === '' || formData.startTime === '' || formData.endTime === '') {
+    if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
       setValidationError("Incomplete general information.");
       return false;
     }
@@ -114,7 +115,6 @@ export default function ManageAlgoTimePage() {
   
   const handleReset = async () => {
     setFormData({
-      name: "",
       date: "",
       startTime: "",
       endTime: "",
@@ -132,8 +132,6 @@ export default function ManageAlgoTimePage() {
   }
 
   const handleSubmit = async () => {
-
-    setSuccessMessage('');
 
     if (!validateForm()) {
       setTimeout(() => {
@@ -188,7 +186,6 @@ export default function ManageAlgoTimePage() {
       // Show success message
       setSuccessMessage('AlgoTime Session created successfully!');
 
-
       setEmailData({
         to: "",
         subject: "",
@@ -197,7 +194,6 @@ export default function ManageAlgoTimePage() {
         sendInOneMinute: false,
       });
       setFormData({
-        name: "",
         date: "",
         startTime: "",
         endTime: "",
@@ -237,18 +233,27 @@ export default function ManageAlgoTimePage() {
                 </p>
               </div>
               {successMessage && (
-                <div className="bg-green-50 border border-green-300 p-4 rounded-md">
-                  <p className="text-green-700 text-sm font-medium">
-                    ✓ {successMessage}
-                  </p>
+                <div >
+                  <Alert  className="shadow border-green-600" variant="default">
+                  <BadgeCheck color="#16a34a"/>
+                    <AlertTitle className="text-green-600  ">Success!</AlertTitle>
+                      <AlertDescription className="text-green-600">
+                       {successMessage}
+                      </AlertDescription>
+                  </Alert>
                 </div>
               )}
-              {validationError && (
-              <p ref={errorRef}
-              className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
-                  ⚠️ {validationError}
-              </p>
-          )}
+              <div ref={errorRef}>
+                {validationError && (
+                  <Alert className="shadow border-red-600"variant="destructive">
+                    <AlertCircle/>
+                      <AlertTitle >Warning!</AlertTitle>
+                      <AlertDescription>
+                      {validationError}
+                      </AlertDescription>
+                  </Alert>
+            )}
+            </div>
     
               {/* Form Content */}
               <div className="space-y-8">
