@@ -2,12 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { IconPlus, IconSearch } from "@tabler/icons-react";
 import {
-  type CreateCompetitionDialogProps,
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
 import type { Question } from "../components/interfaces/Question";
@@ -94,11 +91,11 @@ export default function ManageAlgoTimePage() {
       return false;
     }
 
-    const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const ATSessionDateTime = new Date(`${formData.date}T${formData.startTime}`);
     const now = new Date();
     now.setSeconds(0, 0); 
-    if (competitionDateTime.getTime() <= now.getTime()) {
-        setValidationError("The competition must be scheduled for a future date and time.");
+    if (ATSessionDateTime.getTime() <= now.getTime()) {
+        setValidationError("The session must be scheduled for a future date and time.");
         return false;
     }
 
@@ -114,6 +111,25 @@ export default function ManageAlgoTimePage() {
     setValidationError('');
     return true;
   };
+  
+  const handleReset = async () => {
+    setFormData({
+      name: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+      questionCooldownTime: "",
+    });
+    setEmailData({
+      to: "",
+      subject: "",
+      text: "",
+      sendAtLocal: "",
+      sendInOneMinute: false,
+    });
+    setSelectedQuestions([]);
+    setValidationError('');
+  }
 
   const handleSubmit = async () => {
 
@@ -129,8 +145,8 @@ export default function ManageAlgoTimePage() {
       return; // Stop submission if validation fails
     }
   try{
-    // Handle competition creation
-    console.log("Competition created:", formData);
+    // Handle Session creation
+    console.log("Session created:", formData);
     console.log("Selected questions:", selectedQuestions);
 
     // Handle email notification if recipients are provided
@@ -238,19 +254,9 @@ export default function ManageAlgoTimePage() {
               <div className="space-y-8">
                 {/* General Information */}
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">General Information</h2>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">General Information</h2>
                   <div className="grid grid-cols-2 md:grid-cols-2 gap-4 ">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Competition Name
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter competition name"
-                      />
                     </div>
                     
                     
@@ -349,7 +355,7 @@ export default function ManageAlgoTimePage() {
                 {/* Email Notification */}
                 <div className="grid gap-4">
                   <h3 className="text-xl font-semibold text-primary text-800 ">Email Notification</h3>
-                  <p className="text-sm text-gray-500">Optionally send email notifications about this competition</p>
+                  <p className="text-sm text-gray-500">Optionally send email notifications about this upcoming session</p>
                   
                   <div className="grid gap-2">
                     <Label htmlFor="emailTo">To (comma-separated)</Label>
@@ -367,7 +373,7 @@ export default function ManageAlgoTimePage() {
                       id="emailSubject"
                       value={emailData.subject}
                       onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                      placeholder="Competition announcement"
+                      placeholder="Session announcement"
                     />
                   </div>
 
@@ -410,29 +416,22 @@ export default function ManageAlgoTimePage() {
                       
     
                 {/* Action Buttons */}
-                <div className="flex gap-4 pt-4">
-                  <button
-                    onClick={handleSubmit}
-                    className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    Create AlgoTime Session
-                  </button>
-                  <button
-                    onClick={() => {
-                      setFormData({
-                        name: "",
-                        date: "",
-                        startTime: "",
-                        endTime: "",
-                        questionCooldownTime: "",
-                      });
-                      setSelectedQuestions([]);
-                      setValidationError('');
-                    }}
-                    className="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
+                <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    className="cursor-pointer"
                   >
                     Reset
-                  </button>
+                  </Button>
+                  <Button
+                  type="submit"
+                    onClick={handleSubmit}
+                    className="cursor-pointer"
+                  >
+                    Create 
+                  </Button>
+                  
                 </div>
               </div>
             </div>
@@ -447,12 +446,3 @@ const getDifficultyColor = (difficulty: string) => {
       default: return 'text-gray-600 bg-gray-50';
     }
   };
-
-function getDifficultyClasses(difficulty: string): string {
-  const classMap: Record<string, string> = {
-    "Easy": "bg-green-100 text-green-700",
-    "Medium": "bg-yellow-100 text-yellow-700",
-    "Hard": "bg-red-100 text-red-700",
-  };
-  return classMap[difficulty] || "bg-gray-100 text-gray-700";
-}
