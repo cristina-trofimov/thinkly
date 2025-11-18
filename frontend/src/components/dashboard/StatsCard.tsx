@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
+import type { ReactNode } from "react";
 
 export interface StatsCardProps {
   title: string;
@@ -8,7 +9,7 @@ export interface StatsCardProps {
   description?: string;
   trend?: string;
   className?: string;
-  children?: any;
+  children?: ReactNode;
   dateSubtitle?: string;
 }
 
