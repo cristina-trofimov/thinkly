@@ -1,12 +1,4 @@
-import { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,8 +44,11 @@ export default function ManageAlgoTimePage() {
     sendInOneMinute: false,
   });
   const [validationError, setValidationError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
 
   const fallbackQuestions = [
@@ -111,43 +106,140 @@ export default function ManageAlgoTimePage() {
       setValidationError("Please select at least one question.");
       return false;
     }
+    if (selectedQuestions.length > 1) {
+      setValidationError("You have reached the maximum number of questions.");
+      return false;
+    }
 
     setValidationError('');
     return true;
   };
 
   const handleSubmit = async () => {
+
+    setSuccessMessage('');
+
     if (!validateForm()) {
+      setTimeout(() => {
+        errorRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 100);
       return; // Stop submission if validation fails
     }
-
+  try{
     // Handle competition creation
     console.log("Competition created:", formData);
     console.log("Selected questions:", selectedQuestions);
 
+    // Handle email notification if recipients are provided
+    if (emailData.to.trim()) {
+      const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
+      
+      if (toList.length > 0) {
+        const payload: EmailPayload = {
+          to: toList,
+          subject: emailData.subject,
+          text: emailData.text,
+        };
+
+        const sendAt = emailData.sendInOneMinute
+          ? oneMinuteFromNowISO()
+          : localToUTCZ(emailData.sendAtLocal);
+        if (sendAt) payload.sendAt = sendAt;
+
+        try {
+          const res = await fetch('http://127.0.0.1:8000/email/send', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const body = await res.json().catch(() => ({}));
+
+          if (res.ok) {
+            console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
+          } else {
+            console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
+          }
+        } catch (e: unknown) {
+          const error = e as { message?: string };
+          console.error("Network error:", error?.message ?? String(e));
+        }
+      }
+    }
+
+      // Show success message
+      setSuccessMessage('AlgoTime Session created successfully!');
+
+
+      setEmailData({
+        to: "",
+        subject: "",
+        text: "",
+        sendAtLocal: "",
+        sendInOneMinute: false,
+      });
+      setFormData({
+        name: "",
+        date: "",
+        startTime: "",
+        endTime: "",
+        questionCooldownTime: "",
+      });
+      setSelectedQuestions([]);
+  
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
+
+  }catch (error) {
+    setValidationError('Failed to create session. Please try again.');
+    setTimeout(() => {
+      errorRef.current?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+    }, 100);
+  }
     
   };
 
   return (
-        <div className="min-h-screen  py-8 px-4">
-          <div className="max-w mx-auto">
-            {/* <div className="bg-white rounded-lg shadow-lg p-6 md:p-8"> */}
+        <div className="min-h-screen flex flex-col gap-4">
               {/* Header */}
-              <div className="mb-6">
+              <div className="mb-2">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  Create New Competition
+                  Create a New AlgoTime Session
                 </h1>
                 <p className="text-gray-600">
-                  Fill in the details below to create a new competition.
+                  Fill in the details below to create a new Sesssion.
                 </p>
               </div>
+              {successMessage && (
+                <div className="bg-green-50 border border-green-300 p-4 rounded-md">
+                  <p className="text-green-700 text-sm font-medium">
+                    ✓ {successMessage}
+                  </p>
+                </div>
+              )}
+              {validationError && (
+              <p ref={errorRef}
+              className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
+                  ⚠️ {validationError}
+              </p>
+          )}
     
               {/* Form Content */}
               <div className="space-y-8">
                 {/* General Information */}
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">General Information</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-2 gap-4 ">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Competition Name
@@ -160,6 +252,7 @@ export default function ManageAlgoTimePage() {
                         placeholder="Enter competition name"
                       />
                     </div>
+                    
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -252,6 +345,69 @@ export default function ManageAlgoTimePage() {
                     ))}
                   </div>
                 </div>
+                
+                {/* Email Notification */}
+                <div className="grid gap-4">
+                  <h3 className="text-xl font-semibold text-primary text-800 ">Email Notification</h3>
+                  <p className="text-sm text-gray-500">Optionally send email notifications about this competition</p>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="emailTo">To (comma-separated)</Label>
+                    <Input
+                      id="emailTo"
+                      value={emailData.to}
+                      onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                      placeholder="alice@example.com, bob@example.com"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="emailSubject">Subject</Label>
+                    <Input
+                      id="emailSubject"
+                      value={emailData.subject}
+                      onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                      placeholder="Competition announcement"
+                    />
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="emailText">Message</Label>
+                    <Textarea
+                      id="emailText"
+                      rows={4}
+                      value={emailData.text}
+                      onChange={(e) => setEmailData({ ...emailData, text: e.target.value })}
+                      placeholder="Write your message..."
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="flex items-center justify-between rounded-md border p-3">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
+                        <p className="text-xs text-gray-500">
+                          Overrides custom schedule
+                        </p>
+                      </div>
+                      <Switch
+                        id="sendInOneMinute"
+                        checked={emailData.sendInOneMinute}
+                        onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="sendAtLocal">Schedule (local time)</Label>
+                      <Input
+                        id="sendAtLocal"
+                        type="datetime-local"
+                        value={emailData.sendAtLocal}
+                        onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+                      
     
                 {/* Action Buttons */}
                 <div className="flex gap-4 pt-4">
@@ -259,7 +415,7 @@ export default function ManageAlgoTimePage() {
                     onClick={handleSubmit}
                     className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                   >
-                    Create Competition
+                    Create AlgoTime Session
                   </button>
                   <button
                     onClick={() => {
@@ -280,8 +436,6 @@ export default function ManageAlgoTimePage() {
                 </div>
               </div>
             </div>
-          </div>
-        // </div>
       );
 }
 
