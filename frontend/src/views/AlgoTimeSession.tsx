@@ -10,6 +10,8 @@ import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
 import type { Question } from "../components/interfaces/Question";
+import { toast } from "sonner";
+import { useNavigate } from 'react-router-dom';
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -41,8 +43,8 @@ export default function ManageAlgoTimePage() {
     sendAtLocal: "",
     sendInOneMinute: false,
   });
+  const navigate = useNavigate();
   const [validationError, setValidationError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
 
@@ -113,7 +115,7 @@ export default function ManageAlgoTimePage() {
     return true;
   };
   
-  const handleReset = async () => {
+  const handleReset = () => {
     setFormData({
       date: "",
       startTime: "",
@@ -184,40 +186,24 @@ export default function ManageAlgoTimePage() {
     }
 
       // Show success message
-      setSuccessMessage('AlgoTime Session created successfully!');
-
-      setEmailData({
-        to: "",
-        subject: "",
-        text: "",
-        sendAtLocal: "",
-        sendInOneMinute: false,
-      });
-      setFormData({
-        date: "",
-        startTime: "",
-        endTime: "",
-        questionCooldownTime: "",
-      });
-      setSelectedQuestions([]);
+      toast.success("AlgoTime Session created successfully!");
+      
+      handleReset();
   
-      // Scroll to top to show success message
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-  
-      // Auto-hide after 5 seconds
+      // Navigate to main page after a short delay
       setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
+        navigate("/app/dashboard"); 
+      }, 1500);
 
-  }catch (error) {
-    setValidationError('Failed to create session. Please try again.');
-    setTimeout(() => {
-      errorRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }, 100);
-  }
+      }catch (error) {
+        setValidationError('Failed to create session. Please try again.');
+        setTimeout(() => {
+          errorRef.current?.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }, 100);
+      }
     
   };
 
@@ -232,17 +218,7 @@ export default function ManageAlgoTimePage() {
                   Fill in the details below to create a new Sesssion.
                 </p>
               </div>
-              {successMessage && (
-                <div >
-                  <Alert  className="shadow border-green-600" variant="default">
-                  <BadgeCheck color="#16a34a"/>
-                    <AlertTitle className="text-green-600  ">Success!</AlertTitle>
-                      <AlertDescription className="text-green-600">
-                       {successMessage}
-                      </AlertDescription>
-                  </Alert>
-                </div>
-              )}
+
               <div ref={errorRef}>
                 {validationError && (
                   <Alert className="shadow border-red-600"variant="destructive">
