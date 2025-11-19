@@ -18,7 +18,7 @@ export interface ManageCardProps {
 }
 
 export const ManageCard = ({ title, items, className }: ManageCardProps) => (
-  <Card className={`border-[#E5E5E5] rounded-2xl w-[294px] h-[244px] flex flex-col ${className || ""}`}>
+  <Card className={`border-[#E5E5E5] rounded-2xl h-[244px] flex flex-col ${className || ""}`}>
     <CardHeader>
       <CardTitle className="flex justify-between items-center text-left">
         <span className="text-lg font-semibold text-[#0A0A0A]">{title}</span>

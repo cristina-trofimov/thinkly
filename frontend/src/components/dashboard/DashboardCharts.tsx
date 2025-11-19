@@ -7,19 +7,19 @@ export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) =>
   // Different data based on time range
   const dataMap = {
     "3months": [
-      { name: "Easy", value: 300, color: "#9B85DB" },
-      { name: "Medium", value: 200, color: "#8065CD" },
-      { name: "Hard", value: 100, color: "#6B51BF" },
+      { name: "Easy", value: 300, color: "var(--chart-1)" },
+      { name: "Medium", value: 200, color: "var(--chart-2)" },
+      { name: "Hard", value: 100, color: "var(--chart-3)" },
     ],
     "30days": [
-      { name: "Easy", value: 120, color: "#9B85DB" },
-      { name: "Medium", value: 80, color: "#8065CD" },
-      { name: "Hard", value: 40, color: "#6B51BF" },
+      { name: "Easy", value: 120, color: "var(--chart-1)" },
+      { name: "Medium", value: 80, color: "var(--chart-2)" },
+      { name: "Hard", value: 40, color: "var(--chart-3)" },
     ],
     "7days": [
-      { name: "Easy", value: 25, color: "#9B85DB" },
-      { name: "Medium", value: 18, color: "#8065CD" },
-      { name: "Hard", value: 10, color: "#6B51BF" },
+      { name: "Easy", value: 25, color: "var(--chart-1)" },
+      { name: "Medium", value: 18, color: "var(--chart-2)" },
+      { name: "Hard", value: 10, color: "var(--chart-3)" },
     ],
   };
 
@@ -52,19 +52,19 @@ export const TimeToSolveChart = ({ timeRange }: { timeRange: TimeRange }) => {
   // Different data based on time range
   const dataMap = {
     "3months": [
-      { type: "Easy", time: 45, color: "#9B85DB" },
-      { type: "Medium", time: 30, color: "#8065CD" },
-      { type: "Hard", time: 90, color: "#6B51BF" },
+      { type: "Easy", time: 45, color: "var(--chart-1)" },
+      { type: "Medium", time: 30, color: "var(--chart-2)" },
+      { type: "Hard", time: 90, color: "var(--chart-3)" },
     ],
     "30days": [
-      { type: "Easy", time: 42, color: "#9B85DB" },
-      { type: "Medium", time: 28, color: "#8065CD" },
-      { type: "Hard", time: 85, color: "#6B51BF" },
+      { type: "Easy", time: 42, color: "var(--chart-1)" },
+      { type: "Medium", time: 28, color: "var(--chart-2)" },
+      { type: "Hard", time: 85, color: "var(--chart-3)" },
     ],
     "7days": [
-      { type: "Easy", time: 40, color: "#9B85DB" },
-      { type: "Medium", time: 25, color: "#8065CD" },
-      { type: "Hard", time: 80, color: "#6B51BF" },
+      { type: "Easy", time: 40, color: "var(--chart-1)" },
+      { type: "Medium", time: 25, color: "var(--chart-2)" },
+      { type: "Hard", time: 80, color: "var(--chart-3)" },
     ],
   };
 
@@ -145,9 +145,9 @@ export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => 
         <Line
           type="monotone"
           dataKey="logins"
-          stroke="#9B85DB"
+          stroke="var(--chart-2)"
           strokeWidth={2}
-          dot={{ fill: "#8065CD", r: 4 }}
+          dot={{ fill: "var(--chart-3)", r: 4 }}
           activeDot={{ r: 6 }}
         />
       </LineChart>
@@ -295,7 +295,7 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
           />
           <YAxis hide />
           <Tooltip />
-          <Bar dataKey="participation" fill="#9B85DB" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="participation" fill="var(--chart-4)" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

@@ -58,7 +58,7 @@ export function AdminDashboard() {
           <div className="flex gap-4 mt-6 px-6">
             <Link
               to="/app/dashboard/manageAccounts"
-              className="cursor-pointer block"
+              className="cursor-pointer block flex-1 min-w-0"
             >
               <ManageCard
                 title="Manage Accounts"
@@ -78,7 +78,7 @@ export function AdminDashboard() {
             </Link>
             <Link
               to="/app/dashboard/competitions"
-              className="cursor-pointer block"
+              className="cursor-pointer block flex-1 min-w-0"
             >
               <ManageCard
                 title="Manage Competitions"
@@ -88,13 +88,15 @@ export function AdminDashboard() {
                 ]}
               />
             </Link>
-            <ManageCard
-              title="Manage Questions"
-              items={[
-                { name: "Q1", info: "Date added: 08/11/25" },
-                { name: "Q2", info: "Date added: 06/12/25" },
-              ]}
-            />
+            <div className="flex-1 min-w-0">
+              <ManageCard
+                title="Manage Questions"
+                items={[
+                  { name: "Q1", info: "Date added: 08/11/25" },
+                  { name: "Q2", info: "Date added: 06/12/25" },
+                ]}
+              />
+            </div>
           </div>
 
           <div className="mt-6 mx-6 bg-white rounded-2xl shadow-md p-6 border border-gray-200">
