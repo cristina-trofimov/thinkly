@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { StatsCard } from "./StatsCard";
 import { ManageCard } from "./ManageCard";
 import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart, ParticipationOverTimeChart } from "./DashboardCharts";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AdminDashboard() {
   const location = useLocation();
@@ -103,33 +104,19 @@ export function AdminDashboard() {
 
             {/* Time Range Filter */}
             <div className="flex justify-end gap-2 mt-6 px-6">
-              <button
-                onClick={() => setTimeRange("3months")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "3months"
-                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
-                  }`}
-              >
-                Last 3 months
-              </button>
-              <button
-                onClick={() => setTimeRange("30days")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "30days"
-                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
-                  }`}
-              >
-                Last 30 days
-              </button>
-              <button
-                onClick={() => setTimeRange("7days")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "7days"
-                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
-                  }`}
-              >
-                Last 7 days
-              </button>
+              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as "3months" | "30days" | "7days")}>
+                <SelectTrigger className="w-[200px] bg-[var(--color-muted)] text-[var(--color-primary)] rounded-lg">
+                  <SelectValue className="text-[var(--color-primary)]" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Time range</SelectLabel>
+                    <SelectItem value="3months">Last 3 months</SelectItem>
+                    <SelectItem value="30days">Last 30 days</SelectItem>
+                    <SelectItem value="7days">Last 7 days</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Stats Cards Row - Metrics and Charts */}
