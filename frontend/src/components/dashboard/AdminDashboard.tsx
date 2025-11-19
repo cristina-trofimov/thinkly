@@ -46,9 +46,9 @@ export function AdminDashboard() {
     <div className="flex flex-col w-full">
       {isRootDashboard ? (
         <>
-          <div className="border-b border-[#E5E5E5] bg-white">
+          <div className="border-b">
             <div className="flex justify-between items-center py-4 px-10">
-              <h1 className="text-base font-semibold text-[#8065CD]">
+              <h1 className="text-base font-semibold text-primary">
                 Overview
               </h1>
             </div>
@@ -99,15 +99,15 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 mx-6 bg-white rounded-2xl shadow-md p-6 border border-gray-200">
+          <div className="my-6 mx-6 rounded-2xl shadow-md p-6 border">
 
             {/* Time Range Filter */}
             <div className="flex justify-end gap-2 mt-6 px-6">
               <button
                 onClick={() => setTimeRange("3months")}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "3months"
-                  ? "bg-[#8065CD] text-white"
-                  : "bg-[#F5F5F5] text-[#737373] hover:bg-[#E5E5E5]"
+                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
                   }`}
               >
                 Last 3 months
@@ -115,8 +115,8 @@ export function AdminDashboard() {
               <button
                 onClick={() => setTimeRange("30days")}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "30days"
-                  ? "bg-[#8065CD] text-white"
-                  : "bg-[#F5F5F5] text-[#737373] hover:bg-[#E5E5E5]"
+                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
                   }`}
               >
                 Last 30 days
@@ -124,8 +124,8 @@ export function AdminDashboard() {
               <button
                 onClick={() => setTimeRange("7days")}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${timeRange === "7days"
-                  ? "bg-[#8065CD] text-white"
-                  : "bg-[#F5F5F5] text-[#737373] hover:bg-[#E5E5E5]"
+                  ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-border)]"
                   }`}
               >
                 Last 7 days
