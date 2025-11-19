@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { StatsCard } from "./StatsCard";
-import { ManageCard } from "./ManageCard";
-import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart, ParticipationOverTimeChart } from "./DashboardCharts";
+import { StatsCard } from "../components/dashboard/StatsCard";
+import { ManageCard } from "../components/dashboard/ManageCard";
+import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart, ParticipationOverTimeChart } from "../components/dashboard/DashboardCharts";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AdminDashboard() {

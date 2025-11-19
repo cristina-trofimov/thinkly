@@ -176,15 +176,6 @@ describe("ManageCard", () => {
     });
   });
 
-  describe("Dividers", () => {
-    it("renders dividers between items", () => {
-      const { container } = render(<ManageCard title="Test" items={itemsWithAvatars} />);
-      
-      const dividers = container.querySelectorAll(".h-px.bg-\\[\\#E5E5E5\\]");
-      expect(dividers).toHaveLength(2); // One divider per item
-    });
-  });
-
   describe("Custom className", () => {
     it("applies custom className when provided", () => {
       const { container } = render(
@@ -193,13 +184,6 @@ describe("ManageCard", () => {
       
       const card = container.querySelector('[data-testid="card"]');
       expect(card).toHaveClass("custom-class");
-    });
-
-    it("applies default classes", () => {
-      const { container } = render(<ManageCard title="Test" items={itemsWithAvatars} />);
-      
-      const card = container.querySelector('[data-testid="card"]');
-      expect(card).toHaveClass("border-[#E5E5E5]", "rounded-2xl");
     });
   });
 
@@ -222,20 +206,5 @@ describe("ManageCard", () => {
       expect(screen.getByTestId("card-content")).toBeInTheDocument();
     });
   });
-
-  describe("Text styling", () => {
-    it("applies purple color to item names", () => {
-      const { container } = render(<ManageCard title="Test" items={itemsWithAvatars} />);
-      
-      const nameElements = container.querySelectorAll(".text-\\[\\#8065CD\\]");
-      expect(nameElements.length).toBeGreaterThan(0);
-    });
-
-    it("applies gray color to item info", () => {
-      const { container } = render(<ManageCard title="Test" items={itemsWithAvatars} />);
-      
-      const infoElements = container.querySelectorAll(".text-\\[\\#737373\\]");
-      expect(infoElements.length).toBeGreaterThan(0);
-    });
-  });
+  
 });

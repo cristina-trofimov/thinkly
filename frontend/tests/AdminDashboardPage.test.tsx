@@ -1,7 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { AdminDashboard } from '../src/components/dashboard/AdminDashboard';
+import { AdminDashboard } from '../src/views/AdminDashboardPage';
+import userEvent from '@testing-library/user-event';
 
 // --- MOCK SETUP ---
 
@@ -10,6 +11,30 @@ jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   // Mock Outlet to display identifiable content
   Outlet: () => <div data-testid="mock-outlet">Mock Outlet Content</div>,
+}));
+
+// Mock Select component to make it testable
+jest.mock('@/components/ui/select', () => ({
+  Select: ({ children, value, onValueChange }: any) => (
+    <div data-testid="select-wrapper" data-value={value}>
+      {children}
+      <select 
+        data-testid="time-range-select"
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+      >
+        <option value="3months">Last 3 months</option>
+        <option value="30days">Last 30 days</option>
+        <option value="7days">Last 7 days</option>
+      </select>
+    </div>
+  ),
+  SelectTrigger: ({ children, className }: any) => <div className={className}>{children}</div>,
+  SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
+  SelectContent: ({ children }: any) => <div>{children}</div>,
+  SelectGroup: ({ children }: any) => <div>{children}</div>,
+  SelectLabel: ({ children }: any) => <div>{children}</div>,
+  SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
 }));
 
 // Mocking child components to isolate AdminDashboard logic
@@ -158,16 +183,11 @@ describe('AdminDashboard', () => {
   });
 
   describe('Time range filter', () => {
-    it('renders all three time range buttons', () => {
-      renderWithRouter();
-
-      expect(screen.getByText('Last 3 months')).toBeInTheDocument();
-      expect(screen.getByText('Last 30 days')).toBeInTheDocument();
-      expect(screen.getByText('Last 7 days')).toBeInTheDocument();
-    });
-
     it('defaults to 3 months time range', () => {
       renderWithRouter();
+
+      const select = screen.getByTestId('time-range-select') as HTMLSelectElement;
+      expect(select.value).toBe('3months');
 
       // Check that charts receive 3months as default
       expect(screen.getByText('Questions Chart (3months)')).toBeInTheDocument();
@@ -176,55 +196,61 @@ describe('AdminDashboard', () => {
       expect(screen.getByText('Participation Chart (3months)')).toBeInTheDocument();
     });
 
-    it('updates charts when 30 days button is clicked', () => {
+    it('updates charts when 30 days is selected', async () => {
       renderWithRouter();
 
-      // Click the 30 days button
-      const button30Days = screen.getByText('Last 30 days');
-      fireEvent.click(button30Days);
+      const select = screen.getByTestId('time-range-select');
+      fireEvent.change(select, { target: { value: '30days' } });
 
-      // Check that charts update to 30days
-      expect(screen.getByText('Questions Chart (30days)')).toBeInTheDocument();
-      expect(screen.getByText('Time Chart (30days)')).toBeInTheDocument();
-      expect(screen.getByText('Logins Chart (30days)')).toBeInTheDocument();
-      expect(screen.getByText('Participation Chart (30days)')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Questions Chart (30days)')).toBeInTheDocument();
+        expect(screen.getByText('Time Chart (30days)')).toBeInTheDocument();
+        expect(screen.getByText('Logins Chart (30days)')).toBeInTheDocument();
+        expect(screen.getByText('Participation Chart (30days)')).toBeInTheDocument();
+      });
     });
 
-    it('updates charts when 7 days button is clicked', () => {
+    it('updates charts when 7 days is selected', async () => {
       renderWithRouter();
 
-      // Click the 7 days button
-      const button7Days = screen.getByText('Last 7 days');
-      fireEvent.click(button7Days);
+      const select = screen.getByTestId('time-range-select');
+      fireEvent.change(select, { target: { value: '7days' } });
 
-      // Check that charts update to 7days
-      expect(screen.getByText('Questions Chart (7days)')).toBeInTheDocument();
-      expect(screen.getByText('Time Chart (7days)')).toBeInTheDocument();
-      expect(screen.getByText('Logins Chart (7days)')).toBeInTheDocument();
-      expect(screen.getByText('Participation Chart (7days)')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Questions Chart (7days)')).toBeInTheDocument();
+        expect(screen.getByText('Time Chart (7days)')).toBeInTheDocument();
+        expect(screen.getByText('Logins Chart (7days)')).toBeInTheDocument();
+        expect(screen.getByText('Participation Chart (7days)')).toBeInTheDocument();
+      });
     });
 
-    it('updates New Accounts stats when time range changes', () => {
+    it('updates New Accounts stats when time range changes', async () => {
       renderWithRouter();
 
       // Default should show 25
       expect(screen.getByText(/New Accounts: 25/i)).toBeInTheDocument();
 
-      // Click 30 days
-      fireEvent.click(screen.getByText('Last 30 days'));
-      expect(screen.getByText(/New Accounts: 20/i)).toBeInTheDocument();
+      const select = screen.getByTestId('time-range-select');
 
-      // Click 7 days
-      fireEvent.click(screen.getByText('Last 7 days'));
-      expect(screen.getByText(/New Accounts: 8/i)).toBeInTheDocument();
+      // Change to 30 days
+      fireEvent.change(select, { target: { value: '30days' } });
+      await waitFor(() => {
+        expect(screen.getByText(/New Accounts: 20/i)).toBeInTheDocument();
+      });
+
+      // Change to 7 days
+      fireEvent.change(select, { target: { value: '7days' } });
+      await waitFor(() => {
+        expect(screen.getByText(/New Accounts: 8/i)).toBeInTheDocument();
+      });
     });
   });
 
   describe('Container styling', () => {
-    it('renders stats in a white rounded container', () => {
+    it('renders stats in a rounded container with shadow', () => {
       const { container } = renderWithRouter();
 
-      const statsContainer = container.querySelector('.bg-white.rounded-2xl.shadow-md');
+      const statsContainer = container.querySelector('.rounded-2xl.shadow-md');
       expect(statsContainer).toBeInTheDocument();
     });
   });

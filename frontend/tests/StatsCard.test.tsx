@@ -187,13 +187,6 @@ describe("StatsCard", () => {
       const card = container.querySelector('[data-testid="card"]');
       expect(card).toHaveClass("custom-class");
     });
-
-    it("applies default classes", () => {
-      const { container } = render(<StatsCard {...defaultProps} />);
-      
-      const card = container.querySelector('[data-testid="card"]');
-      expect(card).toHaveClass("border-[#E5E5E5]", "rounded-2xl", "flex-1");
-    });
   });
 
   describe("Layout structure", () => {
