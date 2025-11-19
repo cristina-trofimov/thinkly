@@ -100,7 +100,7 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="my-6 mx-6 rounded-2xl shadow-md p-6 border">
+          <div className="my-6 mx-6 rounded-2xl shadow-md border">
 
             {/* Time Range Filter */}
             <div className="flex justify-end gap-2 mt-6 px-6">

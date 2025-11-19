@@ -26,9 +26,9 @@ export const StatsCard = ({
   const isPositive = !trend || !trend.trim().startsWith("-");
 
   // Chart card mode (when children is provided)
-  if (children) {
+    if (children) {
     return (
-      <Card className={`flex-1 border-[var(--color-border)] bg-[var(--color-card)] ${className || ""}`}>
+      <Card className={`flex-1 min-w-0 border-[var(--color-border)] bg-[var(--color-card)] ${className || ""}`}>
         <CardHeader className="pb-4">
           <CardTitle className={`text-lg font-medium text-[var(--color-muted-foreground)] text-center`}>
             {title}
@@ -37,7 +37,7 @@ export const StatsCard = ({
             <p className={`text-xs text-[var(--color-ring] text-center mt-1`}>{dateSubtitle}</p>
           )}
         </CardHeader>
-        <CardContent className={ "flex items-center justify-center"}>
+        <CardContent className={ "flex items-center  justify-center"}>
           {children}
         </CardContent>
       </Card>
@@ -46,7 +46,7 @@ export const StatsCard = ({
 
   // Metric card mode 
   return (
-    <Card className={`flex-1 ${className || ""}`}>
+    <Card className={`flex-1 min-w-0 ${className || ""}`}>
       <CardHeader className="pb-6">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-medium text-[var(--color-muted-foreground)] text-center">

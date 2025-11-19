@@ -1,4 +1,5 @@
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 type TimeRange = "3months" | "30days" | "7days";
 
@@ -26,7 +27,14 @@ export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) =>
   const data = dataMap[timeRange];
 
   return (
-    <ResponsiveContainer width="80%" height={180}>
+    <ChartContainer
+      config={{
+        Easy: { color: "var(--chart-1)" },
+        Medium: { color: "var(--chart-2)" },
+        Hard: { color: "var(--chart-3)" },
+      }}
+      style={{ width: "100%", height: 180 }}
+    >
       <PieChart>
         <Pie
           data={data}
@@ -41,9 +49,9 @@ export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) =>
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
-        <Tooltip />
+        <ChartTooltip content={<ChartTooltipContent />} />
       </PieChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   );
 };
 
@@ -71,7 +79,14 @@ export const TimeToSolveChart = ({ timeRange }: { timeRange: TimeRange }) => {
   const data = dataMap[timeRange];
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
+    <ChartContainer
+      config={{
+        Easy: { color: "var(--chart-1)" },
+        Medium: { color: "var(--chart-2)" },
+        Hard: { color: "var(--chart-3)" },
+      }}
+      style={{ width: "100%", height: 180 }}
+    >
       <BarChart
         data={data}
         layout="vertical"
@@ -86,14 +101,14 @@ export const TimeToSolveChart = ({ timeRange }: { timeRange: TimeRange }) => {
           width={100}
           tick={{ fontSize: 12 }}
         />
-        <Tooltip />
+        <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="time" radius={[0, 4, 4, 0]}>
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Bar>
       </BarChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   );
 };
 
@@ -129,7 +144,7 @@ export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => 
   const data = dataMap[timeRange];
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
+    <ChartContainer config={{ logins: { color: "var(--chart-2)" } }} style={{ width: "100%", height: 180 }}>
       <LineChart
         data={data}
         margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
@@ -141,7 +156,7 @@ export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => 
           tick={{ fontSize: 12 }}
         />
         <YAxis stroke="#A3A3A3" />
-        <Tooltip />
+        <ChartTooltip content={<ChartTooltipContent />} />
         <Line
           type="monotone"
           dataKey="logins"
@@ -151,7 +166,7 @@ export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => 
           activeDot={{ r: 6 }}
         />
       </LineChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   );
 };
 
@@ -281,7 +296,7 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
       <p className="text-left text-sm font-normal text-[#737373] mt-1 mb-8">
         Number of users joining competitions or AlgoTime sessions each day
       </p>
-      <ResponsiveContainer width="100%" height={200}>
+      <ChartContainer config={{ participation: { color: "var(--chart-4)" } }} style={{ width: "100%", height: 200 }}>
         <BarChart
           data={data}
           margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
@@ -294,10 +309,10 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
             interval={interval}
           />
           <YAxis hide />
-          <Tooltip />
+          <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="participation" fill="var(--chart-4)" radius={[2, 2, 0, 0]} />
         </BarChart>
-      </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 };
