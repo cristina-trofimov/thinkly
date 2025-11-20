@@ -51,7 +51,7 @@ jest.mock('@tabler/icons-react', () => ({
   IconChevronRight: () => <svg data-testid="mock-icon-chevron" />,
 }));
 
-jest.mock('../src/components/dashboard/StatsCard', () => ({
+jest.mock('../src/components/dashboardCards/StatsCard', () => ({
   StatsCard: ({ title, value, children }: any) => (
     <div data-testid="mock-stat-card">
       {title}
