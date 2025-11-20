@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, BadgeCheck, CalendarIcon} from "lucide-react"
+import { AlertCircle,CalendarIcon} from "lucide-react"
 import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
@@ -19,6 +19,12 @@ import {
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -385,8 +391,13 @@ export default function ManageAlgoTimePage() {
                 </div>
                 
                 {/* Email Notification */}
+                <Accordion type="single" collapsible>
+                <AccordionItem value="item-1">
+                
+                <AccordionTrigger className="text-primary text-xl font-semibold hover:text-primary/80">Email Notification</AccordionTrigger>
+                <AccordionContent>
                 <div className="grid gap-4">
-                  <h3 className="text-xl font-semibold text-primary text-800 ">Email Notification</h3>
+                  
                   <p className="text-sm text-gray-500">Optionally send email notifications about this upcoming session</p>
                   
                   <div className="grid gap-2">
@@ -444,7 +455,12 @@ export default function ManageAlgoTimePage() {
                       />
                     </div>
                   </div>
+                  
                 </div>
+                </AccordionContent>
+              </AccordionItem>
+              </Accordion>
+
                       
     
                 {/* Action Buttons */}
