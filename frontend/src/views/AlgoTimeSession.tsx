@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, BadgeCheck} from "lucide-react"
+import { AlertCircle, BadgeCheck, CalendarIcon} from "lucide-react"
 import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
@@ -17,6 +17,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -31,6 +33,12 @@ function localToUTCZ(dtLocal?: string) {
 
 function oneMinuteFromNowISO() {
   return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
+}
+
+function formatDate(date: Date | undefined) {
+  if (!date) {
+    return ""
+  }
 }
 
 export default function ManageAlgoTimePage() {
@@ -52,6 +60,10 @@ export default function ManageAlgoTimePage() {
   const [validationError, setValidationError] = useState('');
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const [open, setOpen] = useState(false)
+  const [date, setDate] = useState<Date | undefined>(undefined)
+  const [month, setMonth] = useState<Date | undefined>(date)
+
 
   const errorRef = useRef<HTMLParagraphElement>(null);
 
@@ -240,49 +252,87 @@ export default function ManageAlgoTimePage() {
                   <div className="grid grid-cols-2 md:grid-cols-2 gap-4 ">
                     <div className="md:col-span-2">
                     </div>
-                    
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                  
+                    <div >
+                      <Label className="block text-sm font-medium text-gray-700 mb-2">
                         Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                      </Label>
+                      <div className="relative ">
+                        <Input
+                          type="text"
+                          value={formData.date}
+                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          placeholder="YYYY-MM-DD"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                        <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id="date-picker"
+                              variant="ghost"
+                              className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                            >
+                              <CalendarIcon className="size-3.5" />
+                              <span className="sr-only">Select date</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto overflow-hidden p-0"
+                            align="end"
+                            alignOffset={-8}
+                            sideOffset={10}
+                          >
+                            <Calendar
+                             mode="single"
+                             selected={formData.date ? new Date(formData.date+ 'T00:00:00') : undefined}
+                             captionLayout="dropdown"
+                             month={month}
+                             onMonthChange={setMonth}
+                             onSelect={(selectedDate) => {
+                               if (selectedDate) {
+                                 setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
+                               }
+                               setOpen(false)
+                             }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Start Time
-                      </label>
-                      <input
+                    <div className="flex flex-col gap-3">
+                      <Label htmlFor="time-picker" className="px-1">
+                      Start Time
+                      </Label>
+                      <Input
                         type="time"
-                        value={formData.startTime}
+                        id="startTime-picker"
+                        step="1"
+                        value={formData.startTime||"12:00:00"}
                         onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                       />
                     </div>
     
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        End Time
-                      </label>
-                      <input
+                    <div className="flex flex-col gap-3">
+                      <Label htmlFor="time-picker" className="px-1">
+                      End Time
+                      </Label>
+                      <Input
                         type="time"
-                        value={formData.endTime}
+                        id="endTime-picker"
+                        step="1"
+                        value={formData.endTime||"12:00:00"}
                         onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                       />
                     </div>
     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Label className="block text-sm font-medium text-gray-700 mb-2">
                         Question Cooldown (minutes)
-                      </label>
-                      <input
+                      </Label>
+                      <Input
                         type="number"
                         value={formData.questionCooldownTime}
                         onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
@@ -299,7 +349,7 @@ export default function ManageAlgoTimePage() {
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">
                     Select Questions ({selectedQuestions.length} selected)
                   </h2>
-                  <input
+                  <Input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -317,7 +367,7 @@ export default function ManageAlgoTimePage() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <input
+                            <Input
                               type="checkbox"
                               checked={selectedQuestions.includes(q.id)}
                               onChange={() => {}}
