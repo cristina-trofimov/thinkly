@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { ManageCard } from "../src/components/dashboard/ManageCard";
-import type { ManageItem } from "../src/components/dashboard/ManageCard";
+import { ManageCard } from "../src/components/dashboardCards/ManageCard";
+import type { ManageItem } from "../src/components/dashboardCards/ManageCard";
 
 // Mock shadcn components
 jest.mock("@/components/ui/card", () => ({

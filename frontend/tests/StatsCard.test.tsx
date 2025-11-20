@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { StatsCard } from "../src/components/dashboard/StatsCard";
+import { StatsCard } from "../src/components/dashboardCards/StatsCard";
 
 // Mock shadcn components
 jest.mock("@/components/ui/card", () => ({

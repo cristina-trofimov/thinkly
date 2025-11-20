@@ -7,10 +7,12 @@ import { TimeToSolveChart } from "../components/dashboardCharts/TimeToSolveChart
 import { NumberOfLoginsChart } from "../components/dashboardCharts/NumberOfLoginsChart";
 import { ParticipationOverTimeChart } from "../components/dashboardCharts/ParticipationOverTimeChart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function AdminDashboard() {
   const location = useLocation();
   const [timeRange, setTimeRange] = useState<"3months" | "30days" | "7days">("3months");
+  const [activeTab, setActiveTab] = useState<"algotime" | "competitions">("algotime");
 
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
@@ -105,21 +107,32 @@ export function AdminDashboard() {
 
           <div className="my-6 mx-6 rounded-2xl shadow-md border">
 
-            {/* Time Range Filter */}
-            <div className="flex justify-end gap-2 mt-6 px-6">
-              <Select value={timeRange} onValueChange={(v) => setTimeRange(v as "3months" | "30days" | "7days")}>
-                <SelectTrigger className="w-[200px] bg-[var(--color-muted)] text-[var(--color-primary)] rounded-lg">
-                  <SelectValue className="text-[var(--color-primary)]" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Time range</SelectLabel>
-                    <SelectItem value="3months">Last 3 months</SelectItem>
-                    <SelectItem value="30days">Last 30 days</SelectItem>
-                    <SelectItem value="7days">Last 7 days</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+            {/* Tabs for Algotime/Competitions and Time Range Filter */}
+            <div className="flex justify-between items-center gap-2 mt-6 px-6">
+              <div className="flex items-center">
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "algotime" | "competitions")}> 
+                  <TabsList className="space-x-4">
+                    <TabsTrigger value="algotime" className="rounded-md text-primary">Algotime</TabsTrigger>
+                    <TabsTrigger value="competitions" className="rounded-md text-primary">Competitions</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              <div>
+                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as "3months" | "30days" | "7days")}>
+                  <SelectTrigger className="w-[200px] bg-[var(--color-muted)] text-[var(--color-primary)] rounded-lg">
+                    <SelectValue className="text-[var(--color-primary)]" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Time range</SelectLabel>
+                      <SelectItem value="3months">Last 3 months</SelectItem>
+                      <SelectItem value="30days">Last 30 days</SelectItem>
+                      <SelectItem value="7days">Last 7 days</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Stats Cards Row - Metrics and Charts */}

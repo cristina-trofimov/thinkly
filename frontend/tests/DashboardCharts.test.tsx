@@ -29,12 +29,10 @@ jest.mock("recharts", () => {
 });
 
 // Import the chart components under test (after mocks)
-import {
-  QuestionsSolvedChart,
-  TimeToSolveChart,
-  NumberOfLoginsChart,
-  ParticipationOverTimeChart,
-} from "../src/components/dashboardCards/DashboardCharts";
+import { QuestionsSolvedChart } from "../src/components/dashboardCharts/QuestionsSolvedChart";
+import { TimeToSolveChart } from "../src/components/dashboardCharts/TimeToSolveChart";
+import { NumberOfLoginsChart } from "../src/components/dashboardCharts/NumberOfLoginsChart";
+import { ParticipationOverTimeChart } from "../src/components/dashboardCharts/ParticipationOverTimeChart";  
 
 describe("DashboardCharts", () => {
   it("renders pie chart with cells for QuestionsSolvedChart", () => {
