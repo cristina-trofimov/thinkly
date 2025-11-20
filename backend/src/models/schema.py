@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, String, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
-from src.db import Base
+from db import Base
 
 class UserAccount(Base):
     __tablename__ = 'user_account'
@@ -14,6 +14,8 @@ class UserAccount(Base):
     user_preferences = relationship('UserPreferences', back_populates='user_account', uselist=False)
     sessions = relationship('UserSession', back_populates='user_account', uselist=True)
     participations = relationship('Participation', back_populates='user_account', uselist=True)
+    competition_leaderboard_entries = relationship('CompetitionLeaderboardEntry', back_populates='user_account', uselist=True)
+    algotime_leaderboard_entries = relationship('AlgoTimeLeaderboardEntry', back_populates='user_account', uselist=True)
 
 class UserPreferences(Base):
     __tablename__ = 'user_preferences'
@@ -55,9 +57,9 @@ class BaseEvent(Base):
     question_instances = relationship('QuestionInstance', back_populates='event', uselist=True)
     participations = relationship('Participation', back_populates='event', uselist=True)
 
-    # __table_args__ = (
-    #     CheckConstraint('event_end_date > event_start_date', name='chk_event_dates'),
-    # )
+    __table_args__ = (
+        CheckConstraint('event_end_date > event_start_date', name='chk_event_dates'),
+    )
 
 class Competition(Base):
     __tablename__ = 'competition'
@@ -66,6 +68,7 @@ class Competition(Base):
     riddle_cooldown = Column(Integer, nullable=False, default=60)
 
     base_event = relationship('BaseEvent', back_populates='competition', uselist=False)
+    competition_leaderboard_entries = relationship('CompetitionLeaderboardEntry', back_populates='competition', uselist=True)
 
 class AlgoTimeSeries(Base):
     __tablename__ = 'algotime_series'
@@ -73,9 +76,10 @@ class AlgoTimeSeries(Base):
     algotime_series_name = Column(String, unique=True, nullable=False)
 
     algotime_sessions = relationship('AlgoTimeSession', back_populates='algotime_series', uselist=True)
+    algotime_leaderboard_entries = relationship('AlgoTimeLeaderboardEntry', back_populates='algotime_series', uselist=True)
 
 class AlgoTimeSession(Base):
-    __tablename__ = 'algotime_session'
+    __tablename__ = 'algotime'
 
     event_id = Column(Integer, ForeignKey('base_event.event_id', ondelete='CASCADE'), nullable=False, primary_key=True)
     algotime_series_id = Column(Integer, ForeignKey('algotime_series.algotime_series_id', ondelete='SET NULL'), nullable=True)
@@ -136,9 +140,9 @@ class QuestionInstance(Base):
     event = relationship('BaseEvent', back_populates='question_instances', uselist=False)
     submissions = relationship('Submission', back_populates='question_instance', uselist=True)
 
-    # __table_args__ = (
-    #     UniqueConstraint('question_id', 'event_id', name='uix_question_instance')
-    # )
+    __table_args__ = (
+        UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
+    )
 
 class Participation(Base):
     __tablename__ = 'participation'
@@ -152,9 +156,9 @@ class Participation(Base):
     event = relationship('BaseEvent', back_populates='participations', uselist=False)
     submissions = relationship('Submission', back_populates='participation', uselist=True)
 
-    # __table_args__ = (
-    #     UniqueConstraint('user_id', 'event_id', name='uix_participation')
-    # )
+    __table_args__ = (
+        UniqueConstraint('user_id', 'event_id', name='uix_participation'),
+    )
 
 class Submission(Base):
     __tablename__ = 'submission'
@@ -171,6 +175,38 @@ class Submission(Base):
     question_instance = relationship('QuestionInstance', back_populates='submissions', uselist=False)
     failed_test_case = relationship('TestCase', uselist=False)
 
-    # __table_args__ = (
-    #     UniqueConstraint('participation_id', 'question_instance_id', name='uix_submission')
-    # )
+    __table_args__ = (
+        UniqueConstraint('participation_id', 'question_instance_id', name='uix_submission'),
+    )
+
+class CompetitionLeaderboardEntry(Base):
+    __tablename__ = 'competition_leaderboard_entry'
+
+    competition_leaderboard_entry_id = Column(Integer, primary_key=True, autoincrement=True)
+    competition_id = Column(Integer, ForeignKey('competition.event_id', ondelete='CASCADE'), nullable=False)
+    username = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey('user_account.user_id', ondelete='SET NULL'), nullable=True)
+    total_score = Column(Integer, nullable=False)
+
+    competition = relationship('Competition', back_populates='competition_leaderboard_entries', uselist=False)
+    user_account = relationship('UserAccount', back_populates='competition_leaderboard_entries', uselist=False)
+    
+    __table_args__ = (
+        UniqueConstraint('competition_id', 'user_id', name='uix_competition_user'),
+    )
+
+class AlgoTimeLeaderboardEntry(Base):
+    __tablename__ = 'algotime_leaderboard_entry'
+
+    algotime_leaderboard_entry_id = Column(Integer, primary_key=True, autoincrement=True)
+    algotime_series_id = Column(Integer, ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'), nullable=False)
+    username = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey('user_account.user_id', ondelete='SET NULL'), nullable=True)
+    total_time = Column(Integer, nullable=False)
+
+    algotime_series = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
+    user_account = relationship('UserAccount', uselist=False)
+
+    __table_args__ = (
+        UniqueConstraint('algotime_series_id', 'user_id', name='uix_algotime_user'),
+    )
