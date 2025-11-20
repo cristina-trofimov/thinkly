@@ -12,6 +12,11 @@ import {
 import type { Question } from "../components/interfaces/Question";
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -184,16 +189,12 @@ export default function ManageAlgoTimePage() {
         }
       }
     }
-
+      // Navigate to main page 
+      navigate("/app/dashboard"); 
       // Show success message
       toast.success("AlgoTime Session created successfully!");
       
       handleReset();
-  
-      // Navigate to main page after a short delay
-      setTimeout(() => {
-        navigate("/app/dashboard"); 
-      }, 1500);
 
       }catch (error) {
         setValidationError('Failed to create session. Please try again.');
