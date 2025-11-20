@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { StatsCard } from "../components/dashboard/StatsCard";
-import { ManageCard } from "../components/dashboard/ManageCard";
-import { QuestionsSolvedChart, TimeToSolveChart, NumberOfLoginsChart, ParticipationOverTimeChart } from "../components/dashboard/DashboardCharts";
+import { StatsCard } from "../components/dashboardCards/StatsCard";
+import { ManageCard } from "../components/dashboardCards/ManageCard";
+import { QuestionsSolvedChart } from "../components/dashboardCharts/QuestionsSolvedChart";
+import { TimeToSolveChart } from "../components/dashboardCharts/TimeToSolveChart";
+import { NumberOfLoginsChart } from "../components/dashboardCharts/NumberOfLoginsChart";
+import { ParticipationOverTimeChart } from "../components/dashboardCharts/ParticipationOverTimeChart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AdminDashboard() {
@@ -84,8 +87,8 @@ export function AdminDashboard() {
               <ManageCard
                 title="Manage Competitions"
                 items={[
-                  { color: "#A52A56", name: "Comp1", info: "08/11/25" },
-                  { color: "#F2D340", name: "Comp2", info: "06/12/25" },
+                  { color: "var(--color-chart-1)", name: "Comp1", info: "08/11/25" },
+                  { color: "var(--color-chart-4)", name: "Comp2", info: "06/12/25" },
                 ]}
               />
             </Link>

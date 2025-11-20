@@ -34,7 +34,7 @@ import {
   TimeToSolveChart,
   NumberOfLoginsChart,
   ParticipationOverTimeChart,
-} from "../src/components/dashboard/DashboardCharts";
+} from "../src/components/dashboardCards/DashboardCharts";
 
 describe("DashboardCharts", () => {
   it("renders pie chart with cells for QuestionsSolvedChart", () => {

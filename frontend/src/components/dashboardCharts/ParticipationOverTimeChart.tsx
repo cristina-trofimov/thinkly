@@ -1,178 +1,9 @@
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 type TimeRange = "3months" | "30days" | "7days";
 
-// Questions Solved Component
-export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  // Different data based on time range
-  const dataMap = {
-    "3months": [
-      { name: "Easy", value: 300, color: "var(--chart-1)" },
-      { name: "Medium", value: 200, color: "var(--chart-2)" },
-      { name: "Hard", value: 100, color: "var(--chart-3)" },
-    ],
-    "30days": [
-      { name: "Easy", value: 120, color: "var(--chart-1)" },
-      { name: "Medium", value: 80, color: "var(--chart-2)" },
-      { name: "Hard", value: 40, color: "var(--chart-3)" },
-    ],
-    "7days": [
-      { name: "Easy", value: 25, color: "var(--chart-1)" },
-      { name: "Medium", value: 18, color: "var(--chart-2)" },
-      { name: "Hard", value: 10, color: "var(--chart-3)" },
-    ],
-  };
-
-  const data = dataMap[timeRange];
-
-  return (
-    <ChartContainer
-      config={{
-        Easy: { color: "var(--chart-1)" },
-        Medium: { color: "var(--chart-2)" },
-        Hard: { color: "var(--chart-3)" },
-      }}
-      style={{ width: "100%", height: 180 }}
-    >
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={60}
-          outerRadius={90}
-          paddingAngle={0}
-          dataKey="value"
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Pie>
-        <ChartTooltip content={<ChartTooltipContent />} />
-      </PieChart>
-    </ChartContainer>
-  );
-};
-
-// Time to Solve Chart Component
-export const TimeToSolveChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  // Different data based on time range
-  const dataMap = {
-    "3months": [
-      { type: "Easy", time: 45, color: "var(--chart-1)" },
-      { type: "Medium", time: 30, color: "var(--chart-2)" },
-      { type: "Hard", time: 90, color: "var(--chart-3)" },
-    ],
-    "30days": [
-      { type: "Easy", time: 42, color: "var(--chart-1)" },
-      { type: "Medium", time: 28, color: "var(--chart-2)" },
-      { type: "Hard", time: 85, color: "var(--chart-3)" },
-    ],
-    "7days": [
-      { type: "Easy", time: 40, color: "var(--chart-1)" },
-      { type: "Medium", time: 25, color: "var(--chart-2)" },
-      { type: "Hard", time: 80, color: "var(--chart-3)" },
-    ],
-  };
-
-  const data = dataMap[timeRange];
-
-  return (
-    <ChartContainer
-      config={{
-        Easy: { color: "var(--chart-1)" },
-        Medium: { color: "var(--chart-2)" },
-        Hard: { color: "var(--chart-3)" },
-      }}
-      style={{ width: "100%", height: 180 }}
-    >
-      <BarChart
-        data={data}
-        layout="vertical"
-        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E5E5" />
-        <XAxis type="number" stroke="#A3A3A3" />
-        <YAxis 
-          type="category" 
-          dataKey="type" 
-          stroke="#A3A3A3"
-          width={100}
-          tick={{ fontSize: 12 }}
-        />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        <Bar dataKey="time" radius={[0, 4, 4, 0]}>
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ChartContainer>
-  );
-};
-
-// Number of Logins Chart Component
-export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  // Different data based on time range
-  const dataMap = {
-    "3months": [
-      { month: "Jan", logins: 166 },
-      { month: "Feb", logins: 305 },
-      { month: "Mar", logins: 237 },
-      { month: "Apr", logins: 73 },
-      { month: "May", logins: 209 },
-      { month: "Jun", logins: 234 },
-    ],
-    "30days": [
-      { month: "Week 1", logins: 285 },
-      { month: "Week 2", logins: 310 },
-      { month: "Week 3", logins: 195 },
-      { month: "Week 4", logins: 265 },
-    ],
-    "7days": [
-      { month: "Mon", logins: 45 },
-      { month: "Tue", logins: 52 },
-      { month: "Wed", logins: 48 },
-      { month: "Thu", logins: 55 },
-      { month: "Fri", logins: 62 },
-      { month: "Sat", logins: 38 },
-      { month: "Sun", logins: 35 },
-    ],
-  };
-
-  const data = dataMap[timeRange];
-
-  return (
-    <ChartContainer config={{ logins: { color: "var(--chart-2)" } }} style={{ width: "100%", height: 180 }}>
-      <LineChart
-        data={data}
-        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" />
-        <XAxis 
-          dataKey="month" 
-          stroke="#A3A3A3"
-          tick={{ fontSize: 12 }}
-        />
-        <YAxis stroke="#A3A3A3" />
-        <ChartTooltip content={<ChartTooltipContent />} />
-        <Line
-          type="monotone"
-          dataKey="logins"
-          stroke="var(--chart-2)"
-          strokeWidth={2}
-          dot={{ fill: "var(--chart-3)", r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-      </LineChart>
-    </ChartContainer>
-  );
-};
-
-// Participation Over Time Chart Component
 export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  // Generate data based on time range
   const generateData = () => {
     if (timeRange === "7days") {
       return [
@@ -185,7 +16,7 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
         { date: "Sun", participation: 38 },
       ];
     } else if (timeRange === "30days") {
-      const data = [];
+      const data: Array<{ date: string; participation: number }> = [];
       for (let i = 1; i <= 30; i++) {
         data.push({
           date: `Day ${i}`,
@@ -292,8 +123,8 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
 
   return (
     <div className="w-full mt-6 px-6">
-      <h2 className="text-left text-lg font-semibold text-[#0A0A0A]">Participation over time</h2>
-      <p className="text-left text-sm font-normal text-[#737373] mt-1 mb-8">
+      <h2 className="text-left text-lg font-semibold text-[var(--color-foreground)]">Participation over time</h2>
+      <p className="text-left text-sm font-normal text-[var(--color-muted-foreground)] mt-1 mb-8">
         Number of users joining competitions or AlgoTime sessions each day
       </p>
       <ChartContainer config={{ participation: { color: "var(--chart-4)" } }} style={{ width: "100%", height: 200 }}>
@@ -301,10 +132,10 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
           data={data}
           margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E5E5" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
           <XAxis 
             dataKey="date" 
-            stroke="#A3A3A3"
+            stroke="var(--color-muted-foreground)"
             tick={{ fontSize: 10 }}
             interval={interval}
           />
@@ -316,3 +147,5 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
     </div>
   );
 };
+
+export default ParticipationOverTimeChart;
