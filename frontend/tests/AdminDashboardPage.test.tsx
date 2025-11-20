@@ -61,20 +61,29 @@ jest.mock('../src/components/dashboard/StatsCard', () => ({
   ),
 }));
 
-jest.mock('../src/components/dashboard/ManageCard', () => ({
+jest.mock('../src/components/dashboardCards/ManageCard', () => ({
   ManageCard: ({ title }: any) => <div data-testid="mock-manage-card">{title}</div>,
 }));
 
-jest.mock('../src/components/dashboard/DashboardCharts', () => ({
+jest.mock('../src/components/dashboardCharts/QuestionsSolvedChart', () => ({
   QuestionsSolvedChart: ({ timeRange }: any) => (
     <div data-testid="questions-solved-chart">Questions Chart ({timeRange})</div>
   ),
+}));
+
+jest.mock('../src/components/dashboardCharts/TimeToSolveChart', () => ({
   TimeToSolveChart: ({ timeRange }: any) => (
     <div data-testid="time-to-solve-chart">Time Chart ({timeRange})</div>
   ),
+}));
+
+jest.mock('../src/components/dashboardCharts/NumberOfLoginsChart', () => ({
   NumberOfLoginsChart: ({ timeRange }: any) => (
     <div data-testid="logins-chart">Logins Chart ({timeRange})</div>
   ),
+}));
+
+jest.mock('../src/components/dashboardCharts/ParticipationOverTimeChart', () => ({
   ParticipationOverTimeChart: ({ timeRange }: any) => (
     <div data-testid="participation-chart">Participation Chart ({timeRange})</div>
   ),

@@ -2,10 +2,10 @@ import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { StatsCard } from "../components/dashboardCards/StatsCard";
 import { ManageCard } from "../components/dashboardCards/ManageCard";
-import { QuestionsSolvedChart } from "../components/dashboardCharts/QuestionsSolvedChart";
-import { TimeToSolveChart } from "../components/dashboardCharts/TimeToSolveChart";
-import { NumberOfLoginsChart } from "../components/dashboardCharts/NumberOfLoginsChart";
-import { ParticipationOverTimeChart } from "../components/dashboardCharts/ParticipationOverTimeChart";
+import { QuestionsSolvedChart } from "@/components/dashboardCharts/QuestionsSolvedChart";
+import { TimeToSolveChart } from "@/components/dashboardCharts/TimeToSolveChart";
+import { NumberOfLoginsChart } from "@/components/dashboardCharts/NumberOfLoginsChart";
+import { ParticipationOverTimeChart } from "@/components/dashboardCharts/ParticipationOverTimeChart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
