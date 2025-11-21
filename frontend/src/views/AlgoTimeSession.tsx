@@ -18,13 +18,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { format, addDays, addWeeks, addMonths} from "date-fns"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -41,18 +42,14 @@ function oneMinuteFromNowISO() {
   return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
 }
 
-function formatDate(date: Date | undefined) {
-  if (!date) {
-    return ""
-  }
-}
-
 export default function ManageAlgoTimePage() {
   const [formData, setFormData] = useState({
     date: "",
     startTime: "",
     endTime: "",
     questionCooldownTime: "",
+    repeatType: "none", // none, daily, weekly, biweekly, monthly
+    repeatEndDate: "",
   });
 
   const [emailData, setEmailData] = useState({
@@ -62,17 +59,83 @@ export default function ManageAlgoTimePage() {
     sendAtLocal: "",
     sendInOneMinute: false,
   });
+
   const navigate = useNavigate();
   const [validationError, setValidationError] = useState('');
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-  const [open, setOpen] = useState(false)
-  const [date, setDate] = useState<Date | undefined>(undefined)
-  const [month, setMonth] = useState<Date | undefined>(date)
-
-
   const errorRef = useRef<HTMLParagraphElement>(null);
+  const [searchQueries, setSearchQueries] = useState<{ [key: number]: string }>({});
+  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
+  const [openStart, setOpenStart] = useState(false)
+  const [openEnd, setOpenEnd] = useState(false)
+  const [monthStart, setMonthStart] = useState(new Date())
+  const [monthEnd, setMonthEnd] = useState(new Date())
+  const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: string[] }>({
+    1: []
+  });
 
+  
+  // Calculate repeat sessions
+  const calculateRepeatSessions = () => {
+    if (!formData.date || formData.repeatType === "none") {
+      return [{ sessionNumber: 1, date: formData.date }];
+    }
+
+    const sessions = [];
+    const startDate = new Date(formData.date + 'T00:00:00');
+    const endDate = formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : null;
+    
+    let currentDate = startDate;
+    let sessionNumber = 1;
+
+    while (true) {
+      sessions.push({
+        sessionNumber,
+        date: format(currentDate, 'yyyy-MM-dd')
+      });
+
+      // Calculate next date based on repeat type
+      switch (formData.repeatType) {
+        case 'daily':
+          currentDate = addDays(currentDate, 1);
+          break;
+        case 'weekly':
+          currentDate = addWeeks(currentDate, 1);
+          break;
+        case 'biweekly':
+          currentDate = addWeeks(currentDate, 2);
+          break;
+        case 'monthly':
+          currentDate = addMonths(currentDate, 1);
+          break;
+      }
+
+      sessionNumber++;
+
+      // Check if we've reached the end date or max sessions
+      if (endDate && currentDate > endDate) break;
+      if (sessionNumber > 52) break; // Safety limit
+    }
+
+    return sessions;
+  };
+
+  // Toggle question for specific session
+  const toggleQuestionForSession = (sessionNum: number, questionId: string) => {
+    setSessionQuestions(prev => {
+      const currentQuestions = prev[sessionNum] || [];
+      const isSelected = currentQuestions.includes(questionId);
+      
+      return {
+        ...prev,
+        [sessionNum]: isSelected
+          ? currentQuestions.filter(id => id !== questionId)
+          : [...currentQuestions, questionId]
+      };
+    });
+  };
+
+
+  const repeatSessions = calculateRepeatSessions();
 
   const fallbackQuestions = [
     { id: 1, title: "Two Sum", difficulty: "Easy" },
@@ -101,18 +164,9 @@ export default function ManageAlgoTimePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const filteredQuestions = questions.filter((q) =>
-    q.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const toggleQuestion = (id: number) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(id) ? prev.filter((qId) => qId !== id) : [...prev, id]
-    );
-  };
-
   const validateForm = (): boolean => {
-    if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
+    if (formData.date === '' || formData.startTime === '' || formData.endTime === '' 
+      || formData.repeatEndDate === ''|| formData.repeatType === '') {
       setValidationError("Incomplete general information.");
       return false;
     }
@@ -125,15 +179,25 @@ export default function ManageAlgoTimePage() {
         return false;
     }
 
-    if (selectedQuestions.length === 0) {
-      setValidationError("Please select at least one question.");
-      return false;
-    }
-    if (selectedQuestions.length > 1) {
-      setValidationError("You have reached the maximum number of questions.");
-      return false;
-    }
+      // Check that each session has at least one question
+  const sessionsWithoutQuestions = repeatSessions.filter(
+    session => !sessionQuestions[session.sessionNumber]?.length
+  );
+  
+  if (sessionsWithoutQuestions.length > 0) {
+    setValidationError(`Please select at least one question for session ${sessionsWithoutQuestions[0].sessionNumber}.`);
+    return false;
+  }
 
+  // Check that no session has more than 1 question
+  const sessionsWithTooMany = repeatSessions.filter(
+    session => (sessionQuestions[session.sessionNumber]?.length || 0) > 2
+  );
+  
+  if (sessionsWithTooMany.length > 0) {
+    setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 2.`);
+    return false;
+  }
     setValidationError('');
     return true;
   };
@@ -144,6 +208,8 @@ export default function ManageAlgoTimePage() {
       startTime: "",
       endTime: "",
       questionCooldownTime: "",
+      repeatType: "none", // none, daily, weekly, biweekly, monthly
+      repeatEndDate: ""
     });
     setEmailData({
       to: "",
@@ -153,6 +219,7 @@ export default function ManageAlgoTimePage() {
       sendInOneMinute: false,
     });
     setSelectedQuestions([]);
+    setSearchQueries({}); 
     setValidationError('');
   }
 
@@ -168,7 +235,16 @@ export default function ManageAlgoTimePage() {
       return; // Stop submission if validation fails
     }
   try{
-    // Handle Session creation
+    //saving sessions to send to BE later on
+    const sessions = repeatSessions.map(session => ({
+      sessionNumber: session.sessionNumber,
+      date: session.date,
+      startTime: formData.startTime,
+      endTime: formData.endTime,
+      questions: sessionQuestions[session.sessionNumber] || []
+    }));
+    
+    // Handle Session creationF
     console.log("Session created:", formData);
     console.log("Selected questions:", selectedQuestions);
 
@@ -226,6 +302,8 @@ export default function ManageAlgoTimePage() {
     
   };
 
+  
+
   return (
         <div className="min-h-screen flex flex-col gap-4">
               {/* Header */}
@@ -271,7 +349,7 @@ export default function ManageAlgoTimePage() {
                           placeholder="YYYY-MM-DD"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
-                        <Popover open={open} onOpenChange={setOpen}>
+                        <Popover open={openStart} onOpenChange={setOpenStart}>
                           <PopoverTrigger asChild>
                             <Button
                               id="date-picker"
@@ -292,20 +370,91 @@ export default function ManageAlgoTimePage() {
                              mode="single"
                              selected={formData.date ? new Date(formData.date+ 'T00:00:00') : undefined}
                              captionLayout="dropdown"
-                             month={month}
-                             onMonthChange={setMonth}
+                             month={monthStart}
+                             onMonthChange={setMonthStart}
                              onSelect={(selectedDate) => {
                                if (selectedDate) {
                                  setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
                                }
-                               setOpen(false)
+                               setOpenStart(false)
                              }}
                             />
                           </PopoverContent>
                         </Popover>
                       </div>
                     </div>
-    
+                    {formData.repeatType !== "none" ? (
+                      
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
+                        <div className="relative">
+                          <Input
+                            type="text"
+                            value={formData.repeatEndDate}
+                            onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
+                            placeholder="YYYY-MM-DD"
+                          />
+                          <Popover open={openEnd} onOpenChange={setOpenEnd}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id="date-picker"
+                              variant="ghost"
+                              className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                            >
+                              <CalendarIcon className="size-3.5" />
+                              <span className="sr-only">Select date</span>
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-auto overflow-hidden p-0"
+                            align="end"
+                            alignOffset={-8}
+                            sideOffset={10}
+                          >
+                            <Calendar
+                             mode="single"
+                             selected={formData.repeatEndDate ? new Date(formData.repeatEndDate+ 'T00:00:00') : undefined}
+                             captionLayout="dropdown"
+                             month={monthEnd}
+                             onMonthChange={setMonthEnd}
+                             onSelect={(selectedDate) => {
+                               if (selectedDate) {
+                                 setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
+                               }
+                               setOpenEnd(false)
+                             }}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        </div>
+                      </div>
+                  ): (
+                    <div></div>)}
+                    <div>
+                      <Label className="block text-sm font-medium text-gray-700 mb-2 cols-2">Repeat</Label>
+                      <Select
+                        value={formData.repeatType}
+                        onValueChange={(value) => {
+                          setFormData({ ...formData, repeatType: value });
+                          if (value === 'none') {
+                            setSessionQuestions({ 1: selectedQuestions.map(id => id.toString()) });
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Does not repeat" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Does not repeat</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div></div>
+
                     <div className="flex flex-col gap-3">
                       <Label htmlFor="time-picker" className="px-1">
                       Start Time
@@ -349,47 +498,70 @@ export default function ManageAlgoTimePage() {
     
                   </div>
                 </div>
-    
-                {/* Select Questions */}
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Select Questions ({selectedQuestions.length} selected)
-                  </h2>
-                  <Input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search questions..."
-                    className="w-full px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
-                    {filteredQuestions.map((q) => (
-                      <div
-                        key={q.id}
-                        onClick={() => toggleQuestion(q.id)}
-                        className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                          selectedQuestions.includes(q.id) ? 'bg-blue-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Input
-                              type="checkbox"
-                              checked={selectedQuestions.includes(q.id)}
-                              onChange={() => {}}
-                              className="w-4 h-4 text-blue-600"
-                            />
-                            <span className="font-medium text-gray-900">{q.title}</span>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(q.difficulty)}`}>
-                            {q.difficulty}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
                 
+                {formData.date && repeatSessions.length > 0 && repeatSessions.map((session) => {
+                  const sessionSearch = searchQueries[session.sessionNumber] || "";
+                  const sessionFilteredQuestions = questions.filter((q) =>
+                    q.title.toLowerCase().includes(sessionSearch.toLowerCase())
+                  );
+                  
+                  return (
+                    <div key={session.sessionNumber} className="mb-6 border rounded-lg p-4">
+                    <Accordion type="single" collapsible>
+                      <AccordionItem value="item-1">
+                        <AccordionTrigger className="text-lg font-semibold mb-2">
+                        Session {session.sessionNumber} - {format(new Date(session.date + 'T00:00:00'), 'PPP')}
+                        </AccordionTrigger>
+                          <AccordionContent>
+    
+                      <p className="text-sm text-gray-500 mb-3">
+                        {sessionQuestions[session.sessionNumber]?.length || 0} question(s) selected
+                      </p>
+                      
+                      <input
+                        type="text"
+                        value={sessionSearch}
+                        onChange={(e) => setSearchQueries({
+                          ...searchQueries,
+                          [session.sessionNumber]: e.target.value
+                        })}
+                        placeholder="Search questions..."
+                        className=" px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      
+                      <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                        {sessionFilteredQuestions.map((q) => (
+                          <div
+                            key={q.id}
+                            onClick={() => toggleQuestionForSession(session.sessionNumber, q.id.toString())}
+                            className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
+                              sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) ? 'bg-blue-50' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) || false}
+                                  onChange={() => {}}
+                                  className="w-4 h-4 text-blue-600"
+                                />
+                                <span className="font-medium text-gray-900">{q.title}</span>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(q.difficulty)}`}>
+                                {q.difficulty}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    {/* </div> */}
+                    </AccordionContent>
+                  </AccordionItem>
+              </Accordion>
+                  </div>);
+                })}      
+
                 {/* Email Notification */}
                 <Accordion type="single" collapsible>
                 <AccordionItem value="item-1">
