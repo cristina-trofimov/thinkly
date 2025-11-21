@@ -7,8 +7,11 @@ from endpoints.questions_api import questions_router
 from endpoints.send_email import email_router
 from endpoints.homepage_api import homepage_router
 from endpoints.manage_accounts_api import manage_accounts_router
+import uvicorn
+from logging_config import setup_logging
 import os
 
+setup_logging()
 app = FastAPI(title="My Backend API")
 
 # --- Request Logging Middleware ---

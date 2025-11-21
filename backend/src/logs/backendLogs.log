@@ -1,0 +1,10 @@
+2025-11-20 21:10:03,377 - watchfiles.main - INFO - 1 change detected
+2025-11-20 21:10:23,698 - watchfiles.main - INFO - 5 changes detected
+{"levelname": "INFO", "asctime": "2025-11-20 21:16:47,918", "name": "uvicorn.error", "module": "server", "funcName": "_serve", "lineno": 84, "message": "Started server process [16020]", "color_message": "Started server process [\u001b[36m%d\u001b[0m]"}
+{"levelname": "INFO", "asctime": "2025-11-20 21:16:47,920", "name": "uvicorn.error", "module": "on", "funcName": "startup", "lineno": 48, "message": "Waiting for application startup."}
+{"levelname": "INFO", "asctime": "2025-11-20 21:16:47,920", "name": "uvicorn.error", "module": "on", "funcName": "startup", "lineno": 62, "message": "Application startup complete."}
+{"levelname": "INFO", "asctime": "2025-11-20 21:16:47,980", "name": "watchfiles.main", "module": "main", "funcName": "_log_changes", "lineno": 308, "message": "5 changes detected"}
+{"levelname": "INFO", "asctime": "2025-11-20 21:17:14,214", "name": "uvicorn.error", "module": "server", "funcName": "shutdown", "lineno": 264, "message": "Shutting down"}
+{"levelname": "INFO", "asctime": "2025-11-20 21:17:14,324", "name": "uvicorn.error", "module": "on", "funcName": "shutdown", "lineno": 67, "message": "Waiting for application shutdown."}
+{"levelname": "INFO", "asctime": "2025-11-20 21:17:14,325", "name": "uvicorn.error", "module": "on", "funcName": "shutdown", "lineno": 76, "message": "Application shutdown complete."}
+{"levelname": "INFO", "asctime": "2025-11-20 21:17:14,325", "name": "uvicorn.error", "module": "server", "funcName": "_serve", "lineno": 94, "message": "Finished server process [16020]", "color_message": "Finished server process [\u001b[36m%d\u001b[0m]"}
