@@ -17,7 +17,7 @@ jest.mock('lucide-react', () => ({
 const dialogCallHistory = [];
 
 // Mock the CreateCompetitionDialog component
-jest.mock('../src/components/dashboard/CreateCompetitionDialog', () => {
+jest.mock('../src/components/manage-competitions/CreateCompetitionDialog', () => {
     // Define the component logic
     const DialogComponent = (props) => {
         // Log the call arguments manually

@@ -16,7 +16,7 @@ const GOOGLE_CLIENT_ID =
 
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
-import { AdminDashboard } from "./components/dashboard/AdminDashboard";
+import AdminDashboard  from "./views/AdminDashboardPage.tsx";
 import CodingView from "./components/codingPage/CodingView.tsx";
 import HomePage from "./views/HomePage.tsx";
 import SignupPage from "./views/SignupPage.tsx";

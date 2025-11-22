@@ -5,7 +5,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import CreateCompetitionDialog from '../src/components/dashboard/CreateCompetitionDialog';
+import CreateCompetitionDialog from '../src/components/manage-competitions/CreateCompetitionDialog';
 
 describe('CreateCompetitionDialog', () => {
   const originalError = console.error;
