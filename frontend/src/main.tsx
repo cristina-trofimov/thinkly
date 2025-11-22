@@ -23,6 +23,7 @@ import SignupPage from "./views/SignupPage.tsx";
 import ManageCompetitions from "./components/manage-competitions/ManageCompetitionsPage.tsx";
 import ErrorPage from "./components/ErrorPage.tsx";
 import ManageAccountsPage from "./views/ManageAccountsPage.tsx";
+import ManageAlgoTimePage from "./views/AlgoTimeSession.tsx";
 
 const router = createBrowserRouter([
   {
@@ -118,6 +119,13 @@ const router = createBrowserRouter([
             element: <ManageAccountsPage />,
             handle: {
               crumb: { title: "Manage Accounts" }
+            }
+          },
+          {
+            path: "algoTimeSession",
+            element: <ManageAlgoTimePage />,
+            handle: {
+              crumb: { title: "Manage AlgoTime Sessions" }
             }
           }
         ]

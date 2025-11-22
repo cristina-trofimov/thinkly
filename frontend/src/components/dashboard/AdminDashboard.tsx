@@ -87,6 +87,17 @@ export function AdminDashboard() {
                 { name: "Q2", info: "Date added: 06/12/25" },
               ]}
             />
+            <Link
+              to="/app/dashboard/algoTimeSession"
+              className="cursor-pointer block"
+            >
+            <ManageCard
+              title="Manage Algotime Sessions"
+              items={[
+                { name: "First Session", info: "Date added: 08/11/25" },
+              ]}
+            />
+            </Link>
           </div>
           <TechnicalIssuesChart />
         </>
