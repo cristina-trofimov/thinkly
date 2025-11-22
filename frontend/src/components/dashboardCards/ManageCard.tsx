@@ -21,7 +21,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
   <Card className={`flex flex-col ${className || ""}`}>
     <CardHeader>
       <CardTitle className="flex justify-between items-center text-left">
-        <span className="text-lg font-semibold text-[var(--color-foreground)]">{title}</span>
+        <span className="text-lg font-semibold text-foreground">{title}</span>
         <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
           <IconChevronRight className="h-5 w-5 text-foreground" />
         </Button>
