@@ -26,7 +26,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { SessionQuestionSelector } from "@/components/algotime/sessionQuestions"
+import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
