@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle,CalendarIcon, Filter} from "lucide-react"
+import { AlertCircle,CalendarIcon} from "lucide-react"
 import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
@@ -26,14 +26,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import {SessionQuestionSelector} from "@/components/algotime/sessionQuestions"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -86,7 +79,7 @@ export default function ManageAlgoTimePage() {
   const [openEnd, setOpenEnd] = useState(false)
   const [monthStart, setMonthStart] = useState(new Date())
   const [monthEnd, setMonthEnd] = useState(new Date())
-  const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: string[] }>({
+  const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: number[] }>({
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
@@ -138,7 +131,7 @@ export default function ManageAlgoTimePage() {
   };
 
   // Toggle question for specific session
-  const toggleQuestionForSession = (sessionNum: number, questionId: string) => {
+  const toggleQuestionForSession = (sessionNum: number, questionId: number) => {
     setSessionQuestions(prev => {
       const currentQuestions = prev[sessionNum] || [];
       const isSelected = currentQuestions.includes(questionId);
@@ -456,7 +449,7 @@ export default function ManageAlgoTimePage() {
                         onValueChange={(value) => {
                           setFormData({ ...formData, repeatType: value });
                           if (value === 'none') {
-                            setSessionQuestions({ 1: selectedQuestions.map(id => id.toString()) });
+                            setSessionQuestions({ 1: selectedQuestions});
                           }
                         }}
                       >
@@ -519,115 +512,43 @@ export default function ManageAlgoTimePage() {
                   </div>
                 </div>
                 
-                {formData.date && repeatSessions.length > 0 && repeatSessions.map((session) => {
-                  const sessionSearch = searchQueries[session.sessionNumber] || "";
-                  const sessionDifficulty = difficultyFilters[session.sessionNumber];
-
-                  const sessionFilteredQuestions = questions.filter((q) => {
-                    const matchesSearch = q.title.toLowerCase().includes(sessionSearch.toLowerCase());
-                    const matchesDifficulty = !sessionDifficulty || q.difficulty === sessionDifficulty;
-                    return matchesSearch && matchesDifficulty;
-                  });
+                <div>
+                  <h2 className="text-xl text-primary font-semibold text-gray-800 mb-4">
+                    Select Questions for Sessions
+                  </h2>
                   
-                  return (
-                    <div key={session.sessionNumber} className="mb-6 border rounded-lg p-4">
-                    <Accordion type="single" collapsible>
-                      <AccordionItem value="item-1">
-                        <AccordionTrigger className="text-lg font-semibold mb-2">
-                        Session {session.sessionNumber} - {format(new Date(session.date + 'T00:00:00'), 'PPP')}
-                        </AccordionTrigger>
-                          <AccordionContent>
-    
-                      <p className="text-sm text-gray-500 mb-3">
-                        {sessionQuestions[session.sessionNumber]?.length || 0} question(s) selected
-                      </p>
-                      
-                      {/* Search bar AND filter */}
-                      <div className="flex gap-3 mb-4">
-                      <input
-                        type="text"
-                        value={sessionSearch}
-                        onChange={(e) => setSearchQueries({
-                          ...searchQueries,
-                          [session.sessionNumber]: e.target.value
-                        })}
-                        placeholder="Search questions..."
-                        className=" w-100 px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:primary focus:border-transparent"
+                  {formData.repeatType !== "none" && formData.repeatEndDate && formData.date ? (
+                      repeatSessions.map((session) => (
+                        <SessionQuestionSelector
+                          key={session.sessionNumber}
+                          sessionNumber={session.sessionNumber}
+                          sessionDate={session.date}
+                          questions={questions}
+                          sessionQuestions={sessionQuestions}
+                          searchQueries={searchQueries}
+                          setSearchQueries={setSearchQueries}
+                          difficultyFilters={difficultyFilters}
+                          setDifficultyFilters={setDifficultyFilters}
+                          toggleQuestionForSession={toggleQuestionForSession}
+                          getDifficultyColor={getDifficultyColor}
+                        />
+                      ))
+                    ) : (
+                      <SessionQuestionSelector
+                        sessionNumber={1}
+                        sessionDate={formData.date || ""}
+                        questions={questions}
+                        sessionQuestions={sessionQuestions}
+                        searchQueries={searchQueries}
+                        setSearchQueries={setSearchQueries}
+                        difficultyFilters={difficultyFilters}
+                        setDifficultyFilters={setDifficultyFilters}
+                        toggleQuestionForSession={toggleQuestionForSession}
+                        getDifficultyColor={getDifficultyColor}
                       />
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="gap-0.5">
-                              <Filter className=" mb- 4 h-4 w-4 text-primary" />
-                              <span className="ml-2 hidden md:inline-flex items-center">
-                                {sessionDifficulty ?? "All"}
-                              </span>
-                            </Button>
-                          </DropdownMenuTrigger>
-
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setDifficultyFilters({
-                              ...difficultyFilters,
-                              [session.sessionNumber]: undefined
-                            })}>
-                              All
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setDifficultyFilters({
-                              ...difficultyFilters,
-                              [session.sessionNumber]: "Easy"
-                            })}>
-                              Easy
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setDifficultyFilters({
-                              ...difficultyFilters,
-                              [session.sessionNumber]: "Medium"
-                            })}>
-                              Medium
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setDifficultyFilters({
-                              ...difficultyFilters,
-                              [session.sessionNumber]: "Hard"
-                            })}>
-                              Hard
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      
-                      <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
-                        {sessionFilteredQuestions.map((q) => (
-                          <div
-                            key={q.id}
-                            onClick={() => toggleQuestionForSession(session.sessionNumber, q.id.toString())}
-                            className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                              sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) ? 'bg-primary/10' : ''
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="checkbox"
-                                  checked={sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) || false}
-                                  onChange={() => {}}
-                                  className="w-4 h-4 accent-primary"
-                                />
-                                <span className="font-medium text-gray-900">{q.title}</span>
-                              </div>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(q.difficulty)}`}>
-                                {q.difficulty}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-              </Accordion>
-                  </div>);
-                })}      
-
+                    )
+                  }
+                </div>
                 {/* Email Notification */}
                 <Accordion type="single" collapsible>
                 <AccordionItem value="item-1">
