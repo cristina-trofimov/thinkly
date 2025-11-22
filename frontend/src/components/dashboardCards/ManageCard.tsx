@@ -36,7 +36,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
               {item.avatarUrl ? (
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={item.avatarUrl} alt={item.name} className="object-cover" />
-                  <AvatarFallback className="bg-[var(--color-muted)] text-[var(--color-foreground)] text-sm font-medium">
+                  <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
                     {item.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
