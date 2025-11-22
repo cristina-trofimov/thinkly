@@ -50,7 +50,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
                     {item.name}
                   </a>
                 ) : (
-                  <p className="text-sm font-medium text-[var(--color-primary)] truncate">{item.name}</p>
+                  <p className="text-sm font-medium text-primary truncate">{item.name}</p>
                 )}
                 <p className="text-sm text-muted-foreground truncate">{item.info}</p>
               </div>
