@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle,CalendarIcon} from "lucide-react"
+import { AlertCircle,CalendarIcon, Filter} from "lucide-react"
 import {
   type EmailPayload
 } from "../components/interfaces/CreateCompetitionTypes";
@@ -26,6 +26,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -41,6 +49,15 @@ function localToUTCZ(dtLocal?: string) {
 function oneMinuteFromNowISO() {
   return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
 }
+
+const getDifficultyColor = (difficulty: string) => {
+  switch(difficulty.toLowerCase()) {
+    case 'easy': return 'text-green-600 bg-green-50';
+    case 'medium': return 'text-yellow-600 bg-yellow-50';
+    case 'hard': return 'text-red-600 bg-red-50';
+    default: return 'text-gray-600 bg-gray-50';
+  }
+};
 
 export default function ManageAlgoTimePage() {
   const [formData, setFormData] = useState({
@@ -72,6 +89,7 @@ export default function ManageAlgoTimePage() {
   const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: string[] }>({
     1: []
   });
+  const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
 
   
   // Calculate repeat sessions
@@ -332,12 +350,10 @@ export default function ManageAlgoTimePage() {
               <div className="space-y-8">
                 {/* General Information */}
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">General Information</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-2 gap-4 ">
-                    <div className="md:col-span-2">
-                    </div>
-                  
-                    <div >
+                  <h2 className="text-xl text-primary font-semibold text-gray-800 mb-2">General Information</h2>
+                  <div className="flex flex-col gap-4 ">
+                  <div className="flex gap-2">
+                    <div className="w-48">
                       <Label className="block text-sm font-medium text-gray-700 mb-2">
                         Date
                       </Label>
@@ -385,7 +401,7 @@ export default function ManageAlgoTimePage() {
                     </div>
                     {formData.repeatType !== "none" ? (
                       
-                      <div>
+                      <div className="w-48">
                         <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
                         <div className="relative">
                           <Input
@@ -393,13 +409,14 @@ export default function ManageAlgoTimePage() {
                             value={formData.repeatEndDate}
                             onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
                             placeholder="YYYY-MM-DD"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                           <Popover open={openEnd} onOpenChange={setOpenEnd}>
                           <PopoverTrigger asChild>
                             <Button
                               id="date-picker"
                               variant="ghost"
-                              className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                              className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
                             >
                               <CalendarIcon className="size-3.5" />
                               <span className="sr-only">Select date</span>
@@ -428,10 +445,12 @@ export default function ManageAlgoTimePage() {
                         </Popover>
                         </div>
                       </div>
+                    
                   ): (
                     <div></div>)}
-                    <div>
-                      <Label className="block text-sm font-medium text-gray-700 mb-2 cols-2">Repeat</Label>
+                    </div>
+                  <div>
+                      <Label className="block text-sm font-medium text-gray-700 mb-2">Repeat</Label>
                       <Select
                         value={formData.repeatType}
                         onValueChange={(value) => {
@@ -454,9 +473,10 @@ export default function ManageAlgoTimePage() {
                       </Select>
                     </div>
                     <div></div>
-
-                    <div className="flex flex-col gap-3">
-                      <Label htmlFor="time-picker" className="px-1">
+                   
+                    <div className="flex gap-2">
+                    <div className="w-30">
+                      <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
                       Start Time
                       </Label>
                       <Input
@@ -469,8 +489,8 @@ export default function ManageAlgoTimePage() {
                       />
                     </div>
     
-                    <div className="flex flex-col gap-3">
-                      <Label htmlFor="time-picker" className="px-1">
+                    <div className="w-30">
+                      <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
                       End Time
                       </Label>
                       <Input
@@ -482,10 +502,10 @@ export default function ManageAlgoTimePage() {
                         className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                       />
                     </div>
-    
-                    <div>
+                    </div>
+                    <div className="w-48">
                       <Label className="block text-sm font-medium text-gray-700 mb-2">
-                        Question Cooldown (minutes)
+                        Question Cooldown (seconds)
                       </Label>
                       <Input
                         type="number"
@@ -501,9 +521,13 @@ export default function ManageAlgoTimePage() {
                 
                 {formData.date && repeatSessions.length > 0 && repeatSessions.map((session) => {
                   const sessionSearch = searchQueries[session.sessionNumber] || "";
-                  const sessionFilteredQuestions = questions.filter((q) =>
-                    q.title.toLowerCase().includes(sessionSearch.toLowerCase())
-                  );
+                  const sessionDifficulty = difficultyFilters[session.sessionNumber];
+
+                  const sessionFilteredQuestions = questions.filter((q) => {
+                    const matchesSearch = q.title.toLowerCase().includes(sessionSearch.toLowerCase());
+                    const matchesDifficulty = !sessionDifficulty || q.difficulty === sessionDifficulty;
+                    return matchesSearch && matchesDifficulty;
+                  });
                   
                   return (
                     <div key={session.sessionNumber} className="mb-6 border rounded-lg p-4">
@@ -518,6 +542,8 @@ export default function ManageAlgoTimePage() {
                         {sessionQuestions[session.sessionNumber]?.length || 0} question(s) selected
                       </p>
                       
+                      {/* Search bar AND filter */}
+                      <div className="flex gap-3 mb-4">
                       <input
                         type="text"
                         value={sessionSearch}
@@ -526,8 +552,49 @@ export default function ManageAlgoTimePage() {
                           [session.sessionNumber]: e.target.value
                         })}
                         placeholder="Search questions..."
-                        className=" px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className=" w-100 px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:primary focus:border-transparent"
                       />
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="gap-0.5">
+                              <Filter className=" mb- 4 h-4 w-4 text-primary" />
+                              <span className="ml-2 hidden md:inline-flex items-center">
+                                {sessionDifficulty ?? "All"}
+                              </span>
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setDifficultyFilters({
+                              ...difficultyFilters,
+                              [session.sessionNumber]: undefined
+                            })}>
+                              All
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDifficultyFilters({
+                              ...difficultyFilters,
+                              [session.sessionNumber]: "Easy"
+                            })}>
+                              Easy
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDifficultyFilters({
+                              ...difficultyFilters,
+                              [session.sessionNumber]: "Medium"
+                            })}>
+                              Medium
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDifficultyFilters({
+                              ...difficultyFilters,
+                              [session.sessionNumber]: "Hard"
+                            })}>
+                              Hard
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       
                       <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
                         {sessionFilteredQuestions.map((q) => (
@@ -535,7 +602,7 @@ export default function ManageAlgoTimePage() {
                             key={q.id}
                             onClick={() => toggleQuestionForSession(session.sessionNumber, q.id.toString())}
                             className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${
-                              sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) ? 'bg-blue-50' : ''
+                              sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) ? 'bg-primary/10' : ''
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -544,7 +611,7 @@ export default function ManageAlgoTimePage() {
                                   type="checkbox"
                                   checked={sessionQuestions[session.sessionNumber]?.includes(q.id.toString()) || false}
                                   onChange={() => {}}
-                                  className="w-4 h-4 text-blue-600"
+                                  className="w-4 h-4 accent-primary"
                                 />
                                 <span className="font-medium text-gray-900">{q.title}</span>
                               </div>
@@ -555,7 +622,6 @@ export default function ManageAlgoTimePage() {
                           </div>
                         ))}
                       </div>
-                    {/* </div> */}
                     </AccordionContent>
                   </AccordionItem>
               </Accordion>
@@ -657,12 +723,3 @@ export default function ManageAlgoTimePage() {
             </div>
       );
 }
-
-const getDifficultyColor = (difficulty: string) => {
-    switch(difficulty.toLowerCase()) {
-      case 'easy': return 'text-green-600 bg-green-50';
-      case 'medium': return 'text-yellow-600 bg-yellow-50';
-      case 'hard': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
