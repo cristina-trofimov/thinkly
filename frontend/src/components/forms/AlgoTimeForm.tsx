@@ -246,14 +246,14 @@ export const AlgoTimeSessionForm= () => {
       return; // Stop submission if validation fails
     }
     try {
-      //saving sessions to send to BE later on
-      const sessions = repeatSessions.map(session => ({
-        sessionNumber: session.sessionNumber,
-        date: session.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        questions: sessionQuestions[session.sessionNumber] || []
-      }));
+      //saving sessions to send to BE later on commented for later usage
+      // const sessions = repeatSessions.map(session => ({
+      //   sessionNumber: session.sessionNumber,
+      //   date: session.date,
+      //   startTime: formData.startTime,
+      //   endTime: formData.endTime,
+      //   questions: sessionQuestions[session.sessionNumber] || []
+      // }));
 
       // Handle Session creationF
       console.log("Session created:", formData);
@@ -302,6 +302,7 @@ export const AlgoTimeSessionForm= () => {
       handleReset();
 
     } catch (error) {
+      console.error('Session creation failed:', error);
       setValidationError('Failed to create session. Please try again.');
       setTimeout(() => {
         errorRef.current?.scrollIntoView({
