@@ -23,7 +23,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
       <CardTitle className="flex justify-between items-center text-left">
         <span className="text-lg font-semibold text-[var(--color-foreground)]">{title}</span>
         <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-          <IconChevronRight className="h-5 w-5 text-[var(--color-foreground)]" />
+          <IconChevronRight className="h-5 w-5 text-foreground" />
         </Button>
       </CardTitle>
     </CardHeader>
