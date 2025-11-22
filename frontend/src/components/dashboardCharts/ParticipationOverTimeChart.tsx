@@ -123,8 +123,8 @@ export const ParticipationOverTimeChart = ({ timeRange }: { timeRange: TimeRange
 
   return (
     <div className="w-full mt-6 px-6">
-      <h2 className="text-left text-lg font-semibold text-[var(--color-foreground)]">Participation over time</h2>
-      <p className="text-left text-sm font-normal text-[var(--color-muted-foreground)] mt-1 mb-8">
+      <h2 className="text-left text-lg font-semibold text-foreground">Participation over time</h2>
+      <p className="text-left text-sm font-normal text-muted-foreground mt-1 mb-8">
         Number of users joining competitions or AlgoTime sessions each day
       </p>
       <ChartContainer config={{ participation: { color: "var(--chart-4)" } }} style={{ width: "100%", height: 200 }}>

@@ -28,13 +28,13 @@ export const StatsCard = ({
   // Chart card mode (when children is provided)
     if (children) {
     return (
-      <Card className={`flex-1 min-w-0 border-[var(--color-border)] bg-[var(--color-card)] ${className || ""}`}>
+      <Card className={`flex-1 min-w-0 ${className || ""}`}>
         <CardHeader className="pb-4">
-          <CardTitle className={`text-lg font-medium text-[var(--color-muted-foreground)] text-center`}>
+          <CardTitle className={`text-lg font-medium text-muted-foreground text-center`}>
             {title}
           </CardTitle>
           {dateSubtitle && (
-            <p className={`text-xs text-[var(--color-ring] text-center mt-1`}>{dateSubtitle}</p>
+            <p className={`text-xs text-ring] text-center mt-1`}>{dateSubtitle}</p>
           )}
         </CardHeader>
         <CardContent className={ "flex items-center  justify-center"}>
@@ -49,18 +49,18 @@ export const StatsCard = ({
     <Card className={`flex-1 min-w-0 ${className || ""}`}>
       <CardHeader className="pb-6">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-medium text-[var(--color-muted-foreground)] text-center">
+          <CardTitle className="text-lg font-medium text-muted-foreground text-center">
             {title}
           </CardTitle>
 
           {trend && (
-            <div className="flex items-center gap-1 rounded-md border border-[var(--color-border)] px-3 py-1 bg-[var(--color-card)]">
+            <div className="flex items-center gap-1 rounded-md border px-3 py-1">
               {isPositive ? (
-                <IconTrendingUp className="h-4 w-4 text-[var(--color-primary)]" />
+                <IconTrendingUp className="h-4 w-4 text-primary" />
               ) : (
-                <IconTrendingDown className="h-4 w-4 text-[var(--color-destructive)]" />
+                <IconTrendingDown className="h-4 w-4 text-destructive" />
               )}
-              <span className={`text-sm font-medium ${isPositive ? "text-[var(--color-primary)]" : "text-[var(--color-destructive)]"}`}>
+              <span className={`text-sm font-medium ${isPositive ? "text-primary" : "text-destructive"}`}>
                 {trend}
               </span>
             </div>
@@ -70,22 +70,22 @@ export const StatsCard = ({
 
       <CardContent className="text-left pt-0">
         <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-5xl font-semibold text-[var(--color-foreground)]">{value}</h2>
+          <h2 className="text-5xl font-semibold text-foreground">{value}</h2>
         </div>
 
         {subtitle && (
           <div className="flex items-center gap-1 mb-3">
-            <span className="text-sm font-normal text-[var(--color-foreground)]">{subtitle}</span>
+            <span className="text-sm font-normal text-foreground">{subtitle}</span>
             {isPositive ? (
-              <IconTrendingUp className="h-4 w-4 text-[var(--color-foreground)]" />
+              <IconTrendingUp className="h-4 w-4 text-foreground" />
             ) : (
-              <IconTrendingDown className="h-4 w-4 text-[var(--color-foreground)]" />
+              <IconTrendingDown className="h-4 w-4 text-foreground" />
             )}
           </div>
         )}
 
         {description && (
-          <p className="text-ml font-normal text-[var(--color-muted-foreground)] leading-5">{description}</p>
+          <p className="text-ml font-normal text-muted-foreground leading-5">{description}</p>
         )}
       </CardContent>
     </Card>
