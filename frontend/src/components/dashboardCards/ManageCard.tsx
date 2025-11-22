@@ -46,7 +46,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
 
               <div className="min-w-0">
                 {item.href ? (
-                  <a href={item.href} className="block text-sm font-medium text-[var(--color-primary)] truncate">
+                  <a href={item.href} className="block text-sm font-medium text-primary truncate">
                     {item.name}
                   </a>
                 ) : (
