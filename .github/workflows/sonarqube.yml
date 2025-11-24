@@ -15,19 +15,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      # ----------- FRONTEND ------------
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20.19.0'
 
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ./frontend
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
 
-      - name: Run tests with coverage
-        run: npm test -- --coverage --watchAll=false --coverageReporters=lcov
-        working-directory: ./frontend
+      - name: Run frontend tests with coverage
+        run: cd frontend && npm test -- --coverage --watchAll=false --coverageReporters=lcov
 
+      # ----------- BACKEND ------------
       - name: Install system dependencies for lxml
         run: |
           sudo apt-get update
@@ -38,22 +38,22 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Create venv & install deps
+      - name: Create venv & install backend deps
         run: |
+          cd backend
           python -m venv .venv
           source .venv/bin/activate
           pip install --upgrade pip
           pip install -r ./src/requirements.txt
           pip install pytest-cov
-        working-directory: ./backend
 
       - name: Run backend tests with coverage
         run: |
+          cd backend
           source .venv/bin/activate
           pytest --cov=src --cov-branch --cov-report=xml:coverage.xml --disable-warnings -q
-        working-directory: ./backend
         env:
-          PYTHONPATH: .
+          PYTHONPATH: backend
           BREVO_API_KEY: test-brevo-key
           DEFAULT_SENDER_EMAIL: test@example.com
           DATABASE_URL: "sqlite+pysqlite:///:memory:"
@@ -63,19 +63,21 @@ jobs:
         run: |
           if [ ! -f frontend/coverage/lcov.info ]; then
             echo "❌ Frontend coverage file not found!"
-            ls -la frontend/coverage/ || echo "Coverage directory doesn't exist"
+            find frontend -name "*.info" -o -name "lcov*" || echo "No coverage files found"
             exit 1
           fi
           echo "✅ Frontend coverage file exists"
+          head -20 frontend/coverage/lcov.info
 
       - name: Verify backend coverage file
         run: |
           if [ ! -f backend/coverage.xml ]; then
             echo "❌ Backend coverage file not found!"
-            ls -la backend/ | grep coverage || echo "No coverage files found"
+            find backend -name "coverage.xml" -o -name "*.xml" || echo "No coverage files found"
             exit 1
           fi
           echo "✅ Backend coverage file exists"
+          head -20 backend/coverage.xml
 
       # ----------- SONAR ------------
       - name: SonarQube Scan
@@ -102,8 +104,9 @@ jobs:
           files: ./frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
+          working-directory: ./frontend
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -112,5 +115,6 @@ jobs:
           files: ./backend/coverage.xml
           flags: backend
           name: backend-coverage
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
+          working-directory: ./backend

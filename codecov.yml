@@ -1,12 +1,5 @@
 
-codecov:
-  require_ci_to_pass: yes
-
 coverage:
-  precision: 2
-  round: down
-  range: "70...100"
-
   status:
     project:
       default:
@@ -17,39 +10,23 @@ coverage:
         target: auto
         threshold: 1%
 
-flags:
-  frontend:
-    paths:
-      - frontend/src/
-    carryforward: false
+# Path fixes for monorepo structure
+fixes:
+  - "src/:backend/src/"  # Maps backend coverage paths
+  - "src/:frontend/src/" # Maps frontend coverage paths
 
+# Flag configuration for monorepo
+flags:
   backend:
     paths:
-      - backend/src/
+      - backend/
+    carryforward: false
+  frontend:
+    paths:
+      - frontend/
     carryforward: false
 
-# Ignore files that shouldn't affect coverage
-ignore:
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
-  - "**/*.test.js"
-  - "**/*.test.jsx"
-  - "**/*.spec.ts"
-  - "**/*.spec.tsx"
-  - "**/*.spec.js"
-  - "**/*.spec.jsx"
-  - "**/tests/**"
-  - "**/test/**"
-  - "**/__tests__/**"
-  - "**/node_modules/**"
-  - "**/.venv/**"
-  - "**/venv/**"
-  - "**/.scannerwork/**"
-  - "**/coverage/**"
-  - "**/dist/**"
-  - "**/build/**"
-
 comment:
-  layout: "reach,diff,flags,tree"
+  layout: "diff, flags, files"
   behavior: default
   require_changes: false
