@@ -13,9 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
 
-      # Frontend setup
+      # ----------- FRONTEND ------------
       - name: Set up Node
         uses: actions/setup-node@v4
 
@@ -27,18 +27,14 @@ jobs:
         run: npm test -- --coverage --coverageDirectory=coverage
         working-directory: ./frontend
 
-      # Backend setup
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
+      # ----------- BACKEND ------------
       - name: Install system dependencies for lxml
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-dev libxslt-dev
+        working-directory: ./backend
 
-      - name: Create virtual environment and install dependencies
+      - name: Create venv & install deps
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -56,30 +52,26 @@ jobs:
           DEFAULT_SENDER_EMAIL: test@example.com
           DATABASE_URL: postgresql://user:password@localhost:5432/dbname
 
-      # Verify coverage files exist
+      # ----------- VERIFY COVERAGE ------------
       - name: Verify frontend coverage files
         run: |
-          echo "Checking frontend coverage..."
-          ls -la ./frontend/coverage/ || echo "Frontend coverage directory not found"
           if [ -f ./frontend/coverage/lcov.info ]; then
-            echo "✓ Frontend lcov.info exists"
-            head -20 ./frontend/coverage/lcov.info
+            echo "✓ Frontend coverage OK"
           else
-            echo "✗ Frontend lcov.info not found"
+            echo "✗ Missing frontend coverage"
             exit 1
           fi
 
       - name: Verify backend coverage files
         run: |
-          echo "Checking backend coverage..."
           if [ -f ./backend/coverage.xml ]; then
-            echo "✓ Backend coverage.xml exists"
-            head -20 ./backend/coverage.xml
+            echo "✓ Backend coverage OK"
           else
-            echo "✗ Backend coverage.xml not found"
+            echo "✗ Missing backend coverage"
             exit 1
           fi
 
+      # ----------- SONAR ------------
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
@@ -96,7 +88,7 @@ jobs:
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-      # Upload to Codecov with proper configuration
+      # ----------- CODECOV ------------
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -104,9 +96,8 @@ jobs:
           files: ./frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
-          disable_search: true
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -115,6 +106,5 @@ jobs:
           files: ./backend/coverage.xml
           flags: backend
           name: backend-coverage
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
-          disable_search: true
