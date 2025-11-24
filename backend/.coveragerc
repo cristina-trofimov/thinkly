@@ -1,0 +1,14 @@
+[run]
+relative_files = True
+source = src
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+
+[xml]
+output = coverage.xml

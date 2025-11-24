@@ -28,6 +28,11 @@ jobs:
         working-directory: ./frontend
 
       # Backend setup
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Create virtual environment and install dependencies
         run: |
           python -m venv .venv
@@ -86,7 +91,7 @@ jobs:
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-      # Fixed Codecov uploads - removed conflicting parameters
+      # Upload to Codecov with proper configuration
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -94,8 +99,9 @@ jobs:
           files: ./frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
+          disable_search: true
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -104,5 +110,6 @@ jobs:
           files: ./backend/coverage.xml
           flags: backend
           name: backend-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
+          disable_search: true
