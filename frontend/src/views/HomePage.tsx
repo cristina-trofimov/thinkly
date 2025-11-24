@@ -29,8 +29,8 @@ function HomePage() {
           component: 'HomePage',
           url: window.location.href,
         });
-      } catch (err: any) {
-        const errorMessage = err.message || "Unknown error during question fetch.";
+      } catch (err: unknown) {
+        const errorMessage = (err instanceof Error) ? err.message : "Unknown error during question fetch.";
         console.error("Error fetching questions:", err);
         
         // Log the error to the backend
@@ -59,8 +59,8 @@ function HomePage() {
             component: 'HomePage',
             url: window.location.href,
           });
-      } catch (err: any) {
-        const errorMessage = err.message || "Unknown error during competition fetch.";
+      } catch (err: unknown) {
+        const errorMessage = (err instanceof Error) ? err.message : "Unknown error during competition fetch.";
         console.error("Error fetching competitions:", err);
         
         // Log the error to the backend
