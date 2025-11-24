@@ -75,7 +75,17 @@ jobs:
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
-
+      - name: Debug frontend coverage
+        run: |
+          echo "--- FRONTEND COVERAGE START ---"
+          ls -R frontend/coverage
+          head -50 frontend/coverage/lcov.info || true
+      - name: Debug backend coverage
+        run: |
+          echo "--- BACKEND COVERAGE START ---"
+          ls -R backend | true
+          ls -l backend/coverage.xml || true
+          head -50 backend/coverage.xml || true
       # ----------- CODECOV ------------
       - name: Upload frontend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -87,6 +97,7 @@ jobs:
           fail_ci_if_error: false
           verbose: true
           root_dir: .
+          disable_default_path_fixes: true
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -98,3 +109,4 @@ jobs:
           fail_ci_if_error: false
           verbose: true
           root_dir: .
+          disable_default_path_fixes: true
