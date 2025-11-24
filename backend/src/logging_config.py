@@ -1,6 +1,41 @@
 import logging.config
 import logging.handlers
 
+class AnsiColors:
+    """Helper class for ANSI escape codes."""
+    GRAY = '\x1b[38;20m'   # DEBUG
+    GREEN = '\x1b[32;20m'  # INFO
+    YELLOW = '\x1b[33;20m' # WARNING
+    RED = '\x1b[31;20m'    # ERROR
+    BOLD_RED = '\x1b[31;1m' # CRITICAL
+    RESET = '\x1b[0m'      # Reset color
+
+class ColoredFormatter(logging.Formatter):
+    """Custom formatter to add color based on log level."""
+    
+    LOG_LEVEL_COLORS = {
+        logging.DEBUG: AnsiColors.GRAY,
+        logging.INFO: AnsiColors.GREEN,
+        logging.WARNING: AnsiColors.YELLOW,
+        logging.ERROR: AnsiColors.RED,
+        logging.CRITICAL: AnsiColors.BOLD_RED,
+    }
+
+    # Format structure must match the 'plain_text' formatter format
+    DEFAULT_FORMAT = "%(asctime)s [%(levelname)s] %(name)s (%(module)s:%(lineno)d) - %(message)s"
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+    def format(self, record):
+        # Get the color based on the log level
+        color = self.LOG_LEVEL_COLORS.get(record.levelno, AnsiColors.RESET)
+        
+        # Instantiate the base formatter using the desired format/datefmt
+        formatter = logging.Formatter(self.DEFAULT_FORMAT, self.DATE_FORMAT)
+        log_message = formatter.format(record)
+        
+        # Inject the color codes: [COLOR] message [RESET]
+        return f"{color}{log_message}{AnsiColors.RESET}"
+
 LOG_FILE_PATH = "src/logs/centralLogs.log"
 
 def setup_logging():
@@ -16,6 +51,9 @@ def setup_logging():
                 "format": "%(asctime)s [%(levelname)s] %(name)s (%(module)s:%(lineno)d) - %(message)s",
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
+            "colored_console": {
+                "()": "logging_config.ColoredFormatter",
+            },
             # Uvicorn's standard access log formatter (retained for clean access logs)
             "access": {
                 "()": "uvicorn.logging.AccessFormatter",
@@ -26,7 +64,7 @@ def setup_logging():
             # Console Handler: Outputs plain text logs to stdout
             "console": {
                 "class": "logging.StreamHandler",
-                "formatter": "plain_text",
+                "formatter": "colored_console",
                 "level": "INFO",
             },
             # File Handler: Outputs plain text logs to the rotating file
@@ -83,5 +121,7 @@ def setup_logging():
             },
         },
     }
+
+    LOGGING_CONFIG['formatters']['colored_console']['()'] = ColoredFormatter
 
     logging.config.dictConfig(LOGGING_CONFIG)

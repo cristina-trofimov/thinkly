@@ -54,7 +54,7 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     # Explicitly delete Scoreboard entries first because Scoreboard.user_id 
     # is NOT NULL, causing the IntegrityError upon cascade/delete.
     deleted_scoreboards = db.query(Scoreboard).filter(Scoreboard.user_id == user_id).delete()
-    logger.warning(f"AUDIT: Deleted {deleted_scoreboards} Scoreboard entries for user ID {user_id} to bypass NOT NULL constraint.")
+    logger.info(f"AUDIT: Deleted {deleted_scoreboards} Scoreboard entries for user ID {user_id} to bypass NOT NULL constraint.")
 
     # Delete user preferences explicitly
     db.query(UserPreferences).filter(UserPreferences.user_id == user_id).delete()
@@ -134,7 +134,7 @@ def get_users(db: Session = Depends(get_db)):
 
 @manage_accounts_router.delete("/users/batch-delete")
 def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
-    logger.warning(f"ATTEMPTING BATCH DELETE for {len(request.user_ids)} users: {request.user_ids}")
+    logger.info(f"ATTEMPTING BATCH DELETE for {len(request.user_ids)} users: {request.user_ids}")
     
     if not request.user_ids:
         logger.warning("Batch delete failed: No user IDs provided.")
@@ -179,7 +179,7 @@ def delete_users(request: BatchDeleteRequest, db: Session = Depends(get_db)):
 
     if errors:
         status_code = status.HTTP_207_MULTI_STATUS # HTTP 207 Multi-Status for partial success/failure
-        logger.warning(f"BATCH DELETE PARTIAL SUCCESS: {deleted_count} deleted, {len(errors)} failed.")
+        logger.info(f"BATCH DELETE PARTIAL SUCCESS: {deleted_count} deleted, {len(errors)} failed.")
         
     return JSONResponse(
         status_code=status_code,
