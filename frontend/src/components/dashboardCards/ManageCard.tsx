@@ -18,12 +18,12 @@ export interface ManageCardProps {
 }
 
 export const ManageCard = ({ title, items, className }: ManageCardProps) => (
-  <Card className={`border-[#E5E5E5] rounded-2xl w-[294px] h-[244px] flex flex-col ${className || ""}`}>
+  <Card className={`flex flex-col ${className || ""}`}>
     <CardHeader>
       <CardTitle className="flex justify-between items-center text-left">
-        <span className="text-lg font-semibold text-[#0A0A0A]">{title}</span>
+        <span className="text-lg font-semibold text-foreground">{title}</span>
         <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-          <IconChevronRight className="h-5 w-5 text-[#0A0A0A]" />
+          <IconChevronRight className="h-5 w-5 text-foreground" />
         </Button>
       </CardTitle>
     </CardHeader>
@@ -36,7 +36,7 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
               {item.avatarUrl ? (
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={item.avatarUrl} alt={item.name} className="object-cover" />
-                  <AvatarFallback className="bg-[#F3F3F3] text-[#0A0A0A] text-sm font-medium">
+                  <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
                     {item.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -46,17 +46,17 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
 
               <div className="min-w-0">
                 {item.href ? (
-                  <a href={item.href} className="block text-sm font-medium text-[#8065CD] truncate">
+                  <a href={item.href} className="block text-sm font-medium text-primary truncate">
                     {item.name}
                   </a>
                 ) : (
-                  <p className="text-sm font-medium text-[#8065CD] truncate">{item.name}</p>
+                  <p className="text-sm font-medium text-primary truncate">{item.name}</p>
                 )}
-                <p className="text-sm text-[#737373] truncate">{item.info}</p>
+                <p className="text-sm text-muted-foreground truncate">{item.info}</p>
               </div>
             </div>
 
-            <div className="h-px bg-[#E5E5E5] -mx-6" />
+            <div className="h-px bg-[var(--color-border)] -mx-6" />
           </div>
         ))}
       </div>
