@@ -5,8 +5,8 @@ import os # Import os module
 # --- 1. Custom Colored Formatter ---
 class AnsiColors:
     """Helper class for ANSI escape codes."""
-    GRAY = '\x1b[38;20m'   # DEBUG
-    GREEN = '\x1b[32;20m'  # INFO
+    PINK = '\x1b[35;20m'   # DEBUG
+    GRAY = '\x1b[38;20m'  # INFO
     YELLOW = '\x1b[33;20m' # WARNING
     RED = '\x1b[31;20m'    # ERROR
     BOLD_RED = '\x1b[31;1m' # CRITICAL
@@ -16,8 +16,8 @@ class ColoredFormatter(logging.Formatter):
     """Custom formatter to add color based on log level."""
     
     LOG_LEVEL_COLORS = {
-        logging.DEBUG: AnsiColors.GRAY,
-        logging.INFO: AnsiColors.GREEN,
+        logging.DEBUG: AnsiColors.PINK,
+        logging.INFO: AnsiColors.GRAY,
         logging.WARNING: AnsiColors.YELLOW,
         logging.ERROR: AnsiColors.RED,
         logging.CRITICAL: AnsiColors.BOLD_RED,
