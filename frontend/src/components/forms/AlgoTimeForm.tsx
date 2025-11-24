@@ -52,7 +52,7 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export const AlgoTimeSessionForm= () => {
+export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
     date: "",
     startTime: "",
@@ -317,11 +317,11 @@ export const AlgoTimeSessionForm= () => {
 
 
   return (
-    <div className="min-h-screen flex flex-col gap-4  ">
+    <div className=" flex flex-col  ">
 
       <div ref={errorRef}>
         {validationError && (
-          <Alert className="shadow border-red-600" variant="destructive">
+          <Alert className="shadow border-destructive" variant="destructive">
             <AlertCircle />
             <AlertTitle >Warning!</AlertTitle>
             <AlertDescription>
@@ -339,106 +339,63 @@ export const AlgoTimeSessionForm= () => {
         <div className="space-y-8">
           {/* General Information */}
           <div>
-            <h2 className="text-xl text-primary font-semibold text-gray-800 mb-2">General Information</h2>
-            <div className="flex flex-col gap-4 ">
-              <div className="flex gap-2">
-                <div className="w-48">
-                  <Label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date
-                  </Label>
-                  <div className="relative ">
-                    <Input
-                      type="text"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      placeholder="YYYY-MM-DD"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <Popover open={openStart} onOpenChange={setOpenStart}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-picker"
-                          variant="ghost"
-                          className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
-                        >
-                          <CalendarIcon className="size-3.5" />
-                          <span className="sr-only">Select date</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto overflow-hidden p-0"
-                        align="end"
-                        alignOffset={-8}
-                        sideOffset={10}
+            <h2 className="text-xl text-primary font-semibold mb-2">General Information</h2>
+            <div className="flex flex-wrap gap-x-4 gap-y-8">
+              <div className="w-48">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">
+                  {formData.repeatType !== "none" ? "Start Date" : "Date"}
+                </Label>
+                <div className="relative ">
+                  <Input
+                    type="text"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    placeholder="YYYY-MM-DD"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  <Popover open={openStart} onOpenChange={setOpenStart}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date-picker"
+                        variant="ghost"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
                       >
-                        <Calendar
-                          mode="single"
-                          selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
-                          captionLayout="dropdown"
-                          month={monthStart}
-                          onMonthChange={setMonthStart}
-                          onSelect={(selectedDate) => {
-                            if (selectedDate) {
-                              setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
-                            }
-                            setOpenStart(false)
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-                {formData.repeatType !== "none" ? (
+                        <CalendarIcon className="size-3.5" />
+                        <span className="sr-only">Select date</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="end"
+                      alignOffset={-8}
+                      sideOffset={10}
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+                        captionLayout="dropdown"
+                        month={monthStart}
+                        onMonthChange={setMonthStart}
+                        onSelect={(selectedDate) => {
+                          if (selectedDate) {
+                            setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
+                          }
+                          setOpenStart(false)
+                        }}
+                        classNames={{
+                          day_button: "hover:bg-primary/50 hover:text-white",
+                          day_selected: "bg-primary/70 text-white",
+                          today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
+                          month_caption: "text-primary"
+                        }}
 
-                  <div className="w-48">
-                    <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
-                    <div className="relative">
-                      <Input
-                        type="text"
-                        value={formData.repeatEndDate}
-                        onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
-                        placeholder="YYYY-MM-DD"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
-                      <Popover open={openEnd} onOpenChange={setOpenEnd}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="date-picker"
-                            variant="ghost"
-                            className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
-                          >
-                            <CalendarIcon className="size-3.5" />
-                            <span className="sr-only">Select date</span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto overflow-hidden p-0"
-                          align="end"
-                          alignOffset={-8}
-                          sideOffset={10}
-                        >
-                          <Calendar
-                            mode="single"
-                            selected={formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : undefined}
-                            captionLayout="dropdown"
-                            month={monthEnd}
-                            onMonthChange={setMonthEnd}
-                            onSelect={(selectedDate) => {
-                              if (selectedDate) {
-                                setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
-                              }
-                              setOpenEnd(false)
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                ) : (
-                  <div></div>)}
               </div>
-              <div>
+              <div className="w-48">
                 <Label className="block text-sm font-medium text-gray-700 mb-2">Repeat</Label>
                 <Select
                   value={formData.repeatType}
@@ -461,51 +418,105 @@ export const AlgoTimeSessionForm= () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div></div>
+            </div>
 
-              <div className="flex gap-2">
-                <div className="w-30">
-                  <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Time
-                  </Label>
-                  <Input
-                    type="time"
-                    id="startTime-picker"
-                    step="1"
-                    value={formData.startTime || "12:00:00"}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                  />
+              {formData.repeatType !== "none" && (
+
+                <div className="w-48 mt-8">
+                  <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={formData.repeatEndDate}
+                      onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
+                      placeholder="YYYY-MM-DD"
+                      className=" border border-gray-300 rounded-lg focus:ring-2  focus:border-transparent"
+                    />
+                    <Popover open={openEnd} onOpenChange={setOpenEnd}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="date-picker"
+                          variant="ghost"
+                          className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                        >
+                          <CalendarIcon className="size-3.5" />
+                          <span className="sr-only">Select date</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto overflow-hidden p-0"
+                        align="end"
+                        alignOffset={-8}
+                        sideOffset={10}
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : undefined}
+                          captionLayout="dropdown"
+                          month={monthEnd}
+                          onMonthChange={setMonthEnd}
+                          onSelect={(selectedDate) => {
+                            if (selectedDate) {
+                              setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
+                            }
+                            setOpenEnd(false)
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
 
-                <div className="w-30">
-                  <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
-                    End Time
-                  </Label>
-                  <Input
-                    type="time"
-                    id="endTime-picker"
-                    step="1"
-                    value={formData.endTime || "12:00:00"}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-                  />
-                </div>
-              </div>
-              <div className="w-48">
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  Question Cooldown (seconds)
+
+              )}
+
+            
+
+
+
+            <div className="flex gap-2 mt-8">
+              <div className="w-25">
+                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Time
                 </Label>
                 <Input
-                  type="number"
-                  value={formData.questionCooldownTime}
-                  onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Optional"
+                  type="time"
+                  id="startTime-picker"
+                  step="60"
+                  value={formData.startTime || "12:00:00"}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                 />
               </div>
 
+              <div className="w-25">
+                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                  End Time
+                </Label>
+                <Input
+                  type="time"
+                  id="endTime-picker"
+                  step="60"
+                  value={formData.endTime || "12:00:00"}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                />
+              </div>
             </div>
+            <div className="w-48 mt-8">
+              <Label className="block text-sm font-medium text-gray-700 mb-2">
+                Question Cooldown (seconds)
+              </Label>
+              <Input
+                type="number"
+                value={formData.questionCooldownTime}
+                onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
+                placeholder="(Optional)"
+              />
+            </div>
+
+
           </div>
 
           <div>

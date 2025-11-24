@@ -58,7 +58,7 @@ export const SessionQuestionSelector = ({
         <div key={sessionNumber} className="mb-6 border rounded-lg p-4">
             <Accordion type="single" collapsible>
                 <AccordionItem value="item-1">
-                    <AccordionTrigger className="text-lg font-semibold mb-2">
+                    <AccordionTrigger className="text-lg font-semibold mb-2 cursor-pointer">
                         Session {sessionNumber}{sessionDate ? ` - ${format(new Date(sessionDate + 'T00:00:00'), 'PPP')}` : ''}
                     </AccordionTrigger>
                     <AccordionContent>
@@ -68,7 +68,7 @@ export const SessionQuestionSelector = ({
                         </p>
 
                         {/* Search bar AND filter */}
-                        <div className="flex gap-3 mb-4">
+                        <div className="flex gap-3 mb-4 ml-2">
                             <input
                                 type="text"
                                 value={sessionSearch}
