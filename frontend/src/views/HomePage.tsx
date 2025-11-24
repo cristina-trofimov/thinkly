@@ -30,7 +30,9 @@ function HomePage() {
           url: window.location.href,
         });
       } catch (err: unknown) {
-        const errorMessage = (err instanceof Error) ? err.message : "Unknown error during question fetch.";
+        const isError = err instanceof Error;
+        const errorMessage = isError ? err.message : "Unknown error during question fetch.";
+        
         console.error("Error fetching questions:", err);
         
         // Log the error to the backend
@@ -39,7 +41,7 @@ function HomePage() {
           message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
           component: 'HomePage',
           url: window.location.href,
-          stack: err.stack,
+          stack: isError ? err.stack : undefined, // Safely access stack
         });
       } 
     }
@@ -60,7 +62,9 @@ function HomePage() {
             url: window.location.href,
           });
       } catch (err: unknown) {
-        const errorMessage = (err instanceof Error) ? err.message : "Unknown error during competition fetch.";
+        const isError = err instanceof Error;
+        const errorMessage = isError ? err.message : "Unknown error during competition fetch.";
+        
         console.error("Error fetching competitions:", err);
         
         // Log the error to the backend
@@ -69,7 +73,7 @@ function HomePage() {
           message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
           component: 'HomePage',
           url: window.location.href,
-          stack: err.stack,
+          stack: isError ? err.stack : undefined, // Safely access stack
         });
       } 
     };
