@@ -1,0 +1,55 @@
+
+codecov:
+  require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+flags:
+  frontend:
+    paths:
+      - frontend/src/
+    carryforward: false
+
+  backend:
+    paths:
+      - backend/src/
+    carryforward: false
+
+# Ignore files that shouldn't affect coverage
+ignore:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.test.js"
+  - "**/*.test.jsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/*.spec.js"
+  - "**/*.spec.jsx"
+  - "**/tests/**"
+  - "**/test/**"
+  - "**/__tests__/**"
+  - "**/node_modules/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/.scannerwork/**"
+  - "**/coverage/**"
+  - "**/dist/**"
+  - "**/build/**"
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
