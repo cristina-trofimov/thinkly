@@ -171,6 +171,7 @@ class TestManageAccountsAPI:
             assert len(data["errors"]) == 1
             assert data["errors"][0]["user_id"] == 2
             assert "User not found" in data["errors"][0]["error"]
+            assert mock_delete.call_count == 1
             mock_delete.assert_called_once_with(mock_db, 1)
 
         app.dependency_overrides.clear()
@@ -356,22 +357,20 @@ class TestManageAccountsAPI:
             yield mock_db
         app.dependency_overrides[get_db] = override_get_db
 
-        existing_user = Mock(
-            user_id=7,
-            first_name="Same",
-            last_name="User",
-            email="same@example.com",
-            type="participant",
-        )
-
-        with patch("endpoints.manage_accounts_api.update_user_in_db", return_value=existing_user) as mock_update:
+        # NOTE: existing_user mock is no longer needed here since the endpoint returns
+        # the simple JSONResponse({"message": ...}) before calling update_user_in_db.
+        
+        # We only patch the method to ensure it's not called, although in the actual
+        # endpoint, it's bypassed by the 'if not fields_to_update' check.
+        with patch("endpoints.manage_accounts_api.update_user_in_db") as mock_update:
             response = client.patch("/manageAccounts/users/7", json={})
             data = response.json()
+            
+            # ASSERTION FIX: Check for the 'message' key, not user fields.
             assert response.status_code == 200
-            assert data["user_id"] == 7
-            mock_update.assert_called_once()
-            call_kwargs = mock_update.call_args[1]
-            assert len(call_kwargs) == 1 
-            assert call_kwargs["user_id"] == 7
+            assert data["message"] == "No fields provided for update."
+            
+            # The key logic here is that update_user_in_db should NOT be called.
+            mock_update.assert_not_called()
 
         app.dependency_overrides.clear()
