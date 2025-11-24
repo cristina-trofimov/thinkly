@@ -1,7 +1,6 @@
 import logging.config
 import logging.handlers
 import os # Import os module
-import sys # Import sys for formatter to handle stdout encoding if needed
 
 # --- 1. Custom Colored Formatter ---
 class AnsiColors:
