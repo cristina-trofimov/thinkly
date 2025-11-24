@@ -20,11 +20,11 @@ flags:
   backend:
     paths:
       - backend/
-    carryforward: false
+    carryforward: true  # Use previous coverage if not uploaded
   frontend:
     paths:
       - frontend/
-    carryforward: false
+    carryforward: true  # Use previous coverage if not uploaded
 
 comment:
   layout: "diff, flags, files"

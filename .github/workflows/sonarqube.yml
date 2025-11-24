@@ -107,6 +107,8 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           working-directory: ./frontend
+          branch: ${{ github.head_ref }}      # Use the PR branch as base
+          fixes: true                         # Attempt to resolve missing base commit
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -118,3 +120,5 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           working-directory: ./backend
+          branch: ${{ github.head_ref }}      # Use the PR branch as base
+          fixes: true                         # Attempt to resolve missing base commit
