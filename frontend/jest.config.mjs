@@ -47,7 +47,7 @@ export default {
     '!src/main.tsx',
     '!src/vite-env.d.ts',
   ],
-    setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'clover'],
 };
