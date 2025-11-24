@@ -6,6 +6,7 @@ changelog:
         - User Story
         - frontend
         - backend
+        - set up
     - title: 🐛 Bug Fixes
       labels:
         - bug
