@@ -176,9 +176,13 @@ export const AlgoTimeSessionForm = () => {
   }, []);
 
   const validateForm = (): boolean => {
-    if (formData.date === '' || formData.startTime === '' || formData.endTime === ''
-      || formData.repeatEndDate === '' || formData.repeatType === '') {
+    if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
       setValidationError("Incomplete general information.");
+      return false;
+    }
+
+    if (formData.repeatType !== 'none' && formData.repeatEndDate === '') {
+      setValidationError("Please provide an end date for repeat sessions.");
       return false;
     }
 
