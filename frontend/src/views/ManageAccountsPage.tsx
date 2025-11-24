@@ -32,8 +32,6 @@ export default function ManageAccountsPage() {
           url: window.location.href,
         });
       } catch (error: unknown) {
-        console.error("Failed to fetch users:", error);
-        
         const errorMessage =
           error instanceof Error ? error.message : "An unknown error occurred during account fetch.";
         

@@ -74,7 +74,7 @@ def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None,
     logger.info(f"Attempting update for user ID: {user_id}")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        logger.warning(f"Update failed: User ID {user_id} not found.")
+        logger.error(f"Update failed: User ID {user_id} not found.")
         raise ValueError("User not found")
 
     # Prevent creating multiple owners
