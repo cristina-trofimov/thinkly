@@ -120,7 +120,7 @@ export function AdminDashboard() {
 
               <div>
                 <Select value={timeRange} onValueChange={(v) => setTimeRange(v as "3months" | "30days" | "7days")}>
-                  <SelectTrigger className="w-[200px] bg-muted text-primary rounded-lg">
+                  <SelectTrigger className="text-primary rounded-lg">
                     <SelectValue className="text-primary" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
                   </SelectTrigger>
                   <SelectContent>
