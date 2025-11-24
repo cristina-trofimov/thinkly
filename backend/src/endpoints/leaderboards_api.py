@@ -68,7 +68,7 @@ def get_leaderboards(db: Session = Depends(get_db), limit: Optional[int] = None)
             })
 
         all_leaderboards.append({current_competition.name: current_competition_leaderboard})
-        logger.info(f"Successfully aggregated data for all {len(competitions)} competitions.")
+        logger.info(f"Successfully aggregated data for all {len(leaderboards)} competitions.")
         return all_leaderboards
     except Exception:
          # Catch any unexpected error during the complex iteration/query process
