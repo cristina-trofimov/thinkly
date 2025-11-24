@@ -33,6 +33,11 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install system dependencies for lxml
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-dev libxslt-dev
+
       - name: Create virtual environment and install dependencies
         run: |
           python -m venv .venv
