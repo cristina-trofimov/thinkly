@@ -1,7 +1,7 @@
 import logging.config
 import logging.handlers
 
-LOG_FILE_PATH = "src/logs/backendLogs.log"
+LOG_FILE_PATH = "src/logs/centralLogs.log"
 
 def setup_logging():
     """Configures logging for the application, Uvicorn, and WatchFiles in JSON format."""
@@ -50,27 +50,31 @@ def setup_logging():
             },
         },
         "loggers": {
-            # Root Logger: Catches all logs not handled elsewhere (including WatchFiles)
+            # Root Logger: Catches all unhandled logs (e.g., your custom modules)
             "": {
                 "handlers": ["console", "file"],
                 "level": "INFO",
                 "propagate": False,
             },
-            # Uvicorn Error Logger: Logs server exceptions/errors in JSON
+            # Uvicorn Error Logger: Still logs critical server errors (e.g., 500s)
             "uvicorn.error": {
                 "handlers": ["console", "file"],
-                "level": "INFO",
+                "level": "WARNING", # Already set to WARNING, good for production errors
                 "propagate": False,
             },
-            # Uvicorn Access Logger: Logs incoming HTTP requests in JSON
-            # Note: For access logs, you might want to use the default Uvicorn format for clarity, 
-            # or explicitly send them to the JSON handler as shown below.
+            # Uvicorn Access Logger: RAISE LEVEL to suppress INFO (200 OK) logs
             "uvicorn.access": {
                 "handlers": ["console", "file"],
-                "level": "INFO",
+                "level": "WARNING", # <--- CHANGED FROM "INFO" to suppress 200/OPTIONS logs
                 "propagate": False,
             },
-            # Your Application Logger (if you use a named logger like logging.getLogger("app"))
+            # WATCHFILES Logger: EXPLICITLY ADDED to suppress "1 change detected" logs
+            "watchfiles.main": {
+                "handlers": ["console", "file"],
+                "level": "ERROR", # <--- ADDED to ignore repetitive INFO/DEBUG checks
+                "propagate": False,
+            },
+            # Your Application Logger 
             "app": {
                 "handlers": ["console", "file"],
                 "level": "INFO",

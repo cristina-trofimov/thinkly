@@ -8,6 +8,7 @@ import { DataTable } from "../components/HomePageQuestions/questionDataTable"
 import type { CompetitionItem } from "@/types/CompetitionItem"
 import {getCompetitions } from "@/api/homepageComp";
 import {getQuestions} from "@/api/homepageQuestions";
+import { logFrontend } from '../api/logFrontend';
 
 
 function HomePage() {
@@ -21,8 +22,18 @@ function HomePage() {
       try {
         const data = await getQuestions();
         setQuestions(data);
-      } catch (err) {
-        console.error("Error fetching questions:", err)
+      } catch (err: any) {
+        const errorMessage = err.message || "Unknown error during question fetch.";
+        console.error("Error fetching questions:", err);
+        
+        // Log the error to the backend
+        logFrontend({
+          level: 'ERROR',
+          message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
+          component: 'HomePage',
+          url: window.location.href,
+          stack: err.stack,
+        });
       } 
     }
 
@@ -34,8 +45,18 @@ function HomePage() {
       try {
           const data = await getCompetitions();
           setCompetitions(data);
-      } catch (err) {
-        console.error("Error fetching competitions:", err)
+      } catch (err: any) {
+        const errorMessage = err.message || "Unknown error during competition fetch.";
+        console.error("Error fetching competitions:", err);
+        
+        // Log the error to the backend
+        logFrontend({
+          level: 'ERROR',
+          message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
+          component: 'HomePage',
+          url: window.location.href,
+          stack: err.stack,
+        });
       } 
     };
     fetchCompetitions()

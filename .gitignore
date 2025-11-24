@@ -48,6 +48,9 @@ frontend/node_modules/
 # pytest cache
 __pycache__/
 
+# logs
+backend/src/logs
+
 #Environment files
 .env
 .env.*
