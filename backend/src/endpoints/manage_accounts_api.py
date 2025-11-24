@@ -51,15 +51,6 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     db.query(Question).filter(Question.user_id == user_id).update({"user_id": None})
     logger.debug(f"Nullified Question ownership for user ID {user_id}.")
 
-    # Explicitly delete Scoreboard entries first because Scoreboard.user_id 
-    # is NOT NULL, causing the IntegrityError upon cascade/delete.
-    deleted_scoreboards = db.query(Scoreboard).filter(Scoreboard.user_id == user_id).delete()
-    logger.info(f"AUDIT: Deleted {deleted_scoreboards} Scoreboard entries for user ID {user_id} to bypass NOT NULL constraint.")
-
-    # Delete user preferences explicitly
-    db.query(UserPreferences).filter(UserPreferences.user_id == user_id).delete()
-    logger.debug(f"Deleted UserPreferences for user ID {user_id}.")
-
     # Delete the user (cascades handle other relationships)
     db.delete(user)
     _commit_or_rollback(db)

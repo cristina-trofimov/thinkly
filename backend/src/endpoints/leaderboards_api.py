@@ -20,10 +20,10 @@ def get_all_competitions(db: Session) -> List[Competition]:
         logger.exception("Database error while fetching all competitions.")
         raise e
 
-def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Scoreboard]:
+def get_scoreboard_for_competition(db: Session, competition_id: int, limit: Optional[int] = None) -> List[CompetitionLeaderboardEntry]:
     logger.debug(f"Executing helper query: Fetching scoreboard for competition ID {competition_id}.")
     try:
-        leaderboards = db.scalars(
+        scoreboards = db.scalars(
             select(CompetitionLeaderboardEntry)
             .order_by(CompetitionLeaderboardEntry.competition.base_event.event_start_date.desc(), CompetitionLeaderboardEntry.total_score.desc())
             .limit(limit) if limit else ()
@@ -38,14 +38,18 @@ def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Sco
 def get_leaderboards(db: Session = Depends(get_db), limit: Optional[int] = None):
     logger.info("Accessing /leaderboards endpoint to retrieve all competition results.")
     try:
+        leaderboards = db.scalars(
+            select(CompetitionLeaderboardEntry)
+            .order_by(CompetitionLeaderboardEntry.competition.base_event.event_start_date.desc(), CompetitionLeaderboardEntry.total_score.desc())
+            .limit(limit) if limit else ()
+        ).all()
 
-
+        logger.info(f"Starting aggregation for {len(leaderboards)} competition leaderboard entries.")
 
         current_competition_leaderboard = []
         current_competition = None
         all_leaderboards = []
-
-        logger.info(f"Starting aggregation for {len(competitions)} competitions.")
+        rank = 1
         for entry in leaderboards:
             if len(current_competition_leaderboard) > 0 and current_competition.competition_id != entry.competition_id:
                 all_leaderboards.append({current_competition.name: current_competition_leaderboard})

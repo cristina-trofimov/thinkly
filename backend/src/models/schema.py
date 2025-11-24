@@ -107,6 +107,8 @@ class Question(Base):
     from_string_function = Column(String, nullable=False, default=False)
     to_string_function = Column(String, nullable=False, default=False)
     template_solution = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    last_modified_at = Column(DateTime, nullable=False)
 
     test_cases = relationship('TestCase', back_populates='question', uselist=True)
     tags = relationship('Tag', secondary=question_tag, back_populates='questions', uselist=True)
