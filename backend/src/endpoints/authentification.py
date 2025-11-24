@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -12,10 +12,13 @@ import os
 from dotenv import load_dotenv
 import uuid
 from DB_Methods.database import get_db, _commit_or_rollback
+import logging
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
 token_blocklist = set()
+
+logger = logging.getLogger(__name__)
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 JWT_ALGORITHM = "HS256"
@@ -45,6 +48,7 @@ def create_user(db: Session, username: str, email: str, password_hash: str, firs
     if type == 'owner':
         existing_owner = db.query(User).filter(User.type == 'owner').first()
         if existing_owner:
+            logger.error("Owner creation failed: An owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
     new_user = User(
         username=username,
@@ -74,14 +78,17 @@ def decode_access_token(token: str):
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         jti = payload.get("jti")
         if jti in token_blocklist:
+            logger.warning(f"Revoked token detected. JTI: {jti[:8]}...")
             raise HTTPException(status_code=401, detail="Token has been revoked")
         return payload
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as e:
+        logger.error(f"Token validation failed. Error: {e.__class__.__name__}. Token snippet: {token[:10]}...")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning("Access denied: Missing or invalid Authorization header.")
         raise HTTPException(status_code=401, detail="Missing token")
     token = auth_header.split(" ")[1]
     claims = decode_access_token(token)
@@ -90,6 +97,7 @@ def get_current_user(request: Request):
 def role_required(required_role: str):
     def role_checker(current_user: dict = Depends(get_current_user)):
         if current_user.get("role") != required_role:
+            logger.warning(f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
             raise HTTPException(status_code=403, detail="Forbidden")
         return current_user
     return role_checker
@@ -97,74 +105,99 @@ def role_required(required_role: str):
 # ---------------- Routes ----------------
 @auth_router.post("/signup")
 async def signup(request: SignupRequest, db: Session = Depends(get_db)):
+    logger.info(f"Attempting signup for email: {request.email}")
     if get_user_by_email(db, request.email):
-        raise HTTPException(status_code=400, detail="User already exists")
-    password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
-    create_user(db, request.username, request.email, password_hash, request.firstName, request.lastName)
-    return {"message": "User created"}
+        logger.warning(f"Signup denied: User already exists with email: {request.email}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+    
+    try:
+        password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
+        create_user(db, request.username, request.email, password_hash, request.firstName, request.lastName)
+        logger.info(f"SUCCESSFUL SIGNUP: New user '{request.username}' created.")
+        return {"message": "User created"}
+    except Exception as e:
+        logger.exception(f"FATAL error during user creation for email: {request.email}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during signup")
 
 @auth_router.post("/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    logger.info(f"Attempting password login for email: {request.email}")
     user = get_user_by_email(db, request.email)
+    
     if not user or not bcrypt.checkpw(request.password.encode(), user.salt.encode()):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.warning(f"Login failed: Invalid credentials for email: {request.email}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    
     token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
+    logger.info(f"SUCCESSFUL LOGIN: User '{user.email}' logged in. Role: {user.type}")
     return {"token": token}
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 @auth_router.post("/google-auth")
 async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)):
+    logger.info("Attempting Google OAuth login.")
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo["email"]
         name = idinfo.get("name", "Unknown User")
         user = get_user_by_email(db, email)
+        
         if not user:
+            logger.info(f"New user registration via Google OAuth: {email}")
             create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="participant")
             user = get_user_by_email(db, email)
+        
         token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
+        logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.type}")
         return {"token": token}
     except ValueError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+        logger.error(f"Google token verification failed: {e.__class__.__name__}. Credential length: {len(request.credential)}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
 
 @auth_router.get("/profile")
 async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get_current_user)):
-    email = current_user.get("sub")
-    user = get_user_by_email(db, email)
+    user_email = current_user.get("sub")
+    logger.info(f"Fetching profile for user: {user_email}")
+    
+    user = get_user_by_email(db, user_email)
+    
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        logger.warning(f"Profile failed: User not found in DB for email: {user_email}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
     return {"id": user.user_id, "email": user.email, "role": user.type}
 
 
 @auth_router.post("/logout")
 async def logout(request: Request, current_user: dict = Depends(get_current_user)):
+    user_email = current_user.get("sub", "N/A")
+    user_id = current_user.get("id", "N/A")
+    logger.info(f"Attempting logout/token revocation for user: {user_email} (ID: {user_id})")
+    
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
+        # This case should ideally be caught by get_current_user, but we log defensively.
+        logger.warning(f"Logout failure: Missing Authorization header.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
 
     token = auth_header.split(" ")[1]
+    
+    # We rely on decode_access_token to handle JWTError and HTTPException
     payload = decode_access_token(token)
-
     jti = payload.get("jti")
+
     if not jti:
-        # Tokens without jti can't be revoked, but don't crash
+        logger.warning(f"Logout complete for user {user_email}, but token is stateless (no JTI for revocation).")
         return {"msg": "Token does not support logout / already stateless"}
 
     token_blocklist.add(jti)
+    logger.info(f"SUCCESSFUL LOGOUT: Token JTI '{jti[:8]}...' revoked for user: {user_email}")
     return {"msg": "Successfully logged out"}
 
 @auth_router.get("/admin/dashboard")
 async def admin_dashboard(db: Session = Depends(get_db),current_user: dict = Depends(role_required("admin"))):
+    user_email = current_user.get("sub", "N/A")
+    logger.info(f"Admin dashboard accessed successfully by user: {user_email}")
     return {"message": "Welcome to the admin dashboard"}
-
-
-
-
-
-
-
-
-
-
-
