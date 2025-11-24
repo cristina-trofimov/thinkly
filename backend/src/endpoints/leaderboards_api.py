@@ -95,7 +95,7 @@ def get_leaderboards(db: Session = Depends(get_db)):
         logger.info(f"Successfully aggregated data for all {len(competitions)} competitions.")
         return result
 
-    except Exception as e:
+    except Exception:
         # Catch any unexpected error during the complex iteration/query process
         logger.exception("FATAL error during leaderboards data aggregation.")
         raise HTTPException(

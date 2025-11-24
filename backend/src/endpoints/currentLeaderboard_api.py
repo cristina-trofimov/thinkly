@@ -24,7 +24,7 @@ def get_current_standings(db: Session = Depends(get_db)):
             .order_by(desc(Competition.date))
             .first()
         )
-    except Exception as e:
+    except Exception:
         logger.exception("Database error while querying recent competition.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database query failed")
 
@@ -75,7 +75,7 @@ def get_standings_by_competition(competition_id: int, db: Session = Depends(get_
 
     try:
         competition = db.query(Competition).filter(Competition.competition_id == competition_id).first()
-    except Exception as e:
+    except Exception:
         logger.exception(f"Database error while querying competition ID {competition_id}.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database query failed")
 

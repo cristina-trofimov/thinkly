@@ -132,7 +132,7 @@ async def send_email(request: SendEmailRequest):
         
     except requests.RequestException as e:
         # Log network failures (timeouts, connection issues)
-        logger.exception(f"Network error when trying to reach Brevo API.")
+        logger.exception("Network error when trying to reach Brevo API.")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail={"error": "Network error calling Brevo", "detail": str(e)}

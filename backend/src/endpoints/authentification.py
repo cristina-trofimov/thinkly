@@ -115,7 +115,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
         create_user(db, request.username, request.email, password_hash, request.firstName, request.lastName)
         logger.info(f"SUCCESSFUL SIGNUP: New user '{request.username}' created.")
         return {"message": "User created"}
-    except Exception as e:
+    except Exception:
         logger.exception(f"FATAL error during user creation for email: {request.email}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during signup")
 
@@ -179,7 +179,7 @@ async def logout(request: Request, current_user: dict = Depends(get_current_user
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         # This case should ideally be caught by get_current_user, but we log defensively.
-        logger.warning(f"Logout failure: Missing Authorization header.")
+        logger.warning("Logout failure: Missing Authorization header.")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
 
     token = auth_header.split(" ")[1]

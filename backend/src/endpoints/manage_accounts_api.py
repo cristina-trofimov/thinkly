@@ -128,7 +128,7 @@ def get_users(db: Session = Depends(get_db)):
             })
         logger.info(f"Successfully returned {len(users)} user records.")
         return result
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to fetch all users.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve users.")
 
@@ -219,6 +219,6 @@ def update_user(user_id: int, user: UserUpdateSchema, db: Session = Depends(get_
     except ValueError as e:
         logger.warning(f"User update failed for ID {user_id}: {str(e)}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
+    except Exception:
         logger.exception(f"Unexpected error during user update for ID {user_id}.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during update.")
