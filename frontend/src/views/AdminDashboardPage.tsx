@@ -111,7 +111,7 @@ export function AdminDashboard() {
             <div className="flex justify-between items-center gap-2 mt-6 px-6">
               <div className="flex items-center">
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "algotime" | "competitions")}> 
-                  <TabsList className="space-x-4">
+                  <TabsList className="space-x-1">
                     <TabsTrigger value="algotime" className="rounded-md text-primary">Algotime</TabsTrigger>
                     <TabsTrigger value="competitions" className="rounded-md text-primary">Competitions</TabsTrigger>
                   </TabsList>
