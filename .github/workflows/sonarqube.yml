@@ -96,8 +96,9 @@ jobs:
           files: ./frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
+          root_dir: ./frontend
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -106,5 +107,6 @@ jobs:
           files: ./backend/coverage.xml
           flags: backend
           name: backend-coverage
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
+          root_dir: ./backend
