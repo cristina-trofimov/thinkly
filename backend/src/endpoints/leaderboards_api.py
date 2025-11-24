@@ -13,7 +13,10 @@ def get_all_competitions(db: Session) -> List[Competition]:
     # INFO: Log the start of a helper function query
     logger.info("Executing helper query: Fetching all competitions.")
     try:
-        return db.scalars(select(Competition).order_by(Competition.base_event.event_start_date.desc())).all()
+        competitions = db.scalars(
+            select(Competition)
+            .order_by(Competition.base_event.event_start_date.desc())
+        ).all()
         logger.debug(f"Helper query completed. Found {len(competitions)} competitions.")
         return competitions
     except Exception as e:
