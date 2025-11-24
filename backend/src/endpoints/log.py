@@ -22,7 +22,7 @@ async def capture_client_log(log_data: ClientLogPayload, request: Request):
     """
     try:
         # Manually combine structured data into the message string
-        context_str = f"| SRC: FE | IP: {request.client.host} | URL: {log_data.url} | COMP: {log_data.component}"
+        context_str = f" | URL: {log_data.url} | COMP: {log_data.component}"
         
         # Build the final message string
         final_message = f"{log_data.message} {context_str}"
