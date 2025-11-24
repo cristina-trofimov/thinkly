@@ -22,6 +22,13 @@ function HomePage() {
       try {
         const data = await getQuestions();
         setQuestions(data);
+
+        logFrontend({
+          level: 'DEBUG', // <--- Now using DEBUG level
+          message: `Finished initial data fetch for questions successfully.`,
+          component: 'HomePage',
+          url: window.location.href,
+        });
       } catch (err: any) {
         const errorMessage = err.message || "Unknown error during question fetch.";
         console.error("Error fetching questions:", err);
@@ -45,6 +52,13 @@ function HomePage() {
       try {
           const data = await getCompetitions();
           setCompetitions(data);
+
+          logFrontend({
+            level: 'INFO',
+            message: `Competitions data loaded.`,
+            component: 'HomePage',
+            url: window.location.href,
+          });
       } catch (err: any) {
         const errorMessage = err.message || "Unknown error during competition fetch.";
         console.error("Error fetching competitions:", err);

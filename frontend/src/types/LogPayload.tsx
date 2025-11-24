@@ -1,5 +1,7 @@
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+
 export interface LogPayload {
-    level: 'ERROR' | 'WARN' | 'INFO';
+    level: LogLevel;
     message: string;
     component: string;
     url: string;

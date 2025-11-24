@@ -7,7 +7,7 @@ class AnsiColors:
     GREEN = '\x1b[32;20m'  # INFO
     YELLOW = '\x1b[33;20m' # WARNING
     RED = '\x1b[31;20m'    # ERROR
-    BOLD_RED = '\x1b[31;1m' # CRITICAL
+    BOLD_RED = '\x1b[31;1m' # CRITICAL 
     RESET = '\x1b[0m'      # Reset color
 
 class ColoredFormatter(logging.Formatter):
@@ -65,7 +65,7 @@ def setup_logging():
             "console": {
                 "class": "logging.StreamHandler",
                 "formatter": "colored_console",
-                "level": "INFO",
+                "level": "DEBUG",
             },
             # File Handler: Outputs plain text logs to the rotating file
             "file": {
@@ -87,13 +87,13 @@ def setup_logging():
             # Root Logger: Catches all unhandled logs (including WatchFiles)
             "": {
                 "handlers": ["console", "file"],
-                "level": "INFO",
+                "level": "DEBUG",
                 "propagate": False,
             },
             # Uvicorn Error Logger: Still logs server errors in plain text
             "uvicorn.error": {
                 "handlers": ["console", "file"],
-                "level": "WARNING",
+                "level": "DEBUG",
                 "propagate": False,
             },
             # Uvicorn Access Logger: Uses the clean 'access' formatter and is silenced below INFO
@@ -111,12 +111,12 @@ def setup_logging():
             # Application and Client Logger definitions
             "app": {
                 "handlers": ["console", "file"],
-                "level": "INFO",
+                "level": "DEBUG",
                 "propagate": False,
             },
             "client_logger": { # Logger used by the frontend ingestion endpoint
                 "handlers": ["console", "file"],
-                "level": "INFO",
+                "level": "DEBUG",
                 "propagate": False,
             },
         },
