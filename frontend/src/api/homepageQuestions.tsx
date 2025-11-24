@@ -5,17 +5,18 @@ import { config } from "../config";
 export async function getQuestions(): Promise<Questions[]> {
     try {
       const response = await axiosClient.get<{
-        id: number;
-        questionTitle: string;
-        date: string;
-        difficulty: "Easy" | "Medium" | "Hard";
-      }[]>(`${config.backendUrl}/homepage/get-questions`);
-  
+        question_id: number;
+        question_name: string;
+        question_description: string;
+        difficulty: "easy" | "medium" | "hard";
+      }[]>(`${config.backendUrl}/questions`);
+
+
       const formatted: Questions[] = response.data.map(q => ({
-        id: String(q.id),
-        questionTitle: q.questionTitle,
-        date: new Date(q.date),
-        difficulty: q.difficulty,
+        id: String(q.question_id),
+        questionTitle: q.question_name,
+        date: new Date(),
+        difficulty: formatDifficulty(q.difficulty),
       }));
   
       return formatted;
@@ -23,4 +24,8 @@ export async function getQuestions(): Promise<Questions[]> {
       console.error("Error fetching questions:", err);
       throw err;
     }
-  }
+}
+
+function formatDifficulty(difficulty: "easy" | "medium" | "hard"): "Easy" | "Medium" | "Hard" {
+  return difficulty.charAt(0).toUpperCase() + difficulty.slice(1) as "Easy" | "Medium" | "Hard";
+}

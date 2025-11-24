@@ -58,7 +58,7 @@ def _verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
 # User Account Operations
-def create_user_account(session: Session, username: str, email: str, hashed_password: str, user_type: str = 'regular') -> UserAccount:
+def create_user_account(session: Session, username: str, email: str, hashed_password: str, user_type: str = 'participant') -> UserAccount:
     """Create a new user account."""
     new_user = UserAccount()
     new_user.username = username

@@ -9,7 +9,9 @@ class UserAccount(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    user_type = Column(Enum('owner', 'admin', 'regular', name='user_type'), nullable=False, default='regular')
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    user_type = Column(Enum('owner', 'admin', 'participant', name='user_type'), nullable=False, default='participant')
 
     user_preferences = relationship('UserPreferences', back_populates='user_account', uselist=False)
     sessions = relationship('UserSession', back_populates='user_account', uselist=True)
@@ -79,7 +81,7 @@ class AlgoTimeSeries(Base):
     algotime_leaderboard_entries = relationship('AlgoTimeLeaderboardEntry', back_populates='algotime_series', uselist=True)
 
 class AlgoTimeSession(Base):
-    __tablename__ = 'algotime'
+    __tablename__ = 'algotime_session'
 
     event_id = Column(Integer, ForeignKey('base_event.event_id', ondelete='CASCADE'), nullable=False, primary_key=True)
     algotime_series_id = Column(Integer, ForeignKey('algotime_series.algotime_series_id', ondelete='SET NULL'), nullable=True)
@@ -102,8 +104,8 @@ class Question(Base):
     media = Column(String, nullable=True)
     difficulty = Column(Enum('easy', 'medium', 'hard', name='difficulty_level'), nullable=False)
     preset_code = Column(String, nullable=True)
-    from_string_function = Column(Boolean, nullable=False, default=False)
-    to_string_function = Column(Boolean, nullable=False, default=False)
+    from_string_function = Column(String, nullable=False, default=False)
+    to_string_function = Column(String, nullable=False, default=False)
     template_solution = Column(String, nullable=False)
 
     test_cases = relationship('TestCase', back_populates='question', uselist=True)
@@ -203,6 +205,7 @@ class AlgoTimeLeaderboardEntry(Base):
     username = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey('user_account.user_id', ondelete='SET NULL'), nullable=True)
     total_time = Column(Integer, nullable=False)
+    last_updated = Column(DateTime, nullable=False)
 
     algotime_series = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
     user_account = relationship('UserAccount', uselist=False)

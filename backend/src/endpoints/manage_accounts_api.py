@@ -5,7 +5,7 @@ from typing import List
 from pydantic import BaseModel
 from DB_Methods.database import get_db, _commit_or_rollback
 from typing import Optional
-from models.schema import BaseQuestion, Competition, User, UserPreferences
+from models.schema import Question, Competition, UserAccount, UserPreferences
 
 manage_accounts_router = APIRouter(tags=["Manage Accounts"])
 
@@ -20,9 +20,9 @@ class UserUpdateSchema(BaseModel):
     password_hash: Optional[str] = None
     type: Optional[str] = None
 
-def get_all_users(db: Session) -> List[User]:
+def get_all_users(db: Session) -> List[UserAccount]:
     """Retrieve all users."""
-    return db.query(User).all()
+    return db.query(UserAccount).all()
 
 def delete_user_full(db: Session, user_id: int) -> bool:
     """
@@ -30,13 +30,13 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     while keeping historical scoreboard entries and nullifying ownerships.
     """
 
-    user = db.query(User).filter(User.user_id == user_id).first()
+    user = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
     if not user:
         raise ValueError("User not found")
 
     # Set user_id = NULL for competitions and questions they created
     db.query(Competition).filter(Competition.user_id == user_id).update({"user_id": None})
-    db.query(BaseQuestion).filter(BaseQuestion.user_id == user_id).update({"user_id": None})
+    db.query(Question).filter(Question.user_id == user_id).update({"user_id": None})
 
     # Delete user preferences explicitly (not handled via relationship)
     db.query(UserPreferences).filter(UserPreferences.user_id == user_id).delete()
@@ -46,18 +46,18 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     _commit_or_rollback(db)
     return True
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: int) -> Optional[UserAccount]:
     """Retrieve a user by ID."""
-    return db.query(User).filter(User.user_id == user_id).first()
+    return db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
 
-def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
-    user = db.query(User).filter(User.user_id == user_id).first()
+def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> UserAccount:
+    user = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
     if not user:
         raise ValueError("User not found")
 
     # Prevent creating multiple owners
     if type == 'owner' and user.type != 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        existing_owner = db.query(UserAccount).filter(UserAccount.type == 'owner').first()
         if existing_owner:
             raise ValueError("An owner already exists. Only one owner is allowed.")
 

@@ -1,13 +1,14 @@
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from typing import Optional
-from models.schema import User
+from models.schema import UserAccount
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 import uuid
@@ -38,22 +39,29 @@ class GoogleAuthRequest(BaseModel):
     credential: str
 
 # ---------------- DB helpers ----------------
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    return db.query(User).filter(User.email == email).first()
+def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
+    return db.scalar(
+        select(UserAccount)
+        .where(UserAccount.email == email)
+    )
 
 def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
     if type == 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
-        if existing_owner:
+        existing_owner = db.scalar(
+            select(UserAccount)
+            .where(UserAccount.type == 'owner')
+        )
+
+        if existing_owner is not None:
             raise ValueError("An owner already exists. Only one owner is allowed.")
-    new_user = User(
-        username=username,
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        salt=password_hash,
-        type=type
-    )
+        
+    new_user = UserAccount()
+    new_user.username = username
+    new_user.email = email
+    new_user.first_name = first_name
+    new_user.last_name = last_name
+    new_user.hashed_password = password_hash
+    new_user.user_type = type
     db.add(new_user)
     _commit_or_rollback(db)
     db.refresh(new_user)
@@ -62,7 +70,7 @@ def create_user(db: Session, username: str, email: str, password_hash: str, firs
 # ---------------- JWT helpers ----------------
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({
         "exp": expire,
         "jti": str(uuid.uuid4())  # Add unique JWT ID
@@ -107,7 +115,7 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     user = get_user_by_email(db, request.email)
     if not user or not bcrypt.checkpw(request.password.encode(), user.salt.encode()):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        return HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
     return {"token": token}
 
@@ -123,7 +131,7 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
         if not user:
             create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="participant")
             user = get_user_by_email(db, email)
-        token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
+        token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
         return {"token": token}
     except ValueError as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
