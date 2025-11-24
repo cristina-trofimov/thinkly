@@ -53,23 +53,11 @@ jobs:
           DATABASE_URL: postgresql://user:password@localhost:5432/dbname
 
       # ----------- VERIFY COVERAGE ------------
-      - name: Verify frontend coverage files
-        run: |
-          if [ -f ./frontend/coverage/lcov.info ]; then
-            echo "✓ Frontend coverage OK"
-          else
-            echo "✗ Missing frontend coverage"
-            exit 1
-          fi
+      - name: Verify frontend coverage file
+        run: test -f frontend/coverage/lcov.info
 
-      - name: Verify backend coverage files
-        run: |
-          if [ -f ./backend/coverage.xml ]; then
-            echo "✓ Backend coverage OK"
-          else
-            echo "✗ Missing backend coverage"
-            exit 1
-          fi
+      - name: Verify backend coverage file
+        run: test -f backend/coverage.xml
 
       # ----------- SONAR ------------
       - name: SonarQube Scan
@@ -93,20 +81,18 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend/coverage/lcov.info
+          files: frontend/coverage/lcov.info
           flags: frontend
           name: frontend-coverage
           fail_ci_if_error: false
           verbose: true
-          root_dir: ./frontend
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./backend/coverage.xml
+          files: backend/coverage.xml
           flags: backend
           name: backend-coverage
           fail_ci_if_error: false
           verbose: true
-          root_dir: ./backend
