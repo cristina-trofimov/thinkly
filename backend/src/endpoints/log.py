@@ -2,9 +2,7 @@ from fastapi import APIRouter, Request, status, HTTPException
 from pydantic import BaseModel
 import logging
 
-# Ensure this logger is correctly configured in your setup_logging()
 logger = logging.getLogger("client_logger") 
-# We use a specific logger name here to easily identify client-side logs in Kibana
 
 log_router = APIRouter(tags=["Logging"])
 
@@ -19,35 +17,30 @@ class ClientLogPayload(BaseModel):
 @log_router.post("/client-log", status_code=status.HTTP_204_NO_CONTENT)
 async def capture_client_log(log_data: ClientLogPayload, request: Request):
     """
-    Receives JSON logs from the React frontend, adds server context, and logs them 
-    using the centralized JSON logger.
+    Receives structured logs from the React frontend and manually formats them 
+    into a comprehensive PLAIN TEXT message.
     """
     try:
-        # Extra data to include in the JSON log record
-        extra_data = {
-            # Use 'request.client.host' or handle proxy headers if in production
-            "client_ip": request.client.host,
-            "component": log_data.component,
-            "source": "frontend",
-            "url": log_data.url,
-            "stack": log_data.stack,
-        }
+        # Manually combine structured data into the message string
+        context_str = f"| SRC: FE | IP: {request.client.host} | URL: {log_data.url} | COMP: {log_data.component}"
         
-        # Determine the logging function based on the requested level (e.g., logger.error)
+        # Build the final message string
+        final_message = f"{log_data.message} {context_str}"
+        
+        if log_data.stack:
+            # Append stack trace (truncated) to the end of the log line
+            final_message += f" | STACK_SNIPPET: {log_data.stack.splitlines()[0]}..."
+
+        # Determine the logging function (e.g., logger.error)
         log_level = log_data.level.upper()
         log_func = getattr(logger, log_level.lower(), logger.info)
         
-        # Log the message. The configured JSON formatter will automatically include extra_data.
-        # Note: If the log level is DEBUG/TRACE, and your logger is INFO, it will be skipped.
-        log_func(log_data.message, extra=extra_data)
+        # Log the final plain text message
+        log_func(final_message)
 
     except Exception as e:
         # Log the internal failure of the logging endpoint itself
-        # This will show up under the client_logger name, indicating a logging system failure.
         logger.exception(f"Internal error processing client log request: {type(e).__name__}")
-        # Return a successful status code (204) to the client to prevent client-side infinite loops,
-        # but internally we log the issue.
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal logging error")
         
-    # HTTP_204_NO_CONTENT means success, but no content to return
     return

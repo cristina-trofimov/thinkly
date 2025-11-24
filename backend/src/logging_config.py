@@ -4,39 +4,35 @@ import logging.handlers
 LOG_FILE_PATH = "src/logs/centralLogs.log"
 
 def setup_logging():
-    """Configures logging for the application, Uvicorn, and WatchFiles in JSON format."""
+    """Configures logging for the application, Uvicorn, and WatchFiles in PLAIN TEXT format."""
 
     # This configuration dictionary overrides Uvicorn's default loggers.
     LOGGING_CONFIG = {
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            # Define the JSON Formatter
-            "json": {
-                "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-                # The format string defines the fields to include in the JSON log.
-                # Important: Uvicorn ignores the format string for its internal loggers,
-                # but it's crucial for your custom and external loggers like WatchFiles.
-                "format": "%(levelname)s %(asctime)s %(name)s %(module)s %(funcName)s %(lineno)d %(message)s",
-                "json_ensure_ascii": False,
+            "plain_text": {
+                # Format includes basic info: Timestamp [Level] Logger.Name (Module:Line) - Message
+                "format": "%(asctime)s [%(levelname)s] %(name)s (%(module)s:%(lineno)d) - %(message)s",
+                "datefmt": "%Y-%m-%d %H:%M:%S",
             },
-            # Uvicorn's standard access log formatter (optional, but good practice)
+            # Uvicorn's standard access log formatter (retained for clean access logs)
             "access": {
                 "()": "uvicorn.logging.AccessFormatter",
                 "fmt": '%(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
             },
         },
         "handlers": {
-            # Console Handler: Outputs structured JSON logs to stdout
+            # Console Handler: Outputs plain text logs to stdout
             "console": {
                 "class": "logging.StreamHandler",
-                "formatter": "json",
+                "formatter": "plain_text",
                 "level": "INFO",
             },
-            # File Handler: Outputs structured JSON logs to the rotating file
+            # File Handler: Outputs plain text logs to the rotating file
             "file": {
                 "class": "logging.handlers.TimedRotatingFileHandler",
-                "formatter": "json",
+                "formatter": "plain_text", # Now uses plain_text
                 "filename": LOG_FILE_PATH,
                 "when": "midnight",
                 "backupCount": 5,
@@ -50,32 +46,37 @@ def setup_logging():
             },
         },
         "loggers": {
-            # Root Logger: Catches all unhandled logs (e.g., your custom modules)
+            # Root Logger: Catches all unhandled logs (including WatchFiles)
             "": {
                 "handlers": ["console", "file"],
                 "level": "INFO",
                 "propagate": False,
             },
-            # Uvicorn Error Logger: Still logs critical server errors (e.g., 500s)
+            # Uvicorn Error Logger: Still logs server errors in plain text
             "uvicorn.error": {
                 "handlers": ["console", "file"],
-                "level": "WARNING", # Already set to WARNING, good for production errors
+                "level": "WARNING",
                 "propagate": False,
             },
-            # Uvicorn Access Logger: RAISE LEVEL to suppress INFO (200 OK) logs
+            # Uvicorn Access Logger: Uses the clean 'access' formatter and is silenced below INFO
             "uvicorn.access": {
-                "handlers": ["console", "file"],
-                "level": "WARNING", # <--- CHANGED FROM "INFO" to suppress 200/OPTIONS logs
+                "handlers": ["access_console", "file"],
+                "level": "WARNING", 
                 "propagate": False,
             },
-            # WATCHFILES Logger: EXPLICITLY ADDED to suppress "1 change detected" logs
+            # WATCHFILES Logger: Silenced
             "watchfiles.main": {
                 "handlers": ["console", "file"],
-                "level": "ERROR", # <--- ADDED to ignore repetitive INFO/DEBUG checks
+                "level": "ERROR", 
                 "propagate": False,
             },
-            # Your Application Logger 
+            # Application and Client Logger definitions
             "app": {
+                "handlers": ["console", "file"],
+                "level": "INFO",
+                "propagate": False,
+            },
+            "client_logger": { # Logger used by the frontend ingestion endpoint
                 "handlers": ["console", "file"],
                 "level": "INFO",
                 "propagate": False,
