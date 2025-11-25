@@ -14,7 +14,6 @@ export function Leaderboards(){
   const [error, setError] = useState<string | null>(null);
 
 
-  // Fetch from FastAPI backend
   useEffect(() => {
     const getAllCompetitions = async () => {
       try {

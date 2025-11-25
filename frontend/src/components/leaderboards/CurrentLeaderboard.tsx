@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import type CurrentStandings from "@/types/leaderboards/CurrentStandings";
-import { fetchCurrentLeaderboardStandings } from "@/api/leaderboardsAPI";
+import { getCurrentLeaderboardStandings } from "../../api/leaderboardsAPI";
 
 
 
@@ -15,7 +15,7 @@ export function CurrentLeaderboard() {
   const getCurrentStandings = async () => {
     try {
       setError(null);
-      const response = await fetchCurrentLeaderboardStandings();
+      const response = await getCurrentLeaderboardStandings();
       setStandings(response);
     } catch (err) {
       console.error("Error loading current standings:", err);
@@ -25,7 +25,6 @@ export function CurrentLeaderboard() {
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     getCurrentStandings();
   }, []);

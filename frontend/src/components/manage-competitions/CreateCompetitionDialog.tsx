@@ -19,6 +19,7 @@ import {
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
+import { getQuestions } from "@/api/QuestionsAPI";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -27,8 +28,8 @@ function localToUTCZ(dtLocal?: string) {
     console.error("Invalid date string provided:", dtLocal);
     return undefined;
   }
-  const utcISOString = localDate.toISOString(); 
-  return utcISOString.replace(".000Z", "Z"); 
+  const utcISOString = localDate.toISOString();
+  return utcISOString.replace(".000Z", "Z");
 }
 
 function oneMinuteFromNowISO() {
@@ -60,29 +61,32 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
 
   const fallbackQuestions = [
-    { id: 1, title: "Two Sum", difficulty: "Easy" },
+    { id: "1", title: "Two Sum", difficulty: "Easy" },
   ];
 
 
-  const [questions, setQuestions] = useState(fallbackQuestions);
+  const [questions, setQuestions] = useState<Question[]>(fallbackQuestions);
+
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const loadQuestions = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/questions/");
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error("Error occurred while fetching questions"); 
-        if (!Array.isArray(body)) throw new Error("Fetched questions is not in the correct format");
-        const normalized = body.map((q: Question, i: number) => ({
-          id: typeof q.id === "string" ? Number(q.id) : (q.id ?? i + 1),
-          title: q.title ?? `Question ${i + 1}`,
-          difficulty: q.difficulty ? { easy: "Easy", medium: "Medium", hard: "Hard" }[q.difficulty.toLowerCase()] || "Unknown" : "Unknown"
-        }));
-        if (!cancelled) setQuestions(normalized);
-      } catch {
-        // keep fallbackQuestions
+        const data = await getQuestions();
+
+        if (!cancelled) {
+          setQuestions(data);
+        }
+      } catch (err) {
+        console.error("Failed to load questions, keeping fallbacks.", err);
+        // We catch the error here so the app doesn't crash, 
+        // keeping whatever fallbackQuestions you have in state.
       }
-    })();
+    };
+
+    loadQuestions();
+
     return () => { cancelled = true; };
   }, []);
 
@@ -97,7 +101,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
   ];
 
   const filteredQuestions = questions.filter((q) =>
-    q.title.toLowerCase().includes(searchQuery.toLowerCase())
+    q.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredRiddles = riddles.filter((r) =>
@@ -124,10 +128,10 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
     const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
     const now = new Date();
-    now.setSeconds(0, 0); 
+    now.setSeconds(0, 0);
     if (competitionDateTime.getTime() <= now.getTime()) {
-        setValidationError("The competition must be scheduled for a future date and time.");
-        return false;
+      setValidationError("The competition must be scheduled for a future date and time.");
+      return false;
     }
 
     if (selectedQuestions.length === 0) {
@@ -155,7 +159,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     // Handle email notification if recipients are provided
     if (emailData.to.trim()) {
       const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
-      
+
       if (toList.length > 0) {
         const payload: EmailPayload = {
           to: toList,
@@ -221,9 +225,9 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           </DialogDescription>
           {/* Validation Error Message */}
           {validationError && (
-              <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
-                  ⚠️ {validationError}
-              </p>
+            <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
+              ⚠️ {validationError}
+            </p>
           )}
         </DialogHeader>
         <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
@@ -273,7 +277,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           {/* Question Selection */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Question Selection</h3>
-            
+
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -296,20 +300,21 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
             </div>
 
             <div className="border rounded-lg max-h-[200px] overflow-y-auto">
-              {filteredQuestions.map((question) => (
+
+              {filteredQuestions && filteredQuestions.map((question) => (
                 <div
                   key={question.id}
                   className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
                 >
                   <Checkbox
-                    checked={selectedQuestions.includes(question.id)}
-                    onCheckedChange={() => toggleQuestion(question.id)}
+                    checked={selectedQuestions.includes(Number(question.id))}
+                    onCheckedChange={() => toggleQuestion(Number(question.id))}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{question.title}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}
+                        className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty ?? "")}`}
                       >
                         {question.difficulty}
                       </span>
@@ -335,7 +340,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           {/* Riddle Selection */}
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Riddle Selection</h3>
-            
+
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -390,7 +395,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
             <p className="text-sm text-gray-500">Optionally send email notifications about this competition</p>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="emailTo">To (comma-separated)</Label>
               <Input

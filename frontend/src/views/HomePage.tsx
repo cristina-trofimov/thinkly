@@ -7,7 +7,7 @@ import type { Questions } from "../components/HomePageQuestions/questionsColumns
 import { DataTable } from "../components/HomePageQuestions/questionDataTable"
 import type { Competition } from "@/types/Competition"
 import { getCompetitions } from "@/api/CompetitionAPI";
-import { getQuestions } from "@/api/homepageQuestions";
+import { getQuestions } from "@/api/QuestionsAPI";
 import { logFrontend } from '../api/logFrontend';
 
 

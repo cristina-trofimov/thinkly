@@ -9,7 +9,7 @@ export async function getQuestions(): Promise<Questions[]> {
         questionTitle: string;
         date: string;
         difficulty: "Easy" | "Medium" | "Hard";
-      }[]>(`${config.backendUrl}/homepage/get-questions`);
+      }[]>(`${config.backendUrl}/questions/get-all-questions`);
   
       const formatted: Questions[] = response.data.map(q => ({
         id: String(q.id),
