@@ -60,9 +60,9 @@ def get_all_competitions(db: Session = Depends(get_db)):
             
             result.append({
                 "id": c.competition_id,
-                "competitionTitle": c.name,
+                "competition_title": c.name,
                 "date": competition_date,
-                "user_id": c.user_id,
+                # user_id has been removed from here
             })
         
         # Log successful completion

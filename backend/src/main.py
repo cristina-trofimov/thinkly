@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.leaderboards_api import leaderboards_router
 from endpoints.currentLeaderboard_api import current_leaderboard_router
-from endpoints.authentification import auth_router
+from endpoints.authentification_api import auth_router
 from endpoints.questions_api import questions_router
 from endpoints.send_email import email_router
 from endpoints.homepage_api import homepage_router

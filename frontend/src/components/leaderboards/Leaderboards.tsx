@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
-import axiosClient from "@/lib/axiosClient";
-import type { Competition } from "../interfaces/Competition";
+import type { Competition } from "@/types/Competition";
+import { getCompetitions } from "@/api/CompetitionAPI";
 
 export function Leaderboards(){
   const [competitions, setCompetitions] = useState<Competition[]>([]);
@@ -16,16 +16,14 @@ export function Leaderboards(){
 
   // Fetch from FastAPI backend
   useEffect(() => {
-    const fetchLeaderboards = async () => {
+    const getAllCompetitions = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        console.log("Fetching leaderboards...");
-        const response = await axiosClient.get<Competition[]>("/leaderboards/");
-        console.log("Leaderboards response:", response.data);
+        const response = await getCompetitions();
 
-        setCompetitions(response.data);
+        setCompetitions(response);
       } catch (err) {
         console.error("Error loading leaderboards:", err);
         setError("Failed to load leaderboards");
@@ -34,12 +32,12 @@ export function Leaderboards(){
       }
     };
 
-    fetchLeaderboards();
+    getAllCompetitions();
   }, []);
 
 
   const filteredCompetitions = competitions
-    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.competitionTitle.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) =>
       sortAsc
         ? new Date(a.date).getTime() - new Date(b.date).getTime()

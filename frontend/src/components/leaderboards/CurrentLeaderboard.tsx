@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import type CurrentStandings from "@/types/leaderboards/CurrentStandings";
-import { fetchCurrentLeaderboardStandings } from "@/api/leaderboards";
+import { fetchCurrentLeaderboardStandings } from "@/api/leaderboardsAPI";
 
 
 
