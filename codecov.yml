@@ -1,0 +1,32 @@
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: auto
+        threshold: 1%
+
+# Path fixes for monorepo structure
+fixes:
+  - "src/:backend/src/"  # Maps backend coverage paths
+  - "src/:frontend/src/" # Maps frontend coverage paths
+
+# Flag configuration for monorepo
+flags:
+  backend:
+    paths:
+      - backend/
+    carryforward: true  # Use previous coverage if not uploaded
+  frontend:
+    paths:
+      - frontend/
+    carryforward: true  # Use previous coverage if not uploaded
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
