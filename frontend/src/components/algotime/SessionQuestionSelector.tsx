@@ -133,10 +133,7 @@ export const SessionQuestionSelector = ({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                         <Checkbox
-                                                checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}
-                                                onCheckedChange={(checked) => {
-                                                    toggleQuestionForSession(sessionNumber, q.id as number);
-                                                }}
+                                                checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}                 
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();

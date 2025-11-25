@@ -90,7 +90,6 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
-  const [sessions, setSessions] = useState<Session[]>([]);
 
   // Calculate repeat sessions
   const calculateRepeatSessions = () : Session[] => {
@@ -137,13 +136,6 @@ export const AlgoTimeSessionForm = () => {
     return sessions;
   };
 
-  useEffect(() => {
-    setSessions(calculateRepeatSessions());
-  }, [
-    formData.date,
-    formData.repeatType,
-    formData.repeatEndDate
-  ]);
 
   // Toggle question for specific session
   const toggleQuestionForSession = (sessionNum: number, questionId: number) => {

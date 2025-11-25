@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import { AdminDashboard } from '../src/views/AdminDashboardPage';
+import { AdminDashboard } from '../src/views/admin/AdminDashboardPage';
 import userEvent from '@testing-library/user-event';
 
 // --- MOCK SETUP ---
