@@ -1,4 +1,4 @@
-import { AlgoTimeSessionForm } from '../components/forms/AlgoTimeForm';
+import { AlgoTimeSessionForm } from '../../components/forms/AlgoTimeForm';
 
 export default function ManageAlgoTimePage() {
   return (

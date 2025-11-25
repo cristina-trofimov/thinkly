@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react"
 import type { Question } from "../interfaces/Question";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns"
 import {
     Accordion,
@@ -50,7 +52,7 @@ export const SessionQuestionSelector = ({
 
     const sessionFilteredQuestions = questions.filter((q) => {
         const matchesSearch = q.title?.toLowerCase().includes(sessionSearch.toLowerCase()) ?? false;
-        const matchesDifficulty = !sessionDifficulty || q.difficulty === sessionDifficulty;
+        const matchesDifficulty = !sessionDifficulty || q.difficulty?.toLowerCase() === sessionDifficulty?.toLowerCase();
         return matchesSearch && matchesDifficulty;
     });
 
@@ -69,7 +71,7 @@ export const SessionQuestionSelector = ({
 
                         {/* Search bar AND filter */}
                         <div className="flex gap-3 mb-4 ml-2">
-                            <input
+                            <Input
                                 type="text"
                                 value={sessionSearch}
                                 onChange={(e) => setSearchQueries({
@@ -125,17 +127,22 @@ export const SessionQuestionSelector = ({
                             {sessionFilteredQuestions.map((q) => (
                                 <div
                                     key={q.id}
-                                    onClick={() => toggleQuestionForSession(sessionNumber, q.id as number)}
-                                    className={`p-4 border-b border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(q.id as number) ? 'bg-primary/10' : ''
+                                    className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(q.id as number) ? 'bg-primary/10' : ''
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
+                                        <Checkbox
                                                 checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}
-                                                onChange={() => { }}
-                                                className="w-4 h-4 accent-primary"
+                                                onCheckedChange={(checked) => {
+                                                    toggleQuestionForSession(sessionNumber, q.id as number);
+                                                }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    toggleQuestionForSession(sessionNumber, q.id as number);
+                                                }}
+                                                className="w-4 h-4 accent-primary pointer-events-auto"
                                             />
                                             <span className="font-medium text-gray-900">{q.title}</span>
                                         </div>

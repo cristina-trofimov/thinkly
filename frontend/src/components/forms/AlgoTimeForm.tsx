@@ -10,6 +10,8 @@ import {
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
+import {getQuestions} from "@/api/homepageQuestions";
+import { logFrontend } from '../../api/logFrontend';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import {
@@ -52,6 +54,11 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
+type Session = {
+  sessionNumber: number;
+  date: string;
+};
+
 export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
     date: "",
@@ -83,15 +90,15 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
-
+  const [sessions, setSessions] = useState<Session[]>([]);
 
   // Calculate repeat sessions
-  const calculateRepeatSessions = () => {
+  const calculateRepeatSessions = () : Session[] => {
     if (!formData.date || formData.repeatType === "none") {
       return [{ sessionNumber: 1, date: formData.date }];
     }
 
-    const sessions = [];
+    const sessions : Session[] = [];
     const startDate = new Date(formData.date + 'T00:00:00');
     const endDate = formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : null;
 
@@ -130,6 +137,14 @@ export const AlgoTimeSessionForm = () => {
     return sessions;
   };
 
+  useEffect(() => {
+    setSessions(calculateRepeatSessions());
+  }, [
+    formData.date,
+    formData.repeatType,
+    formData.repeatEndDate
+  ]);
+
   // Toggle question for specific session
   const toggleQuestionForSession = (sessionNum: number, questionId: number) => {
     setSessionQuestions(prev => {
@@ -145,35 +160,51 @@ export const AlgoTimeSessionForm = () => {
     });
   };
 
-
   const repeatSessions = calculateRepeatSessions();
 
-  const fallbackQuestions = [
-    { id: 1, title: "Two Sum", difficulty: "Easy" },
-  ];
+const [questions, setQuestions] = useState<Question[]>([]);
 
-
-  const [questions, setQuestions] = useState(fallbackQuestions);
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+useEffect(() => {
+    const fetchQuestions = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:8000/questions/");
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error("Error occurred while fetching questions");
-        if (!Array.isArray(body)) throw new Error("Fetched questions is not in the correct format");
-        const normalized = body.map((q: Question, i: number) => ({
-          id: typeof q.id === "string" ? Number(q.id) : (q.id ?? i + 1),
-          title: q.title ?? `Question ${i + 1}`,
-          difficulty: q.difficulty ? { easy: "Easy", medium: "Medium", hard: "Hard" }[q.difficulty.toLowerCase()] || "Unknown" : "Unknown"
+        const data = await getQuestions();
+        const transformed = data.map(q => ({
+          ...q,
+          // SessionQuestionSelector expects q.title, not q.questionTitle
+          title: q.questionTitle,
+          // normalize difficulty to lowercase
+          difficulty: q.difficulty.toLowerCase(),
+          // id might be string, convert to number if selector expects number
+          id: Number(q.id),
         }));
-        if (!cancelled) setQuestions(normalized);
-      } catch {
-        // keep fallbackQuestions
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+        setQuestions(transformed);
+
+        logFrontend({
+          level: 'DEBUG', // <--- Now using DEBUG level
+          message: `Finished initial data fetch for questions successfully.`,
+          component: 'HomePage',
+          url: window.location.href,
+        });
+      } catch (err: unknown) {
+        const isError = err instanceof Error;
+        const errorMessage = isError ? err.message : "Unknown error during question fetch.";
+        
+        console.error("Error fetching questions:", err);
+        
+        // Log the error to the backend
+        logFrontend({
+          level: 'ERROR',
+          message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
+          component: 'HomePage',
+          url: window.location.href,
+          stack: isError ? err.stack : undefined, // Safely access stack
+        });
+      } 
+    }
+
+    fetchQuestions()
+  }, [])
+  
 
   const validateForm = (): boolean => {
     if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
@@ -235,6 +266,8 @@ export const AlgoTimeSessionForm = () => {
     });
     setSelectedQuestions([]);
     setSearchQueries({});
+    setSessionQuestions({ 1: [] }); 
+    setDifficultyFilters({});
     setValidationError('');
   }
 
@@ -324,7 +357,7 @@ export const AlgoTimeSessionForm = () => {
     <div className=" flex flex-col  ">
 
       <div ref={errorRef}>
-        {validationError && (
+        {validationError &&  (
           <Alert className="shadow border-destructive" variant="destructive">
             <AlertCircle />
             <AlertTitle >Warning!</AlertTitle>
@@ -636,6 +669,7 @@ export const AlgoTimeSessionForm = () => {
           {/* Action Buttons */}
           <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
             <Button
+              type="button"  
               variant="outline"
               onClick={handleReset}
               className="cursor-pointer"

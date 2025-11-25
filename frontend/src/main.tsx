@@ -16,14 +16,14 @@ const GOOGLE_CLIENT_ID =
 
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
-import AdminDashboard  from "./views/AdminDashboardPage.tsx";
+import AdminDashboard  from "./views/admin/AdminDashboardPage.tsx";
 import CodingView from "./components/codingPage/CodingView.tsx";
 import HomePage from "./views/HomePage.tsx";
 import SignupPage from "./views/SignupPage.tsx";
 import ManageCompetitions from "./components/manage-competitions/ManageCompetitionsPage.tsx";
 import ErrorPage from "./components/ErrorPage.tsx";
 import ManageAccountsPage from "./views/ManageAccountsPage.tsx";
-import ManageAlgoTimePage from "./views/AlgoTimeSession.tsx";
+import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
 
 const router = createBrowserRouter([
   {
