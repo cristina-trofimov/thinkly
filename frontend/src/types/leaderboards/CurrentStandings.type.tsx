@@ -1,4 +1,4 @@
-import type { Participant } from "@/components/interfaces/Participant";
+import type { Participant } from "@/types/account/Participant.type";
 
 export default interface CurrentStandings {
     competitionName: string;

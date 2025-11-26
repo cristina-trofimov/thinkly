@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
-import type { Competition } from "@/types/Competition";
+import type { Competition } from "@/types/competition/Competition.type";
 import { getCompetitions } from "@/api/CompetitionAPI";
 
-export function Leaderboards(){
+export function Leaderboards() {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(false);

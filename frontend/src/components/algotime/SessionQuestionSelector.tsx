@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react"
-import type { Question } from "../interfaces/Question";
+import type { Question } from "../../types/questions/Question.type";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns"
@@ -132,8 +132,8 @@ export const SessionQuestionSelector = ({
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                        <Checkbox
-                                                checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}                 
+                                            <Checkbox
+                                                checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();

@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Competition } from "@/types/Competition";
+import type { Competition } from "@/types/competition/Competition.type";
 import { config } from "../config";
 
 

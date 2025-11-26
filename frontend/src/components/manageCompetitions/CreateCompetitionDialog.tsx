@@ -16,8 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 import {
   type CreateCompetitionDialogProps,
-} from "../interfaces/CreateCompetitionTypes";
-import type { Question } from "../interfaces/Question";
+} from "../../types/competition/CreateCompetition.type";
+import type { Question } from "../../types/questions/Question.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 

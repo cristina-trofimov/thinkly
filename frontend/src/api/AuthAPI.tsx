@@ -4,7 +4,7 @@ import type {
     LoginResponse,
     SignupRequest,
     UserProfile,
-} from "@/types/Auth";
+} from "@/types/Auth.type";
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     const response = await axiosClient.post<LoginResponse>("/auth/login", data);

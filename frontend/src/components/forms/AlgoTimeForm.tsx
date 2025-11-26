@@ -6,11 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle, CalendarIcon } from "lucide-react"
-import {
-  type EmailPayload
-} from "../interfaces/CreateCompetitionTypes";
-import type { Question } from "../interfaces/Question";
-import { logFrontend } from '../../api/logFrontend';
+import type { Question } from "../../types/questions/Question.type";
+import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import {
@@ -28,7 +25,7 @@ import {
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
-import type { Session } from "@/types/AlgoTime";
+import type { Session } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 

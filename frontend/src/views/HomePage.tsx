@@ -2,13 +2,13 @@ import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
-import { columns } from "../components/HomePageQuestions/questionsColumns"
-import type { Questions } from "../components/HomePageQuestions/questionsColumns"
-import { DataTable } from "../components/HomePageQuestions/questionDataTable"
-import type { Competition } from "@/types/Competition"
+import { columns } from "../components/homepageQuestions/questionsColumns"
+import type { Questions } from "../components/homepageQuestions/questionsColumns"
+import { DataTable } from "../components/homepageQuestions/questionDataTable"
+import type { Competition } from "@/types/competition/Competition.type"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
-import { logFrontend } from '../api/logFrontend';
+import { logFrontend } from '../api/LoggerAPI';
 
 
 function HomePage() {

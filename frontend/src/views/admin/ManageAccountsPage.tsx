@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { columns } from "../../components/manageAccounts/ManageAccountsColumns";
-import type { Account } from "@/types/Account";
+import type { Account } from "@/types/account/Account.type";
 import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageAccountsDataTable";
-import { getAccounts } from "@/api/manageAccounts";
-import { logFrontend } from '../../api/logFrontend';
+import { getAccounts } from "@/api/AccountsAPI";
+import { logFrontend } from '../../api/LoggerAPI';
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
