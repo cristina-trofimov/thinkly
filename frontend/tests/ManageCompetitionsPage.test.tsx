@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ManageCompetitions from '../src/components/manage-competitions/ManageCompetitionsPage';
+import ManageCompetitions from  '../src/views/admin/ManageCompetitionsPage';
 
 
 // --- Mocks ---

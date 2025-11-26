@@ -15,7 +15,7 @@ describe('ManageAccountsPage', () => {
     const apiModule = require('./../src/api/manageAccounts');
     getAccounts = apiModule.getAccounts;
     
-    ManageAccountsPage = require('./../src/views/ManageAccountsPage').default;
+    ManageAccountsPage = require('./../src/views/admin/ManageAccountsPage').default;
   });
 
   beforeEach(() => {

@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { googleLogin, login } from "@/api/auth";
-import type { LoginRequest, DecodedToken } from "@/types/auth";
+import type { LoginRequest, DecodedToken } from "../../types/Auth";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from 'react-router-dom';
 
@@ -51,11 +51,11 @@ export function LoginForm({
             console.log("Logged in as:", decoded.sub);
 
             // Optionally redirect based on role
-//            const role = decoded.sub.role;    throwing lint error: unused
+            //            const role = decoded.sub.role;    throwing lint error: unused
             if (decoded) {
                 navigate('/app/home');
             }
-            
+
 
         } catch (err) {
             console.error(err);
@@ -75,7 +75,7 @@ export function LoginForm({
         try {
             const { credential } = credentialResponse;
             if (!credential) {
-            throw new Error("No credential returned by Google");
+                throw new Error("No credential returned by Google");
             }
 
             const res = await googleLogin(credential);
@@ -96,17 +96,17 @@ export function LoginForm({
         }
     };
 
-/*    const handleGetProfile = async () => {
-        try {
-            const data = await getProfile();
-            console.log("Profile:", data);
-            setProfile(data);
-            alert(`Email: ${data.email}\nRole: ${data.role}`);
-        } catch (err: any) {
-            console.error("Error fetching profile:", err);
-            alert(err.response?.data?.error || err.message);
-        }
-    }; Throwing lint error: unused*/
+    /*    const handleGetProfile = async () => {
+            try {
+                const data = await getProfile();
+                console.log("Profile:", data);
+                setProfile(data);
+                alert(`Email: ${data.email}\nRole: ${data.role}`);
+            } catch (err: any) {
+                console.error("Error fetching profile:", err);
+                alert(err.response?.data?.error || err.message);
+            }
+        }; Throwing lint error: unused*/
 
     const handleGoogleError = (): void => {
         alert("Google Sign-In was unsuccessful. Try again later.");
