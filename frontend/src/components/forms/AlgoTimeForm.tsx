@@ -10,7 +10,7 @@ import {
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
-import {getQuestions} from "@/api/homepageQuestions";
+import { getQuestions } from "@/api/homepageQuestions";
 import { logFrontend } from '../../api/logFrontend';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
+import type { Session } from "@/types/AlgoTime";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -54,10 +55,7 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-type Session = {
-  sessionNumber: number;
-  date: string;
-};
+
 
 export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
@@ -92,12 +90,12 @@ export const AlgoTimeSessionForm = () => {
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
 
   // Calculate repeat sessions
-  const calculateRepeatSessions = () : Session[] => {
+  const calculateRepeatSessions = (): Session[] => {
     if (!formData.date || formData.repeatType === "none") {
-      return [{ sessionNumber: 1, date: formData.date }];
+      return [{ id: "1", sessionNumber: 1, date: formData.date }];
     }
 
-    const sessions : Session[] = [];
+    const sessions: Session[] = [];
     const startDate = new Date(formData.date + 'T00:00:00');
     const endDate = formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : null;
 
@@ -106,6 +104,7 @@ export const AlgoTimeSessionForm = () => {
 
     while (true) {
       sessions.push({
+        id: sessionNumber.toString(),
         sessionNumber,
         date: format(currentDate, 'yyyy-MM-dd')
       });
@@ -154,9 +153,9 @@ export const AlgoTimeSessionForm = () => {
 
   const repeatSessions = calculateRepeatSessions();
 
-const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
 
-useEffect(() => {
+  useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const data = await getQuestions();
@@ -180,9 +179,7 @@ useEffect(() => {
       } catch (err: unknown) {
         const isError = err instanceof Error;
         const errorMessage = isError ? err.message : "Unknown error during question fetch.";
-        
-        console.error("Error fetching questions:", err);
-        
+
         // Log the error to the backend
         logFrontend({
           level: 'ERROR',
@@ -191,12 +188,12 @@ useEffect(() => {
           url: window.location.href,
           stack: isError ? err.stack : undefined, // Safely access stack
         });
-      } 
+      }
     }
 
     fetchQuestions()
   }, [])
-  
+
 
   const validateForm = (): boolean => {
     if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
@@ -258,7 +255,7 @@ useEffect(() => {
     });
     setSelectedQuestions([]);
     setSearchQueries({});
-    setSessionQuestions({ 1: [] }); 
+    setSessionQuestions({ 1: [] });
     setDifficultyFilters({});
     setValidationError('');
   }
@@ -349,7 +346,7 @@ useEffect(() => {
     <div className=" flex flex-col  ">
 
       <div ref={errorRef}>
-        {validationError &&  (
+        {validationError && (
           <Alert className="shadow border-destructive" variant="destructive">
             <AlertCircle />
             <AlertTitle >Warning!</AlertTitle>
@@ -449,57 +446,57 @@ useEffect(() => {
               </div>
             </div>
 
-              {formData.repeatType !== "none" && (
+            {formData.repeatType !== "none" && (
 
-                <div className="w-48 mt-8">
-                  <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
-                  <div className="relative">
-                    <Input
-                      type="text"
-                      value={formData.repeatEndDate}
-                      onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
-                      placeholder="YYYY-MM-DD"
-                      className=" border border-gray-300 rounded-lg focus:ring-2  focus:border-transparent"
-                    />
-                    <Popover open={openEnd} onOpenChange={setOpenEnd}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          id="date-picker"
-                          variant="ghost"
-                          className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
-                        >
-                          <CalendarIcon className="size-3.5" />
-                          <span className="sr-only">Select date</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent
-                        className="w-auto overflow-hidden p-0"
-                        align="end"
-                        alignOffset={-8}
-                        sideOffset={10}
+              <div className="w-48 mt-8">
+                <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    value={formData.repeatEndDate}
+                    onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
+                    placeholder="YYYY-MM-DD"
+                    className=" border border-gray-300 rounded-lg focus:ring-2  focus:border-transparent"
+                  />
+                  <Popover open={openEnd} onOpenChange={setOpenEnd}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date-picker"
+                        variant="ghost"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
                       >
-                        <Calendar
-                          mode="single"
-                          selected={formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : undefined}
-                          captionLayout="dropdown"
-                          month={monthEnd}
-                          onMonthChange={setMonthEnd}
-                          onSelect={(selectedDate) => {
-                            if (selectedDate) {
-                              setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
-                            }
-                            setOpenEnd(false)
-                          }}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                        <CalendarIcon className="size-3.5" />
+                        <span className="sr-only">Select date</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="end"
+                      alignOffset={-8}
+                      sideOffset={10}
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : undefined}
+                        captionLayout="dropdown"
+                        month={monthEnd}
+                        onMonthChange={setMonthEnd}
+                        onSelect={(selectedDate) => {
+                          if (selectedDate) {
+                            setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
+                          }
+                          setOpenEnd(false)
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
+              </div>
 
 
-              )}
+            )}
 
-            
+
 
 
 
@@ -661,7 +658,7 @@ useEffect(() => {
           {/* Action Buttons */}
           <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
             <Button
-              type="button"  
+              type="button"
               variant="outline"
               onClick={handleReset}
               className="cursor-pointer"

@@ -14,7 +14,7 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import type { DecodedToken } from "@/types/auth";
+import type { DecodedToken } from "@/types/Auth";
 import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

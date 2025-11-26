@@ -38,13 +38,17 @@ jest.mock('../src/api/logFrontend', () => ({
 }));
 
 describe('AlgoTimeSessionForm', () => {
+  beforeAll(() => {
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test('renders general information section', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('General Information')).toBeInTheDocument();
     });
@@ -52,7 +56,7 @@ describe('AlgoTimeSessionForm', () => {
 
   test('renders select questions section', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Select Questions for Sessions')).toBeInTheDocument();
     });
@@ -60,10 +64,10 @@ describe('AlgoTimeSessionForm', () => {
 
   test('shows validation error when submitting empty form', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     const submitButton = screen.getByText('Create');
     fireEvent.click(submitButton);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
     });
@@ -71,53 +75,53 @@ describe('AlgoTimeSessionForm', () => {
 
   test('clears date input when reset button is clicked', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByPlaceholderText('YYYY-MM-DD')).toBeInTheDocument();
     });
-    
+
     const dateInput = screen.getByPlaceholderText('YYYY-MM-DD') as HTMLInputElement;
     fireEvent.change(dateInput, { target: { value: '2025-12-25' } });
     expect(dateInput.value).toBe('2025-12-25');
-    
+
     const resetButton = screen.getByText('Reset');
     fireEvent.click(resetButton);
-    
+
     expect(dateInput.value).toBe('');
   });
 
   test('does not show validation error initially', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('General Information')).toBeInTheDocument();
     });
-    
+
     expect(screen.queryByText('Incomplete general information.')).not.toBeInTheDocument();
   });
 
   test('clears validation error after reset', async () => {
     render(<AlgoTimeSessionForm />);
-    
+
     // Wait for component to load
     await waitFor(() => {
       expect(screen.getByText('Create')).toBeInTheDocument();
     });
-    
+
     // Try to submit to trigger validation
     const submitButton = screen.getByText('Create');
     fireEvent.click(submitButton);
-    
+
     // Wait for error to appear
     await waitFor(() => {
       expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
     });
-    
+
     // Click reset
     const resetButton = screen.getByText('Reset');
     fireEvent.click(resetButton);
-    
+
     // Error should be gone
     await waitFor(() => {
       expect(screen.queryByText('Incomplete general information.')).not.toBeInTheDocument();

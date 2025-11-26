@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { columns } from "../components/manageAccounts/ManageAccountsColumns";
+import { columns } from "../../components/manageAccounts/ManageAccountsColumns";
 import type { Account } from "@/types/Account";
-import { ManageAccountsDataTable } from "../components/manageAccounts/ManageAccountsDataTable";
+import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageAccountsDataTable";
 import { getAccounts } from "@/api/manageAccounts";
-import { logFrontend } from '../api/logFrontend'; 
+import { logFrontend } from '../../api/logFrontend';
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
@@ -34,7 +34,7 @@ export default function ManageAccountsPage() {
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : "An unknown error occurred during account fetch.";
-        
+
         // Log fetch failure to the backend
         logFrontend({
           level: 'ERROR',
@@ -43,7 +43,7 @@ export default function ManageAccountsPage() {
           url: window.location.href,
           stack: error instanceof Error ? error.stack : undefined,
         });
-        
+
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -67,7 +67,7 @@ export default function ManageAccountsPage() {
       component: 'ManageAccountsPage',
       url: window.location.href,
     });
-    
+
     setData((prevData) =>
       prevData.filter((account) => !deletedUserIds.includes(account.id))
     );
@@ -81,7 +81,7 @@ export default function ManageAccountsPage() {
       component: 'ManageAccountsPage',
       url: window.location.href,
     });
-    
+
     setData((prevData) =>
       prevData.map((account) =>
         account.id === updatedUser.id ? updatedUser : account

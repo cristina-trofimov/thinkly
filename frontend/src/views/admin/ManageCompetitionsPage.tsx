@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useState } from 'react';
-import CreateCompetitionDialog from "../manage-competitions/CreateCompetitionDialog"
+import CreateCompetitionDialog from "../../components/manage-competitions/CreateCompetitionDialog"
 
 interface Competition {
   id: string;
@@ -50,7 +50,7 @@ const ManageCompetitions = () => {
   // Filter competitions based on search and status
   const filteredCompetitions = competitions.filter((comp) => {
     const matchesSearch = comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          comp.description.toLowerCase().includes(searchQuery.toLowerCase());
+      comp.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = !statusFilter || comp.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -106,7 +106,7 @@ const ManageCompetitions = () => {
         {/* Existing Competitions */}
         {filteredCompetitions.map((comp) => (
           <Card key={comp.id} className="border-border rounded-2xl w-[190px] h-[320px] flex flex-col">
-            <div 
+            <div
               className={`min-h-[146px] min-w-[146px] ${comp.color} mx-auto`}
             />
             <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between">
@@ -130,7 +130,7 @@ const ManageCompetitions = () => {
         ))}
 
         {/* Create New Competition Card */}
-        <Card 
+        <Card
           className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-border rounded-2xl w-[190px] h-[235px] flex flex-col"
           onClick={() => setDialogOpen(true)}
         >
@@ -138,24 +138,24 @@ const ManageCompetitions = () => {
             <Plus className="w-30 h-30 text-primary" strokeWidth={1} />
           </div>
           <CardContent className="flex-1 flex flex-col justify-center px-2">
-              <h3 className="font-semibold text-sm text-center">
-                Create New Competition
-              </h3>
+            <h3 className="font-semibold text-sm text-center">
+              Create New Competition
+            </h3>
           </CardContent>
         </Card>
 
-      {/* No Results matching the filter Message */}
+        {/* No Results matching the filter Message */}
         {filteredCompetitions.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          No competitions found matching your filters.
-        </div>
-      )}
+          <div className="text-center py-12 text-muted-foreground">
+            No competitions found matching your filters.
+          </div>
+        )}
       </div>
-      <CreateCompetitionDialog 
-              open={dialogOpen} 
-              onOpenChange={setDialogOpen} 
-              key={dialogOpen ? 'open' : 'closed'}
-            />
+      <CreateCompetitionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        key={dialogOpen ? 'open' : 'closed'}
+      />
     </div>
   );
 };
