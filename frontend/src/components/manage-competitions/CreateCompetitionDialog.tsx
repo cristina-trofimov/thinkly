@@ -20,6 +20,7 @@ import {
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
 import { getQuestions } from "@/api/QuestionsAPI";
+import { sendEmail } from "@/api/EmailAPI";
 
 function localToUTCZ(dtLocal?: string) {
   if (!dtLocal) return undefined;
@@ -158,37 +159,19 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
     // Handle email notification if recipients are provided
     if (emailData.to.trim()) {
-      const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
-
-      if (toList.length > 0) {
-        const payload: EmailPayload = {
-          to: toList,
+      try {
+        await sendEmail({
+          to: emailData.to,
           subject: emailData.subject,
           text: emailData.text,
-        };
-
-        const sendAt = emailData.sendInOneMinute
-          ? oneMinuteFromNowISO()
-          : localToUTCZ(emailData.sendAtLocal);
-        if (sendAt) payload.sendAt = sendAt;
-
-        try {
-          const res = await fetch('http://127.0.0.1:8000/email/send', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          const body = await res.json().catch(() => ({}));
-
-          if (res.ok) {
-            console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
-          } else {
-            console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
-          }
-        } catch (e: unknown) {
-          const error = e as { message?: string };
-          console.error("Network error:", error?.message ?? String(e));
-        }
+          sendInOneMinute: emailData.sendInOneMinute,
+          sendAtLocal: emailData.sendAtLocal
+        });
+        console.log("Email processing initiated ✅");
+      } catch (error) {
+        // We log the error but allow the form to reset/close 
+        // (mimicking your original "continue on error" flow)
+        console.error("Failed to send email notification:", error);
       }
     }
 
