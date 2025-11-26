@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { StatsCard } from "../components/dashboardCards/StatsCard";
-import { ManageCard } from "../components/dashboardCards/ManageCard";
+import { StatsCard } from "../../components/dashboardCards/StatsCard";
+import { ManageCard } from "../../components/dashboardCards/ManageCard";
 import { QuestionsSolvedChart } from "@/components/dashboardCharts/QuestionsSolvedChart";
 import { TimeToSolveChart } from "@/components/dashboardCharts/TimeToSolveChart";
 import { NumberOfLoginsChart } from "@/components/dashboardCharts/NumberOfLoginsChart";
@@ -103,6 +103,18 @@ export function AdminDashboard() {
                 ]}
               />
             </div>
+            <Link
+              to="/app/dashboard/algoTimeSession"
+              className="cursor-pointer block flex-1 min-w-0"
+            >
+              <ManageCard
+                title="Manage Algotime Sessions"
+                items={[
+                  { name: "First Session", info: "Date added: 08/11/25" },
+                  { name: "Second Session", info: "Date added: 08/11/25" },
+                ]}
+              />
+            </Link>
           </div>
 
           <div className="my-6 mx-6 rounded-2xl shadow-md border">
@@ -110,7 +122,7 @@ export function AdminDashboard() {
             {/* Tabs for Algotime/Competitions and Time Range Filter */}
             <div className="flex justify-between items-center gap-2 mt-6 px-6">
               <div className="flex items-center">
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "algotime" | "competitions")}> 
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "algotime" | "competitions")}>
                   <TabsList className="space-x-1">
                     <TabsTrigger value="algotime" className="rounded-md text-primary">Algotime</TabsTrigger>
                     <TabsTrigger value="competitions" className="rounded-md text-primary">Competitions</TabsTrigger>
