@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ActionsCell } from "./../src/components/manageAccounts/UserActionsCell";
-import type { Account } from "./../src/types/Account";
+import type { Account } from "./../src/types/account/Account.type";
 import { toast } from "sonner";
 
-jest.mock("./../src/api/manageAccounts", () => ({
+jest.mock("./../src/api/AccountsAPI", () => ({
   updateAccount: jest.fn(),
 }));
 
@@ -27,7 +27,7 @@ describe("UserActionsCell", () => {
   let updateAccount: jest.Mock;
 
   beforeAll(() => {
-    const apiModule = require("./../src/api/manageAccounts");
+    const apiModule = require("./../src/api/AccountsAPI");
     updateAccount = apiModule.updateAccount;
   });
 

@@ -5,10 +5,10 @@ import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/homepageQuestions/questionsColumns"
 import type { Questions } from "../components/homepageQuestions/questionsColumns"
 import { DataTable } from "../components/homepageQuestions/questionDataTable"
-import type { Competition } from "@/types/competition/Competition.type"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { logFrontend } from '../api/LoggerAPI';
+import type { Competition } from "@/types/competition/Competition.type"
 
 
 function HomePage() {

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import type { Account } from './../src/types/Account';
+import type { Account } from '../src/types/account/Account.type';
 
-jest.mock('./../src/api/manageAccounts', () => ({
+jest.mock('./../src/api/AccountsAPI', () => ({
   getAccounts: jest.fn(),
   updateAccount: jest.fn(),
   deleteAccounts: jest.fn(),
@@ -12,7 +12,7 @@ describe('ManageAccountsPage', () => {
   let getAccounts: jest.Mock;
 
   beforeAll(() => {
-    const apiModule = require('./../src/api/manageAccounts');
+    const apiModule = require('./../src/api/AccountsAPI');
     getAccounts = apiModule.getAccounts;
     
     ManageAccountsPage = require('./../src/views/admin/ManageAccountsPage').default;

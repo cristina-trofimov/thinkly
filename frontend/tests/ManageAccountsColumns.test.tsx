@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { columns } from "../src/components/manageAccounts/ManageAccountsColumns";
-import type { Account } from "./../src/types/Account";
+import type { Account } from "./../src/types/account/Account.type";
 
 const mockAccount: Account = {
   id: 1,

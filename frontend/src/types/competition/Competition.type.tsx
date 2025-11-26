@@ -1,5 +1,5 @@
 export interface Competition {
-  id: number
-  competitionTitle: string
-  date: Date
+    id: number
+    competitionTitle: string
+    date: Date
 }

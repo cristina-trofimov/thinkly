@@ -127,17 +127,17 @@ export const SessionQuestionSelector = ({
                             {sessionFilteredQuestions.map((q) => (
                                 <div
                                     key={q.id}
-                                    className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(q.id as number) ? 'bg-primary/10' : ''
+                                    className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(Number(q.id)) ? 'bg-primary/10' : ''
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Checkbox
-                                                checked={sessionQuestions[sessionNumber]?.includes(q.id as number) || false}
+                                                checked={sessionQuestions[sessionNumber]?.includes(Number(q.id)) || false}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    toggleQuestionForSession(sessionNumber, q.id as number);
+                                                    toggleQuestionForSession(sessionNumber, Number(q.id));
                                                 }}
                                                 className="w-4 h-4 accent-primary pointer-events-auto"
                                             />

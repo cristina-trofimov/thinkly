@@ -1,6 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Competition } from "@/types/competition/Competition.type";
 import { config } from "../config";
+import type { Competition } from "@/types/competition/Competition.type";
 
 
 export async function getCompetitions(): Promise<Competition[]> {
