@@ -16,26 +16,12 @@ import { Switch } from "@/components/ui/switch";
 import { IconPlus, IconSearch } from "@tabler/icons-react";
 import {
   type CreateCompetitionDialogProps,
-  type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 
-function localToUTCZ(dtLocal?: string) {
-  if (!dtLocal) return undefined;
-  const localDate = new Date(dtLocal);
-  if (Number.isNaN(localDate.getTime())) {
-    console.error("Invalid date string provided:", dtLocal);
-    return undefined;
-  }
-  const utcISOString = localDate.toISOString();
-  return utcISOString.replace(".000Z", "Z");
-}
 
-function oneMinuteFromNowISO() {
-  return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
-}
 
 export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly<CreateCompetitionDialogProps>) {
   const [formData, setFormData] = useState({
