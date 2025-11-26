@@ -10,7 +10,6 @@ import {
   type EmailPayload
 } from "../interfaces/CreateCompetitionTypes";
 import type { Question } from "../interfaces/Question";
-import { getQuestions } from "@/api/homepageQuestions";
 import { logFrontend } from '../../api/logFrontend';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
@@ -30,21 +29,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session } from "@/types/AlgoTime";
+import { getQuestions } from "@/api/QuestionsAPI";
+import { sendEmail } from "@/api/EmailAPI";
 
-function localToUTCZ(dtLocal?: string) {
-  if (!dtLocal) return undefined;
-  const localDate = new Date(dtLocal);
-  if (Number.isNaN(localDate.getTime())) {
-    console.error("Invalid date string provided:", dtLocal);
-    return undefined;
-  }
-  const utcISOString = localDate.toISOString();
-  return utcISOString.replace(".000Z", "Z");
-}
 
-function oneMinuteFromNowISO() {
-  return new Date(Date.now() + 60_000).toISOString().replace(".000Z", "Z");
-}
+
+
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -156,17 +146,17 @@ export const AlgoTimeSessionForm = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const getAllQuestions = async () => {
       try {
         const data = await getQuestions();
-        const transformed = data.map(q => ({
+        const transformed = data.map((q: Question) => ({
           ...q,
           // SessionQuestionSelector expects q.title, not q.questionTitle
-          title: q.questionTitle,
+          title: q.title,
           // normalize difficulty to lowercase
-          difficulty: q.difficulty.toLowerCase(),
+          difficulty: q.difficulty?.toLowerCase(),
           // id might be string, convert to number if selector expects number
-          id: Number(q.id),
+          id: q.id,
         }));
         setQuestions(transformed);
 
@@ -191,7 +181,7 @@ export const AlgoTimeSessionForm = () => {
       }
     }
 
-    fetchQuestions()
+    getAllQuestions()
   }, [])
 
 
@@ -281,44 +271,24 @@ export const AlgoTimeSessionForm = () => {
       //   questions: sessionQuestions[session.sessionNumber] || []
       // }));
 
-      // Handle Session creationF
-      console.log("Session created:", formData);
-      console.log("Selected questions:", selectedQuestions);
-
       // Handle email notification if recipients are provided
       if (emailData.to.trim()) {
-        const toList = emailData.to.split(",").map(s => s.trim()).filter(Boolean);
 
-        if (toList.length > 0) {
-          const payload: EmailPayload = {
-            to: toList,
-            subject: emailData.subject,
-            text: emailData.text,
-          };
+        await sendEmail({
+          to: emailData.to,
+          subject: emailData.subject,
+          text: emailData.text,
+          sendInOneMinute: emailData.sendInOneMinute,
+          sendAtLocal: emailData.sendAtLocal,
+        });
 
-          const sendAt = emailData.sendInOneMinute
-            ? oneMinuteFromNowISO()
-            : localToUTCZ(emailData.sendAtLocal);
-          if (sendAt) payload.sendAt = sendAt;
+        logFrontend({
+          level: 'INFO',
+          message: `Email processing initiated ✅`,
+          component: 'AlgoTimeSessionForm',
+          url: window.location.href,
+        });
 
-          try {
-            const res = await fetch('http://127.0.0.1:8000/email/send', {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-            const body = await res.json().catch(() => ({}));
-
-            if (res.ok) {
-              console.log(sendAt ? "Email scheduled ✅" : "Email sent ✅");
-            } else {
-              console.error("Email send failed:", body?.error || `HTTP ${res.status}`);
-            }
-          } catch (e: unknown) {
-            const error = e as { message?: string };
-            console.error("Network error:", error?.message ?? String(e));
-          }
-        }
       }
       // Navigate to main page 
       navigate("/app/dashboard");
