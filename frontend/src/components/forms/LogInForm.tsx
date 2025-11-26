@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { googleLogin, login } from "@/api/auth";
-import type { LoginRequest, DecodedToken } from "@/types/Auth";
+import type { LoginRequest, DecodedToken } from "../../types/Auth";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from 'react-router-dom';
 
