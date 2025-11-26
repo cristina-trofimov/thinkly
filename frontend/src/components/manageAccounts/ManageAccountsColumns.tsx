@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AvatarInitials } from "../helpers/AvatarInitials";
 import { ActionsCell } from "./UserActionsCell";
-import type { Account } from "@/types/Account";
+import type { Account } from "@/types/account/Account.type";
 
 export const columns: ColumnDef<Account>[] = [
   {

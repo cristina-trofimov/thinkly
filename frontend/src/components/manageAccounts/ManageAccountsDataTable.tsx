@@ -56,9 +56,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Account } from "@/types/Account";
+import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
-import { deleteAccounts } from "@/api/manageAccounts";
+import { deleteAccounts } from "@/api/AccountsAPI";
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
@@ -283,9 +283,9 @@ export function ManageAccountsDataTable<TData, TValue>({
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   );
                 })}

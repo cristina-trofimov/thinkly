@@ -2,12 +2,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { CompetitionCard } from "../src/components/leaderboards/CompetitionCard";
 
 const mockCompetition = {
-  id: "1",
-  name: "Test Challenge",
-  date: "2025-10-20",
-  participants: [
-    { name: "Alice", points: 1200, problemsSolved: 10, totalTime: "10 min", user_id: 1, rank: 1},
-  ],
+  id: 1,
+  competitionTitle: "Competition A",
+  date: new Date("2025-09-15"),
 };
 
 describe("CompetitionCard", () => {

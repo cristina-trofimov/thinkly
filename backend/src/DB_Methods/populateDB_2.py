@@ -1,8 +1,14 @@
 #  do /backend/src and run python -m DB_Methods.populateDB_2
+
+import sys
+import os
+
+# Add the parent directory (src) to the system path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, UTC, timezone
 import random
-from DB_Methods.crudOperations import (
+from crudOperations import (
 
     create_competition,
     add_participation,
@@ -10,7 +16,7 @@ from DB_Methods.crudOperations import (
     upsert_scoreboard,
     engine, SessionLocal
 )
-from endpoints.authentification import (
+from endpoints.authentification_api import (
     create_user
 )
 # Reuse your existing engine/Session factory

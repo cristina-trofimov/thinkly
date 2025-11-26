@@ -2,27 +2,24 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboards } from "../src/components/leaderboards/Leaderboards";
 import axiosClient from "@/lib/axiosClient";
+import type { Competition } from "../src/types/competition/Competition.type";
 
 // Mock axiosClient
 jest.mock("@/lib/axiosClient");
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
-const mockCompetitions = [
+const mockCompetitions: Competition[] = [
   {
-    id: "1",
-    name: "Competition A",
-    date: "2025-09-15",
-    participants: [
-      { rank: 1, name: "Alice", score: 100 }
-    ]
+    id: 1,
+    competitionTitle: "Competition A",
+    date: new Date("2025-09-15"),
+
   },
   {
-    id: "2",
-    name: "Competition B",
-    date: "2025-10-31",
-    participants: [
-      { rank: 1, name: "Bob", score: 95 }
-    ]
+    id: 2,
+    competitionTitle: "Competition B",
+    date: new Date("2025-10-31"),
+
   },
 ];
 

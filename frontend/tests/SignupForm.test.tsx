@@ -3,12 +3,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SignupForm } from "../src/components/forms/SignupForm";
-import { signup, login } from "../src/api/auth";
+import { signup, login } from "../src/api/AuthAPI";
 import { useNavigate } from "react-router-dom";
 import { jest } from '@jest/globals';
 
 // Mock the auth API
-jest.mock("@/api/auth", () => ({
+jest.mock("@/api/AuthAPI", () => ({
     signup: jest.fn(),
     login: jest.fn(),
 }));
