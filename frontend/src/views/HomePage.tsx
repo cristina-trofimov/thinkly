@@ -18,7 +18,7 @@ function HomePage() {
 
 
   React.useEffect(() => {
-    const fetchQuestions = async () => {
+    const getAllQuestions = async () => {
       try {
         const data = await getQuestions();
         setQuestions(data);
@@ -46,11 +46,11 @@ function HomePage() {
       }
     }
 
-    fetchQuestions()
+    getAllQuestions()
   }, [])
 
   React.useEffect(() => {
-    const fetchCompetitions = async () => {
+    const getAllCompetitions = async () => {
       try {
         const data = await getCompetitions();
         setCompetitions(data);
@@ -77,7 +77,7 @@ function HomePage() {
         });
       }
     };
-    fetchCompetitions()
+    getAllCompetitions()
   }, [])
 
   const competitionsForSelectedDate = React.useMemo(() => {

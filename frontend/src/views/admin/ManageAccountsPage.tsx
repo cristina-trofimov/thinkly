@@ -11,7 +11,7 @@ export default function ManageAccountsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const getAllAccounts = async () => {
       setLoading(true); // Ensure loading is reset on mount
       logFrontend({
         level: 'INFO',
@@ -49,7 +49,7 @@ export default function ManageAccountsPage() {
         setLoading(false);
       }
     };
-    fetchData();
+    getAllAccounts();
   }, []);
 
   if (loading) {
