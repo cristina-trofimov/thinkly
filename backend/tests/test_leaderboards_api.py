@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from endpoints.leaderboards_api import leaderboards_router, get_db
+from endpoints.leaderboards_api import  get_db
 from main import app
 
 client = TestClient(app)
