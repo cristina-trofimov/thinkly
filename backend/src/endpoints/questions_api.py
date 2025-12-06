@@ -1,7 +1,5 @@
-from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 import logging
-from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 from models.schema import BaseQuestion
 from DB_Methods.database import get_db
