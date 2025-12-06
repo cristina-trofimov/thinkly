@@ -1,15 +1,14 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
-from datetime import timedelta
-import sys
-import os
+from datetime import 
+
 
 # --- Setup: Import the app and router ---
 # We assume your file is named 'auth.py'. 
 # If it is named differently, change 'from auth import ...' below.
 from fastapi import FastAPI
-from auth import (
+from authentification import (
     auth_router, 
     get_db, 
     create_access_token, 

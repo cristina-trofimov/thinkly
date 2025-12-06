@@ -7,6 +7,7 @@ export const getBackendUrl = (): string => {
       return import.meta.env.VITE_BACKEND_URL;
     }
   } catch (error) {
+    console.warn('import.meta is not supported in this environment.', error);
     // Ignore errors if import.meta is not supported in the current environment
   }
 
