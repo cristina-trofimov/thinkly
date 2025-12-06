@@ -68,3 +68,6 @@ backend/src/.env/
 backend/src/.venv/
 backend/src/ENV/
 backend/src/env/
+
+# Backup files
+.bk
