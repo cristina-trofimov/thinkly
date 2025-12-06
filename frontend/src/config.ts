@@ -1,11 +1,15 @@
 export const getBackendUrl = (): string => {
-  let viteEnv: any = {};
+  // Define the expected shape of the Vite environment
+  type ViteEnv = Record<string, string | undefined>;
+
+  let viteEnv: ViteEnv | undefined;
 
   try {
     // Hide 'import.meta' from the CommonJS parser (Jest) by using new Function.
-    // This allows the browser/Vite to execute it, but prevents Jest from crashing on SyntaxError.
-    viteEnv = new Function('return import.meta.env')();
+    // Cast the result to our typed definition.
+    viteEnv = new Function('return import.meta.env')() as ViteEnv;
   } catch (e) {
+    console.warn(e);
     // Fails in Jest/Node (CommonJS), safely ignored.
   }
 
@@ -18,5 +22,3 @@ export const getBackendUrl = (): string => {
 };
 
 export const BACKEND_URL = getBackendUrl();
-
-

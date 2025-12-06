@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { getCompetitions, getCompetitionsDetails } from "@/api/CompetitionAPI";
+import {  getCompetitionsDetails } from "@/api/CompetitionAPI";
 
 export function Leaderboards() {
   const [competitions, setCompetitions] = useState<CompetitionWithParticipants[]>([]);
