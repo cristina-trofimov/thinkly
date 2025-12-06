@@ -84,8 +84,8 @@ def test_signup_success(client, mock_db_session):
 
     # Patch the helper function 'get_user_by_email' to return None (user doesn't exist)
     # Patch 'create_user' to verify it gets called
-    with patch("auth.get_user_by_email", return_value=None), \
-         patch("auth.create_user") as mock_create:
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None), \
+        patch("src.endpoints.authentification_api.create_user") as mock_create:
         
         response = client.post("/signup", json=payload)
         
@@ -104,7 +104,7 @@ def test_signup_existing_user(client):
     }
 
     # Mock that a user ALREADY exists
-    with patch("auth.get_user_by_email", return_value=MagicMock()):
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=MagicMock()):
         response = client.post("/signup", json=payload)
         assert response.status_code == 400
         assert response.json()["detail"] == "User already exists"
@@ -117,7 +117,7 @@ def test_login_success(client, mock_user):
     }
 
     # Mock DB finding the user
-    with patch("auth.get_user_by_email", return_value=mock_user):
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.post("/login", json=payload)
         
         assert response.status_code == 200
@@ -130,7 +130,7 @@ def test_login_wrong_password(client, mock_user):
         "password": "WRONG_PASSWORD"
     }
 
-    with patch("auth.get_user_by_email", return_value=mock_user):
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.post("/login", json=payload)
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid credentials"
@@ -154,8 +154,8 @@ def test_google_auth_success(client):
     # 2. Mock get_user_by_email (return None first to simulate new user, then return user)
     # 3. Mock create_user
     with patch("google.oauth2.id_token.verify_oauth2_token", return_value=mock_google_data), \
-         patch("auth.get_user_by_email", side_effect=[None, new_google_user]), \
-         patch("auth.create_user"):
+         patch("src.endpoints.authentification_api.get_user_by_email", side_effect=[None, new_google_user]), \
+         patch("src.endpoints.authentification_api.create_user"):
         
         response = client.post("/google-auth", json={"credential": "fake-jwt-token"})
         
@@ -168,7 +168,7 @@ def test_profile_endpoint(client, mock_user):
     # Create a valid token manually using your helper function
     token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
     
-    with patch("auth.get_user_by_email", return_value=mock_user):
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.get(
             "/profile", 
             headers={"Authorization": f"Bearer {token}"}
