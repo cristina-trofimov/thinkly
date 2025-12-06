@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { getCompetitions } from "@/api/CompetitionAPI";
+import { getCompetitions, getCompetitionsDetails } from "@/api/CompetitionAPI";
 
 export function Leaderboards() {
   const [competitions, setCompetitions] = useState<CompetitionWithParticipants[]>([]);
@@ -20,7 +20,7 @@ export function Leaderboards() {
         setLoading(true);
         setError(null);
 
-        const response = await getCompetitions();
+        const response = await getCompetitionsDetails();
 
         setCompetitions(response);
       } catch (err) {
@@ -36,7 +36,7 @@ export function Leaderboards() {
 
 
   const filteredCompetitions = competitions
-    .filter((c) => c.competitionTitle.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.competitionTitle?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) =>
       sortAsc
         ? new Date(a.date).getTime() - new Date(b.date).getTime()

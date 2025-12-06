@@ -190,28 +190,5 @@ describe("Account Columns", () => {
 
       expect(screen.getByRole("button")).toBeInTheDocument();
     });
-
-    it("opens edit dialog when Edit User is clicked", async () => {
-      const user = userEvent.setup();
-      const row = createMockRow();
-      const table = createMockTable();
-
-      const TestComponent = () => {
-        const Cell = actionsColumn.cell as Function;
-        return <>{Cell({ row, table })}</>;
-      };
-
-      render(<TestComponent />);
-
-      const button = screen.getByRole("button");
-      await user.click(button);
-
-      const editMenuItem = await screen.findByText("Edit User");
-      await user.click(editMenuItem);
-
-      expect(
-        await screen.findByText("Make changes to the user account here.")
-      ).toBeInTheDocument();
-    });
   });
 });

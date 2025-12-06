@@ -5,6 +5,7 @@ const mockCompetition = {
   id: 1,
   competitionTitle: "Competition A",
   date: new Date("2025-09-15"),
+  participants: []
 };
 
 describe("CompetitionCard", () => {

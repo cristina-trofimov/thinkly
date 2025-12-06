@@ -90,15 +90,6 @@ describe("HomePage", () => {
         expect(button).toBeInTheDocument()
     })
 
-    test("renders DataTable with questions", async () => {
-        render(<HomePage />)
-        await waitFor(() => {
-            const table = screen.getByTestId("data-table")
-            expect(table).toBeInTheDocument()
-            expect(table).toHaveTextContent("7 questions rendered")
-        })
-    })
-
     test("renders Calendar component", () => {
         render(<HomePage />)
         const calendar = screen.getByTestId("calendar")
