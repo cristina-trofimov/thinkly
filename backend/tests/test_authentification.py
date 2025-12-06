@@ -2,22 +2,31 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 
+import sys
+import os
+
+# 1. Get the path to the 'backend' folder (the parent of 'tests')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+# 2. Add 'backend' to the system path so Python can find 'src'
+sys.path.append(parent_dir)
+
+# 3. NOW import the file following the folder structure
+# Note: We use the actual filename 'authentification_api' (no .py)
+from src.endpoints import authentification_api
+from src.DB_Methods import database
+
 # --- Setup: Import the app and router ---
 # We assume your file is named 'auth.py'. 
 # If it is named differently, change 'from auth import ...' below.
 from fastapi import FastAPI
-from authentification import (
-    auth_router, 
-    get_db, 
-    create_access_token, 
-    token_blocklist,
-    User # We import User class for typing, even if we mock the objects
-)
+
 import bcrypt
 
 # Create a dummy app for testing and include the router
 app = FastAPI()
-app.include_router(auth_router)
+app.include_router(authentification_api.auth_router)
 
 # --- Fixtures ---
 
@@ -38,7 +47,7 @@ def client(mock_db_session):
         finally:
             pass
     
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[database.get_db] = override_get_db
     return TestClient(app)
 
 @pytest.fixture
@@ -157,7 +166,7 @@ def test_profile_endpoint(client, mock_user):
     """Test accessing a protected route with a valid token."""
     
     # Create a valid token manually using your helper function
-    token = create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
     
     with patch("auth.get_user_by_email", return_value=mock_user):
         response = client.get(
@@ -172,7 +181,7 @@ def test_logout_revocation(client, mock_user):
     """Test that logging out adds the token ID (jti) to the blocklist."""
     
     # 1. Generate token
-    token = create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
     
     # 2. Call Logout
     response = client.post(
@@ -195,7 +204,7 @@ def test_admin_dashboard_access_denied(client, mock_user):
     """Test that a regular 'participant' cannot access admin dashboard."""
     
     # User is 'participant'
-    token = create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})
     
     response = client.get(
         "/admin/dashboard",
@@ -208,7 +217,7 @@ def test_admin_dashboard_access_granted(client, admin_user):
     """Test that an 'admin' can access admin dashboard."""
     
     # User is 'admin'
-    token = create_access_token({"sub": admin_user.email, "role": "admin", "id": admin_user.user_id})
+    token = authentification_api.create_access_token({"sub": admin_user.email, "role": "admin", "id": admin_user.user_id})
     
     response = client.get(
         "/admin/dashboard",
