@@ -70,4 +70,4 @@ backend/src/ENV/
 backend/src/env/
 
 # Backup files
-.bk
+*.bk
