@@ -1,8 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
-from datetime import 
-
 
 # --- Setup: Import the app and router ---
 # We assume your file is named 'auth.py'. 
