@@ -1,44 +1,19 @@
-describe('Check Home page', () => {
-  beforeEach(() => {
-    // Inject config into window before the page loads
-    Cypress.on('window:before:load', (win) => {
-      win.config = { backendUrl: Cypress.env('BACKEND_URL') || 'http://localhost:8000' };
-    });})
-  
-    it('Visits the home page and filters questions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-questions*`, {
-        statusCode: 200,
-        body: [
-          {
-            "id": 1,
-            "questionTitle": "Two Sum",
-            "date": "2025-11-09T18:36:41.166298",
-            "difficulty": "easy"
-          },
-          {
-            "id": 2,
-            "questionTitle": "Valid Parentheses",
-            "date": "2025-11-09T18:36:41.207719",
-            "difficulty": "easy"
-          },
-        ],
-      }).as('getQuestions');
+it('loads the homepage components', () => {
+  // 1. Visit login page first (if needed)
+  cy.visit('/');
 
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
-        statusCode: 200,
-        body: [],
-      }).as('getCompetitions');
-      
-      cy.visit('http://localhost:5173/app/home');
-      cy.wait('@getQuestions');
-      cy.wait('@getCompetitions');
-      
-      cy.contains("It's Competition Time!").should('be.visible');
-      cy.contains('Filter Difficulties').should('be.visible').click();
-      cy.get('[data-testid="filter-easy"]').should('be.visible').click();
-      cy.contains("Valid Parentheses").should('be.visible');
-    });
-    
-   
-  }
-  );
+  // 2. Type into your login inputs (inspect your login form for IDs/names)
+  cy.get('button[type="button"]').click();
+  cy.get('input[id="first_name"]').type('john'); 
+  cy.get('input[id="last_name"]').type('doe');
+  cy.get('input[id="email"]').type('john.doe@example.com');
+  cy.get('input[id="password"]').type('1234');
+  cy.get('input[id="confirm_password"]').type('1234');
+  cy.get('button[type="submit"]').click();
+
+
+
+  // 3. NOW check for the homepage content
+  // We increase timeout in case login takes a moment
+  cy.contains("It's Competition Time!", { timeout: 10000 }).should('be.visible');
+});

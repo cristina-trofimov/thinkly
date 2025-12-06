@@ -1,24 +1,23 @@
 export const getBackendUrl = (): string => {
-  // Define the expected shape of the Vite environment
-  type ViteEnv = Record<string, string | undefined>;
-
-  let viteEnv: ViteEnv | undefined;
-
+  // 1. Try to use Vite's standard environment variables (Browser/Vite)
+  // We use a try-catch because accessing import.meta in some non-module environments
+  // might throw a syntax error during parsing, though modern bundlers handle this.
   try {
-    // Hide 'import.meta' from the CommonJS parser (Jest) by using new Function.
-    // Cast the result to our typed definition.
-    viteEnv = new Function('return import.meta.env')() as ViteEnv;
-  } catch (e) {
-    console.warn(e);
-    // Fails in Jest/Node (CommonJS), safely ignored.
+    if (import.meta.env && import.meta.env.VITE_BACKEND_URL) {
+      return import.meta.env.VITE_BACKEND_URL;
+    }
+  } catch (error) {
+    // Ignore errors if import.meta is not supported in the current environment
   }
 
-  if (viteEnv?.VITE_BACKEND_URL) {
-    return viteEnv.VITE_BACKEND_URL;
+  // 2. Fallback for Node/Jest environments
+  // We check if 'process' is defined to avoid "process is not defined" errors in the browser
+  if (typeof process !== 'undefined' && process.env && process.env.VITE_BACKEND_URL) {
+    return process.env.VITE_BACKEND_URL;
   }
 
-  // Fallback for Jest/Node.js environment
-  return process.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  // 3. Default fallback
+  return 'http://localhost:8000';
 };
 
 export const BACKEND_URL = getBackendUrl();
