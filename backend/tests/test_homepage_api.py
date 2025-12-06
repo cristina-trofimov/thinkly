@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from datetime import datetime
 from types import SimpleNamespace
 from main import app
-from endpoints import homepage_api
+from src.DB_Methods import database
 
 client = TestClient(app)
 
@@ -31,7 +31,7 @@ class TestHomepageEndpoints:
 
         # Patch db query
         mock_db.query.return_value.all.return_value = fake_questions
-        app.dependency_overrides[homepage_api.get_db] = override_get_db(mock_db)
+        app.dependency_overrides[database.get_db] = override_get_db(mock_db)
 
         response = client.get("/homepage/get-questions")
         assert response.status_code == 200
