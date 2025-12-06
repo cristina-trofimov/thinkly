@@ -1,19 +1,19 @@
-import type { ProblemTemplate } from "../interfaces/ProblemTemplate";
+import type { QuestionTemplate } from "../../types/questions/QuestionTemplate.type";
 
 
-export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
+export const CodeMultiLangTemplate: Record<string, QuestionTemplate> = {
     Java: {
         fileExt: "java",
         filename: "Main.java",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`class ${problemName} {
+            `class ${problemName} {
     public static void main(String[] args) {
         Solution(${inputVars.map(v => v.name).join(', ')})
     }
 
     static ${outputType} Solution(${inputVars
-        .map(v => `${v.type} ${v.name}`).join(', ')}) {
+                    .map(v => `${v.type} ${v.name}`).join(', ')}) {
         // TODO
         return /* */;
     }
@@ -24,7 +24,7 @@ export const CodeMultiLangTemplate: Record<string, ProblemTemplate> = {
         filename: "solution.py",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
+            `def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
     # TODO
     pass
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         filename: "solution_py3.py",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
+            `def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
     # TODO
     pass
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         filename: "solution.c",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`#include <stdio.h>
+            `#include <stdio.h>
 // ${problemName}
 // ${outputType}
 void solution(${inputVars.map(v => `${v.type} ${v.name}`).join(', ')}) {
@@ -78,7 +78,7 @@ int main() {
         filename: "program.cs",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`using System;
+            `using System;
 
 public class ${problemName} {
     public static void Main(string[] args) {
@@ -97,7 +97,7 @@ public class ${problemName} {
         filename: "solution.cpp",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`#include <iostream>
+            `#include <iostream>
 using namespace std;
 // ${problemName}
 
@@ -117,7 +117,7 @@ int main() {
         filename: "Main.kt",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`fun main(){
+            `fun main(){
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
     // ${problemName}
     // ${outputType}
@@ -133,7 +133,7 @@ fun solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}){
         filename: "index.ts",
         template: 'vanilla-ts',
         codeBuilder: (problemName, inputVars, outputType) =>
-`function ${problemName}(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}): ${outputType} {
+            `function ${problemName}(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}): ${outputType} {
     // TODO
     return null as any
 }
@@ -145,7 +145,7 @@ export default ${problemName};`.trim()
         filename: "index.js",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`function ${problemName}(${inputVars.map(v => v.name).join(', ')}) {
+            `function ${problemName}(${inputVars.map(v => v.name).join(', ')}) {
     // ${outputType}
     // TODO
 }
@@ -157,7 +157,7 @@ module.exports = ${problemName}`.trim()
         filename: "solution.rb",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`def ${problemName}(${inputVars.map(v => v.name).join(", ")})
+            `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
     # ${outputType}
     # TODO
 end
@@ -172,7 +172,7 @@ end`.trim()
         filename: "main.rs",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`fn main() {
+            `fn main() {
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
     // ${problemName}
     // ${outputType}
@@ -189,7 +189,7 @@ fn solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}) {
         filename: "main.erl",
         template: 'vanilla',
         codeBuilder: (problemName, inputVars, outputType) =>
-`-module(${problemName.toLowerCase()}).
+            `-module(${problemName.toLowerCase()}).
 -export([main/0]).
 
 % ${problemName}

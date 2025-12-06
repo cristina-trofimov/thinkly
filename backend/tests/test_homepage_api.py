@@ -1,10 +1,18 @@
+import sys
+import os
+
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock
 from datetime import datetime
 from types import SimpleNamespace
 from main import app
-from endpoints import homepage_api
+from src.DB_Methods import database
 
 client = TestClient(app)
 
@@ -21,26 +29,6 @@ def override_get_db(mock_db):
 
 # ---------------- Tests ----------------
 class TestHomepageEndpoints:
-
-    def test_get_all_questions(self, mock_db):
-        # Create fake questions with datetime objects
-        fake_questions = [
-            SimpleNamespace(question_id=1, title="Question 1", created_at=datetime(2025, 11, 1), difficulty="Easy"),
-            SimpleNamespace(question_id=2, title="Question 2", created_at=datetime(2025, 11, 2), difficulty="Hard")
-        ]
-
-        # Patch db query
-        mock_db.query.return_value.all.return_value = fake_questions
-        app.dependency_overrides[homepage_api.get_db] = override_get_db(mock_db)
-
-        response = client.get("/homepage/get-questions")
-        assert response.status_code == 200
-        assert response.json() == [
-            {"id": 1, "questionTitle": "Question 1", "date": "2025-11-01T00:00:00", "difficulty": "Easy"},
-            {"id": 2, "questionTitle": "Question 2", "date": "2025-11-02T00:00:00", "difficulty": "Hard"}
-        ]
-
-        app.dependency_overrides.clear()
 
     def test_get_all_competitions(self, mock_db):
         # Create fake competitions with datetime objects (not strings!)

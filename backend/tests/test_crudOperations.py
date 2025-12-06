@@ -3,15 +3,23 @@ Quick CRUD test runner for ThinklyDB.
 Spins up an in-memory SQLite DB, creates all tables,
 runs core CRUD functions from src.DB_Methods.crudOperations, and reports results.
 """
+import sys
+import os
 
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
 import inspect
 from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db import Base
 import models
-from DB_Methods import crudOperations as crud
+from src.DB_Methods import crudOperations as crud
 import bcrypt
+
+
 
 def setup_db():
     """Create in-memory SQLite DB for testing."""

@@ -1,7 +1,7 @@
-import type { allowedTemplateTypes } from "../helpers/SandpackConfig"
-import type { variableTemplate } from "./VariableTemplate"
+import type { allowedTemplateTypes } from "../../components/helpers/SandpackConfig"
+import type { variableTemplate } from "../VariableTemplate.type"
 
-export type ProblemTemplate = {
+export type QuestionTemplate = {
     fileExt: string,
     filename: string,
     template: allowedTemplateTypes,

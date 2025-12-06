@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { columns } from "../../components/manageAccounts/ManageAccountsColumns";
-import type { Account } from "@/types/Account";
+import type { Account } from "@/types/account/Account.type";
 import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageAccountsDataTable";
-import { getAccounts } from "@/api/manageAccounts";
-import { logFrontend } from '../../api/logFrontend';
+import { getAccounts } from "@/api/AccountsAPI";
+import { logFrontend } from '../../api/LoggerAPI';
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
@@ -11,7 +11,7 @@ export default function ManageAccountsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const getAllAccounts = async () => {
       setLoading(true); // Ensure loading is reset on mount
       logFrontend({
         level: 'INFO',
@@ -49,7 +49,7 @@ export default function ManageAccountsPage() {
         setLoading(false);
       }
     };
-    fetchData();
+    getAllAccounts();
   }, []);
 
   if (loading) {
