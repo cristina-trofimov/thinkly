@@ -2,8 +2,8 @@ import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
-import { columns } from "../components/homepageQuestions/questionsColumns"
-import type { Questions } from "../components/homepageQuestions/questionsColumns"
+import { columns } from "../components/homepageQuestions/QuestionsColumns"
+import type { Questions } from "../components/homepageQuestions/QuestionsColumns"
 import { DataTable } from "../components/homepageQuestions/questionDataTable"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
