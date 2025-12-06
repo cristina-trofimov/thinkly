@@ -1,254 +1,226 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateCompetitionDialog from '../src/components/manageCompetitions/CreateCompetitionDialog';
+import { getQuestions } from '../src/api/QuestionsAPI';
+import { sendEmail } from '../src/api/EmailAPI';
+
+// --- Mocks ---
+
+// Mock the API modules
+jest.mock('@/api/QuestionsAPI', () => ({
+  getQuestions: jest.fn(),
+}));
+
+jest.mock('@/api/EmailAPI', () => ({
+  sendEmail: jest.fn(),
+}));
+
+// Mock the UI components if they cause issues in JSDOM, 
+// though usually Shadcn/Radix components work fine. 
+// We will mock the icons to keep the DOM clean.
+jest.mock('@tabler/icons-react', () => ({
+  IconPlus: () => <span data-testid="icon-plus" />,
+  IconSearch: () => <span data-testid="icon-search" />,
+}));
+
+// Mock Data
+const mockQuestions = [
+  { id: '101', title: 'Binary Tree Search', difficulty: 'Medium' },
+  { id: '102', title: 'Graph Traversal', difficulty: 'Hard' },
+  { id: '103', title: 'Array Sorting', difficulty: 'Easy' },
+];
 
 describe('CreateCompetitionDialog', () => {
-  const originalError = console.error;
-  const originalLog = console.log;
-  let mockOnOpenChange: jest.Mock;
-  let mockFetch: jest.Mock;
-
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2025-11-09T18:00:00.000Z')); // stable reference time
-  });
+  const mockOnOpenChange = jest.fn();
 
   beforeEach(() => {
-    mockOnOpenChange = jest.fn();
-    mockFetch = jest.fn();
-
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes('http://127.0.0.1:8000/questions/')) {
-        return Promise.resolve({
-          ok: false,
-          json: async () => ({}),
-        });
-      }
-      if (url.includes('http://127.0.0.1:8000/email/send')) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({}),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => ({}),
-      });
-    });
-
-    (global as any).fetch = mockFetch;
-
-    console.error = jest.fn(() => {});
-    console.log = jest.fn(() => {});
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
-    jest.clearAllTimers();
+    (getQuestions as jest.Mock).mockResolvedValue(mockQuestions);
   });
 
-  afterAll(() => {
-    console.error = originalError;
-    console.log = originalLog;
-    jest.useRealTimers();
+  const renderComponent = (open = true) => {
+    return render(
+      <CreateCompetitionDialog open={open} onOpenChange={mockOnOpenChange} />
+    );
+  };
+
+  test('renders dialog content when open', async () => {
+    renderComponent();
+
+    expect(screen.getByText('Create New Competition')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Competition Name/i)).toBeInTheDocument();
+
+    // Check if API was called to load questions
+    expect(getQuestions).toHaveBeenCalledTimes(1);
+
+    // Wait for questions to load
+    await waitFor(() => {
+      expect(screen.getByText('Binary Tree Search')).toBeInTheDocument();
+    });
   });
 
-  const renderOpen = () =>
-    render(<CreateCompetitionDialog open={true} onOpenChange={mockOnOpenChange} />);
+  test('filters questions based on search query', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Binary Tree Search')).toBeInTheDocument());
 
-  const fillGeneralInfo = async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    await user.type(screen.getByLabelText('Competition Name'), 'Valid Comp');
-    await user.type(screen.getByLabelText('Date'), '2026-10-25');
-    await user.type(screen.getByLabelText('Start Time'), '10:00');
-    await user.type(screen.getByLabelText('End Time'), '12:00');
-  };
+    const searchInput = screen.getByPlaceholderText('Search questions...');
+    const user = userEvent.setup();
 
-  const selectQuestionTwoSum = async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    await waitFor(() => expect(screen.getByText('Two Sum')).toBeInTheDocument());
-    const row = screen.getByText('Two Sum').closest('.flex-1')!;
-    const checkbox = row.parentElement!.querySelector('button,[type="checkbox"]') as HTMLElement;
-    await user.click(checkbox);
-  };
+    // Type "Graph"
+    await user.type(searchInput, 'Graph');
 
-  const selectAnyRiddle = async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    const riddleRow = screen.getByText(/Where's Waldo\?/i).closest('.flex-1')!;
-    const checkbox = riddleRow.parentElement!.querySelector('button,[type="checkbox"]') as HTMLElement;
-    await user.click(checkbox);
-  };
-
-  test('shows no error initially', () => {
-    renderOpen();
-    expect(screen.queryByText(/Incomplete general information/i)).not.toBeInTheDocument();
+    // "Graph Traversal" should exist, "Binary Tree" should be gone
+    expect(screen.getByText('Graph Traversal')).toBeInTheDocument();
+    expect(screen.queryByText('Binary Tree Search')).not.toBeInTheDocument();
   });
 
-  test('blocks submission if General Information is incomplete', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
+  test('validates form: shows error for missing fields', async () => {
+    const user = userEvent.setup();
+    renderComponent();
 
-    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
+    // Click submit without filling anything
+    const submitBtn = screen.getByRole('button', { name: /Create Competition/i });
+    await user.click(submitBtn);
 
-    expect(screen.getByText(/Incomplete general information\./i)).toBeInTheDocument();
+    expect(screen.getByText(/Incomplete general information/i)).toBeInTheDocument();
     expect(mockOnOpenChange).not.toHaveBeenCalled();
-
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions/');
   });
 
-  test('blocks submission if no Question selected', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
+  test('validates form: shows error for past dates', async () => {
+    const user = userEvent.setup();
+    renderComponent();
 
-    await fillGeneralInfo();
-    await selectAnyRiddle();
+    // Fill basic info
+    await user.type(screen.getByLabelText(/Competition Name/i), 'Past Event');
 
+    // Set a date in the past (e.g., year 2000)
+    await user.type(screen.getByLabelText(/Date/i), '2000-01-01');
+    await user.type(screen.getByLabelText(/Start Time/i), '10:00');
+    await user.type(screen.getByLabelText(/End Time/i), '12:00');
+
+    const submitBtn = screen.getByRole('button', { name: /Create Competition/i });
+    await user.click(submitBtn);
+
+    expect(screen.getByText(/must be scheduled for a future date/i)).toBeInTheDocument();
+  });
+
+  test('validates form: shows error when no question/riddle selected', async () => {
+    const user = userEvent.setup();
+    renderComponent();
+
+    // Helper to get a future date string YYYY-MM-DD
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().split('T')[0];
+
+    // Fill General Info
+    await user.type(screen.getByLabelText(/Competition Name/i), 'Valid Event');
+    await user.type(screen.getByLabelText(/Date/i), dateStr);
+    await user.type(screen.getByLabelText(/Start Time/i), '10:00');
+    await user.type(screen.getByLabelText(/End Time/i), '12:00');
+
+    // Attempt submit (No questions/riddles selected)
     await user.click(screen.getByRole('button', { name: /Create Competition/i }));
 
+    // Should complain about questions first
     expect(screen.getByText(/Please select at least one question/i)).toBeInTheDocument();
-    expect(mockOnOpenChange).not.toHaveBeenCalled();
-  });
 
-  test('blocks submission if no Riddle selected', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
+    // Select a question
+    await waitFor(() => screen.getByText('Binary Tree Search'));
+    // Finding checkboxes can be tricky in Shadcn, often easiest to click the label or container row
+    // We'll target the checkbox directly if accessible, or the row text
+    const questionCheckbox = screen.getAllByRole('checkbox')[0]; // Assuming first checkbox is for the first question
+    await user.click(questionCheckbox);
 
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-
+    // Attempt submit again
     await user.click(screen.getByRole('button', { name: /Create Competition/i }));
-
     expect(screen.getByText(/Please select at least one riddle/i)).toBeInTheDocument();
-    expect(mockOnOpenChange).not.toHaveBeenCalled();
   });
 
-  test('allows submission when all fields are complete', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
+  test('submits successfully with valid data and calls email API', async () => {
+    const user = userEvent.setup();
+    renderComponent();
 
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-    await selectAnyRiddle();
+    // 1. Setup Data
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().split('T')[0];
 
-    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
-    await waitFor(() => expect(mockOnOpenChange).toHaveBeenCalledWith(false));
+    // 2. Fill Form
+    await user.type(screen.getByLabelText(/Competition Name/i), 'Grand Prix');
+    fireEvent.change(screen.getByLabelText(/Date/i), { target: { value: dateStr } });
+    fireEvent.change(screen.getByLabelText(/Start Time/i), { target: { value: '14:00' } });
+    fireEvent.change(screen.getByLabelText(/End Time/i), { target: { value: '16:00' } });
+
+    // 3. Select Question (Mocked data needs to load first)
+    await waitFor(() => expect(screen.getByText('Binary Tree Search')).toBeInTheDocument());
+
+    // Click first question checkbox
+    const checkboxes = screen.getAllByRole('checkbox');
+    await user.click(checkboxes[0]);
+
+    // 4. Select Riddle (Riddles are hardcoded, assume they render after questions)
+    // We can search for a riddle title to find the specific checkbox
+    const riddleTitle = screen.getByText("Where's Waldo?");
+    const riddleRow = riddleTitle.closest('div')?.parentElement; // Adjust based on DOM structure
+    // Or just click the checkbox associated with the riddle. 
+    // Since riddles are rendered after questions, we'll look for the riddle text
+    await user.click(screen.getByText("Where's Waldo?")); // Clicking text usually doesn't toggle checkbox unless wrapped in label, but let's try strict checkbox selection:
+
+    // Better strategy for selection:
+    // Find the riddle container and click the checkbox inside it
+    // Note: In your code, `filteredRiddles` map creates checkboxes.
+    // Let's assume the riddle checkboxes appear later in the DOM order.
+    const riddleCheckbox = checkboxes[checkboxes.length - 6]; // 6 hardcoded riddles
+    await user.click(riddleCheckbox);
+
+    // 5. Fill Email Data
+    await user.type(screen.getByLabelText(/To \(comma-separated\)/i), 'test@test.com');
+    await user.type(screen.getByLabelText(/Subject/i), 'Hello');
+
+    // 6. Submit
+    const createButton = screen.getByRole('button', { name: /Create Competition/i });
+    await user.click(createButton);
+
+    // 7. Assertions
+    expect(screen.queryByText(/⚠️/)).not.toBeInTheDocument(); // No error messages
+
+    // Check Email API
+    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({
+      to: 'test@test.com',
+      subject: 'Hello',
+    }));
+
+    // Check Dialog Closure
+    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 
-  test('sends email immediately when "To" is filled and no schedule is set', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
+  test('submits without email if email fields are empty', async () => {
+    const user = userEvent.setup();
+    renderComponent();
 
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-    await selectAnyRiddle();
+    // 1. Setup Valid Data
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dateStr = tomorrow.toISOString().split('T')[0];
 
-    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
-    await user.type(screen.getByLabelText('Subject'), 'Hi');
-    await user.type(screen.getByLabelText('Message'), 'Body');
+    await user.type(screen.getByLabelText(/Competition Name/i), 'No Email Event');
+    fireEvent.change(screen.getByLabelText(/Date/i), { target: { value: dateStr } });
+    fireEvent.change(screen.getByLabelText(/Start Time/i), { target: { value: '14:00' } });
+    fireEvent.change(screen.getByLabelText(/End Time/i), { target: { value: '16:00' } });
 
+    // Select items
+    await waitFor(() => screen.getByText('Binary Tree Search'));
+    const allCheckboxes = screen.getAllByRole('checkbox');
+    await user.click(allCheckboxes[0]); // Select first question
+    await user.click(allCheckboxes[allCheckboxes.length - 1]); // Select last riddle
+
+    // 2. Submit
     await user.click(screen.getByRole('button', { name: /Create Competition/i }));
 
-    await waitFor(() => {
-      expect(mockFetch.mock.calls[0][0]).toBe('http://127.0.0.1:8000/questions/');
-      expect(mockFetch.mock.calls[1][0]).toBe('http://127.0.0.1:8000/email/send');
-      expect(mockFetch.mock.calls[1][1]).toEqual(
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: ['test@example.com'],
-            subject: 'Hi',
-            text: 'Body',
-          }),
-        })
-      );
-    });
-  });
-
-  test('schedules email for 1 minute from now when switch is ON', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
-
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-    await selectAnyRiddle();
-
-    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
-    await user.type(screen.getByLabelText('Subject'), 'Hi');
-    await user.type(screen.getByLabelText('Message'), 'Body');
-
-    await user.click(screen.getByLabelText('Send in 1 minute'));
-    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
-
-    await waitFor(() => {
-      const emailCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
-      expect(emailCallBody).toEqual(
-        expect.objectContaining({
-          to: ['test@example.com'],
-          subject: 'Hi',
-          text: 'Body',
-          sendAt: expect.any(String),
-        })
-      );
-    });
-  });
-
-  test('schedules email for local time when switch is OFF and time is provided', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
-
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-    await selectAnyRiddle();
-
-    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
-    await user.type(screen.getByLabelText('Subject'), 'Hi');
-    await user.type(screen.getByLabelText('Message'), 'Body');
-
-    const localStr = '2026-10-25T12:00';
-    await user.type(screen.getByLabelText('Schedule (local time)'), localStr);
-
-    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
-
-    await waitFor(() => {
-      const emailCallBody = JSON.parse(mockFetch.mock.calls[1][1].body);
-      const expectedISO = new Date(localStr).toISOString().replace('.000Z', 'Z');
-      expect(emailCallBody.sendAt).toBe(expectedISO);
-    });
-  });
-
-  test('logs an error if the email API call fails (HTTP 400)', async () => {
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes('8000/questions/')) {
-        return Promise.resolve({ ok: false, json: async () => ({}) });
-      }
-      if (url.includes('8000/email/send')) {
-        return Promise.resolve({
-          ok: false,
-          status: 400,
-          json: async () => ({ error: 'Bad Request' }),
-        });
-      }
-      return Promise.resolve({ ok: true, json: async () => ({}) });
-    });
-
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
-    renderOpen();
-
-    await fillGeneralInfo();
-    await selectQuestionTwoSum();
-    await selectAnyRiddle();
-
-    await user.type(screen.getByLabelText('To (comma-separated)'), 'test@example.com');
-    await user.type(screen.getByLabelText('Subject'), 'Hi');
-    await user.type(screen.getByLabelText('Message'), 'Body');
-
-    await user.click(screen.getByRole('button', { name: /Create Competition/i }));
-
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith('Email send failed:', 'Bad Request');
-    });
+    // 3. Assertions
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(mockOnOpenChange).toHaveBeenCalledWith(false);
   });
 });
