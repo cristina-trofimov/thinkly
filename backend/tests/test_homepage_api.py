@@ -1,3 +1,11 @@
+import sys
+import os
+
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import Mock

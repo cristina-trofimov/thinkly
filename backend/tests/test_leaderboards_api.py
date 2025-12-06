@@ -4,7 +4,15 @@ from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from endpoints.leaderboards_api import  get_db
+import sys
+import os
+
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+from src.endpoints.leaderboards_api import  get_db
 from main import app
 
 client = TestClient(app)

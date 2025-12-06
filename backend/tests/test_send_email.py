@@ -8,8 +8,15 @@ os.environ['BREVO_API_KEY'] = 'test_api_key_12345'
 os.environ['DEFAULT_SENDER_EMAIL'] = 'sender@example.com'  # Use a valid-looking email
 os.environ['DEFAULT_SENDER_NAME'] = 'Test Sender'
 
+import sys
+import os
+
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from main import app
-from endpoints import send_email_api
 
 client = TestClient(app)
 
