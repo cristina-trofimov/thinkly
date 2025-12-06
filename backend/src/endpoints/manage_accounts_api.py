@@ -5,7 +5,7 @@ from typing import List
 from pydantic import BaseModel
 from DB_Methods.database import get_db, _commit_or_rollback
 from typing import Optional
-from models.schema import BaseQuestion, Competition, User, UserPreferences, Scoreboard
+from models.schema import *
 import logging
 
 manage_accounts_router = APIRouter(tags=["Manage Accounts"])
@@ -22,11 +22,11 @@ class UserUpdateSchema(BaseModel):
     password_hash: Optional[str] = None
     type: Optional[str] = None
 
-def get_all_users(db: Session) -> List[User]:
+def get_all_users(db: Session) -> List[UserAccount]:
     """Retrieve all users."""
     logger.debug("Retrieving all users from database.")
     try:
-        users = db.query(User).all()
+        users = db.query(UserAccount).all()
         logger.debug(f"Found {len(users)} users.")
         return users
     except Exception as e:
@@ -66,20 +66,20 @@ def delete_user_full(db: Session, user_id: int) -> bool:
     logger.warning(f"AUDIT: User account (ID: {user_id}, Email: {user.email}) successfully deleted.")
     return True
 
-def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
+def get_user_by_id(db: Session, user_id: int) -> Optional[UserAccount]:
     """Retrieve a user by ID."""
-    return db.query(User).filter(User.user_id == user_id).first()
+    return db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
 
-def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> User:
+def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None, email: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, password_hash: Optional[str] = None, type: Optional[str] = None) -> UserAccount:
     logger.info(f"Attempting update for user ID: {user_id}")
-    user = db.query(User).filter(User.user_id == user_id).first()
+    user = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
     if not user:
         logger.error(f"Update failed: User ID {user_id} not found.")
         raise ValueError("User not found")
 
     # Prevent creating multiple owners
     if type == 'owner' and user.type != 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        existing_owner = db.query(UserAccount).filter(UserAccount.type == 'owner').first()
         if existing_owner:
             logger.error(f"Update failed: Attempted to set user ID {user_id} to 'owner', but owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
@@ -101,7 +101,7 @@ def update_user_in_db(db: Session, user_id: int, username: Optional[str] = None,
         changed_fields.append("last_name")
     if password_hash is not None:
         # Note: Password hashes should not be logged
-        user.salt = password_hash
+        user.hashed_password = password_hash
         changed_fields.append("password_hash(MASKED)") 
     if type is not None:
         user.type = type

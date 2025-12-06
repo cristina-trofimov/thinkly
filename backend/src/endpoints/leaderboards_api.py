@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from DB_Methods.database import get_db
-from models.schema import UserResult, Competition, Scoreboard
+from models.schema import *
 import logging
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
@@ -19,13 +19,13 @@ def get_all_competitions(db: Session) -> List[Competition]:
         logger.exception("Database error while fetching all competitions.")
         raise e
 
-def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Scoreboard]:
+def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[CompetitionLeaderboardEntry]:
     logger.debug(f"Executing helper query: Fetching scoreboard for competition ID {competition_id}.")
     try:
         scoreboards = (
-            db.query(Scoreboard)
-            .filter(Scoreboard.competition_id == competition_id)
-            .order_by(Scoreboard.rank.asc())
+            db.query(CompetitionLeaderboardEntry)
+            .filter(CompetitionLeaderboardEntry.competition_id == competition_id)
+            .order_by(CompetitionLeaderboardEntry.total_score.asc())
             .all()
         )
         logger.debug(f"Scoreboard query completed for ID {competition_id}. Found {len(scoreboards)} entries.")

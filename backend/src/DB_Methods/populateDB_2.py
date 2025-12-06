@@ -15,7 +15,7 @@ from endpoints.authentification import (
 )
 # Reuse your existing engine/Session factory
 # Import Base + the model we’re seeding
-from models.schema import Base, BaseQuestion
+from models.schema import *
 
 # ----- CONFIG -----
 DIFFICULTIES = ["easy", "medium", "hard"]

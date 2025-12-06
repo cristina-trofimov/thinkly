@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
-from models.schema import User
+from models.schema import *
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
@@ -41,26 +41,36 @@ class GoogleAuthRequest(BaseModel):
     credential: str
 
 # ---------------- DB helpers ----------------
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    return db.query(User).filter(User.email == email).first()
+def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
+    return db.query(UserAccount).filter(UserAccount.email == email).first()
 
 def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
     if type == 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        existing_owner = db.query(UserAccount).filter(UserAccount.type == 'owner').first()
         if existing_owner:
             logger.error("Owner creation failed: An owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
-    new_user = User(
+    new_user = UserAccount(
         username=username,
         email=email,
         first_name=first_name,
         last_name=last_name,
-        salt=password_hash,
-        type=type
+        hashed_password=password_hash,
+        user_type=type
     )
+
+
     db.add(new_user)
     _commit_or_rollback(db)
     db.refresh(new_user)
+    new_user_preferences = UserPreferences(
+        user_id=new_user.user_id,
+        theme="light",
+        notifications_enabled=True
+    )
+    db.add(new_user_preferences)
+    _commit_or_rollback(db)
+    db.refresh(new_user_preferences)
     return new_user
 
 # ---------------- JWT helpers ----------------

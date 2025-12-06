@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from DB_Methods.crudOperations import engine, SessionLocal
 
-from models.schema import Base, BaseQuestion
+from models.schema import *
 
 
 DIFFICULTIES = ["easy", "medium", "hard"]

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from src.DB_Methods.crudOperations import engine, SessionLocal
 
-from src.models.schema import Base, BaseQuestion
+from src.models.schema import *
 
 # ----- CONFIG -----
 DIFFICULTIES = ["easy", "medium", "hard"]

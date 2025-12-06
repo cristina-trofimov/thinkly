@@ -1,8 +1,9 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from DB_Methods.database import get_db
-from models.schema import Scoreboard, Competition
+from models.schema import *
 import logging
 
 current_leaderboard_router = APIRouter(tags=["Current Leaderboard"])
@@ -18,32 +19,28 @@ def get_current_standings(db: Session = Depends(get_db)):
 
     # Get the most recent competition with scoreboard entries
     try:
-        recent_competition = (
+        current_competition: Competition | None = (
             db.query(Competition)
-            .join(Scoreboard, Competition.competition_id == Scoreboard.competition_id)
-            .order_by(desc(Competition.date))
-            .first()
-        )
+            .join(BaseEvent, Competition.event_id == BaseEvent.event_id)
+            .filter(BaseEvent.event_start_date <= datetime.now())
+            .order_by(desc(BaseEvent.event_start_date))
+        ).first() # assumes only one active competition at a time
+        
+        if not current_competition:
+            logger.warning("No active competition found in the current time frame.")
+            raise HTTPException(status_code=404, detail="No active competition found")
+        
+        standings = current_competition.competition_leaderboard_entries
+        
+        
     except Exception:
         logger.exception("Database error while querying recent competition.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database query failed")
 
-    if not recent_competition:
-        logger.warning("No recent competition found with existing scoreboard entries.")
-        raise HTTPException(status_code=404, detail="No active competition found")
+    logger.info(f"Found active competition: ID {current_competition.event_id}, Name '{current_competition.base_event.event_name}'. Fetching standings.")
 
-    logger.info(f"Found active competition: ID {recent_competition.competition_id}, Name '{recent_competition.name}'. Fetching standings.")
-
-    # Get all scoreboard entries for this competition, ordered by rank
-    standings = (
-        db.query(Scoreboard)
-        .filter(Scoreboard.competition_id == recent_competition.competition_id)
-        .order_by(Scoreboard.rank.asc())
-        .all()
-    )
-
-    if not standings:
-        logger.warning(f"Standings query for competition ID {recent_competition.competition_id} returned no results.")
+    if not standings or len(standings) == 0:
+        logger.warning(f"Standings query for competition ID {current_competition.event_id} returned no results.")
         raise HTTPException(status_code=404, detail="No standings found for current competition")
 
     # Build participants list
@@ -60,7 +57,7 @@ def get_current_standings(db: Session = Depends(get_db)):
     logger.info(f"Successfully returned {len(participants)} participants for current standings.")
 
     return {
-        "competitionName": recent_competition.name,
+        "competitionName": current_competition.base_event.event_name,
         "participants": participants
     }
 

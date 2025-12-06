@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 import logging
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
-from models.schema import BaseQuestion
+from models.schema import *
 from DB_Methods.database import get_db
 
 questions_router = APIRouter(tags=["Questions"])
