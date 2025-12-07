@@ -1,12 +1,13 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { CompetitionCard } from "../src/components/leaderboards/CompetitionCard";
+import { Competition } from "../src/components/interfaces/Competition";
 
-const mockCompetition = {
+const mockCompetition: Competition = {
   id: "1",
   name: "Test Challenge",
   date: "2025-10-20",
   participants: [
-    { name: "Alice", points: 1200, problemsSolved: 10, totalTime: "10 min", user_id: 1, rank: 1},
+    { username: "Alice", total_score: 1200, problems_solved: 10, user_id: 1, rank: 1},
   ],
 };
 

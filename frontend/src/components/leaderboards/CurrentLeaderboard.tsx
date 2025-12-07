@@ -5,7 +5,7 @@ import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import axiosClient from "@/lib/axiosClient";
 import type { Participant } from "../interfaces/Participant";
 
-interface CurrentStandings {
+export interface CurrentStandings {
   competition_name: string;
   participants: Participant[];
 }

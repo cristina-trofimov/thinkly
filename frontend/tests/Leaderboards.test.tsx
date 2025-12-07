@@ -53,7 +53,7 @@ describe("Leaderboards", () => {
 
     // Wait for axios to be called
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith("/leaderboards/");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/standings/leaderboards/");
     });
 
     // Wait for both competition names to appear in the document

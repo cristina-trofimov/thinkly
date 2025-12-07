@@ -1,9 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { CurrentLeaderboard } from "../src/components/leaderboards/CurrentLeaderboard";
+import { CurrentLeaderboard, CurrentStandings } from "../src/components/leaderboards/CurrentLeaderboard";
 import axiosClient from "@/lib/axiosClient";
 import React from "react";
 import userEvent from "@testing-library/user-event";
 import { Participant } from "../src/components/interfaces/Participant";
+import { Competition } from "../src/components/interfaces/Competition";
 
 // Mock axios
 jest.mock("@/lib/axiosClient");
@@ -11,11 +12,11 @@ jest.mock("@/lib/axiosClient");
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 describe("CurrentLeaderboard Component", () => {
-  const mockStandings = {
-    competitionName: "Algo Competition",
+  const mockStandings: CurrentStandings = {
+    competition_name: "Algo Competition",
     participants: [
-    {user_id: 1, name: "Alice", points: 900, rank: 7, problemsSolved: 10, totalTime: "3600",} as Participant,
-    {user_id: 2, name: "Bob", points: 1200, rank: 1, problemsSolved: 12, totalTime: "3400",} as Participant,
+    {user_id: 1, username: "Alice", total_score: 900, rank: 7, problems_solved: 10} as Participant,
+    {user_id: 2, username: "Bob", total_score: 1200, rank: 1, problems_solved: 12} as Participant,
   ],
   };
 
@@ -55,7 +56,7 @@ describe("CurrentLeaderboard Component", () => {
   });
 
   it("renders no active competition when participants array is empty", async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { competitionName: "Empty Comp", participants: [] } });
+    mockedAxios.get.mockResolvedValueOnce({ data: { competition_name: "Empty Comp", participants: [] } });
 
     render(<CurrentLeaderboard />);
 

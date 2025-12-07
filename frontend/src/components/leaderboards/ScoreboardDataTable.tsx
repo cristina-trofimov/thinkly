@@ -73,7 +73,7 @@ const RankCellRenderer = (props: CellContext<Participant, unknown>) => {
 };
 
 const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
-  return <span className="font-medium">{props.row.original.name}</span>;
+  return <span className="font-medium">{props.row.original.username}</span>;
 };
 
 export function ScoreboardDataTable({ participants }: Props) {
