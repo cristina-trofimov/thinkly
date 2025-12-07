@@ -1,8 +1,7 @@
 export type Participant = {
-    name: string;
-    points: number;
-    problemsSolved: number;
-    totalTime: string;
+    username: string;
+    total_score: number;
+    problems_solved: number;
     user_id: number;
     rank: number;
 };

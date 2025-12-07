@@ -22,7 +22,7 @@ export function Leaderboards(){
         setError(null);
 
         console.log("Fetching leaderboards...");
-        const response = await axiosClient.get<Competition[]>("/leaderboards/");
+        const response = await axiosClient.get<Competition[]>("/standings/leaderboards/");
         console.log("Leaderboards response:", response.data);
 
         setCompetitions(response.data);

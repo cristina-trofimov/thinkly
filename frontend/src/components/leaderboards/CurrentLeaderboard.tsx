@@ -6,7 +6,7 @@ import axiosClient from "@/lib/axiosClient";
 import type { Participant } from "../interfaces/Participant";
 
 interface CurrentStandings {
-  competitionName: string;
+  competition_name: string;
   participants: Participant[];
 }
 
@@ -75,7 +75,7 @@ export function CurrentLeaderboard() {
       {/* Competition Header */}
       <div className="px-4">
         <h2 className="text-2xl font-bold text-[#8065CD]">
-          {standings.competitionName}
+          {standings.competition_name}
         </h2>
         <p className="text-sm text-gray-500">Live Standings • Updates every 60s</p>
       </div>
