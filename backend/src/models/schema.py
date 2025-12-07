@@ -3,7 +3,7 @@ from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, Foreign
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db import Base
 from typing import List, TYPE_CHECKING, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 class UserAccount(Base):
     __tablename__ = 'user_account'
@@ -38,8 +38,8 @@ class UserSession(Base):
     session_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id'))
     jwt_token: Mapped[str] = mapped_column(unique=True)
-    created_at: Mapped[datetime] = mapped_column()
-    expires_at: Mapped[datetime] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(default=True)
 
     user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='sessions', uselist=False)
@@ -51,10 +51,10 @@ class BaseEvent(Base):
     event_name: Mapped[str] = mapped_column(unique=True)
     event_location: Mapped[Optional[str]] = mapped_column()
     question_cooldown: Mapped[int] = mapped_column(default=300)
-    event_start_date: Mapped[datetime] = mapped_column()
-    event_end_date: Mapped[datetime] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column()
-    updated_at: Mapped[datetime] = mapped_column()
+    event_start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    event_end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     competition: Mapped[Optional[Competition]] = relationship('Competition', back_populates='base_event', uselist=False)
     algotime: Mapped[Optional[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='base_event', uselist=False)
@@ -107,8 +107,8 @@ class Question(Base):
     from_string_function: Mapped[str] = mapped_column(default=False)
     to_string_function: Mapped[str] = mapped_column(default=False)
     template_solution: Mapped[str] = mapped_column()
-    created_at: Mapped[datetime] = mapped_column()
-    last_modified_at: Mapped[datetime] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    last_modified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     test_cases: Mapped[List[TestCase]] = relationship('TestCase', back_populates='question', uselist=True)
     tags: Mapped[List[Tag]] = relationship('Tag', secondary=question_tag, back_populates='questions', uselist=True)
@@ -171,7 +171,7 @@ class Submission(Base):
     participation_id: Mapped[int] = mapped_column(ForeignKey('participation.participation_id', ondelete='CASCADE'))
     question_instance_id: Mapped[int] = mapped_column(ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
     submitted_code: Mapped[str] = mapped_column()
-    submission_time: Mapped[datetime] = mapped_column()
+    submission_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     successful: Mapped[bool] = mapped_column(default=False)
     failed_test_case_id: Mapped[Optional[int]] = mapped_column(ForeignKey('test_case.test_case_id'))
     participation: Mapped[Participation] = relationship('Participation', back_populates='submissions', uselist=False)
@@ -205,7 +205,7 @@ class AlgoTimeLeaderboardEntry(Base):
     username: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_time: Mapped[int] = mapped_column()
-    last_updated: Mapped[datetime] = mapped_column()
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
     algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
     user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount', uselist=False)
 

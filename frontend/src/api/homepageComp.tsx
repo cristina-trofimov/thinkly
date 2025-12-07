@@ -9,7 +9,7 @@ import { config } from "../config";
             id: number;
             competitionTitle: string; 
             date: string;
-        }[]>(`${config.backendUrl}/homepage/get-competitions`);
+        }[]>(`${config.backendUrl}/competitions`);
 
         const formatted: CompetitionItem[] = response.data.map(c => ({
             id: c.id,
