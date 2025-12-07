@@ -135,13 +135,6 @@ def main():
         print("❓ Seeding Questions...")
         question_objects = []
         for q in SEED_QUESTIONS:
-            # Link first question to admin, second to john_doe
-            user_id_fk = None
-            if q["question_name"] == "Two Sum":
-                user_id_fk = all_users[0].user_id  # admin_user
-            elif q["question_name"] == "Valid Parentheses":
-                user_id_fk = all_users[1].user_id  # john_doe
-            
             obj = Question(
                 question_name=q["question_name"],
                 question_description=q["question_description"],
