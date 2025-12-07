@@ -26,7 +26,7 @@ def mock_user():
     user.first_name = "John"
     user.last_name = "Doe"
     user.salt = "hashedpassword"
-    user.type = "particpant"
+    user.user_type = "participant"
     return user
 
 
@@ -108,7 +108,7 @@ class TestAuthEndpoints:
     def test_google_login_new_user(self, mock_db):
         idinfo_mock = {"email": "google@example.com", "name": "Google User"}
         with patch("endpoints.authentification.id_token.verify_oauth2_token", return_value=idinfo_mock), \
-             patch("endpoints.authentification.get_user_by_email", side_effect=[None, SimpleNamespace(user_id=1, email="google@example.com", type="particpant")]), \
+             patch("endpoints.authentification.get_user_by_email", side_effect=[None, SimpleNamespace(user_id=1, email="google@example.com", user_type="particpant")]), \
              patch("endpoints.authentification.create_user", return_value=SimpleNamespace()), \
              patch("endpoints.authentification.create_access_token", return_value="jwt_token"):
 
@@ -136,7 +136,7 @@ class TestAuthEndpoints:
         mock_user_obj = SimpleNamespace(
             user_id=1,
             email="test@example.com",
-            type="particpant"
+            user_type="particpant"
         )
 
         # Override DB dependency

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.log import log_router
 from endpoints.authentification import auth_router
+from endpoints.questions_api import questions_router
 import uvicorn
 from logging_config import setup_logging
 import os
@@ -39,6 +40,7 @@ def root():
 try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
+    app.include_router(questions_router, prefix="/questions")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 
