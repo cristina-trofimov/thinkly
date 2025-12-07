@@ -53,14 +53,6 @@ const ProblemsSolvedHeader = () => (
   </div>
 );
 
-const TotalTimeHeader = () => (
-  <div className="flex items-center gap-1">
-    <Clock className="w-4 h-4 text-gray-500" />
-    Total Time
-  </div>
-);
-
-
 // --- Helper for row background color ---
 const getRowBgClass = (idx: number) => {
   if (idx === 0) return "bg-yellow-100";
