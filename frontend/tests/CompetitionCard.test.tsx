@@ -7,7 +7,7 @@ const mockCompetition: Competition = {
   name: "Test Challenge",
   date: "2025-10-20",
   participants: [
-    { username: "Alice", total_score: 1200, problems_solved: 10, user_id: 1, rank: 1},
+    { username: "alice123", name: "Alice", total_score: 1200, problems_solved: 10, user_id: 1, rank: 1},
   ],
 };
 

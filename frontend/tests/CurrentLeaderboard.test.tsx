@@ -15,8 +15,8 @@ describe("CurrentLeaderboard Component", () => {
   const mockStandings: CurrentStandings = {
     competition_name: "Algo Competition",
     participants: [
-    {user_id: 1, username: "Alice", total_score: 900, rank: 7, problems_solved: 10} as Participant,
-    {user_id: 2, username: "Bob", total_score: 1200, rank: 1, problems_solved: 12} as Participant,
+    {user_id: 1, username: "alice123", name: "Alice", total_score: 900, rank: 7, problems_solved: 10} as Participant,
+    {user_id: 2, username: "bob456", name: "Bob", total_score: 1200, rank: 1, problems_solved: 12} as Participant,
   ],
   };
 
