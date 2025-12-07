@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import *
+from models.schema import UserAccount
 from DB_Methods.database import get_db
 import logging
 

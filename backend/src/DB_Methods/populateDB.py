@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 # Import Base, engine, and SessionLocal (adjust the import path as needed)
 from db import engine, Base, SessionLocal
 # Import ALL models from your schema file (assuming it's named 'schema')
-from models.schema import *
+from models.schema import UserAccount, UserPreferences, Question, TestCase, BaseEvent, Competition, QuestionInstance, Participation, CompetitionLeaderboardEntry
 
 
 # --- CONFIG ---

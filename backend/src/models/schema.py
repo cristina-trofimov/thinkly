@@ -1,8 +1,8 @@
 from __future__ import annotations
-from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, String, Table, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db import Base
-from typing import List, TYPE_CHECKING, Optional
+from typing import List, Optional
 from datetime import datetime, timezone
 
 class UserAccount(Base):

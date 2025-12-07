@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import *
+from models.schema import Competition, BaseEvent, CompetitionLeaderboardEntry
 from DB_Methods.database import get_db
 import logging
 from datetime import datetime, timezone

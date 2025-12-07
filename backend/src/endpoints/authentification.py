@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
-from models.schema import *
+from models.schema import UserAccount, UserPreferences
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
