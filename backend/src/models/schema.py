@@ -187,6 +187,7 @@ class CompetitionLeaderboardEntry(Base):
     competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
     username: Mapped[str] = mapped_column()
+    name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_score: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)

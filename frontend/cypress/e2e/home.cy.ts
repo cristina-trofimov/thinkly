@@ -6,25 +6,25 @@ describe('Check Home page', () => {
     });})
   
     it('Visits the home page and filters questions', () => {
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-questions*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/questions`, {
         statusCode: 200,
         body: [
           {
             "id": 1,
-            "questionTitle": "Two Sum",
-            "date": "2025-11-09T18:36:41.166298",
+            "question_name": "Two Sum",
+            "created_at": "2025-11-09T18:36:41.166298",
             "difficulty": "easy"
           },
           {
             "id": 2,
-            "questionTitle": "Valid Parentheses",
-            "date": "2025-11-09T18:36:41.207719",
+            "question_name": "Valid Parentheses",
+            "created_at": "2025-11-09T18:36:41.207719",
             "difficulty": "easy"
           },
         ],
       }).as('getQuestions');
 
-      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/homepage/get-competitions*`, {
+      cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/competitions`, {
         statusCode: 200,
         body: [],
       }).as('getCompetitions');

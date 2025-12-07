@@ -6,7 +6,7 @@ describe('Check leaderboards page', () => {
     });
 
     // Intercept backend call
-    cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/leaderboards`, {
+    cy.intercept('GET', `${Cypress.env('BACKEND_URL')}/standings/leaderboards`, {
       statusCode: 200,
       body: [
         {
@@ -18,8 +18,8 @@ describe('Check leaderboards page', () => {
           end_time: "2025-08-01T00:00:00Z",
           cooldown_time: 30,
           participants: [
-            { username: "user1", name: "John Doe", points: 1500, problemsSolved: 10, totalTime: 10 },
-            { username: "user2", name: "Jane Doe", points: 1200, problemsSolved: 8, totalTime: 14 },
+            { username: "user1", name: "John Doe", total_score: 1500, problems_solved: 10},
+            { username: "user2", name: "Jane Doe", total_score: 1200, problems_solved: 8},
           ],
         },
       ],

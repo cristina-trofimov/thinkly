@@ -35,6 +35,7 @@ def get_leaderboard_by_competition(competition_id: int, db: Session = Depends(ge
     for entry in standings:
         formatted_standings.append({
             "username": entry.username,
+            "name": entry.name,
             "total_score": entry.total_score,
             "problems_solved": entry.problems_solved,
             "user_id": entry.user_id,

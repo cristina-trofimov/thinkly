@@ -73,7 +73,7 @@ const RankCellRenderer = (props: CellContext<Participant, unknown>) => {
 };
 
 const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
-  return <span className="font-medium">{props.row.original.username}</span>;
+  return <span className="font-medium">{props.row.original.name}</span>;
 };
 
 export function ScoreboardDataTable({ participants }: Props) {
@@ -89,17 +89,13 @@ export function ScoreboardDataTable({ participants }: Props) {
       cell: NameCellRenderer, // just pass the component
     },
     {
-      accessorKey: "points",
+      accessorKey: "total_score",
       header: PointsHeader,
     },
     {
-      accessorKey: "problemsSolved",
+      accessorKey: "problems_solved",
       header: ProblemsSolvedHeader,
-    },
-    {
-      accessorKey: "totalTime",
-      header: TotalTimeHeader,
-    },
+    }
   ];
 
   const table = useReactTable({
