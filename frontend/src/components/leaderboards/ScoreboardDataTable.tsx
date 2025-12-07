@@ -1,6 +1,6 @@
 "use client";
 
-import { Hash, User, Star, ListChecks, Clock } from "lucide-react";
+import { Hash, User, Star, ListChecks } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
 import {
   type ColumnDef,

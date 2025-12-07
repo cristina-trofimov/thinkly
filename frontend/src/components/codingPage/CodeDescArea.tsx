@@ -68,7 +68,7 @@ const CodeDescArea = (
 
         observer.observe(containerRef.current)
         return () => observer.disconnect()
-    }, [initialWidth])
+    }, [initialWidth, setContainerWidth])
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
