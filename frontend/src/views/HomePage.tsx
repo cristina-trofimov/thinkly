@@ -2,9 +2,9 @@ import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
-import { columns } from "../components/homepageQuestions/questionsColumns"
-import type { Questions } from "../components/homepageQuestions/questionsColumns"
-import { DataTable } from "../components/homepageQuestions/questionDataTable"
+import { columns } from "../components/questionsTable/questionsColumns"
+import type { Questions } from "../components/questionsTable/questionsColumns"
+import { DataTable } from "../components/questionsTable/questionDataTable"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { logFrontend } from '../api/LoggerAPI';

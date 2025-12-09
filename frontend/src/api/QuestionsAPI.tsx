@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Questions } from "../components/homepageQuestions/questionsColumns";
+import type { Questions } from "../components/questionsTable/questionsColumns";
 import { BACKEND_URL } from "../config";
 
 export async function getQuestions(): Promise<Questions[]> {
