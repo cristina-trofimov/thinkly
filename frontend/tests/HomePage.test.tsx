@@ -26,7 +26,7 @@ jest.mock("../src/components/ui/button", () => ({
 }))
 
 // Mock DataTable to avoid needing actual table implementation
-jest.mock("../src/components/HomePageQuestions/questionDataTable", () => ({
+jest.mock("../src/components/questionsTable/questionDataTable", () => ({
     DataTable: ({ data }: any) => (
         <div data-testid="data-table">{data.length} questions rendered</div>
     ),

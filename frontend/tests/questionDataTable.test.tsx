@@ -1,6 +1,6 @@
 import React from "react"
 import { render, screen, fireEvent } from "@testing-library/react"
-import { DataTable } from "../src/components/homepageQuestions/questionDataTable"
+import { DataTable } from "../src/components/questionsTable/questionDataTable"
 import type { ColumnDef } from "@tanstack/react-table"
 import { waitFor } from "@testing-library/react"
 

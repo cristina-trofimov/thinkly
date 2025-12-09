@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { columns, type Questions } from "../src/components/homepageQuestions/questionsColumns"
+import { columns, type Questions } from "../src/components/questionsTable/questionsColumns"
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 
 // Helper component to test columns
