@@ -39,7 +39,7 @@ class TestHomepageEndpoints:
 
         # Patch db query
         mock_db.query.return_value.all.return_value = fake_comps
-        app.dependency_overrides[homepage_api.get_db] = override_get_db(mock_db)
+        app.dependency_overrides[database.get_db] = override_get_db(mock_db)
 
         response = client.get("/homepage/get-competitions")
         assert response.status_code == 200
