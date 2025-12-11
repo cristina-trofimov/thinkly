@@ -20,6 +20,7 @@ import {
 import type { Question } from "../../types/questions/Question.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
+import { logFrontend } from "@/api/LoggerAPI";
 
 
 
@@ -66,9 +67,13 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           setQuestions(data);
         }
       } catch (err) {
-        console.error("Failed to load questions, keeping fallbacks.", err);
-        // We catch the error here so the app doesn't crash, 
-        // keeping whatever fallbackQuestions you have in state.
+        logFrontend({
+          level: 'ERROR',
+          message: `An error occurred. Failed to load questions: ${(err as Error).message}`,
+          component: 'CreateCompetitionDialog.tsx',
+          url: window.location.href,
+          stack: (err as Error).stack, // Include stack trace for backend logging
+        });
       }
     };
 
@@ -155,9 +160,14 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
         });
         console.log("Email processing initiated ✅");
       } catch (error) {
-        // We log the error but allow the form to reset/close 
-        // (mimicking your original "continue on error" flow)
-        console.error("Failed to send email notification:", error);
+
+        logFrontend({
+          level: 'ERROR',
+          message: `An error occurred. Email failed to send: ${(error as Error).message}`,
+          component: 'CreateCompetitionDialog.tsx',
+          url: window.location.href,
+          stack: (error as Error).stack, // Include stack trace for backend logging
+        });
       }
     }
 

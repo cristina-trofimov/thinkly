@@ -1,3 +1,5 @@
+import { logFrontend } from "./api/LoggerAPI";
+
 export const getBackendUrl = (): string => {
   // 1. Try to use Vite's standard environment variables (Browser/Vite)
   // We use a try-catch because accessing import.meta in some non-module environments
@@ -7,7 +9,13 @@ export const getBackendUrl = (): string => {
       return import.meta.env.VITE_BACKEND_URL;
     }
   } catch (error) {
-    console.warn('import.meta is not supported in this environment.', error);
+    logFrontend({
+      level: 'WARNING',
+      message: `import.meta is not supposed to be used in this environment: ${(error as Error).message}`,
+      component: 'config.ts',
+      url: window.location.href,
+      stack: (error as Error).stack, // Include stack trace for backend logging
+    });
     // Ignore errors if import.meta is not supported in the current environment
   }
 
