@@ -4,10 +4,10 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
-import type { Competition } from "../interfaces/Competition";
+import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 
 interface Props {
-  readonly competition: Competition;
+  readonly competition: CompetitionWithParticipants;
 }
 
 export function CompetitionCard({ competition }: Props) {
@@ -16,7 +16,7 @@ export function CompetitionCard({ competition }: Props) {
   const hasScoreboard = competition.participants && competition.participants.length > 0;
 
   // No render if no scoreboard (empty competition)
-    if (!hasScoreboard) {
+  if (!hasScoreboard) {
     return null;
   }
 
@@ -35,9 +35,9 @@ export function CompetitionCard({ competition }: Props) {
       >
         <div>
           <CardTitle className="text-lg font-semibold text-[#8065CD]">
-            {competition.name}
+            {competition.competitionTitle}
           </CardTitle>
-          <p className="text-sm text-gray-500">{competition.date}</p>
+          <p className="text-sm text-gray-500">{competition.date.toString()}</p>
         </div>
 
         <div className="flex items-center gap-2">

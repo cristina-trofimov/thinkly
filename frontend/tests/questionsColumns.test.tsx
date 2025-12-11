@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { columns, type Questions } from "../src/components/HomePageQuestions/questionsColumns"
+import { columns, type Questions } from "../src/components/questionsTable/questionsColumns"
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 
 // Helper component to test columns
@@ -60,7 +60,7 @@ describe("Questions Columns", () => {
 
   test("renders all column headers correctly", () => {
     render(<TestTable data={mockData} />)
-    
+
     expect(screen.getByText("No.")).toBeInTheDocument()
     expect(screen.getByText("Question")).toBeInTheDocument()
     expect(screen.getByText("Date")).toBeInTheDocument()
@@ -69,7 +69,7 @@ describe("Questions Columns", () => {
 
   test("renders question IDs correctly", () => {
     render(<TestTable data={mockData} />)
-    
+
     expect(screen.getByText("1")).toBeInTheDocument()
     expect(screen.getByText("2")).toBeInTheDocument()
     expect(screen.getByText("3")).toBeInTheDocument()
@@ -77,7 +77,7 @@ describe("Questions Columns", () => {
 
   test("renders question titles correctly", () => {
     render(<TestTable data={mockData} />)
-    
+
     expect(screen.getByText("Two Sum")).toBeInTheDocument()
     expect(screen.getByText("Reverse Linked List")).toBeInTheDocument()
     expect(screen.getByText("Merge K Sorted Lists")).toBeInTheDocument()
@@ -85,12 +85,12 @@ describe("Questions Columns", () => {
 
   test("formats dates correctly using toLocaleDateString", () => {
     render(<TestTable data={mockData} />)
-    
+
     // Dates will be formatted based on user's locale
     const expectedDate1 = new Date("2024-01-15").toLocaleDateString()
     const expectedDate2 = new Date("2024-02-20").toLocaleDateString()
     const expectedDate3 = new Date("2024-03-10").toLocaleDateString()
-    
+
     expect(screen.getByText(expectedDate1)).toBeInTheDocument()
     expect(screen.getByText(expectedDate2)).toBeInTheDocument()
     expect(screen.getByText(expectedDate3)).toBeInTheDocument()
@@ -98,7 +98,7 @@ describe("Questions Columns", () => {
 
   test("renders difficulty levels correctly", () => {
     render(<TestTable data={mockData} />)
-    
+
     expect(screen.getByText("Easy")).toBeInTheDocument()
     expect(screen.getByText("Medium")).toBeInTheDocument()
     expect(screen.getByText("Hard")).toBeInTheDocument()
@@ -122,7 +122,7 @@ describe("Questions Columns", () => {
 
   test("renders empty table when data is empty", () => {
     render(<TestTable data={[]} />)
-    
+
     // Headers should still be present
     expect(screen.getByText("No.")).toBeInTheDocument()
     expect(screen.getByText("Question")).toBeInTheDocument()

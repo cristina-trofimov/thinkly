@@ -24,7 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { logout } from "@/api/auth"
+import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 
 interface NavUserProps {

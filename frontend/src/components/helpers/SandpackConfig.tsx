@@ -1,16 +1,16 @@
-import type { variableTemplate } from "../interfaces/VariableTemplate";
+import type { variableTemplate } from "../../types/VariableTemplate.type";
 import { CodeMultiLangTemplate } from "./CodeMultiLangTemplate";
 
-export type allowedTemplateTypes =  "static" | "angular" | "react"
-| "react-ts" | "solid" | "svelte" | "test-ts"
-| "vanilla" | "vanilla-ts" | "vue" | "vue-ts"
-| "node" | "nextjs" | "vite" | "vite-react"
-| "vite-react-ts" | "vite-vue" | "vite-vue-ts"
-| "vite-svelte" | "vite-svelte-ts" | "astro"
+export type allowedTemplateTypes = "static" | "angular" | "react"
+    | "react-ts" | "solid" | "svelte" | "test-ts"
+    | "vanilla" | "vanilla-ts" | "vue" | "vue-ts"
+    | "node" | "nextjs" | "vite" | "vite-react"
+    | "vite-react-ts" | "vite-vue" | "vite-vue-ts"
+    | "vite-svelte" | "vite-svelte-ts" | "astro"
 
 type SandpackConfig = {
-    template:  allowedTemplateTypes
-    files: Record<string, {code: string}>,
+    template: allowedTemplateTypes
+    files: Record<string, { code: string }>,
 }
 
 export function getSandpackConfigs(
@@ -26,7 +26,7 @@ export function getSandpackConfigs(
         configs[lang] = {
             template: config.template,
             files: {
-                [`/${config.filename}`]: {code},
+                [`/${config.filename}`]: { code },
             }
         }
     }

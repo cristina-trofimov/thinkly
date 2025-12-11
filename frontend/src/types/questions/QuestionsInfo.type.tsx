@@ -1,6 +1,6 @@
-import type { variableTemplate } from "./VariableTemplate"
+import type { variableTemplate } from "../VariableTemplate.type"
 
-export interface ProblemInfo {
+export interface QuestionInfo {
     title: string,
     description: string,
     clarification: string,

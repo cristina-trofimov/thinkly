@@ -1,9 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import type { ProblemInfo } from '../interfaces/ProblemInfo'
+import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState, } from 'react'
-import type { SubmissionType } from '../interfaces/SubmissionType'
+import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
@@ -13,20 +13,21 @@ import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 
 const CodeDescArea = (
     { problemInfo, submissions }:
-    { problemInfo: ProblemInfo, submissions: SubmissionType[]
-}) => {
-    
+        {
+            problemInfo: QuestionInfo, submissions: SubmissionType[]
+        }) => {
+
     const tabs = [
-        {"id": "description", "label":  "Description", "icon": <FileText />},
-        {"id": "submissions", "label":  "Submissions", "icon": <History />},
-        {"id": "leaderboard", "label":  "Leaderboard", "icon": <Trophy />},
+        { "id": "description", "label": "Description", "icon": <FileText /> },
+        { "id": "submissions", "label": "Submissions", "icon": <History /> },
+        { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
     const code = [
         {
-          language: 'jsx',
-          filename: 'MyComponent.jsx',
-          code: `function MyComponent(props) {
+            language: 'jsx',
+            filename: 'MyComponent.jsx',
+            code: `function MyComponent(props) {
     return (
         <div>
         <h1>Hello, {props.name}!</h1>
@@ -36,9 +37,9 @@ const CodeDescArea = (
       }`,
         },
         {
-          language: 'tsx',
-          filename: 'MyComponent.tsx',
-          code: `function MyComponent(props: { name: string }) {
+            language: 'tsx',
+            filename: 'MyComponent.tsx',
+            code: `function MyComponent(props: { name: string }) {
     return (
         <div>
         <h1>Hello, {props.name}!</h1>
@@ -47,7 +48,7 @@ const CodeDescArea = (
     );
       }`,
         },
-      ];
+    ];
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -76,7 +77,7 @@ const CodeDescArea = (
         halfSize = fullSize / 2
         quarterSize = fullSize / 4
     }
-    
+
     const timeDiff = (submittedOn: string) => {
         const diffMs = Date.now() - Date.parse(submittedOn)
 
@@ -99,22 +100,22 @@ const CodeDescArea = (
         return displayTime
     }
 
-    
-  return (
-    <Tabs data-testid="tabs" defaultValue='description'
-        value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
-    >
-        <TabsList data-testid="tabs-list" ref={containerRef}
-            className={`w-full h-10 py-0 px-4 bg-muted rounded-none
-                        border-b border-border/75 dark:border-border/50`}
-        >
-            {tabs.map(t => {
-                const isActive = activeTab === t.id
-                let showText = true
-                if (containerWidth < halfSize && !isActive) showText = false
-                if (containerWidth < quarterSize && isActive) showText = false
 
-                return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
+    return (
+        <Tabs data-testid="tabs" defaultValue='description'
+            value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
+        >
+            <TabsList data-testid="tabs-list" ref={containerRef}
+                className={`w-full h-10 py-0 px-4 bg-muted rounded-none
+                        border-b border-border/75 dark:border-border/50`}
+            >
+                {tabs.map(t => {
+                    const isActive = activeTab === t.id
+                    let showText = true
+                    if (containerWidth < halfSize && !isActive) showText = false
+                    if (containerWidth < quarterSize && isActive) showText = false
+
+                    return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
                         className={`bg-muted rounded-none
                             data-[state=active]:border-primary
                             data-[state=active]:text-primary
@@ -125,118 +126,118 @@ const CodeDescArea = (
                             data-[state=active]:border-t-0
                             dark:data-[state=active]:border-primary
                             flex items-center gap-2 transition-all
-                            ${ showText ? 'px-4' : 'px-2' }
+                            ${showText ? 'px-4' : 'px-2'}
                         `}
                     >
                         {t.icon}
                         {showText && t.label}
                     </TabsTrigger>
-            })}
-        </TabsList>
-
-        {/* Description */}
-        <TabsContent value='description' data-testid="tabs-content-description" >
-            <div className='h-full p-6' >
-                <h1 className='font-bold mb-3 '>
-                    {problemInfo.title}
-                </h1>
-                
-                <p className='max-h-[500px] text-left leading-6 break-words overflow-scroll whitespace-normal' >
-                    {problemInfo.description}
-                </p>
-                {problemInfo.examples.map((e, idx) => {
-                    return <div key={`example ${idx+1}`} className='mt-3 flex flex-col gap-1' >
-                        <p className='font-bold'>Example {idx+1}:</p>
-                        <div className='ml-4 flex flex-col gap-1' >
-                            <p className='font-bold'>Inputs <span className='font-normal'>
-                                {e.inputs.map((i, i_idx) => {
-                                    const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
-                                    return `${i.name}: ${i.type}${separator}`
-                                })}
-                            </span></p>
-                            <p className='font-bold'>Outputs <span className='font-normal'>
-                                {e.outputs.map((o, o_idx) => {
-                                    const separator = o_idx < e.outputs.length - 1 ? `, ` : `\n`
-                                    return `${o.name}: ${o.type}${separator}`
-                                })}
-                            </span></p>
-                            <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>
-                        </div>
-                    </div>
                 })}
-            </div>
-        </TabsContent>
+            </TabsList>
 
-        {/* Submissions */}
-        <TabsContent value='submissions' data-testid="tabs-content-submissions" >
-            <div className='h-full p-6' >
-                {selectedSubmission === null ? 
-                <Table data-testid="table" >
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Language</TableHead>
-                            <TableHead className="text-right">Memory</TableHead>
-                            <TableHead className="text-right">Runtime</TableHead>
-                        </TableRow>
-                    </TableHeader>
+            {/* Description */}
+            <TabsContent value='description' data-testid="tabs-content-description" >
+                <div className='h-full p-6' >
+                    <h1 className='font-bold mb-3 '>
+                        {problemInfo.title}
+                    </h1>
 
-                    <TableBody>
-                        {submissions.map((s, idx) => {
-                            return (
-                            <TableRow key={`submission ${idx+1}`} >
-                                <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
-                                    <span>{s.status}</span>
-                                    <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>
-                                </TableCell>
-                                <TableCell className="" >{s.language}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
-                                <TableCell className="text-right text-gray-500" >{s.runtime}</TableCell>
-                            </TableRow>
-                            )
-                        })}
-                    </TableBody>
+                    <p className='max-h-[500px] text-left leading-6 break-words overflow-scroll whitespace-normal' >
+                        {problemInfo.description}
+                    </p>
+                    {problemInfo.examples.map((e, idx) => {
+                        return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
+                            <p className='font-bold'>Example {idx + 1}:</p>
+                            <div className='ml-4 flex flex-col gap-1' >
+                                <p className='font-bold'>Inputs <span className='font-normal'>
+                                    {e.inputs.map((i, i_idx) => {
+                                        const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
+                                        return `${i.name}: ${i.type}${separator}`
+                                    })}
+                                </span></p>
+                                <p className='font-bold'>Outputs <span className='font-normal'>
+                                    {e.outputs.map((o, o_idx) => {
+                                        const separator = o_idx < e.outputs.length - 1 ? `, ` : `\n`
+                                        return `${o.name}: ${o.type}${separator}`
+                                    })}
+                                </span></p>
+                                <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>
+                            </div>
+                        </div>
+                    })}
+                </div>
+            </TabsContent>
 
-                    <TableFooter className='mt-3' >
-                        <TableRow><TableCell colSpan={4} className='text-gray-500' >{submissions.length} attempt{submissions.length > 1 ? 's' : ''}</TableCell>
-                        </TableRow>
-                    </TableFooter>
-                </Table>
-                : (<div>
-                      <div className='flex flex-row gap-6 items-center mb-4' >
-                        <Button onClick={() => setSelectedSubmission(null)} >
-                            Back
-                        </Button>
-                        <h1 className='text-3xl font-semibold'
-                        >
-                            {selectedSubmission.status}
-                        </h1>
-                      </div>
+            {/* Submissions */}
+            <TabsContent value='submissions' data-testid="tabs-content-submissions" >
+                <div className='h-full p-6' >
+                    {selectedSubmission === null ?
+                        <Table data-testid="table" >
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Language</TableHead>
+                                    <TableHead className="text-right">Memory</TableHead>
+                                    <TableHead className="text-right">Runtime</TableHead>
+                                </TableRow>
+                            </TableHeader>
 
-                      <CodeBlock data-testid="code-block" data={code} defaultValue={code[0].language}>
-                            <CodeBlockBody data-testid="code-body" >
-                            {(item) => (
-                                <CodeBlockItem data-testid="code-item" key={item.language} value={item.language}>
-                                <CodeBlockContent data-testid="code-content" language={item.language as BundledLanguage}>
-                                    {item.code}
-                                </CodeBlockContent>
-                                </CodeBlockItem>
-                            )}
-                            </CodeBlockBody>
-                        </CodeBlock>
-                    </div>
-                  )}
-            </div>
-        </TabsContent>
+                            <TableBody>
+                                {submissions.map((s, idx) => {
+                                    return (
+                                        <TableRow key={`submission ${idx + 1}`} >
+                                            <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
+                                                <span>{s.status}</span>
+                                                <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>
+                                            </TableCell>
+                                            <TableCell className="" >{s.language}</TableCell>
+                                            <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
+                                            <TableCell className="text-right text-gray-500" >{s.runtime}</TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
 
-        {/* Leaderboard */}
-        <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
-            <div className='h-full p-6' >
-                <CurrentLeaderboard/>
-            </div>
-        </TabsContent>
-    </Tabs>
-  )
+                            <TableFooter className='mt-3' >
+                                <TableRow><TableCell colSpan={4} className='text-gray-500' >{submissions.length} attempt{submissions.length > 1 ? 's' : ''}</TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                        : (<div>
+                            <div className='flex flex-row gap-6 items-center mb-4' >
+                                <Button onClick={() => setSelectedSubmission(null)} >
+                                    Back
+                                </Button>
+                                <h1 className='text-3xl font-semibold'
+                                >
+                                    {selectedSubmission.status}
+                                </h1>
+                            </div>
+
+                            <CodeBlock data-testid="code-block" data={code} defaultValue={code[0].language}>
+                                <CodeBlockBody data-testid="code-body" >
+                                    {(item) => (
+                                        <CodeBlockItem data-testid="code-item" key={item.language} value={item.language}>
+                                            <CodeBlockContent data-testid="code-content" language={item.language as BundledLanguage}>
+                                                {item.code}
+                                            </CodeBlockContent>
+                                        </CodeBlockItem>
+                                    )}
+                                </CodeBlockBody>
+                            </CodeBlock>
+                        </div>
+                        )}
+                </div>
+            </TabsContent>
+
+            {/* Leaderboard */}
+            <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
+                <div className='h-full p-6' >
+                    <CurrentLeaderboard />
+                </div>
+            </TabsContent>
+        </Tabs>
+    )
 }
 
 export default CodeDescArea

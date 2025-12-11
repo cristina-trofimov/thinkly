@@ -3,29 +3,26 @@
 import { useState, useEffect } from "react";
 import { CompetitionCard } from "./CompetitionCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
-import axiosClient from "@/lib/axiosClient";
-import type { Competition } from "../interfaces/Competition";
+import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
+import {  getCompetitionsDetails } from "@/api/CompetitionAPI";
 
-export function Leaderboards(){
-  const [competitions, setCompetitions] = useState<Competition[]>([]);
+export function Leaderboards() {
+  const [competitions, setCompetitions] = useState<CompetitionWithParticipants[]>([]);
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
 
-  // Fetch from FastAPI backend
   useEffect(() => {
-    const fetchLeaderboards = async () => {
+    const getAllCompetitions = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        console.log("Fetching leaderboards...");
-        const response = await axiosClient.get<Competition[]>("/leaderboards/");
-        console.log("Leaderboards response:", response.data);
+        const response = await getCompetitionsDetails();
 
-        setCompetitions(response.data);
+        setCompetitions(response);
       } catch (err) {
         console.error("Error loading leaderboards:", err);
         setError("Failed to load leaderboards");
@@ -34,12 +31,12 @@ export function Leaderboards(){
       }
     };
 
-    fetchLeaderboards();
+    getAllCompetitions();
   }, []);
 
 
   const filteredCompetitions = competitions
-    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.competitionTitle?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) =>
       sortAsc
         ? new Date(a.date).getTime() - new Date(b.date).getTime()

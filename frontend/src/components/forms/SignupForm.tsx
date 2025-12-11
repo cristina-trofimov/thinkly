@@ -1,4 +1,4 @@
-import { login, signup } from "@/api/auth";
+import { login, signup } from "@/api/AuthAPI";
 import { Button } from "@/components/ui/button"
 import {
     Card,
@@ -14,7 +14,7 @@ import {
     FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import type { DecodedToken } from "../../types/Auth";
+import type { DecodedToken } from "../../types/Auth.type";
 import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

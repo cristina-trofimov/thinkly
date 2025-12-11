@@ -1,214 +1,120 @@
 import pytest
+from unittest.mock import MagicMock
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 from types import SimpleNamespace
-from main import app
-from endpoints import questions_api
-
-client = TestClient(app)
+import sys
+import os
 
 
-# ---------------- Fixtures ----------------
+# 1. Boilerplate to make Python see the 'backend' folder
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+# --- IMPORTS ---
+# 1. Import the dependency you need to override (Must match source exactly!)
+from DB_Methods.database import get_db
+
+# 2. Import the router you want to test
+# (Replace 'src.endpoints.questions_api' with the actual path to your file)
+from src.endpoints.questions_api import questions_router 
+
+# --- FIXTURES ---
+
 @pytest.fixture
 def mock_db():
-    db = Mock()
-    # Mock the bind and inspector for table check
-    mock_bind = Mock()
-    mock_inspector = Mock()
-    mock_inspector.get_table_names.return_value = ["base_question", "competition", "user"]
+    """Creates a mock database session."""
+    return MagicMock()
 
-    db.bind = mock_bind
+@pytest.fixture
+def client(mock_db):
+    """
+    Creates a test client with the dependency override active.
+    We create a fresh FastAPI app here to test the router in isolation.
+    """
+    test_app = FastAPI()
+    test_app.include_router(questions_router)
 
-    return db
+    # DEFINE THE OVERRIDE
+    def override_get_db():
+        try:
+            yield mock_db
+        finally:
+            pass
 
+    # APPLY THE OVERRIDE
+    test_app.dependency_overrides[get_db] = override_get_db
+    
+    return TestClient(test_app)
 
-# ---------------- Helper ----------------
-def override_get_db(mock_db):
-    def _override():
-        yield mock_db
+# --- TESTS ---
 
-    return _override
+def test_get_all_questions_success(client, mock_db):
+    """Test the happy path where questions are returned correctly."""
+    
+    # 1. Arrange: Create fake question objects
+    # We use SimpleNamespace so we can access attributes like q.title via dot notation
+    fake_questions = [
+        SimpleNamespace(
+            question_id=1, 
+            title="Two Sum", 
+            difficulty="Easy",
+            created_at=datetime(2025, 1, 10, 12, 0, 0)
+        ),
+        SimpleNamespace(
+            question_id=2, 
+            title="Reverse Linked List", 
+            difficulty="Medium",
+            created_at=datetime(2025, 2, 15, 14, 30, 0)
+        )
+    ]
 
+    # Mock the chain: db.query(BaseQuestion).all()
+    mock_db.query.return_value.all.return_value = fake_questions
 
-# ---------------- Tests ----------------
-class TestQuestionsEndpoints:
+    # 2. Act
+    response = client.get("/get-all-questions")
 
-    def test_get_all_questions_success(self, mock_db):
-        """Test successful retrieval of all questions"""
-        # Create fake questions with all fields
-        fake_questions = [
-            SimpleNamespace(
-                question_id=1,
-                title="Two Sum",
-                description="Find two numbers that add up to target",
-                difficulty="Easy",
-                solution="Use hash map for O(n) solution",
-                media="https://example.com/image1.png",
-                created_at=datetime(2025, 11, 1, 10, 30, 0)
-            ),
-            SimpleNamespace(
-                question_id=2,
-                title="Reverse Linked List",
-                description="Reverse a singly linked list",
-                difficulty="Medium",
-                solution="Use three pointers: prev, current, next",
-                media=None,
-                created_at=datetime(2025, 11, 2, 14, 15, 0)
-            )
-        ]
+    # 3. Assert
+    assert response.status_code == 200
+    data = response.json()
+    
+    # Verify the count
+    assert len(data) == 2
+    
+    # Verify the content of the first item
+    assert data[0]["id"] == 1
+    assert data[0]["questionTitle"] == "Two Sum"
+    assert data[0]["difficulty"] == "Easy"
+    # Verify date handling (FastAPI usually serializes datetime to ISO string)
+    assert "2025-01-10" in data[0]["date"]
 
-        # Mock the query
-        mock_db.query.return_value.all.return_value = fake_questions
+def test_get_all_questions_empty(client, mock_db):
+    """Test when the database has no questions."""
+    
+    # Arrange: db returns an empty list
+    mock_db.query.return_value.all.return_value = []
 
-        # Mock the inspector - patch where it's used, not where it's defined
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            mock_inspector.get_table_names.return_value = ["base_question"]
-            mock_inspect.return_value = mock_inspector
+    # Act
+    response = client.get("/get-all-questions")
 
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
+    # Assert
+    assert response.status_code == 200
+    assert response.json() == []
 
-            response = client.get("/questions/")
+def test_get_all_questions_db_error(client, mock_db):
+    """Test how the endpoint handles a database exception."""
+    
+    # Arrange: Trigger an exception when .all() is called
+    mock_db.query.return_value.all.side_effect = Exception("Database Timeout")
 
-            assert response.status_code == 200
-            result = response.json()
+    # Act
+    response = client.get("/get-all-questions")
 
-            assert len(result) == 2
-            assert result[0] == {
-                "id": "1",
-                "title": "Two Sum",
-                "description": "Find two numbers that add up to target",
-                "difficulty": "Easy",
-                "solution": "Use hash map for O(n) solution",
-                "media": "https://example.com/image1.png",
-                "createdAt": "2025-11-01"
-            }
-            assert result[1] == {
-                "id": "2",
-                "title": "Reverse Linked List",
-                "description": "Reverse a singly linked list",
-                "difficulty": "Medium",
-                "solution": "Use three pointers: prev, current, next",
-                "media": None,
-                "createdAt": "2025-11-02"
-            }
-
-            app.dependency_overrides.clear()
-
-    def test_get_all_questions_empty(self, mock_db):
-        """Test when no questions exist in database"""
-        # Return empty list
-        mock_db.query.return_value.all.return_value = []
-
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            mock_inspector.get_table_names.return_value = ["base_question"]
-            mock_inspect.return_value = mock_inspector
-
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
-
-            response = client.get("/questions/")
-
-            assert response.status_code == 200
-            assert response.json() == []
-
-            app.dependency_overrides.clear()
-
-    def test_get_all_questions_without_created_at(self, mock_db):
-        """Test questions without created_at field"""
-        fake_questions = [
-            SimpleNamespace(
-                question_id=1,
-                title="Test Question",
-                description="Test description",
-                difficulty="Easy",
-                solution="Test solution",
-                media=None,
-                # No created_at field
-            )
-        ]
-
-        mock_db.query.return_value.all.return_value = fake_questions
-
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            mock_inspector.get_table_names.return_value = ["base_question"]
-            mock_inspect.return_value = mock_inspector
-
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
-
-            response = client.get("/questions/")
-
-            assert response.status_code == 200
-            result = response.json()
-            assert result[0]["createdAt"] is None
-
-            app.dependency_overrides.clear()
-
-    def test_get_all_questions_table_not_found(self, mock_db):
-        """Test error when base_question table doesn't exist"""
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            # Return table names that don't include base_question or basequestion
-            mock_inspector.get_table_names.return_value = ["users", "competition"]
-            mock_inspect.return_value = mock_inspector
-
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
-
-            response = client.get("/questions/")
-
-            assert response.status_code == 500
-            assert "Table for BaseQuestion not found" in response.json()["detail"]
-
-            app.dependency_overrides.clear()
-
-    def test_get_all_questions_database_error(self, mock_db):
-        """Test handling of database errors"""
-        # Make the query raise an exception
-        mock_db.query.side_effect = Exception("Database connection failed")
-
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            mock_inspector.get_table_names.return_value = ["base_question"]
-            mock_inspect.return_value = mock_inspector
-
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
-
-            response = client.get("/questions/")
-
-            assert response.status_code == 500
-            assert "error" in response.json()["detail"].lower()
-
-            app.dependency_overrides.clear()
-
-    def test_get_all_questions_with_alternative_id_field(self, mock_db):
-        """Test questions using 'id' instead of 'question_id'"""
-        fake_questions = [
-            SimpleNamespace(
-                id=99,  # Using 'id' instead of 'question_id'
-                title="Alternative ID Question",
-                description="Test with id field",
-                difficulty="Hard",
-                solution="Test solution",
-                media=None,
-                created_at=datetime(2025, 11, 3)
-            )
-        ]
-
-        mock_db.query.return_value.all.return_value = fake_questions
-
-        with patch('endpoints.questions_api.inspect') as mock_inspect:
-            mock_inspector = Mock()
-            mock_inspector.get_table_names.return_value = ["base_question"]
-            mock_inspect.return_value = mock_inspector
-
-            app.dependency_overrides[questions_api.get_db] = override_get_db(mock_db)
-
-            response = client.get("/questions/")
-
-            assert response.status_code == 200
-            result = response.json()
-            assert result[0]["id"] == "99"
-
-            app.dependency_overrides.clear()
+    # Assert
+    assert response.status_code == 500
+    # Check that our custom error message structure is present
+    assert "Failed to retrieve questions" in response.json()["detail"]
+    assert "Exception" in response.json()["detail"]

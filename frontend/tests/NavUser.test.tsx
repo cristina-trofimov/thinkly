@@ -20,7 +20,7 @@ jest.mock("react-router-dom", () => ({
 }));
 
 // Mock the logout function
-jest.mock("@/api/auth", () => ({
+jest.mock("@/api/AuthAPI", () => ({
   logout: jest.fn(),
 }));
 
