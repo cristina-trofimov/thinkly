@@ -5,8 +5,6 @@ import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
 import { getCurrentLeaderboardStandings } from "../../api/LeaderboardsAPI";
 
-
-
 export function CurrentLeaderboard() {
   const [standings, setStandings] = useState<CurrentStandings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,7 +65,7 @@ export function CurrentLeaderboard() {
       {/* Competition Header */}
       <div className="px-4">
         <h2 className="text-2xl font-bold text-[#8065CD]">
-          {standings.competitionName}
+          {standings.competition_name}
         </h2>
         <p className="text-sm text-gray-500">Live Standings • Updates every 60s</p>
       </div>
