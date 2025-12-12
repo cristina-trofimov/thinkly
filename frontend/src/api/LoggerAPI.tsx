@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient"; // Assuming the path to your client
-import type { LogPayload } from "@/types/LogPayload";
+import type { LogPayload } from "@/types/LogPayload.type";
 import { AxiosError } from "axios";
 
 const BACKEND_LOG_PATH = '/log/client-log'; 

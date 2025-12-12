@@ -1,11 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { CurrentLeaderboard, CurrentStandings } from "../src/components/leaderboards/CurrentLeaderboard";
 import axiosClient from "@/lib/axiosClient";
-import React from "react";
-import userEvent from "@testing-library/user-event";
-import { Participant } from "../src/components/interfaces/Participant";
-import { Competition } from "../src/components/interfaces/Competition";
-
+import type { Participant } from "../src/types/account/Participant.type";
 // Mock axios
 jest.mock("@/lib/axiosClient");
 

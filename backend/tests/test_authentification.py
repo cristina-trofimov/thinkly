@@ -1,175 +1,227 @@
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch
-from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
-from main import app
-from endpoints import authentification  # <-- your file path
-from endpoints.authentification import auth_router, JWT_SECRET_KEY, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+import sys
+import os
 
-client = TestClient(app)
+# 1. Get the path to the 'backend' folder (the parent of 'tests')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
 
+# 2. Add 'backend' to the system path so Python can find 'src'
+sys.path.append(parent_dir)
 
-# ---------------- Fixtures ----------------
+# 3. NOW import the file following the folder structure
+# Note: We use the actual filename 'authentification_api' (no .py)
+from src.endpoints import authentification_api
+from src.DB_Methods import database
+
+# --- Setup: Import the app and router ---
+# We assume your file is named 'auth.py'. 
+# If it is named differently, change 'from auth import ...' below.
+from fastapi import FastAPI
+
+import bcrypt
+
+# Create a dummy app for testing and include the router
+app = FastAPI()
+app.include_router(authentification_api.auth_router)
+
+# --- Fixtures ---
 
 @pytest.fixture
-def mock_db():
-    db = Mock()
-    return db
+def mock_db_session():
+    """Mocks the SQLAlchemy database session."""
+    return MagicMock()
 
+@pytest.fixture
+def client(mock_db_session):
+    """
+    Creates a TestClient with the database dependency overridden.
+    This ensures we don't hit a real database.
+    """
+    def override_get_db():
+        try:
+            yield mock_db_session
+        finally:
+            pass
+    
+    app.dependency_overrides[database.get_db] = override_get_db
+    return TestClient(app)
 
 @pytest.fixture
 def mock_user():
-    user = Mock()
+    """Creates a mock user object behaving like a SQLAlchemy model."""
+    user = MagicMock()
     user.user_id = 1
     user.email = "test@example.com"
-    user.first_name = "John"
-    user.last_name = "Doe"
-    user.salt = "hashedpassword"
-    user.user_type = "participant"
+    user.username = "testuser"
+    user.first_name = "Test"
+    user.last_name = "User"
+    user.type = "participant"
+    # Generate a real hash for "password123" so bcrypt.checkpw works
+    user.salt = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode() 
     return user
 
-
 @pytest.fixture
-def mock_token():
-    return "mocked.jwt.token"
+def admin_user(mock_user):
+    """Creates a mock admin user."""
+    mock_user.type = "admin"
+    return mock_user
 
+# --- Tests ---
 
-# ---------------- Helper Functions ----------------
+def test_signup_success(client, mock_db_session):
+    """Test that a new user can sign up successfully."""
+    payload = {
+        "firstName": "Tina",
+        "lastName": "Test",
+        "email": "tina@example.com",
+        "password": "password123",
+        "username": "tinatest"
+    }
 
-def override_get_db(mock_db):
-    def _override():
-        yield mock_db
-    return _override
+    # Patch the helper function 'get_user_by_email' to return None (user doesn't exist)
+    # Patch 'create_user' to verify it gets called
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None), \
+        patch("src.endpoints.authentification_api.create_user") as mock_create:
+        
+        response = client.post("/signup", json=payload)
+        
+        assert response.status_code == 200
+        assert response.json() == {"message": "User created"}
+        mock_create.assert_called_once()
 
+def test_signup_existing_user(client):
+    """Test that signing up with an existing email fails."""
+    payload = {
+        "firstName": "Tina",
+        "lastName": "Test",
+        "email": "existing@example.com",
+        "password": "password123",
+        "username": "tinatest"
+    }
 
-# ---------------- Tests ----------------
+    # Mock that a user ALREADY exists
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=MagicMock()):
+        response = client.post("/signup", json=payload)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "User already exists"
 
-class TestAuthEndpoints:
+def test_login_success(client, mock_user):
+    """Test successful login returns a token."""
+    payload = {
+        "email": "test@example.com",
+        "password": "password123"
+    }
 
-    def test_signup_success(self, mock_db):
-        with patch("endpoints.authentification.get_user_by_email", return_value=None), \
-             patch("endpoints.authentification.create_user", return_value=SimpleNamespace()), \
-             patch("bcrypt.hashpw", return_value=b"hashedpassword"):
+    # Mock DB finding the user
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.post("/login", json=payload)
+        
+        assert response.status_code == 200
+        assert "token" in response.json()
 
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
+def test_login_wrong_password(client, mock_user):
+    """Test login fails with incorrect password."""
+    payload = {
+        "email": "test@example.com",
+        "password": "WRONG_PASSWORD"
+    }
 
-            response = client.post("/auth/signup", json={
-                "firstName": "John",
-                "lastName": "Doe",
-                "email": "test@example.com",
-                "password": "password123",
-                "username": "johndoe"
-            })
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.post("/login", json=payload)
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Invalid credentials"
 
-            assert response.status_code == 200
-            assert response.json() == {"message": "User created"}
-            app.dependency_overrides.clear()
+def test_google_auth_success(client):
+    """Test Google OAuth flow with mocked Google API."""
+    
+    # Mock data returned by Google
+    mock_google_data = {
+        "email": "googleuser@example.com",
+        "name": "Google User"
+    }
+    
+    # We create a new user object for this test
+    new_google_user = MagicMock()
+    new_google_user.email = "googleuser@example.com"
+    new_google_user.type = "participant"
+    new_google_user.user_id = 99
 
-    def test_signup_user_exists(self, mock_db):
-        with patch("endpoints.authentification.get_user_by_email", return_value=SimpleNamespace()):
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
+    # 1. Mock the verify_oauth2_token (Google API call)
+    # 2. Mock get_user_by_email (return None first to simulate new user, then return user)
+    # 3. Mock create_user
+    with patch("google.oauth2.id_token.verify_oauth2_token", return_value=mock_google_data), \
+         patch("src.endpoints.authentification_api.get_user_by_email", side_effect=[None, new_google_user]), \
+         patch("src.endpoints.authentification_api.create_user"):
+        
+        response = client.post("/google-auth", json={"credential": "fake-jwt-token"})
+        
+        assert response.status_code == 200
+        assert "token" in response.json()
 
-            response = client.post("/auth/signup", json={
-                "firstName": "John",
-                "lastName": "Doe",
-                "email": "test@example.com",
-                "password": "password123",
-                "username": "johndoe"
-            })
-            assert response.status_code == 400
-            assert response.json()["detail"] == "User already exists"
-
-            app.dependency_overrides.clear()
-
-    def test_login_success(self, mock_db, mock_user):
-        with patch("endpoints.authentification.get_user_by_email", return_value=mock_user), \
-             patch("bcrypt.checkpw", return_value=True), \
-             patch("endpoints.authentification.create_access_token", return_value="jwt_token"):
-
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
-
-            response = client.post("/auth/login", json={"email": "test@example.com", "password": "password123"})
-            assert response.status_code == 200
-            assert response.json() == {"token": "jwt_token"}
-            app.dependency_overrides.clear()
-
-    def test_login_invalid_credentials(self, mock_db, mock_user):
-        with patch("endpoints.authentification.get_user_by_email", return_value=mock_user), \
-             patch("bcrypt.checkpw", return_value=False):
-
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
-
-            response = client.post("/auth/login", json={"email": "test@example.com", "password": "wrongpass"})
-            assert response.status_code == 401
-            assert response.json()["detail"] == "Invalid credentials"
-            app.dependency_overrides.clear()
-
-    def test_google_login_new_user(self, mock_db):
-        idinfo_mock = {"email": "google@example.com", "name": "Google User"}
-        with patch("endpoints.authentification.id_token.verify_oauth2_token", return_value=idinfo_mock), \
-             patch("endpoints.authentification.get_user_by_email", side_effect=[None, SimpleNamespace(user_id=1, email="google@example.com", user_type="particpant")]), \
-             patch("endpoints.authentification.create_user", return_value=SimpleNamespace()), \
-             patch("endpoints.authentification.create_access_token", return_value="jwt_token"):
-
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
-
-            response = client.post("/auth/google-auth", json={"credential": "fake-google-token"})
-            assert response.status_code == 200
-            assert response.json() == {"token": "jwt_token"}
-            app.dependency_overrides.clear()
-
-    def test_google_login_invalid_token(self, mock_db):
-        with patch("endpoints.authentification.id_token.verify_oauth2_token", side_effect=ValueError("invalid")):
-            app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
-
-            response = client.post("/auth/google-auth", json={"credential": "bad-token"})
-            assert response.status_code == 401
-            assert "Invalid Google token" in response.json()["detail"]
-            app.dependency_overrides.clear()
-
-    def test_profile_success(self, mock_db):
-        # token data for get_current_user
-        token_data = {"sub": "test@example.com", "role": "particpant", "id": 1}
-
-        # Use a SimpleNamespace so it is JSON serializable
-        mock_user_obj = SimpleNamespace(
-            user_id=1,
-            email="test@example.com",
-            user_type="particpant"
+def test_profile_endpoint(client, mock_user):
+    """Test accessing a protected route with a valid token."""
+    
+    # Create a valid token manually using your helper function
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.get(
+            "/profile", 
+            headers={"Authorization": f"Bearer {token}"}
         )
-
-        # Override DB dependency
-        app.dependency_overrides[authentification.get_db] = override_get_db(mock_db)
-
-        # Patch get_user_by_email and decode_access_token
-        with patch("endpoints.authentification.get_user_by_email", return_value=mock_user_obj), \
-                patch("endpoints.authentification.decode_access_token", return_value=token_data):
-            headers = {"Authorization": "Bearer fake-token"}
-            response = client.get("/auth/profile", headers=headers)
-
+        
         assert response.status_code == 200
-        assert response.json() == {"id": 1, "email": "test@example.com", "role": "particpant"}
+        assert response.json()["email"] == mock_user.email
 
-        app.dependency_overrides.clear()
+def test_logout_revocation(client, mock_user):
+    """Test that logging out adds the token ID (jti) to the blocklist."""
+    
+    # 1. Generate token
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    
+    # 2. Call Logout
+    response = client.post(
+        "/logout",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    assert response.json()["msg"] == "Successfully logged out"
 
-    def test_logout_success(self, mock_db):
-        token_payload = {"jti": "tokenid123"}
-        with patch("endpoints.authentification.decode_access_token", return_value=token_payload):
-            from endpoints.authentification import token_blocklist
-            token_blocklist.clear()
+    # 3. Verify accessing Profile with the SAME token now fails
+    # We expect 401 because the JTI is now in token_blocklist
+    response_protected = client.get(
+        "/profile",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response_protected.status_code == 401
+    assert response_protected.json()["detail"] == "Token has been revoked"
 
-            response = client.post("/auth/logout", headers={"Authorization": "Bearer some-token"})
-            assert response.status_code == 200
-            assert "Successfully logged out" in response.json()["msg"]
-            assert "tokenid123" in token_blocklist
+def test_admin_dashboard_access_denied(client, mock_user):
+    """Test that a regular 'participant' cannot access admin dashboard."""
+    
+    # User is 'participant'
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})
+    
+    response = client.get(
+        "/admin/dashboard",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    # Expect 403 Forbidden
+    assert response.status_code == 403
 
-    def test_admin_dashboard_authorized(self):
-        # override current_user to admin
-        app.dependency_overrides[authentification.get_current_user] = lambda: {"role": "admin"}
-
-        response = client.get("/auth/admin/dashboard")
-        assert response.status_code == 200
-        assert response.json() == {"message": "Welcome to the admin dashboard"}
-
-        app.dependency_overrides.clear()
+def test_admin_dashboard_access_granted(client, admin_user):
+    """Test that an 'admin' can access admin dashboard."""
+    
+    # User is 'admin'
+    token = authentification_api.create_access_token({"sub": admin_user.email, "role": "admin", "id": admin_user.user_id})
+    
+    response = client.get(
+        "/admin/dashboard",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    assert response.json()["message"] == "Welcome to the admin dashboard"

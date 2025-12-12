@@ -29,15 +29,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { updateAccount } from "@/api/manageAccounts";
-import type { Account } from "@/types/Account";
+import { updateAccount } from "@/api/AccountsAPI";
+import type { Account } from "@/types/account/Account.type";
 
 interface ActionsCellProps {
   user: Account;
   onUserUpdate?: (updatedUser: Account) => void;
 }
 
-export function ActionsCell({ user, onUserUpdate } : Readonly<ActionsCellProps>) {
+export function ActionsCell({ user, onUserUpdate }: Readonly<ActionsCellProps>) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [firstName, setFirstName] = React.useState(user.firstName);
   const [lastName, setLastName] = React.useState(user.lastName);

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { LoginForm } from '../src/components/forms/LogInForm';
-import * as authApi from '../src/api/auth';
+import * as authApi from '../src/api/AuthAPI';
 import { jwtDecode } from 'jwt-decode';
 
 // Polyfill for TextEncoder/TextDecoder
@@ -12,7 +12,7 @@ global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder as any;
 
 // Mock dependencies
-jest.mock('../src/api/auth');
+jest.mock('../src/api/AuthAPI');
 jest.mock('jwt-decode');
 
 const mockNavigate = jest.fn();

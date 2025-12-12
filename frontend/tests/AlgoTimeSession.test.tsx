@@ -1,6 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AlgoTimeSessionForm } from '../src/components/forms/AlgoTimeForm';
-import { logFrontend } from '../src/api/logFrontend'; // Import logFrontend
 
 // Mock the navigate function
 const mockNavigate = jest.fn();
@@ -17,7 +16,7 @@ jest.mock('sonner', () => ({
 }));
 
 // Mock the API calls
-jest.mock('@/api/homepageQuestions', () => ({
+jest.mock('@/api/QuestionsAPI', () => ({
   getQuestions: jest.fn(() => Promise.resolve([
     {
       id: 1,
@@ -33,7 +32,7 @@ jest.mock('@/api/homepageQuestions', () => ({
 }));
 
 // Mock logFrontend
-jest.mock('../src/api/logFrontend', () => ({
+jest.mock('../src/api/LoggerAPI', () => ({
   logFrontend: jest.fn(),
 }));
 

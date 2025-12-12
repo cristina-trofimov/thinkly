@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.log import log_router
-from endpoints.authentification import auth_router
+from endpoints.authentification_api import auth_router
 from endpoints.questions_api import questions_router
 from endpoints.competitions_api import competitions_router
 from endpoints.standings_api import standings_router

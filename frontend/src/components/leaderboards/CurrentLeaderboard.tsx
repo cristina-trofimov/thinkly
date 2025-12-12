@@ -2,28 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
-import axiosClient from "@/lib/axiosClient";
-import type { Participant } from "../interfaces/Participant";
-
-export interface CurrentStandings {
-  competition_name: string;
-  participants: Participant[];
-}
+import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
+import { getCurrentLeaderboardStandings } from "../../api/LeaderboardsAPI";
 
 export function CurrentLeaderboard() {
   const [standings, setStandings] = useState<CurrentStandings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCurrentStandings = async () => {
+  const getCurrentStandings = async () => {
     try {
       setError(null);
-
-      console.log("Fetching current standings...");
-      const response = await axiosClient.get<CurrentStandings>("/standings/current");
-      console.log("Current standings response:", response.data);
-
-      setStandings(response.data);
+      const response = await getCurrentLeaderboardStandings();
+      setStandings(response);
     } catch (err) {
       console.error("Error loading current standings:", err);
       setError("Failed to load current standings");
@@ -32,15 +23,14 @@ export function CurrentLeaderboard() {
     }
   };
 
-  // Initial fetch
   useEffect(() => {
-    fetchCurrentStandings();
+    getCurrentStandings();
   }, []);
 
   // Auto-refresh every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchCurrentStandings();
+      getCurrentStandings();
     }, 60000); // 60 seconds
 
     return () => clearInterval(interval);

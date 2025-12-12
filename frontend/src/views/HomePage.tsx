@@ -2,23 +2,23 @@ import * as React from "react"
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
-import { columns } from "../components/HomePageQuestions/questionsColumns"
-import type { Questions } from "../components/HomePageQuestions/questionsColumns"
-import { DataTable } from "../components/HomePageQuestions/questionDataTable"
-import type { CompetitionItem } from "@/types/CompetitionItem"
-import {getCompetitions } from "@/api/homepageComp";
-import {getQuestions} from "@/api/homepageQuestions";
-import { logFrontend } from '../api/logFrontend';
+import { columns } from "../components/questionsTable/questionsColumns"
+import type { Questions } from "../components/questionsTable/questionsColumns"
+import { DataTable } from "../components/questionsTable/questionDataTable"
+import { getCompetitions } from "@/api/CompetitionAPI";
+import { getQuestions } from "@/api/QuestionsAPI";
+import { logFrontend } from '../api/LoggerAPI';
+import type { Competition } from "@/types/competition/Competition.type"
 
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
   const [questions, setQuestions] = React.useState<Questions[]>([])
-  const [competitions, setCompetitions] = React.useState<CompetitionItem[]>([])
+  const [competitions, setCompetitions] = React.useState<Competition[]>([])
 
 
   React.useEffect(() => {
-    const fetchQuestions = async () => {
+    const getAllQuestions = async () => {
       try {
         const data = await getQuestions();
         setQuestions(data);
@@ -32,9 +32,9 @@ function HomePage() {
       } catch (err: unknown) {
         const isError = err instanceof Error;
         const errorMessage = isError ? err.message : "Unknown error during question fetch.";
-        
+
         console.error("Error fetching questions:", err);
-        
+
         // Log the error to the backend
         logFrontend({
           level: 'ERROR',
@@ -43,30 +43,30 @@ function HomePage() {
           url: window.location.href,
           stack: isError ? err.stack : undefined, // Safely access stack
         });
-      } 
+      }
     }
 
-    fetchQuestions()
+    getAllQuestions()
   }, [])
 
   React.useEffect(() => {
-    const fetchCompetitions = async () => {
+    const getAllCompetitions = async () => {
       try {
-          const data = await getCompetitions();
-          setCompetitions(data);
+        const data = await getCompetitions();
+        setCompetitions(data);
 
-          logFrontend({
-            level: 'INFO',
-            message: `Competitions data loaded.`,
-            component: 'HomePage',
-            url: window.location.href,
-          });
+        logFrontend({
+          level: 'INFO',
+          message: `Competitions data loaded.`,
+          component: 'HomePage',
+          url: window.location.href,
+        });
       } catch (err: unknown) {
         const isError = err instanceof Error;
         const errorMessage = isError ? err.message : "Unknown error during competition fetch.";
-        
+
         console.error("Error fetching competitions:", err);
-        
+
         // Log the error to the backend
         logFrontend({
           level: 'ERROR',
@@ -75,16 +75,18 @@ function HomePage() {
           url: window.location.href,
           stack: isError ? err.stack : undefined, // Safely access stack
         });
-      } 
+      }
     };
-    fetchCompetitions()
+    getAllCompetitions()
   }, [])
 
   const competitionsForSelectedDate = React.useMemo(() => {
     if (!date) return []
-    return competitions.filter(
-      (c) => c.date.toDateString() === date.toDateString()
-    )
+    return competitions.filter((c) => {
+      // Create a new Date object from the string before calling toDateString
+      const compDate = new Date(c.date);
+      return compDate.toDateString() === date.toDateString();
+    })
   }, [date, competitions])
 
   const competitionDates = competitions.map((c) => c.date)
@@ -124,16 +126,17 @@ function HomePage() {
               captionLayout="dropdown"
               modifiers={{ competition: competitionDates }}
               modifiersClassNames={{
-              competition:
-                  "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",}}
+                competition:
+                  "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",
+              }}
             />
 
-          <h2 className="text-xl font-semibold mb-2 text-center">
-                  Competitions on {date?.toLocaleDateString() ?? "—"}
-                </h2>
+            <h2 className="text-xl font-semibold mb-2 text-center">
+              Competitions on {date?.toLocaleDateString() ?? "—"}
+            </h2>
 
             <div className=" w-[300px] flex flex-col gap-2">
-            {competitionsForSelectedDate.length === 0 ? (
+              {competitionsForSelectedDate.length === 0 ? (
                 <p className="text-center text-gray-500 italic">No competitions on this date</p>
               ) : (
                 competitionsForSelectedDate.map((competition) => (

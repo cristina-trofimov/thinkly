@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Participant } from "../interfaces/Participant";
+import type { Participant } from "../../types/account/Participant.type";
 
 interface Props {
   readonly participants: Participant[];
@@ -107,9 +107,9 @@ export function ScoreboardDataTable({ participants }: Props) {
                   {header.isPlaceholder
                     ? null
                     : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
                 </TableHead>
               ))}
             </TableRow>

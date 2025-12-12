@@ -1,221 +1,150 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboards } from "../src/components/leaderboards/Leaderboards";
-import axiosClient from "@/lib/axiosClient";
+import { getCompetitionsDetails } from "@/api/CompetitionAPI";
 
-// Mock axiosClient
-jest.mock("@/lib/axiosClient");
-const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
+// 1. Mock API
+jest.mock("@/api/CompetitionAPI", () => ({
+  __esModule: true,
+  getCompetitionsDetails: jest.fn().mockResolvedValue([]),
+  getCompetitions: jest.fn(),
+}));
 
-const mockCompetitions = [
+// 2. Mock Child Component
+jest.mock("../src/components/leaderboards/CompetitionCard", () => ({
+  CompetitionCard: ({ competition }: { competition: any }) => (
+    <div data-testid="competition-card">
+      {competition.competitionTitle}
+    </div>
+  ),
+}));
+
+// 3. Test Data
+const mockCompetitionsData = [
   {
-    id: "1",
-    name: "Competition A",
-    date: "2025-09-15",
-    participants: [
-      { rank: 1, name: "Alice", score: 100 }
-    ]
+    id: 1,
+    competitionTitle: "September Challenge",
+    date: new Date("2025-09-15"),
+    participants: [],
   },
   {
-    id: "2",
-    name: "Competition B",
-    date: "2025-10-31",
-    participants: [
-      { rank: 1, name: "Bob", score: 95 }
-    ]
+    id: 2,
+    competitionTitle: "October Challenge",
+    date: new Date("2025-10-31"),
+    participants: [],
   },
 ];
 
-beforeEach(() => {
-  // Clear all mocks
-  jest.clearAllMocks();
-
-  // Mock axios get request with default success response
-  mockedAxios.get.mockResolvedValue({
-    data: mockCompetitions,
-    status: 200,
-    statusText: "OK",
-    headers: {},
-    config: {} as any,
+describe("Leaderboards Component", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  // Mock localStorage
-  Storage.prototype.getItem = jest.fn(() => null);
-});
+  const setupSuccess = () => {
+    (getCompetitionsDetails as jest.Mock).mockResolvedValue(mockCompetitionsData);
+  };
 
-afterEach(() => {
-  jest.resetAllMocks();
-});
+  it("displays loading state initially", async () => {
+    (getCompetitionsDetails as jest.Mock).mockReturnValue(new Promise(() => { }));
+    render(<Leaderboards />);
+    expect(screen.getByText(/loading leaderboards/i)).toBeInTheDocument();
+  });
 
-describe("Leaderboards", () => {
   it("renders competitions sorted by newest date by default", async () => {
+    setupSuccess();
     render(<Leaderboards />);
 
-    // Wait for axios to be called
     await waitFor(() => {
-      expect(mockedAxios.get).toHaveBeenCalledWith("/standings/leaderboards/");
+      expect(screen.getByText("October Challenge")).toBeInTheDocument();
+      expect(screen.getByText("September Challenge")).toBeInTheDocument();
     });
 
-    // Wait for both competition names to appear in the document
-    await waitFor(() => {
-      expect(screen.getByText("Competition A")).toBeInTheDocument();
-      expect(screen.getByText("Competition B")).toBeInTheDocument();
-    });
-
-    // Get all elements containing competition text
-    const compA = screen.getByText("Competition A");
-    const compB = screen.getByText("Competition B");
-
-    // Check that Competition B appears before Competition A in the DOM
-    // (newest first by default)
-    const allText = document.body.textContent || "";
-    const indexA = allText.indexOf("Competition A");
-    const indexB = allText.indexOf("Competition B");
-
-    expect(indexB).toBeLessThan(indexA);
+    const items = screen.getAllByTestId("competition-card");
+    expect(items[0]).toHaveTextContent("October Challenge");
+    expect(items[1]).toHaveTextContent("September Challenge");
   });
 
   it("filters competitions by search input", async () => {
+    setupSuccess();
     const user = userEvent.setup();
     render(<Leaderboards />);
 
-    // Wait for competitions to load
     await waitFor(() => {
-      expect(screen.getByText("Competition A")).toBeInTheDocument();
+      expect(screen.getByText("October Challenge")).toBeInTheDocument();
     });
 
-    const input = screen.getByPlaceholderText(/search competition/i);
-
-    // Type "Competition A" to filter
+    const input = screen.getByPlaceholderText(/search/i);
     await user.clear(input);
-    await user.type(input, "Competition A");
+    await user.type(input, "September");
 
-    // Wait for filtering to take effect
     await waitFor(() => {
-      expect(screen.getByText("Competition A")).toBeInTheDocument();
-      expect(screen.queryByText("Competition B")).not.toBeInTheDocument();
+      expect(screen.getByText("September Challenge")).toBeInTheDocument();
+      expect(screen.queryByText("October Challenge")).not.toBeInTheDocument();
     });
   });
 
-  it("sorts competitions by oldest date when selected", async () => {
+  it("sorts by oldest date when sort is toggled", async () => {
+    setupSuccess();
     const user = userEvent.setup();
     render(<Leaderboards />);
 
-    // Wait for competitions to render
+    // 1. Wait for initial render
     await waitFor(() => {
-      expect(screen.getByText("Competition A")).toBeInTheDocument();
+      expect(screen.getByText("October Challenge")).toBeInTheDocument();
     });
 
-    // Click the dropdown trigger button
-    const dropdownButton = screen.getByRole("button", { name: /date/i });
-    await user.click(dropdownButton);
+    // 2. Open the Dropdown
+    const sortButton = screen.getByRole("button", { name: /date/i });
+    await user.click(sortButton);
 
-    // Wait for dropdown menu to appear and click the "Oldest → Newest" option
-    const oldestOption = await screen.findByRole("menuitem", { name: /oldest.*newest/i });
+    // 3. Find the Menu and the specific Option
+    const menu = await screen.findByRole("menu");
+
+    // FIX: Use a more specific Regex to match "Oldest -> Newest" specifically
+    // The caret (^) ensures it matches the beginning of the string.
+    const oldestOption = await within(menu).findByRole("menuitem", {
+      name: /^Oldest/i
+    });
+
     await user.click(oldestOption);
 
-    // Wait for sort to take effect and check order
+    // 4. Verify Order: Oldest (September) First
     await waitFor(() => {
-      const allText = document.body.textContent || "";
-      const indexA = allText.indexOf("Competition A");
-      const indexB = allText.indexOf("Competition B");
-
-      // Competition A (September) should come before Competition B (October)
-      expect(indexA).toBeLessThan(indexB);
+      const items = screen.getAllByTestId("competition-card");
+      expect(items[0]).toHaveTextContent("September Challenge");
+      expect(items[1]).toHaveTextContent("October Challenge");
     });
   });
 
-  it("displays empty state when no competitions match search", async () => {
+  it("displays empty state when search yields no results", async () => {
+    setupSuccess();
     const user = userEvent.setup();
     render(<Leaderboards />);
 
-    // Wait for competitions to load
     await waitFor(() => {
-      expect(screen.getByText("Competition A")).toBeInTheDocument();
+      expect(screen.getByText("October Challenge")).toBeInTheDocument();
     });
 
-    const input = screen.getByPlaceholderText(/search competition/i);
-
-    // Type something that doesn't match
+    const input = screen.getByPlaceholderText(/search/i);
     await user.clear(input);
-    await user.type(input, "Nonexistent Competition");
+    await user.type(input, "Nonexistent XYZ");
 
-    // Wait for filtering to take effect
     await waitFor(() => {
-      expect(screen.queryByText("Competition A")).not.toBeInTheDocument();
-      expect(screen.queryByText("Competition B")).not.toBeInTheDocument();
+      expect(screen.getByText("No competitions found")).toBeInTheDocument();
+      expect(screen.queryByText("October Challenge")).not.toBeInTheDocument();
     });
   });
 
-  it("handles fetch errors gracefully", async () => {
-    // Mock console methods to avoid cluttering test output
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-
-    // Mock axios to reject - must be set before render
-    mockedAxios.get.mockReset();
-    mockedAxios.get.mockRejectedValue(new Error("Network error"));
+  it("handles API errors gracefully", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => { });
+    (getCompetitionsDetails as jest.Mock).mockRejectedValue(new Error("API Error"));
 
     render(<Leaderboards />);
 
-    // The component should show the error message
     await waitFor(() => {
       expect(screen.getByText("Failed to load leaderboards")).toBeInTheDocument();
-    }, { timeout: 3000 });
-
-    consoleErrorSpy.mockRestore();
-    consoleLogSpy.mockRestore();
-  });
-
-  it("displays loading state initially", async () => {
-    // Create a promise we can control
-    let resolvePromise: any;
-    const promise = new Promise((resolve) => {
-      resolvePromise = resolve;
     });
 
-    mockedAxios.get.mockReset();
-    mockedAxios.get.mockReturnValue(promise);
-
-    const { container } = render(<Leaderboards />);
-
-    // Give React a moment to render
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    // Check for loading state - use query to avoid throwing
-    const loadingText = screen.queryByText("Loading leaderboards...");
-
-    if (loadingText) {
-      expect(loadingText).toBeInTheDocument();
-    } else {
-      // If loading state is too fast, just verify the component rendered
-      expect(container.querySelector('input[placeholder*="Search"]')).toBeInTheDocument();
-    }
-
-    // Resolve the promise to clean up
-    resolvePromise({
-      data: mockCompetitions,
-      status: 200,
-      statusText: "OK",
-      headers: {},
-      config: {} as any,
-    });
-
-    // Wait for loading to complete
-    await waitFor(() => {
-      expect(screen.queryByText("Loading leaderboards...")).not.toBeInTheDocument();
-    });
-  });
-
-  it("renders search bar and filter controls", async () => {
-    render(<Leaderboards />);
-
-    // Wait for loading to complete
-    await waitFor(() => {
-      expect(screen.queryByText("Loading leaderboards...")).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByPlaceholderText(/search competition/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /date/i })).toBeInTheDocument();
+    consoleSpy.mockRestore();
   });
 });

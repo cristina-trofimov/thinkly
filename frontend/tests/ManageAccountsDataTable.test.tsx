@@ -9,14 +9,14 @@ import userEvent from "@testing-library/user-event";
 import { ManageAccountsDataTable } from "../src/components/manageAccounts/ManageAccountsDataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { deleteAccounts } from "./../src/api/manageAccounts";
+import { deleteAccounts } from "./../src/api/AccountsAPI";
 import { Checkbox } from "@/components/ui/checkbox";
 
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },
 }));
 
-jest.mock("./../src/api/manageAccounts", () => ({
+jest.mock("./../src/api/AccountsAPI", () => ({
   deleteAccounts: jest.fn(),
 }));
 

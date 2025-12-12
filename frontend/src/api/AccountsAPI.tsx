@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Account } from "@/types/Account";
+import type { Account } from "@/types/account/Account.type";
 
 export async function getAccounts(): Promise<Account[]> {
   try {
@@ -63,12 +63,12 @@ export async function updateAccount(
     }>(`/manage-accounts/users/${userId}`, updatedFields);
 
     const formattedAccounts: Account = {
-        id: updatedAccount.data.user_id,
-        firstName: updatedAccount.data.first_name,
-        lastName: updatedAccount.data.last_name,
-        email: updatedAccount.data.email,
-        accountType: updatedAccount.data.type,
-      };
+      id: updatedAccount.data.user_id,
+      firstName: updatedAccount.data.first_name,
+      lastName: updatedAccount.data.last_name,
+      email: updatedAccount.data.email,
+      accountType: updatedAccount.data.type,
+    };
 
     return formattedAccounts;
   } catch (err) {
