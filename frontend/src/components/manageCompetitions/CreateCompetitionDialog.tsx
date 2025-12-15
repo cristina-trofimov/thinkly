@@ -21,7 +21,7 @@ import type { Question } from "../../types/questions/Question.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 import { logFrontend } from "@/api/LoggerAPI";
-
+import buildCompetitionEmail from "./BuildEmail";
 
 
 export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly<CreateCompetitionDialogProps>) {
@@ -30,10 +30,13 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     date: "",
     startTime: "",
     endTime: "",
+    location: "",
     questionCooldownTime: "",
     riddleCooldownTime: "",
   });
-
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [emailToAll, setEmailToAll] = useState(false);
+  const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
   const [emailData, setEmailData] = useState({
     to: "",
     subject: "",
@@ -55,6 +58,22 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
   const [questions, setQuestions] = useState<Question[]>(fallbackQuestions);
 
+  // for the email building
+  useEffect(() => {
+  if (emailManuallyEdited) return;
+
+  const autoText = buildCompetitionEmail(formData);
+  if (autoText) {
+    setEmailData((prev) => ({ ...prev, text: autoText }));
+  }
+}, [
+  formData.name,
+  formData.date,
+  formData.startTime,
+  formData.endTime,
+  formData.location,
+  emailManuallyEdited
+]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +112,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
   ];
 
   const filteredQuestions = questions.filter((q) =>
-    q.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    q.questionTitle?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredRiddles = riddles.filter((r) =>
@@ -149,25 +168,30 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     console.log("Selected riddles:", selectedRiddles);
 
     // Handle email notification if recipients are provided
-    if (emailData.to.trim()) {
-      try {
-        await sendEmail({
-          to: emailData.to,
-          subject: emailData.subject,
-          text: emailData.text,
-          sendInOneMinute: emailData.sendInOneMinute,
-          sendAtLocal: emailData.sendAtLocal
-        });
-        console.log("Email processing initiated ✅");
-      } catch (error) {
+     if (emailEnabled) {
+      // Determine recipients: all participants or manual input
+      const recipients = emailToAll ? "all participants" : emailData.to.trim();
 
-        logFrontend({
-          level: 'ERROR',
-          message: `An error occurred. Email failed to send: ${(error as Error).message}`,
-          component: 'CreateCompetitionDialog.tsx',
-          url: window.location.href,
-          stack: (error as Error).stack, // Include stack trace for backend logging
-        });
+      // Only send if there is at least one recipient
+      if (recipients) {
+        try {
+          await sendEmail({
+            to: recipients,
+            subject: emailData.subject,
+            text: emailData.text,
+            sendInOneMinute: emailData.sendInOneMinute,
+            sendAtLocal: emailData.sendAtLocal,
+          });
+          console.log("Email processing initiated ✅");
+        } catch (error) {
+          logFrontend({
+            level: 'ERROR',
+            message: `An error occurred. Email failed to send: ${(error as Error).message}`,
+            component: 'CreateCompetitionDialog.tsx',
+            url: window.location.href,
+            stack: (error as Error).stack,
+          });
+        }
       }
     }
 
@@ -178,6 +202,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
       date: "",
       startTime: "",
       endTime: "",
+      location: "",
       questionCooldownTime: "",
       riddleCooldownTime: "",
     });
@@ -251,6 +276,15 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                 />
               </div>
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Enter competition location"
+              />
+            </div>
           </div>
 
           {/* Question Selection */}
@@ -291,7 +325,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{question.title}</span>
+                      <span className="font-medium text-sm">{question.questionTitle}</span>
                       <span
                         className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty ?? "")}`}
                       >
@@ -371,19 +405,47 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           </div>
 
           {/* Email Notification */}
+          <div className="flex items-center justify-between rounded-md border p-3 mb-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="enableEmail" className="text-sm font-medium">Enable Email Notifications</Label>
+              <p className="text-xs text-gray-500">Toggle to enable or disable email notifications</p>
+            </div>
+            <Switch
+              id="enableEmail"
+              checked={emailEnabled}
+              onCheckedChange={(checked) => setEmailEnabled(checked)}
+            />
+          </div>
+          {emailEnabled && (
           <div className="grid gap-4">
             <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
-            <p className="text-sm text-gray-500">Optionally send email notifications about this competition</p>
+            <p className="text-sm text-gray-500">Optionally send email notifications about this competition. It will be sent 24h before a competition and 5 minutes before a competition.</p>
 
-            <div className="grid gap-2">
-              <Label htmlFor="emailTo">To (comma-separated)</Label>
-              <Input
-                id="emailTo"
-                value={emailData.to}
-                onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                placeholder="alice@example.com, bob@example.com"
+            <div className="flex items-center justify-between rounded-md border p-3 mb-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="emailToAll" className="text-sm font-medium">Send to all participants</Label>
+                <p className="text-xs text-gray-500">
+                  If enabled, the email will automatically go to all registered participants
+                </p>
+              </div>
+              <Switch
+                id="emailToAll"
+                checked={emailToAll}
+                onCheckedChange={(checked) => setEmailToAll(checked)}
               />
             </div>
+
+            {!emailToAll && (
+              <div className="grid gap-2">
+                <Label htmlFor="emailTo">To (comma-separated)</Label>
+                <Input
+                  id="emailTo"
+                  value={emailData.to}
+                  onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                  placeholder="alice@example.com, bob@example.com"
+                />
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label htmlFor="emailSubject">Subject</Label>
@@ -396,13 +458,16 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="emailText">Message</Label>
+              <Label htmlFor="emailText">Email Message (Edit if needed)</Label>
               <Textarea
                 id="emailText"
-                rows={4}
+                rows={6}
                 value={emailData.text}
-                onChange={(e) => setEmailData({ ...emailData, text: e.target.value })}
-                placeholder="Write your message..."
+                onChange={(e) => {
+                  setEmailManuallyEdited(true);
+                  setEmailData({ ...emailData, text: e.target.value });
+                }}
+                placeholder="Message that will be sent in reminders"
               />
             </div>
 
@@ -421,7 +486,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="sendAtLocal">Schedule (local time)</Label>
+                <Label htmlFor="sendAtLocal">Additionally schedule for (local time)</Label>
                 <Input
                   id="sendAtLocal"
                   type="datetime-local"
@@ -431,6 +496,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
               </div>
             </div>
           </div>
+              )}
         </div>
         <DialogFooter>
           <Button

@@ -5,16 +5,16 @@ import { BACKEND_URL } from "../config";
 export async function getQuestions(): Promise<Questions[]> {
   try {
     const response = await axiosClient.get<{
-      id: number;
-      questionTitle: string;
-      date: string;
+      question_id: number;
+      question_name: string;
+      last_modified_at: string;
       difficulty: "Easy" | "Medium" | "Hard";
     }[]>(`${BACKEND_URL}/questions/get-all-questions`);
 
     const formatted: Questions[] = response.data.map(q => ({
-      id: String(q.id),
-      questionTitle: q.questionTitle,
-      date: new Date(q.date),
+      id: String(q.question_id),
+      questionTitle: q.question_name,
+      date: new Date(q.last_modified_at),
       difficulty: q.difficulty,
     }));
 

@@ -1,4 +1,4 @@
-# /backend/src/DB_Methods/populateDB.py
+# do /backend/src/DB_Methods and run:  python -m populateDB
 
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
