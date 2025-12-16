@@ -9,7 +9,6 @@ class UserAccount(Base):
     __tablename__ = 'user_account'
 
     user_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(unique=True)
     hashed_password: Mapped[str] = mapped_column()
     first_name: Mapped[str] = mapped_column()
@@ -21,6 +20,7 @@ class UserAccount(Base):
     participations: Mapped[List[Participation]] = relationship('Participation', back_populates='user_account', uselist=True)
     competition_leaderboard_entries: Mapped[List[CompetitionLeaderboardEntry]] = relationship('CompetitionLeaderboardEntry', back_populates='user_account', uselist=True)
     algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry', back_populates='user_account', uselist=True)
+
 class UserPreferences(Base):
     __tablename__ = 'user_preferences'
 

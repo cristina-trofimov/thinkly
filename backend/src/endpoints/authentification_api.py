@@ -31,7 +31,6 @@ class SignupRequest(BaseModel):
     lastName: str
     email: EmailStr
     password: str
-    username: str
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -44,14 +43,13 @@ class GoogleAuthRequest(BaseModel):
 def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
     return db.query(UserAccount).filter(UserAccount.email == email).first()
 
-def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
+def create_user(db: Session, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
     if type == 'owner':
         existing_owner = db.query(UserAccount).filter(UserAccount.user_type == 'owner').first()
         if existing_owner:
             logger.error("Owner creation failed: An owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
     new_user = UserAccount(
-        username=username,
         email=email,
         first_name=first_name,
         last_name=last_name,
@@ -122,8 +120,8 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
     
     try:
         password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
-        create_user(db, request.username, request.email, password_hash, request.firstName, request.lastName)
-        logger.info(f"SUCCESSFUL SIGNUP: New user '{request.username}' created.")
+        create_user(db, request.email, password_hash, request.firstName, request.lastName)
+        logger.info(f"SUCCESSFUL SIGNUP: New user '{request.email}' created.")
         return {"message": "User created"}
     except Exception:
         logger.exception(f"FATAL error during user creation for email: {request.email}")
@@ -134,7 +132,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     logger.info(f"Attempting password login for email: {request.email}")
     user = get_user_by_email(db, request.email)
     
-    if not user or not bcrypt.checkpw(request.password.encode(), user.salt.encode()):
+    if not user or not bcrypt.checkpw(request.password.encode(), user.hashed_password.encode()):
         logger.warning(f"Login failed: Invalid credentials for email: {request.email}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
@@ -155,7 +153,7 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
         
         if not user:
             logger.info(f"New user registration via Google OAuth: {email}")
-            create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="participant")
+            create_user(db, email=email, password_hash="", first_name=name, last_name="", type="participant")
             user = get_user_by_email(db, email)
         
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})

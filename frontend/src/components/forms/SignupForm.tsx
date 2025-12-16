@@ -50,7 +50,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 password: formData.password,
                 firstName: formData.first_name,
                 lastName: formData.last_name,
-                username: formData.email.split("@")[0],
             });
 
             alert("Account created successfully!");
