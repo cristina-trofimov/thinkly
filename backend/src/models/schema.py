@@ -132,6 +132,13 @@ class Tag(Base):
 
     questions: Mapped[List[Question]] = relationship('Question', secondary=question_tag, back_populates='tags', uselist=True)
 
+class Riddle(Base):
+    __tablename__ = 'riddle'
+
+    riddle_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    riddle_question: Mapped[str] = mapped_column()
+    riddle_answer: Mapped[str] = mapped_column()
+
 class QuestionInstance(Base):
     __tablename__ = 'question_instance'
 
@@ -139,6 +146,8 @@ class QuestionInstance(Base):
     question_id: Mapped[int] = mapped_column(ForeignKey('question.question_id', ondelete='CASCADE'))
     event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'))
     points: Mapped[int] = mapped_column(default=0)
+    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete='SET NULL'))
+    is_riddle_completed: Mapped[bool] = mapped_column(default=False)
 
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
     event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
@@ -186,7 +195,6 @@ class CompetitionLeaderboardEntry(Base):
 
     competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
-    username: Mapped[str] = mapped_column()
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_score: Mapped[int] = mapped_column()
