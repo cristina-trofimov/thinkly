@@ -194,6 +194,25 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
         }
       }
     }
+     /*
+    try {
+          await createCompetitionAPI({
+            to: recipients,
+            subject: emailData.subject,
+            text: emailData.text,
+            sendInOneMinute: emailData.sendInOneMinute,
+            sendAtLocal: emailData.sendAtLocal,
+          });
+          console.log("Email processing initiated ✅");
+        } catch (error) {
+          logFrontend({
+            level: 'ERROR',
+            message: `An error occurred. Email failed to send: ${(error as Error).message}`,
+            component: 'CreateCompetitionDialog.tsx',
+            url: window.location.href,
+            stack: (error as Error).stack,
+          });
+        } */
 
     onOpenChange(false);
     // Reset form

@@ -67,7 +67,6 @@ class BaseEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc),
                                                  onupdate=datetime.now(timezone.utc))
-
     competition: Mapped[Optional[Competition]] = relationship('Competition', back_populates='base_event', uselist=False)
     algotime: Mapped[Optional[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='base_event',
                                                                uselist=False)
