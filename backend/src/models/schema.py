@@ -150,6 +150,7 @@ class QuestionInstance(Base):
     is_riddle_completed: Mapped[bool] = mapped_column(default=False)
 
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
+    riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
     event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
     submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='question_instance', uselist=True)
 
