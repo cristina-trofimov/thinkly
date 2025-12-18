@@ -9,7 +9,7 @@ const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 describe("CurrentLeaderboard Component", () => {
   const mockStandings: CurrentStandings = {
-    competition_name: "Algo Competition",
+    competitionName: "Algo Competition",
     participants: [
     {user_id: 1, username: "alice123", name: "Alice", total_score: 900, rank: 7, problems_solved: 10} as Participant,
     {user_id: 2, username: "bob456", name: "Bob", total_score: 1200, rank: 1, problems_solved: 12} as Participant,
@@ -52,7 +52,7 @@ describe("CurrentLeaderboard Component", () => {
   });
 
   it("renders no active competition when participants array is empty", async () => {
-    mockedAxios.get.mockResolvedValueOnce({ data: { competition_name: "Empty Comp", participants: [] } });
+    mockedAxios.get.mockResolvedValueOnce({ data: { competitionName: "Empty Comp", participants: [] } });
 
     render(<CurrentLeaderboard />);
 

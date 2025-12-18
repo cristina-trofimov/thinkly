@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
+export type { CurrentStandings };
 import { getCurrentLeaderboardStandings } from "../../api/LeaderboardsAPI";
 
 export function CurrentLeaderboard() {
@@ -65,7 +66,7 @@ export function CurrentLeaderboard() {
       {/* Competition Header */}
       <div className="px-4">
         <h2 className="text-2xl font-bold text-[#8065CD]">
-          {standings.competition_name}
+          {standings.competitionName}
         </h2>
         <p className="text-sm text-gray-500">Live Standings • Updates every 60s</p>
       </div>
