@@ -6,6 +6,9 @@ from endpoints.questions_api import questions_router
 from endpoints.competitions_api import competitions_router
 from endpoints.standings_api import standings_router
 from endpoints.manage_accounts_api import accounts_router
+from endpoints.leaderboards_api import leaderboards_router
+from endpoints.currentLeaderboard_api import current_leaderboard_router
+from endpoints.send_email_api import email_router
 import uvicorn
 from logging_config import setup_logging
 import os
@@ -47,6 +50,9 @@ try:
     app.include_router(competitions_router, prefix="/competitions")
     app.include_router(standings_router, prefix="/standings")
     app.include_router(accounts_router, prefix="/manage-accounts")
+    app.include_router(email_router, prefix="/email")
+    app.include_router(leaderboards_router, prefix="/leaderboards")
+    app.include_router(current_leaderboard_router, prefix="/standings")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 

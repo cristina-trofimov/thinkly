@@ -145,6 +145,15 @@ export function LoginForm({
                                     autoComplete="off"
                                     required
                                 />
+                                <FieldDescription className="text-right">
+                                    <button
+                                        type="button"
+                                        className="text-sm text-gray-500 underline cursor-pointer hover:text-gray-700"
+                                        onClick={() => navigate('/forgot-password')}
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </FieldDescription>
                             </Field>
                             {error && (
                                 <p className="text-sm text-red-500">{error}</p>
