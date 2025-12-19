@@ -24,6 +24,7 @@ class CompetitionCreate(BaseModel):
     event_start_date: datetime
     event_end_date: datetime
 
+
 # ---------------- DB helpers ----------------
 def create_competition(db: Session, data: CompetitionCreate) -> Competition:
     # 1️⃣ Create BaseEvent

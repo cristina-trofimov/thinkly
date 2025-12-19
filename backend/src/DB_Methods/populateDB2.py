@@ -1,3 +1,4 @@
+# nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, UTC
 import random
@@ -34,7 +35,6 @@ def main():
         for i in range(1, 11):
             user = create_user(
                 db=db,
-                username=f"user{i}",
                 email=f"user{i}@example.com",
                 password_hash="hashed_pw",
                 first_name=f"First{i}",

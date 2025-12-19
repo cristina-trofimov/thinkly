@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from DB_Methods.database import get_db
-from models.schema import Scoreboard, Competition
+from models.schema import BaseEvent, Competition, CompetitionLeaderboardEntry
 import logging
 
 current_leaderboard_router = APIRouter(tags=["Current Leaderboard"])

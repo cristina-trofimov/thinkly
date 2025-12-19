@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from DB_Methods.database import get_db
-from models.schema import UserResult, Competition, Scoreboard
+from models.schema import CompetitionLeaderboardEntry, Competition, BaseEvent
 import logging
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
@@ -19,13 +19,13 @@ def get_all_competitions(db: Session) -> List[Competition]:
         logger.exception("Database error while fetching all competitions.")
         raise e
 
-def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Scoreboard]:
+def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[CompetitionLeaderboardEntry]:
     logger.debug(f"Executing helper query: Fetching scoreboard for competition ID {competition_id}.")
     try:
         scoreboards = (
-            db.query(Scoreboard)
-            .filter(Scoreboard.competition_id == competition_id)
-            .order_by(Scoreboard.rank.asc())
+            db.query(CompetitionLeaderboardEntry)
+            .filter(CompetitionLeaderboardEntry.event_id == event_id)
+            .order_by(CompetitionLeaderboardEntry.rank.asc())
             .all()
         )
         logger.debug(f"Scoreboard query completed for ID {competition_id}. Found {len(scoreboards)} entries.")
@@ -36,69 +36,58 @@ def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Sco
 
 @leaderboards_router.get("/")
 def get_leaderboards(db: Session = Depends(get_db)):
-    logger.info("Accessing /leaderboards endpoint to retrieve all competition results.")
+    logger.info("Accessing /leaderboards endpoint to retrieve all competition leaderboards.")
 
     try:
-        competitions = get_all_competitions(db)
+        competitions = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .all()
+        )
+
         if not competitions:
-            logger.info("No competitions found in the database.")
+            logger.info("No competitions found.")
             return []
 
         result = []
 
-        # Log the start of the primary aggregation loop
-        logger.info(f"Starting aggregation for {len(competitions)} competitions.")
-
         for comp in competitions:
-            comp_id = comp.competition_id
-            comp_name = comp.name
+            event = comp.base_event
+            comp_id = comp.event_id
 
-            logger.debug(f"Processing competition: ID {comp_id}, Name '{comp_name}'.")
+            logger.debug(f"Processing Competition Event ID {comp_id}")
 
-            scoreboards = get_scoreboard_for_competition(db, comp_id)
+            leaderboard_entries = comp.competition_leaderboard_entries
             participants = []
 
-            for s in scoreboards:
-                # Query UserResult for detailed performance data
-                ur = (
-                    db.query(UserResult)
-                    .filter(
-                        UserResult.user_id == s.user_id,
-                        UserResult.competition_id == s.competition_id,
-                    )
-                    .first()
-                )
-
-                if not ur:
-                    # Log a warning if participant performance data is missing
-                    logger.warning(f"Missing UserResult data for User ID {s.user_id} in Competition ID {comp_id}.")
-
-                # Check if s.user exists (prevent AttributeError on deleted user/bad FK)
-                user_name = f"{s.user.first_name} {s.user.last_name}" if s.user else "Unknown User"
+            for entry in leaderboard_entries:
+                # Prefer live user data if user exists, else fallback to stored name
+                if entry.user_account:
+                    user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                else:
+                    user_name = entry.name  # fallback snapshot
 
                 participants.append({
                     "name": user_name,
-                    "points": s.total_score or 0,
-                    # Fallback values are logged to ensure data completeness
-                    "problemsSolved": ur.problems_solved if ur else 0,
-                    "totalTime": f"{ur.total_time:.1f} min" if ur else "0.0 min",
+                    "points": entry.total_score,
+                    "problemsSolved": entry.problems_solved,
+                    "totalTime": f"{entry.total_time:.1f} min",
+                    "rank": entry.rank,
                 })
 
             result.append({
                 "id": str(comp_id),
-                "name": comp_name,
-                "date": comp.date.strftime("%Y-%m-%d"),
-                "participants": participants,
+                "name": event.event_name,
+                "date": event.event_start_date.strftime("%Y-%m-%d"),
+                "participants": sorted(participants, key=lambda x: x["rank"]),
             })
 
-        # Final success log
-        logger.info(f"Successfully aggregated data for all {len(competitions)} competitions.")
+        logger.info(f"Successfully returned {len(result)} leaderboards.")
         return result
 
     except Exception:
-        # Catch any unexpected error during the complex iteration/query process
-        logger.exception("FATAL error during leaderboards data aggregation.")
+        logger.exception("FATAL error during leaderboard aggregation.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve leaderboards due to internal processing error."
+            detail="Failed to retrieve leaderboards."
         )
