@@ -43,11 +43,20 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    const status = error.response?.status;
+    const url = error.config?.url ?? "";
+
+    // Only redirect for protected routes
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
+      url.includes("/auth/signup") ||
+      url.includes("/auth/google-auth");
+
+    if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
+
     return Promise.reject(error);
   }
 );

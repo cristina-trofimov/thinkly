@@ -38,32 +38,29 @@ export function LoginForm({
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-        e.preventDefault();
-        setError(null);
-        setLoading(true);
-        try {
-            const { token } = await login(form);
-            localStorage.setItem("token", token);
+    e.preventDefault();
+    e.stopPropagation();
 
-            console.log(localStorage.getItem("token"));
+    setError(null);
+    setLoading(true);
+    try {
+        const { token } = await login(form);
+        localStorage.setItem("token", token);
 
-            const decoded = jwtDecode<DecodedToken>(token);
-            console.log("Logged in as:", decoded.sub);
+        const decoded = jwtDecode<DecodedToken>(token);
+        console.log("Logged in as:", decoded.sub);
 
-            // Optionally redirect based on role
-            //            const role = decoded.sub.role;    throwing lint error: unused
-            if (decoded) {
-                navigate('/app/home');
-            }
+        // Navigate on success
+        navigate('/app/home');
 
-
-        } catch (err) {
-            console.error(err);
-            setError("Invalid email or password");
-        } finally {
-            setLoading(false);
-        }
-    };
+    } catch (err) {
+        console.error(err);
+        setError("Invalid email or password");
+        // Do NOT navigate here
+    } finally {
+        setLoading(false);
+    }
+};
 
     interface GoogleCredentialResponse {
         credential?: string;

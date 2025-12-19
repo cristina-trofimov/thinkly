@@ -43,6 +43,7 @@ def root():
     return {"message": "Backend is running!"}
 
 # Include routers
+try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
     app.include_router(questions_router, prefix="/questions")
@@ -52,6 +53,8 @@ def root():
     app.include_router(email_router, prefix="/email")
     app.include_router(leaderboards_router, prefix="/leaderboards")
 #    app.include_router(current_leaderboard_router, prefix="/standings")
+except AttributeError:
+    print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 
 #  Run server
 if __name__ == "__main__":

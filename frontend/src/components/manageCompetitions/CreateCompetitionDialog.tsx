@@ -19,7 +19,7 @@ import {
 } from "../../types/competition/CreateCompetition.type";
 import type { Question } from "../../types/questions/Question.type";
 import { getQuestions } from "@/api/QuestionsAPI";
-import { sendEmail } from "@/api/EmailAPI";
+import { createCompetition } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
@@ -45,6 +45,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     sendInOneMinute: false,
   });
   const [validationError, setValidationError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
@@ -60,20 +61,20 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
   // for the email building
   useEffect(() => {
-  if (emailManuallyEdited) return;
+    if (emailManuallyEdited) return;
 
-  const autoText = buildCompetitionEmail(formData);
-  if (autoText) {
-    setEmailData((prev) => ({ ...prev, text: autoText }));
-  }
-}, [
-  formData.name,
-  formData.date,
-  formData.startTime,
-  formData.endTime,
-  formData.location,
-  emailManuallyEdited
-]);
+    const autoText = buildCompetitionEmail(formData);
+    if (autoText) {
+      setEmailData((prev) => ({ ...prev, text: autoText }));
+    }
+  }, [
+    formData.name,
+    formData.date,
+    formData.startTime,
+    formData.endTime,
+    formData.location,
+    emailManuallyEdited
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +92,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           message: `An error occurred. Failed to load questions: ${(err as Error).message}`,
           component: 'CreateCompetitionDialog.tsx',
           url: window.location.href,
-          stack: (err as Error).stack, // Include stack trace for backend logging
+          stack: (err as Error).stack,
         });
       }
     };
@@ -101,7 +102,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     return () => { cancelled = true; };
   }, []);
 
-  // Hardcoded riddles data (unchanged)
+  // Hardcoded riddles data
   const riddles = [
     { id: 1, title: "Where's Waldo?" },
     { id: 2, title: "I speak without a mouth" },
@@ -159,63 +160,62 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      return; // Stop submission if validation fails
+      return;
     }
 
-    // Handle competition creation
-    console.log("Competition created:", formData);
-    console.log("Selected questions:", selectedQuestions);
-    console.log("Selected riddles:", selectedRiddles);
+    setIsSubmitting(true);
+    setValidationError('');
 
-    // Handle email notification if recipients are provided
-     if (emailEnabled) {
-      // Determine recipients: all participants or manual input
-      const recipients = emailToAll ? "all participants" : emailData.to.trim();
-
-      // Only send if there is at least one recipient
-      if (recipients) {
-        try {
-          await sendEmail({
-            to: recipients,
-            subject: emailData.subject,
-            text: emailData.text,
-            sendInOneMinute: emailData.sendInOneMinute,
-            sendAtLocal: emailData.sendAtLocal,
-          });
-          console.log("Email processing initiated ✅");
-        } catch (error) {
-          logFrontend({
-            level: 'ERROR',
-            message: `An error occurred. Email failed to send: ${(error as Error).message}`,
-            component: 'CreateCompetitionDialog.tsx',
-            url: window.location.href,
-            stack: (error as Error).stack,
-          });
-        }
-      }
-    }
-     /*
     try {
-          await createCompetitionAPI({
-            to: recipients,
-            subject: emailData.subject,
-            text: emailData.text,
-            sendInOneMinute: emailData.sendInOneMinute,
-            sendAtLocal: emailData.sendAtLocal,
-          });
-          console.log("Email processing initiated ✅");
-        } catch (error) {
-          logFrontend({
-            level: 'ERROR',
-            message: `An error occurred. Email failed to send: ${(error as Error).message}`,
-            component: 'CreateCompetitionDialog.tsx',
-            url: window.location.href,
-            stack: (error as Error).stack,
-          });
-        } */
+      // Prepare the payload
+      const payload = {
+        name: formData.name,
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        location: formData.location || undefined,
+        questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
+        riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
+        selectedQuestions,
+        selectedRiddles,
+        emailEnabled,
+        emailNotification: emailEnabled ? {
+          to: emailToAll ? "all participants" : emailData.to.trim(),
+          subject: emailData.subject,
+          text: emailData.text,
+          sendInOneMinute: emailData.sendInOneMinute,
+          sendAtLocal: emailData.sendAtLocal || undefined,
+        } : undefined,
+      };
+      console.log("Payload going to backend:", payload);
+      // Call the API
+      const result = await createCompetition(payload);
 
-    onOpenChange(false);
-    // Reset form
+      console.log("Competition created successfully ✅", result);
+
+      // Close dialog and reset form
+      onOpenChange(false);
+      resetForm();
+
+    } catch (error) {
+      console.error("Failed to create competition:", error);
+
+      logFrontend({
+        level: 'ERROR',
+        message: `Failed to create competition: ${(error as Error).message}`,
+        component: 'CreateCompetitionDialog.tsx',
+        url: window.location.href,
+        stack: (error as Error).stack,
+      });
+
+      // Show error to user
+      setValidationError("Failed to create competition. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
     setFormData({
       name: "",
       date: "",
@@ -234,6 +234,8 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     });
     setSelectedQuestions([]);
     setSelectedRiddles([]);
+    setEmailManuallyEdited(false);
+    setValidationError('');
   };
 
   return (
@@ -332,7 +334,6 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
             </div>
 
             <div className="border rounded-lg max-h-[200px] overflow-y-auto">
-
               {filteredQuestions && filteredQuestions.map((question) => (
                 <div
                   key={question.id}
@@ -364,7 +365,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                 min="0"
                 value={formData.questionCooldownTime}
                 onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
-                placeholder="Enter cooldown time"
+                placeholder="Enter cooldown time (default: 300)"
               />
             </div>
           </div>
@@ -418,7 +419,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                 min="0"
                 value={formData.riddleCooldownTime}
                 onChange={(e) => setFormData({ ...formData, riddleCooldownTime: e.target.value })}
-                placeholder="Enter cooldown time"
+                placeholder="Enter cooldown time (default: 60)"
               />
             </div>
           </div>
@@ -436,97 +437,102 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
             />
           </div>
           {emailEnabled && (
-          <div className="grid gap-4">
-            <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
-            <p className="text-sm text-gray-500">Optionally send email notifications about this competition. It will be sent 24h before a competition and 5 minutes before a competition.</p>
+            <div className="grid gap-4">
+              <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
+              <p className="text-sm text-gray-500">Optionally send email notifications about this competition. It will be sent 24h before a competition and 5 minutes before a competition.</p>
 
-            <div className="flex items-center justify-between rounded-md border p-3 mb-2">
-              <div className="space-y-0.5">
-                <Label htmlFor="emailToAll" className="text-sm font-medium">Send to all participants</Label>
-                <p className="text-xs text-gray-500">
-                  If enabled, the email will automatically go to all registered participants
-                </p>
-              </div>
-              <Switch
-                id="emailToAll"
-                checked={emailToAll}
-                onCheckedChange={(checked) => setEmailToAll(checked)}
-              />
-            </div>
-
-            {!emailToAll && (
-              <div className="grid gap-2">
-                <Label htmlFor="emailTo">To (comma-separated)</Label>
-                <Input
-                  id="emailTo"
-                  value={emailData.to}
-                  onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                  placeholder="alice@example.com, bob@example.com"
-                />
-              </div>
-            )}
-
-            <div className="grid gap-2">
-              <Label htmlFor="emailSubject">Subject</Label>
-              <Input
-                id="emailSubject"
-                value={emailData.subject}
-                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                placeholder="Competition announcement"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="emailText">Email Message (Edit if needed)</Label>
-              <Textarea
-                id="emailText"
-                rows={6}
-                value={emailData.text}
-                onChange={(e) => {
-                  setEmailManuallyEdited(true);
-                  setEmailData({ ...emailData, text: e.target.value });
-                }}
-                placeholder="Message that will be sent in reminders"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex items-center justify-between rounded-md border p-3 mb-2">
                 <div className="space-y-0.5">
-                  <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
+                  <Label htmlFor="emailToAll" className="text-sm font-medium">Send to all participants</Label>
                   <p className="text-xs text-gray-500">
-                    Overrides custom schedule
+                    If enabled, the email will automatically go to all registered participants
                   </p>
                 </div>
                 <Switch
-                  id="sendInOneMinute"
-                  checked={emailData.sendInOneMinute}
-                  onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
+                  id="emailToAll"
+                  checked={emailToAll}
+                  onCheckedChange={(checked) => setEmailToAll(checked)}
                 />
               </div>
+
+              {!emailToAll && (
+                <div className="grid gap-2">
+                  <Label htmlFor="emailTo">To (comma-separated)</Label>
+                  <Input
+                    id="emailTo"
+                    value={emailData.to}
+                    onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                    placeholder="alice@example.com, bob@example.com"
+                  />
+                </div>
+              )}
+
               <div className="grid gap-2">
-                <Label htmlFor="sendAtLocal">Additionally schedule for (local time)</Label>
+                <Label htmlFor="emailSubject">Subject</Label>
                 <Input
-                  id="sendAtLocal"
-                  type="datetime-local"
-                  value={emailData.sendAtLocal}
-                  onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                  id="emailSubject"
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                  placeholder="Competition announcement"
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="emailText">Email Message (Edit if needed)</Label>
+                <Textarea
+                  id="emailText"
+                  rows={6}
+                  value={emailData.text}
+                  onChange={(e) => {
+                    setEmailManuallyEdited(true);
+                    setEmailData({ ...emailData, text: e.target.value });
+                  }}
+                  placeholder="Message that will be sent in reminders"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
+                    <p className="text-xs text-gray-500">
+                      Overrides custom schedule
+                    </p>
+                  </div>
+                  <Switch
+                    id="sendInOneMinute"
+                    checked={emailData.sendInOneMinute}
+                    onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="sendAtLocal">Additionally schedule for (local time)</Label>
+                  <Input
+                    id="sendAtLocal"
+                    type="datetime-local"
+                    value={emailData.sendAtLocal}
+                    onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-              )}
+          )}
         </div>
         <DialogFooter>
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90">
-            Create Competition
+          <Button
+            onClick={handleSubmit}
+            className="bg-primary hover:bg-primary/90"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating..." : "Create Competition"}
           </Button>
         </DialogFooter>
       </DialogContent>
