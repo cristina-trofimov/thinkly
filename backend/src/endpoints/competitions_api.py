@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent
+from DB_Methods.database import get_db
 import logging
 from dotenv import load_dotenv
 from DB_Methods.database import get_db, _commit_or_rollback
@@ -56,13 +57,17 @@ def create_competition(db: Session, data: CompetitionCreate) -> Competition:
 # ---------------- Routes ----------------
 @competitions_router.get("/")
 def get_all_competitions(db: Session = Depends(get_db)):
-    competitions = db.query(Competition).join(BaseEvent).all()
-    logger.info(f"Fetched {len(competitions)} competitions from the database.")
-    return competitions
+    try:
+        competitions = db.query(Competition).join(BaseEvent).all()
+        logger.info(f"Fetched {len(competitions)} competitions from the database.")
+        return competitions
+    except Exception as e:
+        logger.error(f"Error fetching competitions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve competitions. Exception: {str(e)}")
 
-@competitions_router.post("/create", response_model=CompetitionCreate)
-def create_competition_endpoint(
-    payload: CompetitionCreate,
-    db: Session = Depends(get_db)
-):
-    return create_competition(db, payload)
+    @competitions_router.post("/create", response_model=CompetitionCreate)
+    def create_competition_endpoint(
+            payload: CompetitionCreate,
+            db: Session = Depends(get_db)
+    ):
+        return create_competition(db, payload)
