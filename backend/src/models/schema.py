@@ -9,7 +9,6 @@ class UserAccount(Base):
     __tablename__ = 'user_account'
 
     user_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(unique=True)
     hashed_password: Mapped[str] = mapped_column()
     first_name: Mapped[str] = mapped_column()
@@ -213,10 +212,11 @@ class AlgoTimeLeaderboardEntry(Base):
 
     algotime_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     algotime_series_id: Mapped[int] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'))
-    username: Mapped[str] = mapped_column()
+    name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_time: Mapped[int] = mapped_column()
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+
     algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
     user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount', uselist=False)
 
