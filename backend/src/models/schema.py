@@ -216,6 +216,8 @@ class AlgoTimeLeaderboardEntry(Base):
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_time: Mapped[int] = mapped_column()
+    total_score: Mapped[int] = mapped_column()
+    problems_solved: Mapped[int] = mapped_column(default=0)
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
