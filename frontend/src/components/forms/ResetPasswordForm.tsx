@@ -62,7 +62,8 @@ export default function ResetPasswordForm({ className, ...props }: React.Compone
             setTimeout(() => {
                 navigate("/");
             }, 2000);
-        } catch (err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } catch (err: any) {
             console.error(err);
             setError(
                 err.response?.data?.detail ||
