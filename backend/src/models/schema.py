@@ -198,6 +198,7 @@ class CompetitionLeaderboardEntry(Base):
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_score: Mapped[int] = mapped_column()
+    total_time: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
 
     competition: Mapped[Competition] = relationship('Competition', back_populates='competition_leaderboard_entries', uselist=False)
