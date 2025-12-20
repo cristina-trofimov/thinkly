@@ -7,8 +7,6 @@ from db import engine, Base, SessionLocal
 from endpoints.authentification_api import create_user
 
 from models.schema import (
-    Base,
-    UserAccount,
     BaseEvent,
     Competition,
     Question,

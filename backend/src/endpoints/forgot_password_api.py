@@ -160,7 +160,7 @@ Best regards,
             "message": "If that email exists, a reset link has been sent"
         }
 
-    except requests.RequestException as e:
+    except requests.RequestException:
         logger.exception("Network error sending reset email")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

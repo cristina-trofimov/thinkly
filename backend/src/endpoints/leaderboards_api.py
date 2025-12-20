@@ -24,7 +24,7 @@ def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Com
     try:
         scoreboards = (
             db.query(CompetitionLeaderboardEntry)
-            .filter(CompetitionLeaderboardEntry.event_id == event_id)
+            .filter(CompetitionLeaderboardEntry.competition_id == competition_id)
             .order_by(CompetitionLeaderboardEntry.rank.asc())
             .all()
         )

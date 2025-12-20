@@ -245,12 +245,12 @@ async def list_competitions(
         for base_event, competition in competitions:
             question_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                QuestionInstance.is_riddle == False
+                ~QuestionInstance.is_riddle
             ).count()
 
             riddle_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                QuestionInstance.is_riddle == True
+                QuestionInstance.is_riddle
             ).count()
 
             result.append(CompetitionResponse(
@@ -424,12 +424,12 @@ async def get_competition(
 
         question_count = db.query(QuestionInstance).filter(
             QuestionInstance.event_id == competition_id,
-            QuestionInstance.is_riddle == False
+            ~QuestionInstance.is_riddle
         ).count()
 
         riddle_count = db.query(QuestionInstance).filter(
             QuestionInstance.event_id == competition_id,
-            QuestionInstance.is_riddle == True
+            QuestionInstance.is_riddle
         ).count()
 
         return CompetitionResponse(

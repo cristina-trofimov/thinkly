@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from email_validator import validate_email, EmailNotValidError
