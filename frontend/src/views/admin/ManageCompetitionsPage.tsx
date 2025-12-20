@@ -13,9 +13,25 @@ import { Plus, Search, Filter } from 'lucide-react';
 import {useEffect, useState} from 'react';
 import CreateCompetitionDialog from "../../components/manageCompetitions/CreateCompetitionDialog"
 import { type Competition} from "../../types/competition/Competition.type"
-import {logFrontend} from "@/api/LoggerAPI.tsx";
-import {getCompetitions} from "@/api/CompetitionAPI.tsx";
+import {logFrontend} from "@/api/LoggerAPI";
+import {getCompetitions} from "@/api/CompetitionAPI";
 
+// Helper function to determine competition status
+const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset time to start of day
+
+  const compDate = new Date(competitionDate);
+  compDate.setHours(0, 0, 0, 0); // Reset time to start of day
+
+  if (today.getTime() > compDate.getTime()) {
+    return "Completed";
+  } else if (today.getTime() === compDate.getTime()) {
+    return "Active";
+  } else {
+    return "Upcoming";
+  }
+};
 
 const ManageCompetitions = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +42,7 @@ const ManageCompetitions = () => {
   useEffect(() => {
     let cancelled = false;
 
-    const loadQuestions = async () => {
+    const loadCompetitions = async () => {
       try {
         const data1 = await getCompetitions();
 
@@ -36,7 +52,7 @@ const ManageCompetitions = () => {
       } catch (err) {
         logFrontend({
           level: 'ERROR',
-          message: `An error occurred. Failed to load questions: ${(err as Error).message}`,
+          message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
           component: 'CreateCompetitionDialog.tsx',
           url: window.location.href,
           stack: (err as Error).stack,
@@ -44,7 +60,7 @@ const ManageCompetitions = () => {
       }
     };
 
-    loadQuestions();
+    loadCompetitions();
 
     return () => { cancelled = true; };
   }, []);
@@ -52,8 +68,11 @@ const ManageCompetitions = () => {
   // Filter competitions based on search and status
   const filteredCompetitions = competitions.filter((comp) => {
     const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comp.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !statusFilter || comp.status === statusFilter;
+      comp.competitionLocation.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const status = getCompetitionStatus(comp.date);
+    const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -106,30 +125,47 @@ const ManageCompetitions = () => {
       {/* Competitions Grid */}
       <div className="flex gap-6 mt-6 px-6">
         {/* Existing Competitions */}
-        {filteredCompetitions.map((comp) => (
-          <Card key={comp.id} className="border-border rounded-2xl w-[190px] h-[320px] flex flex-col">
-            <div
-              className={`min-h-[146px] min-w-[146px] ${comp.color} mx-auto`}
-            />
-            <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between">
-              <div className="mb-3">
-                <h3 className="font-semibold text-sm mb-1 text-center">
-                  {comp.competitionTitle} - {comp.date}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {comp.description}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-[66px] h-[36px] mx-auto text-primary hover:bg-accent"
-                onClick={() => handleView(comp.id)}
-              >
-                View
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+        {filteredCompetitions.map((comp) => {
+          const status = getCompetitionStatus(comp.date);
+
+          return (
+            <Card key={comp.id} className="border-border rounded-2xl w-[190px] h-[320px] flex flex-col">
+              <div
+                className={`min-h-[146px] min-w-[146px] red mx-auto`}
+              />
+              <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between">
+                <div className="mb-3">
+                  <h3 className="font-semibold text-sm mb-1 text-center">
+                    {comp.competitionTitle} - {comp.date.toLocaleString()}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {comp.competitionLocation}
+                  </p>
+                  <div className="mt-2 flex justify-center">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        status === "Active"
+                          ? "bg-green-100 text-green-700"
+                          : status === "Upcoming"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-[66px] h-[36px] mx-auto text-primary hover:bg-accent"
+                  onClick={() => handleView(comp.id)}
+                >
+                  View
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
 
         {/* Create New Competition Card */}
         <Card

@@ -8,14 +8,16 @@ import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../t
 export async function getCompetitions(): Promise<Competition[]> {
   try {
     const response = await axiosClient.get<{
-      id: number;
+      id: string;
       competition_title: string;
+      competition_location: string;
       date: Date;
-    }[]>(`${BACKEND_URL}/homepage/get-competitions`);
+    }[]>(`${BACKEND_URL}/competitions/`);
 
     const formatted: Competition[] = response.data.map(c => ({
       id: c.id,
       competitionTitle: c.competition_title,
+      competitionLocation: c.competition_location,
       date: c.date,
     }));
 
@@ -125,7 +127,7 @@ export async function deleteCompetition(competitionId: number): Promise<void> {
  * Get all competitions (legacy endpoint for compatibility)
  * No authentication required
  */
-export async function getAllCompetitionsLegacy(): Promise<any[]> {
+export async function getAllCompetitionsLegacy(): Promise<Competition[]> {
   try {
     const response = await axiosClient.get(`${BACKEND_URL}/competitions/`);
     return response.data;

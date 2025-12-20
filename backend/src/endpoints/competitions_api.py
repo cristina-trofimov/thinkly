@@ -202,7 +202,17 @@ def get_all_competitions(db: Session = Depends(get_db)):
     try:
         competitions = db.query(Competition).join(BaseEvent).all()
         logger.info(f"Fetched {len(competitions)} competitions from the database.")
-        return competitions
+
+        # Manually construct the response with base_event data
+        return [
+            {
+                "id": comp.event_id,
+                "competition_title": comp.base_event.event_name,
+                "competition_location": comp.base_event.event_location,
+                "date": comp.base_event.event_start_date,
+            }
+            for comp in competitions
+        ]
     except Exception as e:
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(

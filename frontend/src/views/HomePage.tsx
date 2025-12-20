@@ -3,7 +3,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/questionsTable/questionsColumns"
-import type { Questions } from "../components/questionsTable/questionsColumns"
+import type { Question } from "../types/questions/Question.type"
 import { DataTable } from "../components/questionsTable/questionDataTable"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
@@ -13,7 +13,7 @@ import type { Competition } from "@/types/competition/Competition.type"
 
 function HomePage() {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const [questions, setQuestions] = React.useState<Questions[]>([])
+  const [questions, setQuestions] = React.useState<Question[]>([])
   const [competitions, setCompetitions] = React.useState<Competition[]>([])
 
 

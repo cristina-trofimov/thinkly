@@ -24,7 +24,7 @@ export default function ForgotPasswordForm({ className, ...props }: React.Compon
         try {
             const res = await forgotPassword({ email });
             setSuccess(res.message || "If your account exists, a password reset email has been sent.");
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             setError(err.response?.data?.error || "Something went wrong. Try again.");
         } finally {

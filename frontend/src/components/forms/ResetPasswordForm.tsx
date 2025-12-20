@@ -62,7 +62,7 @@ export default function ResetPasswordForm({ className, ...props }: React.Compone
             setTimeout(() => {
                 navigate("/");
             }, 2000);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             setError(
                 err.response?.data?.detail ||
