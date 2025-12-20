@@ -12,6 +12,7 @@ from models.schema import (
     BaseEvent,
     Competition,
     Question,
+    Riddle,
     Participation,
     CompetitionLeaderboardEntry,
     AlgoTimeSeries,
@@ -91,6 +92,29 @@ def main():
         db.add_all(questions)
         db.commit()
         print("✅ Questions created")
+
+        # ---------------- RIDDLES ----------------
+        riddles_data = [
+            ("I speak without a mouth and hear without ears. What am I?", "An echo"),
+            ("The more of this there is, the less you see. What is it?", "Darkness"),
+            ("I’m tall when I’m young, and short when I’m old. What am I?", "A candle"),
+            ("What has keys but can’t open locks?", "A piano"),
+            ("What can travel around the world while staying in one spot?", "A stamp"),
+            ("What has a heart that doesn’t beat?", "An artichoke"),
+        ]
+
+        riddles = []
+        for question, answer in riddles_data:
+            riddle = Riddle(
+                riddle_question=question,
+                riddle_answer=answer
+            )
+            riddles.append(riddle)
+
+        db.add_all(riddles)
+        db.commit()
+
+        print(f"✅ {len(riddles)} riddles created")
 
         # ---------------- PARTICIPATION + LEADERBOARD ----------------
         for comp in competitions[:4]:

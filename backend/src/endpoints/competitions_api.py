@@ -67,6 +67,15 @@ class CreateCompetitionRequest(BaseModel):
             raise ValueError('Cooldown time cannot be negative')
         return v
 
+    @validator('selectedRiddles')
+    def validate_equal_length(cls, v, values):
+        questions = values.get('selectedQuestions')
+        if questions and len(v) != len(questions):
+            raise ValueError(
+                "selectedQuestions and selectedRiddles must have the same length"
+            )
+        return v
+
 
 class CompetitionResponse(BaseModel):
     event_id: int
@@ -312,23 +321,24 @@ async def create_competition(
 
         logger.info(f"Competition created with event_id: {competition.event_id}")
 
-        # Create QuestionInstances for selected questions
-        for question_id in request.selectedQuestions:
+        # Create QuestionInstances pairing question[i] with riddle[i]
+        for index, (question_id, riddle_id) in enumerate(
+                zip(request.selectedQuestions, request.selectedRiddles)
+        ):
             question_instance = QuestionInstance(
                 event_id=base_event.event_id,
-                question_id=question_id
-                # riddle_id remains None
+                question_id=question_id,
+                riddle_id=riddle_id,
+                points=0,
+                is_riddle_completed=False
             )
             db.add(question_instance)
 
-        # Add riddles
-        for riddle_id in request.selectedRiddles:
-            question_instance = QuestionInstance(
-                event_id=base_event.event_id,
-                riddle_id=riddle_id
-                # question_id can be None or leave as is if needed
-            )
-            db.add(question_instance)
+        _commit_or_rollback(db)
+
+        logger.info(
+            f"Added {len(request.selectedQuestions)} question+riddle pairs"
+        )
 
         _commit_or_rollback(db)
         logger.info(f"Added {len(request.selectedQuestions)} questions and {len(request.selectedRiddles)} riddles")

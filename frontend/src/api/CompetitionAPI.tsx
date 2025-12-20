@@ -2,42 +2,7 @@ import axiosClient from "@/lib/axiosClient";
 import { BACKEND_URL } from "../config";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-
-
-// ============= Types for New Endpoints =============
-export interface CreateCompetitionPayload {
-  name: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:MM
-  endTime: string; // HH:MM
-  location?: string;
-  questionCooldownTime: number;
-  riddleCooldownTime: number;
-  selectedQuestions: number[];
-  selectedRiddles: number[];
-  emailEnabled: boolean;
-  emailNotification?: {
-    to: string;
-    subject: string;
-    text: string;
-    sendInOneMinute: boolean;
-    sendAtLocal?: string;
-  };
-}
-
-export interface CompetitionResponse {
-  event_id: number;
-  event_name: string;
-  event_location: string | null;
-  event_start_date: string; // ISO datetime
-  event_end_date: string; // ISO datetime
-  question_cooldown: number;
-  riddle_cooldown: number;
-  question_count: number;
-  riddle_count: number;
-  created_at: string; // ISO datetime
-}
-
+import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -86,13 +51,12 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
 
 
 // ============= New Competition Management Functions =============
-
 /**
  * Create a new competition
  * Requires owner authentication
  */
 export async function createCompetition(
-  payload: CreateCompetitionPayload
+  payload: CreateCompetitionDialogProps
 ): Promise<CompetitionResponse> {
   try {
     const response = await axiosClient.post<CompetitionResponse>(

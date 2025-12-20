@@ -10,46 +10,48 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import CreateCompetitionDialog from "../../components/manageCompetitions/CreateCompetitionDialog"
+import { type Competition} from "../../types/competition/Competition.type"
+import {logFrontend} from "@/api/LoggerAPI.tsx";
+import {getCompetitions} from "@/api/CompetitionAPI.tsx";
 
-interface Competition {
-  id: string;
-  name: string;
-  date: string;
-  description: string;
-  color: string;
-  status?: string;
-}
 
 const ManageCompetitions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [competitions, setCompetition] = useState<Competition[]>([]);
 
-  // Sample data until backend gets integrated
-  const competitions: Competition[] = [
-    {
-      id: '1',
-      name: 'Comp #1',
-      date: '12/10/25',
-      description: 'short one line description of comp...',
-      color: 'bg-pink-600',
-      status: 'Active'
-    },
-    {
-      id: '2',
-      name: 'Comp #2',
-      date: '12/10/25',
-      description: 'short one line description of comp...',
-      color: 'bg-yellow-400',
-      status: 'Upcoming'
-    }
-  ];
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadQuestions = async () => {
+      try {
+        const data1 = await getCompetitions();
+
+        if (!cancelled) {
+          setCompetition(data1);
+        }
+      } catch (err) {
+        logFrontend({
+          level: 'ERROR',
+          message: `An error occurred. Failed to load questions: ${(err as Error).message}`,
+          component: 'CreateCompetitionDialog.tsx',
+          url: window.location.href,
+          stack: (err as Error).stack,
+        });
+      }
+    };
+
+    loadQuestions();
+
+    return () => { cancelled = true; };
+  }, []);
 
   // Filter competitions based on search and status
   const filteredCompetitions = competitions.filter((comp) => {
-    const matchesSearch = comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       comp.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = !statusFilter || comp.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -112,7 +114,7 @@ const ManageCompetitions = () => {
             <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between">
               <div className="mb-3">
                 <h3 className="font-semibold text-sm mb-1 text-center">
-                  {comp.name} - {comp.date}
+                  {comp.competitionTitle} - {comp.date}
                 </h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {comp.description}

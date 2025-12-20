@@ -10,21 +10,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { IconPlus, IconSearch } from "@tabler/icons-react";
+import { IconPlus, IconSearch, IconX, IconArrowUp, IconArrowDown } from "@tabler/icons-react";
+import { createCompetition } from "@/api/CompetitionAPI";
+import { logFrontend } from "@/api/LoggerAPI";
 import {
   type CreateCompetitionDialogProps,
 } from "../../types/competition/CreateCompetition.type";
-import type { Question } from "../../types/questions/Question.type";
-import { getQuestions } from "@/api/QuestionsAPI";
-import { createCompetition } from "@/api/CompetitionAPI";
-import { logFrontend } from "@/api/LoggerAPI";
+import { type Question } from "../../types/questions/Question.type";
+import { type Riddle } from "../../types/riddle/Riddle.type";
+import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
 
-export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly<CreateCompetitionDialogProps>) {
+interface CreateCompetitionDialogProps1 {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps1) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -48,16 +53,11 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-  const [selectedRiddles, setSelectedRiddles] = useState<number[]>([]);
 
-
-  const fallbackQuestions = [
-    { id: "1", title: "Two Sum", difficulty: "Easy" },
-  ];
-
-
-  const [questions, setQuestions] = useState<Question[]>(fallbackQuestions);
+  const [orderedQuestions, setOrderedQuestions] = useState<Question[]>([]);
+  const [orderedRiddles, setOrderedRiddles] = useState<Riddle[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [riddles, setRiddles] = useState<Riddle[]>([]);
 
   // for the email building
   useEffect(() => {
@@ -79,12 +79,14 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
   useEffect(() => {
     let cancelled = false;
 
-    const loadQuestions = async () => {
+    const loadQuestionsAndRiddles = async () => {
       try {
-        const data = await getQuestions();
+        const data1 = await getQuestions();
+        const data2 = await getRiddles();
 
         if (!cancelled) {
-          setQuestions(data);
+          setQuestions(data1);
+          setRiddles(data2);
         }
       } catch (err) {
         logFrontend({
@@ -97,42 +99,57 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
       }
     };
 
-    loadQuestions();
+    loadQuestionsAndRiddles();
+
 
     return () => { cancelled = true; };
   }, []);
 
-  // Hardcoded riddles data
-  const riddles = [
-    { id: 1, title: "Where's Waldo?" },
-    { id: 2, title: "I speak without a mouth" },
-    { id: 3, title: "The more you take, the more you leave behind" },
-    { id: 4, title: "What can travel around the world while staying in a corner?" },
-    { id: 5, title: "I have cities but no houses" },
-    { id: 6, title: "What gets wetter the more it dries?" },
-  ];
-
   const filteredQuestions = questions.filter((q) =>
-    q.questionTitle?.toLowerCase().includes(searchQuery.toLowerCase())
+    q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    !orderedQuestions.find(oq => oq.id === q.id)
   );
 
   const filteredRiddles = riddles.filter((r) =>
-    r.title.toLowerCase().includes(riddleSearchQuery.toLowerCase())
+    r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
+    !orderedRiddles.find(or => or.id === r.id)
   );
 
-  const toggleQuestion = (id: number) => {
-    setSelectedQuestions((prev) =>
-      prev.includes(id) ? prev.filter((qId) => qId !== id) : [...prev, id]
-    );
+  const addQuestion = (question: Question) => {
+    setOrderedQuestions([...orderedQuestions, question]);
   };
 
-  const toggleRiddle = (id: number) => {
-    setSelectedRiddles((prev) =>
-      prev.includes(id) ? prev.filter((rId) => rId !== id) : [...prev, id]
-    );
+  const removeQuestion = (id: string) => {
+    setOrderedQuestions(orderedQuestions.filter(q => q.id !== id));
   };
 
-  const validateForm = (): boolean => {
+  const moveQuestion = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...orderedQuestions];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < newOrder.length) {
+      [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
+      setOrderedQuestions(newOrder);
+    }
+  };
+
+  const addRiddle = (riddle: Riddle) => {
+    setOrderedRiddles([...orderedRiddles, riddle]);
+  };
+
+  const removeRiddle = (id: string) => {
+    setOrderedRiddles(orderedRiddles.filter(r => r.id !== id));
+  };
+
+  const moveRiddle = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...orderedRiddles];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < newOrder.length) {
+      [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
+      setOrderedRiddles(newOrder);
+    }
+  };
+
+  const validateForm = () => {
     if (formData.name.trim() === '' || formData.date === '' || formData.startTime === '' || formData.endTime === '') {
       setValidationError("Incomplete general information.");
       return false;
@@ -146,12 +163,16 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
       return false;
     }
 
-    if (selectedQuestions.length === 0) {
+    if (orderedQuestions.length === 0) {
       setValidationError("Please select at least one question.");
       return false;
     }
-    if (selectedRiddles.length === 0) {
+    if (orderedRiddles.length === 0) {
       setValidationError("Please select at least one riddle.");
+      return false;
+    }
+    if (orderedQuestions.length !== orderedRiddles.length) {
+      setValidationError("You must have the same number of questions and riddles (one riddle before each question).");
       return false;
     }
     setValidationError('');
@@ -167,8 +188,8 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
     setValidationError('');
 
     try {
-      // Prepare the payload
-      const payload = {
+      // Prepare the payload matching CreateCompetitionDialogProps interface
+      const payload: CreateCompetitionDialogProps = {
         name: formData.name,
         date: formData.date,
         startTime: formData.startTime,
@@ -176,8 +197,8 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
         location: formData.location || undefined,
         questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
         riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
-        selectedQuestions,
-        selectedRiddles,
+        selectedQuestions: orderedQuestions.map(q => q.id),
+        selectedRiddles: orderedRiddles.map(r => r.id),
         emailEnabled,
         emailNotification: emailEnabled ? {
           to: emailToAll ? "all participants" : emailData.to.trim(),
@@ -187,7 +208,9 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           sendAtLocal: emailData.sendAtLocal || undefined,
         } : undefined,
       };
-      console.log("Payload going to backend:", payload);
+
+      console.log("Payload being sent to backend:", payload);
+
       // Call the API
       const result = await createCompetition(payload);
 
@@ -232,15 +255,23 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
       sendAtLocal: "",
       sendInOneMinute: false,
     });
-    setSelectedQuestions([]);
-    setSelectedRiddles([]);
-    setEmailManuallyEdited(false);
+    setOrderedQuestions([]);
+    setOrderedRiddles([]);
     setValidationError('');
+  };
+
+  const getDifficultyClasses = (difficulty: string): string => {
+    const classMap: Record<string, string> = {
+      "Easy": "bg-green-100 text-green-700",
+      "Medium": "bg-yellow-100 text-yellow-700",
+      "Hard": "bg-red-100 text-red-700",
+    };
+    return classMap[difficulty] || "bg-gray-100 text-gray-700";
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-primary">
             Create New Competition
@@ -248,7 +279,6 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           <DialogDescription>
             Fill in the details below to create a new competition.
           </DialogDescription>
-          {/* Validation Error Message */}
           {validationError && (
             <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
               ⚠️ {validationError}
@@ -310,51 +340,105 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
           {/* Question Selection */}
           <div className="grid gap-4">
-            <h3 className="text-sm font-semibold text-primary">Question Selection</h3>
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search questions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex items-center gap-2 text-primary hover:text-primary"
-                onClick={() => console.log("Add new question")}
-              >
-                <IconPlus className="h-4 w-4" />
-                Add
-              </Button>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-primary">Question Selection & Order</h3>
+              <span className="text-xs text-gray-500">{orderedQuestions.length} selected</span>
             </div>
 
-            <div className="border rounded-lg max-h-[200px] overflow-y-auto">
-              {filteredQuestions && filteredQuestions.map((question) => (
-                <div
-                  key={question.id}
-                  className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
-                >
-                  <Checkbox
-                    checked={selectedQuestions.includes(Number(question.id))}
-                    onCheckedChange={() => toggleQuestion(Number(question.id))}
-                  />
-                  <div className="flex-1">
+            <div className="relative">
+              <IconSearch className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+              <Input
+                placeholder="Search questions to add..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Available Questions List - Always Visible */}
+            <div className="border rounded-lg max-h-[180px] overflow-y-auto bg-white">
+              <div className="p-2 bg-gray-50 border-b sticky top-0">
+                <span className="text-xs font-medium text-gray-600">Available Questions</span>
+              </div>
+              {filteredQuestions.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  {searchQuery ? "No matching questions" : "All questions selected"}
+                </p>
+              ) : (
+                filteredQuestions.map((question) => (
+                  <div
+                    key={question.id}
+                    className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => addQuestion(question)}
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{question.questionTitle}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty ?? "")}`}
-                      >
+                      <span className="font-medium text-sm">{question.title}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}>
                         {question.difficulty}
                       </span>
                     </div>
+                    <IconPlus className="h-4 w-4 text-primary" />
                   </div>
+                ))
+              )}
+            </div>
+
+            {/* Selected Questions List */}
+            <div className="border rounded-lg p-3 bg-gray-50">
+              <Label className="text-xs font-medium text-gray-600 mb-2 block">Selected Questions (in order)</Label>
+              {orderedQuestions.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No questions selected yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {orderedQuestions.map((question, index) => (
+                    <div
+                      key={question.id}
+                      className="flex items-center gap-2 p-2 bg-white rounded border"
+                    >
+                      <span className="text-sm font-bold text-primary w-6">{index + 1}.</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{question.title}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}>
+                            {question.difficulty}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveQuestion(index, 'up')}
+                          disabled={index === 0}
+                          className="h-7 w-7 p-0"
+                        >
+                          <IconArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveQuestion(index, 'down')}
+                          disabled={index === orderedQuestions.length - 1}
+                          className="h-7 w-7 p-0"
+                        >
+                          <IconArrowDown className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeQuestion(question.id)}
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <IconX className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -372,45 +456,100 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
 
           {/* Riddle Selection */}
           <div className="grid gap-4">
-            <h3 className="text-sm font-semibold text-primary">Riddle Selection</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-primary">Riddle Selection & Order</h3>
+              <span className="text-xs text-gray-500">{orderedRiddles.length} selected</span>
+            </div>
+            <p className="text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded p-2">
+              ℹ️ One riddle will be shown before each question. You must select the same number of riddles as questions.
+            </p>
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search riddles..."
-                  value={riddleSearchQuery}
-                  onChange={(e) => setRiddleSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+            <div className="relative">
+              <IconSearch className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
+              <Input
+                placeholder="Search riddles to add..."
+                value={riddleSearchQuery}
+                onChange={(e) => setRiddleSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Available Riddles List - Always Visible */}
+            <div className="border rounded-lg max-h-[180px] overflow-y-auto bg-white">
+              <div className="p-2 bg-gray-50 border-b sticky top-0">
+                <span className="text-xs font-medium text-gray-600">Available Riddles</span>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex items-center gap-2 text-primary hover:text-primary"
-                onClick={() => console.log("Add new riddle")}
-              >
-                <IconPlus className="h-4 w-4" />
-                Add
-              </Button>
+              {filteredRiddles.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  {riddleSearchQuery ? "No matching riddles" : "All riddles selected"}
+                </p>
+              ) : (
+                filteredRiddles.map((riddle) => (
+                  <div
+                    key={riddle.id}
+                    className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => addRiddle(riddle)}
+                  >
+                    <span className="font-medium text-sm">{riddle.question}</span>
+                    <IconPlus className="h-4 w-4 text-primary" />
+                  </div>
+                ))
+              )}
             </div>
 
-            <div className="border rounded-lg max-h-[200px] overflow-y-auto">
-              {filteredRiddles.map((riddle) => (
-                <div
-                  key={riddle.id}
-                  className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-gray-50"
-                >
-                  <Checkbox
-                    checked={selectedRiddles.includes(riddle.id)}
-                    onCheckedChange={() => toggleRiddle(riddle.id)}
-                  />
-                  <div className="flex-1">
-                    <span className="font-medium text-sm">{riddle.title}</span>
-                  </div>
+            {/* Selected Riddles List */}
+            <div className="border rounded-lg p-3 bg-gray-50">
+              <Label className="text-xs font-medium text-gray-600 mb-2 block">Selected Riddles (in order)</Label>
+              {orderedRiddles.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">No riddles selected yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {orderedRiddles.map((riddle, index) => (
+                    <div
+                      key={riddle.id}
+                      className="flex items-center gap-2 p-2 bg-white rounded border"
+                    >
+                      <span className="text-sm font-bold text-primary w-6">{index + 1}.</span>
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{riddle.question}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveRiddle(index, 'up')}
+                          disabled={index === 0}
+                          className="h-7 w-7 p-0"
+                        >
+                          <IconArrowUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => moveRiddle(index, 'down')}
+                          disabled={index === orderedRiddles.length - 1}
+                          className="h-7 w-7 p-0"
+                        >
+                          <IconArrowDown className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeRiddle(riddle.id)}
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <IconX className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="riddleCooldownTime">Cooldown Time Between Riddles (seconds)</Label>
               <Input
@@ -439,7 +578,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
           {emailEnabled && (
             <div className="grid gap-4">
               <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
-              <p className="text-sm text-gray-500">Optionally send email notifications about this competition. It will be sent 24h before a competition and 5 minutes before a competition.</p>
+              <p className="text-sm text-gray-500">Email reminders will be sent 24 hours before and 5 minutes before the competition.</p>
 
               <div className="flex items-center justify-between rounded-md border p-3 mb-2">
                 <div className="space-y-0.5">
@@ -481,7 +620,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                 <Label htmlFor="emailText">Email Message (Edit if needed)</Label>
                 <Textarea
                   id="emailText"
-                  rows={6}
+                  rows={5}
                   value={emailData.text}
                   onChange={(e) => {
                     setEmailManuallyEdited(true);
@@ -494,9 +633,9 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center justify-between rounded-md border p-3">
                   <div className="space-y-0.5">
-                    <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
+                    <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send test in 1 minute</Label>
                     <p className="text-xs text-gray-500">
-                      Overrides custom schedule
+                      For testing purposes
                     </p>
                   </div>
                   <Switch
@@ -506,7 +645,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="sendAtLocal">Additionally schedule for (local time)</Label>
+                  <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
                   <Input
                     id="sendAtLocal"
                     type="datetime-local"
@@ -538,13 +677,4 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: Readonly
       </DialogContent>
     </Dialog>
   );
-}
-
-function getDifficultyClasses(difficulty: string): string {
-  const classMap: Record<string, string> = {
-    "Easy": "bg-green-100 text-green-700",
-    "Medium": "bg-yellow-100 text-yellow-700",
-    "Hard": "bg-red-100 text-red-700",
-  };
-  return classMap[difficulty] || "bg-gray-100 text-gray-700";
 }
