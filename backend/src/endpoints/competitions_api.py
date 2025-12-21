@@ -13,7 +13,7 @@ competitions_router = APIRouter(tags=["Competitions"])
 
 
 # ---------------- Models ----------------
-class EmailNotificationRequest(BaseModel):
+class EmailNotificationRequest(BaseModel): #email for competition creation
     to: str  # Can be "all participants" or comma-separated emails
     subject: str
     text: str

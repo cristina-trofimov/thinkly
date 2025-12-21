@@ -5,21 +5,17 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# 1. Get the path to the 'backend' folder (the parent of 'tests')
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 
-# 2. Add 'backend' to the system path so Python can find 'src'
+
 sys.path.append(parent_dir)
 
-# 3. NOW import the file following the folder structure
-# Note: We use the actual filename 'authentification_api' (no .py)
 from src.endpoints import authentification_api
 from src.DB_Methods import database
 
-# --- Setup: Import the app and router ---
-# We assume your file is named 'auth.py'. 
-# If it is named differently, change 'from auth import ...' below.
+
 from fastapi import FastAPI
 
 import bcrypt
