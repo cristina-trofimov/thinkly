@@ -53,8 +53,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '20.19.0'
-      - run: npm ci
-      - run: rm -rf node_modules && npm install
+      - run: rm -rf node_modules package-lock.json
+      - run: npm install
       - run: npx cypress install
       - run: npx start-server-and-test "npm run dev" http://localhost:5173 "npm run cypress:run -- --headless --browser chrome"
 
