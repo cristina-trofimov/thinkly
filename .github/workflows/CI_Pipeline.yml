@@ -54,7 +54,7 @@ jobs:
         with:
           node-version: '20.19.0'
       - run: npm ci
-      - run: npm rebuild
+      - run: rm -rf node_modules && npm install
       - run: npx cypress install
       - run: npx start-server-and-test "npm run dev" http://localhost:5173 "npm run cypress:run -- --headless --browser chrome"
 
