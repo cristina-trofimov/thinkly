@@ -22,21 +22,18 @@ PASSWORD_HASH = "mock_hashed_password" # Use a mock hash since you don't have th
 
 SEED_USERS = [
     {
-        "username": "admin_user",
         "email": "admin@example.com",
         "first_name": "Admin",
         "last_name": "User",
         "user_type": "admin",
     },
     {
-        "username": "john_doe",
         "email": "john@example.com",
         "first_name": "John",
         "last_name": "Doe",
         "user_type": "participant",
     },
     {
-        "username": "jane_smith",
         "email": "jane@example.com",
         "first_name": "Jane",
         "last_name": "Smith",
@@ -83,7 +80,6 @@ def get_utc_now():
 def create_user_orm(db: Session, data: dict) -> UserAccount:
     """Creates a UserAccount object and its default UserPreferences."""
     user = UserAccount(
-        username=data["username"],
         email=data["email"],
         hashed_password=PASSWORD_HASH,
         first_name=data["first_name"],
@@ -116,7 +112,6 @@ def main():
         # Create additional generic users
         generic_users = [
             UserAccount(
-                username=f"user{i}",
                 email=f"user{i}@example.com",
                 hashed_password=PASSWORD_HASH,
                 first_name=f"First{i}",
@@ -230,7 +225,6 @@ def main():
                 # Insert CompetitionLeaderboardEntry
                 leaderboard_entry = CompetitionLeaderboardEntry(
                     competition_id=comp.event_id,
-                    username=user.username,
                     user_id=user.user_id,
                     total_score=participation.total_score,
                 )

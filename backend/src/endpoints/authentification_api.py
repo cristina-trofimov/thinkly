@@ -51,7 +51,6 @@ def create_user(db: Session, username: str, email: str, password_hash: str, firs
             logger.error("Owner creation failed: An owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
     new_user = UserAccount(
-        username=username,
         email=email,
         first_name=first_name,
         last_name=last_name,

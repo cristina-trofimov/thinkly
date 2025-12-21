@@ -6,6 +6,7 @@ from endpoints.questions_api import questions_router
 from endpoints.competitions_api import competitions_router
 from endpoints.standings_api import standings_router
 from endpoints.manage_accounts_api import accounts_router
+from endpoints.send_email import email_router
 import uvicorn
 from logging_config import setup_logging
 import os
@@ -43,6 +44,7 @@ def root():
 try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
+    app.include_router(email_router, prefix="/email")
     app.include_router(questions_router, prefix="/questions")
     app.include_router(competitions_router, prefix="/competitions")
     app.include_router(standings_router, prefix="/standings")

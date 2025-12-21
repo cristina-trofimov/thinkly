@@ -199,6 +199,7 @@ class CompetitionLeaderboardEntry(Base):
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
     total_score: Mapped[int] = mapped_column()
     total_time: Mapped[int] = mapped_column()
+    rank: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
 
     competition: Mapped[Competition] = relationship('Competition', back_populates='competition_leaderboard_entries', uselist=False)
@@ -218,6 +219,7 @@ class AlgoTimeLeaderboardEntry(Base):
     total_time: Mapped[int] = mapped_column()
     total_score: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
+    rank: Mapped[int] = mapped_column()
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
 
     algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)

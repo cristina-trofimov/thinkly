@@ -20,32 +20,6 @@ def get_current_leaderboard(db: Session = Depends(get_db)):
     
     return get_leaderboard_by_competition(current_comp.event_id, db)
 
-@standings_router.get("/{competition_id}")
-def get_leaderboard_by_competition(competition_id: int, db: Session = Depends(get_db)):
-    comp = db.query(Competition).filter(Competition.event_id == competition_id).first()
-    if not comp:
-        logger.warning(f"Competition with ID {competition_id} not found.")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Competition not found.")
-    
-    standings = db.query(CompetitionLeaderboardEntry).filter(
-        CompetitionLeaderboardEntry.competition_id == competition_id
-    ).order_by(CompetitionLeaderboardEntry.total_score.desc()).all()
-
-    formatted_standings = []
-    for entry in standings:
-        formatted_standings.append({
-            "username": entry.username,
-            "name": entry.name,
-            "total_score": entry.total_score,
-            "problems_solved": entry.problems_solved,
-            "user_id": entry.user_id,
-            "rank": standings.index(entry) + 1
-        })
-
-    return {
-        "competition_name": comp.base_event.event_name,
-        "participants": formatted_standings
-    }
 
 @standings_router.get("/leaderboards")
 def get_all_leaderboards(db: Session = Depends(get_db)):
@@ -55,5 +29,30 @@ def get_all_leaderboards(db: Session = Depends(get_db)):
     for comp in competitions:
         formatted_standings = get_leaderboard_by_competition(comp.event_id, db)
         all_leaderboards.append(formatted_standings)
-
     return all_leaderboards
+
+@standings_router.get("/{competition_id}")
+def get_leaderboard_by_competition(competition_id: int, db: Session = Depends(get_db)):
+    comp = db.query(Competition).filter(Competition.event_id == competition_id).first()
+    if not comp:
+        logger.warning(f"Competition with ID {competition_id} not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Competition not found.")
+    
+    standings = comp.competition_leaderboard_entries
+
+    formatted_standings = []
+    for entry in standings:
+        formatted_standings.append({
+            "name": entry.name,
+            "total_score": entry.total_score,
+            "total_time": entry.total_time,
+            "problems_solved": entry.problems_solved,
+            "user_id": entry.user_id,
+            "rank": entry.rank
+        })
+
+    return {
+        "competition_name": comp.base_event.event_name,
+        "competition_id": comp.event_id,
+        "participants": formatted_standings
+    }
