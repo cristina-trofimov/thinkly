@@ -122,17 +122,3 @@ export async function deleteCompetition(competitionId: number): Promise<void> {
   }
 }
 
-
-/**
- * Get all competitions (legacy endpoint for compatibility)
- * No authentication required
- */
-export async function getAllCompetitionsLegacy(): Promise<Competition[]> {
-  try {
-    const response = await axiosClient.get(`${BACKEND_URL}/competitions/`);
-    return response.data;
-  } catch (err) {
-    console.error("Error fetching competitions (legacy):", err);
-    throw err;
-  }
-}
