@@ -52,16 +52,19 @@ def client(mock_db_session):
 
 @pytest.fixture
 def mock_user():
-    """Creates a mock user object behaving like a SQLAlchemy model."""
     user = MagicMock()
     user.user_id = 1
     user.email = "test@example.com"
-    user.username = "testuser"
     user.first_name = "Test"
     user.last_name = "User"
     user.user_type = "participant"
-    # Generate a real hash for "password123" so bcrypt.checkpw works
-    user.salt = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode() 
+
+    # ✅ MUST be called hashed_password
+    user.hashed_password = bcrypt.hashpw(
+        b"password123",
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
     return user
 
 @pytest.fixture

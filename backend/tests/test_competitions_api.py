@@ -61,15 +61,21 @@ def test_get_all_competitions_success(client, mock_db):
     # We use SimpleNamespace so we can access attributes like .name and .date
     fake_comps = [
         SimpleNamespace(
-            competition_id=101, 
-            competition_title="Winter Hackathon", 
-            date=datetime(2025, 12, 1, 10, 0, 0)
+            event_id=101,
+            base_event=SimpleNamespace(
+                event_name="Winter Hackathon",
+                event_location="Montreal",
+                event_start_date=datetime(2025, 12, 1, 10, 0, 0),
+            )
         ),
         SimpleNamespace(
-            competition_id=102, 
-            competition_title="Summer Code Fest", 
-            date=datetime(2026, 6, 15, 9, 30, 0)
-        )
+            event_id=102,
+            base_event=SimpleNamespace(
+                event_name="Summer Code Fest",
+                event_location="Toronto",
+                event_start_date=datetime(2026, 6, 15, 9, 30, 0),
+            )
+        ),
     ]
 
     # Create a mock query that returns itself for any chained method
@@ -96,10 +102,9 @@ def test_get_all_competitions_success(client, mock_db):
     # Verify the count
     assert len(data) == 2
 
-    # Verify the content of the first item
-    assert data[0]["competition_id"] == 101
+    assert data[0]["id"] == 101
     assert data[0]["competition_title"] == "Winter Hackathon"
-    # ISO format check (e.g., '2025-12-01T10:00:00')
+    assert data[0]["competition_location"] == "Montreal"
     assert "2025-12-01" in data[0]["date"]
 
 def test_get_all_competitions_empty(client, mock_db):
