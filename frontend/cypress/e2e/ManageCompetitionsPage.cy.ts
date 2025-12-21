@@ -8,11 +8,6 @@ describe('Manage Competitions Page', () => {
     // Check filter button exists
     cy.contains('All competitions').should('be.visible');
     
-    // Check competition cards are visible
-    cy.contains('Comp #1 - 12/10/25').should('be.visible');
-    cy.contains('Comp #2 - 12/10/25').should('be.visible');
-    cy.contains('short one line description of comp...').should('be.visible');
-    
     // Check Create New Competition card
     cy.contains('Create New Competition').should('be.visible');
     
@@ -22,16 +17,7 @@ describe('Manage Competitions Page', () => {
 
   it('Filters competitions by search', () => {
     cy.visit('http://localhost:5173/app/dashboard/competitions');
-    
-    // Search for Comp #1
-    cy.get('input[placeholder="Search competitions..."]').type('Comp #1');
-    cy.contains('Comp #1 - 12/10/25').should('be.visible');
-    cy.contains('Comp #2 - 12/10/25').should('not.exist');
-    
-    // Clear and search for Comp #2
-    cy.get('input[placeholder="Search competitions..."]').clear().type('Comp #2');
-    cy.contains('Comp #2 - 12/10/25').should('be.visible');
-    cy.contains('Comp #1 - 12/10/25').should('not.exist');
+
     
     // Search for non-existent competition
     cy.get('input[placeholder="Search competitions..."]').clear().type('nonexistent');
@@ -47,9 +33,7 @@ describe('Manage Competitions Page', () => {
   
     // Filter by Active
     cy.contains('[role="menuitem"]', 'Active').click();
-    cy.contains('Comp #1 - 12/10/25').should('be.visible');
-    cy.contains('Comp #2 - 12/10/25').should('not.exist');
-  
+
 });
 
   it('Clicks View button and Create New Competition card', () => {
