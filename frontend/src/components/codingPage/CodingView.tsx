@@ -126,7 +126,7 @@ const CodingView = () => {
     codeAndOutputPanelRef.current.resize(codeAndOutputSize);
     codePanelRef.current.resize(codeSize);
     outputPanelRef.current.resize(outputSize);
-  }, [fullCode, fullOutput, closeCode, closeOutput])
+  }, [fullCode, fullOutput, closeCode, setCloseCode, closeOutput, setCloseOutput])
 
   return (
     <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"

@@ -59,7 +59,7 @@ def mock_user():
     user.username = "testuser"
     user.first_name = "Test"
     user.last_name = "User"
-    user.type = "participant"
+    user.user_type = "participant"
     # Generate a real hash for "password123" so bcrypt.checkpw works
     user.salt = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode() 
     return user
@@ -67,7 +67,7 @@ def mock_user():
 @pytest.fixture
 def admin_user(mock_user):
     """Creates a mock admin user."""
-    mock_user.type = "admin"
+    mock_user.user_type = "admin"
     return mock_user
 
 # --- Tests ---
@@ -147,7 +147,7 @@ def test_google_auth_success(client):
     # We create a new user object for this test
     new_google_user = MagicMock()
     new_google_user.email = "googleuser@example.com"
-    new_google_user.type = "participant"
+    new_google_user.user_type = "participant"
     new_google_user.user_id = 99
 
     # 1. Mock the verify_oauth2_token (Google API call)
@@ -166,7 +166,7 @@ def test_profile_endpoint(client, mock_user):
     """Test accessing a protected route with a valid token."""
     
     # Create a valid token manually using your helper function
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
     
     with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.get(
@@ -181,7 +181,7 @@ def test_logout_revocation(client, mock_user):
     """Test that logging out adds the token ID (jti) to the blocklist."""
     
     # 1. Generate token
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
     
     # 2. Call Logout
     response = client.post(

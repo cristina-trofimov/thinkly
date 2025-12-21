@@ -85,12 +85,11 @@ def test_get_all_questions_success(client, mock_db):
     assert len(data) == 2
     
     # Verify the content of the first item
-    assert data[0]["id"] == 1
-    assert data[0]["questionTitle"] == "Two Sum"
+    assert data[0]["question_id"] == 1
+    assert data[0]["title"] == "Two Sum"
     assert data[0]["difficulty"] == "Easy"
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
-    assert "2025-01-10" in data[0]["date"]
-
+    assert "2025-01-10" in data[0]["created_at"]
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
     

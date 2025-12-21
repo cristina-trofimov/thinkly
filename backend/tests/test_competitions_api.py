@@ -22,7 +22,7 @@ from DB_Methods import database
 
 # 2. Import the router you want to test
 # (Replace 'src.endpoints.homepage' with the actual path to the file you pasted above)
-from src.endpoints.competitions_api import homepage_router 
+from src.endpoints.competitions_api import competitions_router 
 
 # --- FIXTURES ---
 
@@ -38,7 +38,7 @@ def client(mock_db):
     We create a fresh FastAPI app here to test the router in isolation.
     """
     test_app = FastAPI()
-    test_app.include_router(homepage_router)
+    test_app.include_router(competitions_router)
 
     # DEFINE THE OVERRIDE
     def override_get_db():
@@ -62,21 +62,32 @@ def test_get_all_competitions_success(client, mock_db):
     fake_comps = [
         SimpleNamespace(
             competition_id=101, 
-            name="Winter Hackathon", 
+            competition_title="Winter Hackathon", 
             date=datetime(2025, 12, 1, 10, 0, 0)
         ),
         SimpleNamespace(
             competition_id=102, 
-            name="Summer Code Fest", 
+            competition_title="Summer Code Fest", 
             date=datetime(2026, 6, 15, 9, 30, 0)
         )
     ]
 
-    # Mock the chain: db.query(Competition).all()
-    mock_db.query.return_value.all.return_value = fake_comps
+    # Create a mock query that returns itself for any chained method
+    mock_query = MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.filter_by.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    # The terminal operation returns actual data
+    mock_query.all.return_value = fake_comps
+    
+    # Attach the query to the db mock
+    mock_db.query.return_value = mock_query
 
     # 2. Act
-    response = client.get("/get-competitions")
+    response = client.get("/")
 
     # 3. Assert
     assert response.status_code == 200
@@ -84,9 +95,9 @@ def test_get_all_competitions_success(client, mock_db):
     
     # Verify the count
     assert len(data) == 2
-    
+
     # Verify the content of the first item
-    assert data[0]["id"] == 101
+    assert data[0]["competition_id"] == 101
     assert data[0]["competition_title"] == "Winter Hackathon"
     # ISO format check (e.g., '2025-12-01T10:00:00')
     assert "2025-12-01" in data[0]["date"]
@@ -94,11 +105,22 @@ def test_get_all_competitions_success(client, mock_db):
 def test_get_all_competitions_empty(client, mock_db):
     """Test when the database is empty."""
     
-    # Arrange: db returns an empty list
-    mock_db.query.return_value.all.return_value = []
+    # Create a mock query that returns itself for any chained method
+    mock_query = MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.filter_by.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    # The terminal operation returns actual data
+    mock_query.all.return_value = []
+    
+    # Attach the query to the db mock
+    mock_db.query.return_value = mock_query
 
     # Act
-    response = client.get("/get-competitions")
+    response = client.get("/")
 
     # Assert
     assert response.status_code == 200
@@ -107,11 +129,22 @@ def test_get_all_competitions_empty(client, mock_db):
 def test_get_all_competitions_db_error(client, mock_db):
     """Test how the endpoint handles a database exception."""
     
-    # Arrange: Trigger an exception when .all() is called
-    mock_db.query.return_value.all.side_effect = Exception("DB Connection Lost")
+    # Create a mock query that returns itself for any chained method
+    mock_query = MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.filter_by.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    # The terminal operation returns actual data
+    mock_query.all.side_effect = Exception("DB Connection Lost")
+    
+    # Attach the query to the db mock
+    mock_db.query.return_value = mock_query
 
     # Act
-    response = client.get("/get-competitions")
+    response = client.get("/")
 
     # Assert
     assert response.status_code == 500

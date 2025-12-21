@@ -3,11 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
-from models.schema import User
+from models.schema import UserAccount, UserPreferences
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 import uuid
@@ -41,32 +41,41 @@ class GoogleAuthRequest(BaseModel):
     credential: str
 
 # ---------------- DB helpers ----------------
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    return db.query(User).filter(User.email == email).first()
+def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
+    return db.query(UserAccount).filter(UserAccount.email == email).first()
 
 def create_user(db: Session, username: str, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
     if type == 'owner':
-        existing_owner = db.query(User).filter(User.type == 'owner').first()
+        existing_owner = db.query(UserAccount).filter(UserAccount.user_type == 'owner').first()
         if existing_owner:
             logger.error("Owner creation failed: An owner already exists.")
             raise ValueError("An owner already exists. Only one owner is allowed.")
-    new_user = User(
-        username=username,
+    new_user = UserAccount(
         email=email,
         first_name=first_name,
         last_name=last_name,
-        salt=password_hash,
-        type=type
+        hashed_password=password_hash,
+        user_type=type
     )
+
+
     db.add(new_user)
     _commit_or_rollback(db)
     db.refresh(new_user)
+    new_user_preferences = UserPreferences(
+        user_id=new_user.user_id,
+        theme="light",
+        notifications_enabled=True
+    )
+    db.add(new_user_preferences)
+    _commit_or_rollback(db)
+    db.refresh(new_user_preferences)
     return new_user
 
 # ---------------- JWT helpers ----------------
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({
         "exp": expire,
         "jti": str(uuid.uuid4())  # Add unique JWT ID
@@ -128,8 +137,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         logger.warning(f"Login failed: Invalid credentials for email: {request.email}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
-    token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
-    logger.info(f"SUCCESSFUL LOGIN: User '{user.email}' logged in. Role: {user.type}")
+    token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+    logger.info(f"SUCCESSFUL LOGIN: User '{user.email}' logged in. Role: {user.user_type}")
     return {"token": token}
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
@@ -148,8 +157,8 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
             create_user(db, username=email, email=email, password_hash="", first_name=name, last_name="", type="participant")
             user = get_user_by_email(db, email)
         
-        token = create_access_token({"sub": user.email, "role": user.type, "id": user.user_id})
-        logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.type}")
+        token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+        logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"token": token}
     except ValueError as e:
         logger.error(f"Google token verification failed: {e.__class__.__name__}. Credential length: {len(request.credential)}")
@@ -167,7 +176,7 @@ async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
     logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
-    return {"id": user.user_id, "email": user.email, "role": user.type}
+    return {"id": user.user_id, "email": user.email, "role": user.user_type}
 
 
 @auth_router.post("/logout")
