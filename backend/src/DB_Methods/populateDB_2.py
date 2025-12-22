@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, UTC, timezone
 import random
-from crudOperations import (
+from DB_Methods.crudOperations import (
 
     create_competition,
     add_participation,
