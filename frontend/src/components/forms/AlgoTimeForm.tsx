@@ -151,7 +151,7 @@ export const AlgoTimeSessionForm = () => {
           // SessionQuestionSelector expects q.title, not q.questionTitle
           title: q.title,
           // normalize difficulty to lowercase
-          difficulty: q.difficulty?.toLowerCase(),
+          difficulty: q.difficulty,
           // id might be string, convert to number if selector expects number
           id: q.id,
         }));

@@ -24,6 +24,8 @@ import ManageCompetitions from "./views/admin/ManageCompetitionsPage.tsx";
 import ErrorPage from "./components/ErrorPage.tsx";
 import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
+import ForgotPasswordForm from "./components/forms/ForgotPasswordForm.tsx";
+import ResetPasswordForm from "./components/forms/ResetPasswordForm";
 
 const router = createBrowserRouter([
   {
@@ -33,6 +35,14 @@ const router = createBrowserRouter([
   {
     path: "/signup",
     element: <SignupPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordForm />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordForm  />,
   },
   {
     path: "/app", // 👈 everything else under /app

@@ -52,8 +52,8 @@ export async function sendEmail({
     const payload = {
         to: toList, // Backend expects an array
         subject,
-        text,       // Backend expects 'text', not 'body'
-        ...(sendAt && { sendAt }), // Only add sendAt if it exists
+        text,
+        ...(sendAt && { sendAt }),
     };
 
     // 4. Send via Axios

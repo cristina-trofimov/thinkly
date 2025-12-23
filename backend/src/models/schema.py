@@ -1,231 +1,254 @@
-from datetime import datetime
-from sqlalchemy import (
-    Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum, Float, Table
-)
-from sqlalchemy.orm import relationship
+from __future__ import annotations
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db import Base
+from typing import List, Optional
+from datetime import datetime, timezone
 
-# Association table for many-to-many relationship between AlgoTimeQuestion and QuestionSet
-algo_question_set = Table(
-    'algo_question_set',
-    Base.metadata,
-    Column('question_id', Integer, ForeignKey('algo_time_question.question_id', ondelete='CASCADE'), primary_key=True),
-    Column('set_id', Integer, ForeignKey('question_set.set_id', ondelete='CASCADE'), primary_key=True),
-    extend_existing=True
-)
+class UserAccount(Base):
+    __tablename__ = 'user_account'
 
+    user_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    hashed_password: Mapped[str] = mapped_column()
+    first_name: Mapped[str] = mapped_column()
+    last_name: Mapped[str] = mapped_column()
+    user_type: Mapped[str] = mapped_column(Enum('owner', 'admin', 'participant', name='user_type'), default='participant')
+
+    user_preferences: Mapped[UserPreferences] = relationship('UserPreferences', back_populates='user_account', uselist=False)
+    sessions: Mapped[List[UserSession]] = relationship('UserSession', back_populates='user_account', uselist=True)
+    participations: Mapped[List[Participation]] = relationship('Participation', back_populates='user_account', uselist=True)
+    competition_leaderboard_entries: Mapped[List[CompetitionLeaderboardEntry]] = relationship('CompetitionLeaderboardEntry', back_populates='user_account', uselist=True)
+    algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry', back_populates='user_account', uselist=True)
 
 class UserPreferences(Base):
     __tablename__ = 'user_preferences'
 
-    user_id = Column(Integer, primary_key=True)
-    theme = Column(String, default='light')
-    notifications_enabled = Column(Boolean)
-    edit_used_programming_language = Column(String)
+    pref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id', ondelete='CASCADE'), unique=True)
+    theme: Mapped[str] = mapped_column(Enum('light', 'dark', name='theme_type'), default='light')
+    notifications_enabled: Mapped[bool] = mapped_column(default=True)
+    last_used_programming_language: Mapped[Optional[str]] = mapped_column()
 
-#salt = password
-# questions - if we want to know who created question, necessarey know - nice to have probably
-class User(Base):
-    __tablename__ = 'user'
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='user_preferences', uselist=False)
 
-    user_id = Column(Integer, primary_key=True)
-    username = Column(String, unique=True, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    first_name = Column(String)
-    last_name = Column(String)
-    user_preferences_id = Column(Integer, ForeignKey('user_preferences.user_id', ondelete='CASCADE'))
-    salt = Column(String)
-    type = Column(Enum('participant', 'admin', 'owner', name='type_enum'), nullable=False)
+class UserSession(Base):
+    __tablename__ = 'user_session'
 
-    # Relationships
-    competitions = relationship( 'Competition', back_populates='user', cascade="save-update", passive_deletes=True)
-    user_results = relationship( 'UserResult', back_populates='user', cascade="all, delete-orphan")
-    questions = relationship('BaseQuestion', back_populates='user', cascade="save-update", passive_deletes=True)
-    sessions = relationship('Session', back_populates='user', cascade="all, delete-orphan")
-    user_cooldowns = relationship( 'UserCooldown', back_populates='user', cascade="all, delete-orphan")
-    scoreboards = relationship('Scoreboard', back_populates='user', cascade="save-update", passive_deletes=True)
+    session_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id'))
+    jwt_token: Mapped[str] = mapped_column(unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    is_active: Mapped[bool] = mapped_column(default=True)
 
-# need to talk to constance to see if this is necessary
-class Session(Base):
-    __tablename__ = 'session'
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='sessions', uselist=False)
 
-    session_id = Column(String, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), nullable=False)
-    jwt_token = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime, nullable=False)
-    is_active = Column(Boolean, default=True)
+class BaseEvent(Base):
+    __tablename__ = 'base_event'
 
-    user = relationship('User', back_populates='sessions')
+    event_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_name: Mapped[str] = mapped_column(unique=True)
+    event_location: Mapped[Optional[str]] = mapped_column()
+    question_cooldown: Mapped[int] = mapped_column(default=300)
+    event_start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    event_end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+
+    competition: Mapped[Optional[Competition]] = relationship('Competition', back_populates='base_event', uselist=False)
+    algotime: Mapped[Optional[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='base_event', uselist=False)
+    question_instances: Mapped[List[QuestionInstance]] = relationship('QuestionInstance', back_populates='event', uselist=True)
+    participations: Mapped[List[Participation]] = relationship('Participation', back_populates='event', uselist=True)
+
+    __table_args__ = (
+        CheckConstraint('event_end_date > event_start_date', name='chk_event_dates'),
+    )
 
 class Competition(Base):
     __tablename__ = 'competition'
 
-    competition_id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='SET NULL'))
-    location = Column(String, nullable=False)
-    date = Column(DateTime, default=datetime.utcnow)
-    cooldown_time = Column(Integer)
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'), primary_key=True)
+    riddle_cooldown: Mapped[int] = mapped_column(default=60)
 
-    user = relationship('User', back_populates='competitions')
-    competition_questions = relationship( 'CompetitionQuestion', back_populates='competition', cascade="all, delete-orphan")
-    participations = relationship( 'Participation', back_populates='competition', cascade="all, delete-orphan")
-    scoreboards = relationship( 'Scoreboard', back_populates='competition', cascade="all, delete-orphan")
+    base_event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='competition', uselist=False)
+    competition_leaderboard_entries: Mapped[List[CompetitionLeaderboardEntry]] = relationship('CompetitionLeaderboardEntry', back_populates='competition', uselist=True)
 
-# for space purpose keep media only for image
-class BaseQuestion(Base):
-    __tablename__ = 'base_question'
+    emails: Mapped[List[CompetitionEmail]] = relationship('CompetitionEmail', back_populates='competition', uselist=True)
 
-    question_id = Column(Integer, primary_key=True)
-    title = Column(Text, nullable=False)
-    description = Column(Text, nullable=False)
-    media = Column(String)
-    difficulty = Column(Enum('easy', 'medium', 'hard', name='difficulty_enum'), nullable=False)
-    solution = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='SET NULL'))  # ← added
+class CompetitionEmail(Base):
+    __tablename__ = 'competition_email'
 
-    user = relationship('User', back_populates='questions')
-    competition_questions = relationship('CompetitionQuestion', back_populates='question', cascade="all, delete-orphan")
-    competition_question_stats = relationship( 'CompetitionQuestionStats', back_populates='question', cascade="all, delete-orphan")
+    email_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
 
-    user_algotime_stats = relationship('UserAlgoTimeStats', back_populates='question', cascade="all, delete-orphan")
-    user_answers = relationship( 'UserAnswer', back_populates='question', cascade="all, delete-orphan")
-    algo_time_question = relationship('AlgoTimeQuestion', backref='base_question', cascade="all, delete-orphan", uselist=False )
+    # Basic email schedule info
+    name: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
+    date: Mapped[str] = mapped_column()  # "YYYY-MM-DD"
+    start_time: Mapped[str] = mapped_column()  # "HH:MM"
+    end_time: Mapped[str] = mapped_column()  # "HH:MM"
+    location: Mapped[Optional[str]] = mapped_column()
 
-class CompetitionQuestion(Base):
-    __tablename__ = 'competition_question'
+    # Computed reminder times
+    time_24h_before: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    time_5min_before: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    other_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
-    competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), primary_key=True)
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    base_score_value = Column(Integer)
+    competition: Mapped[Competition] = relationship('Competition', back_populates='emails', uselist=False)
 
-    competition = relationship('Competition', back_populates='competition_questions')
-    question = relationship('BaseQuestion', back_populates='competition_questions')
+class AlgoTimeSeries(Base):
+    __tablename__ = 'algotime_series'
+    algotime_series_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    algotime_series_name: Mapped[str] = mapped_column(unique=True)
+    algotime_sessions: Mapped[List[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='algotime_series', uselist=True)
+    algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry', back_populates='algotime_series', uselist=True)
 
-# idk if this necessary - or use this instead of set or change them idk
-class QuestionTag(Base):
-    __tablename__ = 'question_tag'
+class AlgoTimeSession(Base):
+    __tablename__ = 'algotime_session'
 
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    tag_value = Column(String, primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'), primary_key=True)
+    algotime_series_id: Mapped[Optional[int]] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete='SET NULL'))
+
+    base_event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='algotime', uselist=False)
+    algotime_series: Mapped[Optional[AlgoTimeSeries]] = relationship('AlgoTimeSeries', back_populates='algotime_sessions', uselist=False)
+
+question_tag = Table(
+    'question_tag', Base.metadata,
+    Column('tag_id', Integer, ForeignKey('tag.tag_id', ondelete='CASCADE'), primary_key=True),
+    Column('question_id', Integer, ForeignKey('question.question_id', ondelete='CASCADE'), primary_key=True)
+)
+
+class Question(Base):
+    __tablename__ = 'question'
+
+    question_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_name: Mapped[str] = mapped_column(unique=True)
+    question_description: Mapped[str] = mapped_column()
+    media: Mapped[Optional[str]] = mapped_column()
+    difficulty: Mapped[str] = mapped_column(Enum('easy', 'medium', 'hard', name='difficulty_level'))
+    preset_code: Mapped[Optional[str]] = mapped_column()
+    from_string_function: Mapped[str] = mapped_column(default=False)
+    to_string_function: Mapped[str] = mapped_column(default=False)
+    template_solution: Mapped[str] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    last_modified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+
+    test_cases: Mapped[List[TestCase]] = relationship('TestCase', back_populates='question', uselist=True)
+    tags: Mapped[List[Tag]] = relationship('Tag', secondary=question_tag, back_populates='questions', uselist=True)
+    question_instances: Mapped[List[QuestionInstance]] = relationship('QuestionInstance', back_populates='question', uselist=True)
+
+class TestCase(Base):
+    __tablename__ = 'test_case'
+
+    test_case_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey('question.question_id', ondelete='CASCADE'))
+    input_data: Mapped[str] = mapped_column()
+    expected_output: Mapped[str] = mapped_column()
+
+    question: Mapped[Question] = relationship('Question', back_populates='test_cases', uselist=False)
+
+class Tag(Base):
+    __tablename__ = 'tag'
+
+    tag_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tag_name: Mapped[str] = mapped_column(unique=True)
+
+    questions: Mapped[List[Question]] = relationship('Question', secondary=question_tag, back_populates='tags', uselist=True)
 
 
-class QuestionSet(Base):
-    __tablename__ = 'question_set'
+class Riddle(Base):
+    __tablename__ = 'riddle'
 
-    set_id = Column(Integer, primary_key=True)
-    set_name = Column(String, nullable=False)
-    week = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    riddle_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    riddle_question: Mapped[str] = mapped_column()
+    riddle_answer: Mapped[str] = mapped_column()
 
-    algo_questions = relationship(
-        'AlgoTimeQuestion',
-        secondary=algo_question_set,
-        back_populates='question_sets'
+class QuestionInstance(Base):
+    __tablename__ = 'question_instance'
+
+    question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey('question.question_id', ondelete='CASCADE'))
+    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'))
+    points: Mapped[int] = mapped_column(default=0)
+    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete='SET NULL'))
+    is_riddle_completed: Mapped[bool] = mapped_column(default=False)
+
+    question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
+    riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
+    event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
+    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='question_instance', uselist=True)
+
+    __table_args__ = (
+        UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
     )
 
-class AlgoTimeQuestion(Base):
-    __tablename__ = 'algo_time_question'
-
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    base_score_value = Column(Integer)
-
-    question_sets = relationship(
-        'QuestionSet',
-        secondary=algo_question_set,
-        back_populates='algo_questions'
-    )
-
-# i feel we dont need this
 class Participation(Base):
     __tablename__ = 'participation'
 
-    competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), primary_key=True)
+    participation_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id', ondelete='CASCADE'))
+    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'))
+    total_score: Mapped[int] = mapped_column(default=0)
 
-    competition = relationship('Competition', back_populates='participations')
-    user = relationship('User', foreign_keys=[user_id])
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='participations', uselist=False)
+    event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='participations', uselist=False)
+    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='participation', uselist=True)
 
+    __table_args__ = (
+        UniqueConstraint('user_id', 'event_id', name='uix_participation'),
+    )
 
-class CompetitionQuestionStats(Base):
-    __tablename__ = 'competition_question_stats'
+class Submission(Base):
+    __tablename__ = 'submission'
 
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), primary_key=True)
-    num_attempts = Column(Integer)
-    completed = Column(Boolean)
-    score_awarded = Column(Integer, nullable=True)
-    datetime_completed = Column(DateTime, nullable=True)
+    submission_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    participation_id: Mapped[int] = mapped_column(ForeignKey('participation.participation_id', ondelete='CASCADE'))
+    question_instance_id: Mapped[int] = mapped_column(ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
+    submitted_code: Mapped[str] = mapped_column()
+    submission_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    successful: Mapped[bool] = mapped_column(default=False)
+    failed_test_case_id: Mapped[Optional[int]] = mapped_column(ForeignKey('test_case.test_case_id'))
+    participation: Mapped[Participation] = relationship('Participation', back_populates='submissions', uselist=False)
+    question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='submissions', uselist=False)
+    failed_test_case: Mapped[Optional[TestCase]] = relationship('TestCase', uselist=False)
+    __table_args__ = (
+        UniqueConstraint('participation_id', 'question_instance_id', name='uix_submission'),
+    )
 
-    question = relationship('BaseQuestion', back_populates='competition_question_stats')
+class CompetitionLeaderboardEntry(Base):
+    __tablename__ = 'competition_leaderboard_entry'
 
+    competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
+    name: Mapped[str] = mapped_column() # <= NOT NULL
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
+    total_score: Mapped[int] = mapped_column()
+    problems_solved: Mapped[int] = mapped_column(default=0)
+    total_time: Mapped[int] = mapped_column()
+    rank: Mapped[int] = mapped_column()
 
-class UserAlgoTimeStats(Base):
-    __tablename__ = 'user_algotime_stats'
+    competition: Mapped[Competition] = relationship('Competition', back_populates='competition_leaderboard_entries', uselist=False)
+    user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount', back_populates='competition_leaderboard_entries', uselist=False)
+    
+    __table_args__ = (
+        UniqueConstraint('competition_id', 'user_id', name='uix_competition_user'),
+    )
 
+class AlgoTimeLeaderboardEntry(Base):
+    __tablename__ = 'algotime_leaderboard_entry'
 
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), primary_key=True)
-    num_attempts = Column(Integer)
-    best_time = Column(Integer)
-    completed = Column(Boolean)
-    score_awarded = Column(Integer, nullable=True)
-    datetime_completed = Column(DateTime, nullable=True)
+    algotime_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    algotime_series_id: Mapped[int] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'))
+    name: Mapped[str] = mapped_column()
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
+    total_score: Mapped[int] = mapped_column()
+    problems_solved: Mapped[int] = mapped_column(default=0)
+    total_time: Mapped[int] = mapped_column()
+    rank: Mapped[int] = mapped_column()
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc))
+    algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries', back_populates='algotime_leaderboard_entries', uselist=False)
+    user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount', uselist=False)
 
-    question = relationship('BaseQuestion', back_populates='user_algotime_stats')
-
-#long term ranking - idk if rank is necessary
-class UserResult(Base):
-    __tablename__ = 'user_result'
-
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), primary_key=True)
-    competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), primary_key=True)
-    total_score = Column(Integer)
-    rank = Column(Integer)
-    problems_solved = Column(Integer, default=0)
-    total_time = Column(Float, default=0.0)
-
-    user = relationship('User', back_populates='user_results')
-
-# saving last entry
-class UserAnswer(Base):
-    __tablename__ = 'user_answer'
-
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), primary_key=True)
-    question_id = Column(Integer, ForeignKey('base_question.question_id', ondelete='CASCADE'), primary_key=True)
-    answer_text = Column(Text)
-    submission_datetime = Column(DateTime, default=datetime.utcnow)
-
-    question = relationship('BaseQuestion', back_populates='user_answers')
-
-# short term entry
-class Scoreboard(Base):
-    __tablename__ = 'scoreboard'
-
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='SET NULL'), primary_key=True)
-    competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), primary_key=True)
-    total_score = Column(Integer, default=0)
-    rank = Column(Integer)
-    problems_solved = Column(Integer, default=0)
-    current_time = Column(Float, default=0.0)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship('User', back_populates='scoreboards')
-    competition = relationship('Competition', back_populates='scoreboards')
-
-# idk about comptetition id
-class UserCooldown(Base):
-    __tablename__ = 'user_cooldown'
-
-    cooldown_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.user_id', ondelete='CASCADE'), nullable=False)
-    competition_id = Column(Integer, ForeignKey('competition.competition_id', ondelete='CASCADE'), nullable=False)
-    last_submission_time = Column(DateTime, default=datetime.utcnow)
-    cooldown_ends_at = Column(DateTime)
-
-    user = relationship('User', back_populates='user_cooldowns')
+    __table_args__ = (
+        UniqueConstraint('algotime_series_id', 'user_id', name='uix_algotime_user'),
+    )

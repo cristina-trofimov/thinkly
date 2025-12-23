@@ -1,5 +1,6 @@
 export interface Question {
-    id?: string;
-    title?: string;
-    difficulty?: string;
+    id: number;
+    title: string;
+    difficulty: "Easy"|"Medium"|"Hard";
+    date: Date;
 }

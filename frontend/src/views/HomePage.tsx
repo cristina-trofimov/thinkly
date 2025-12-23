@@ -1,9 +1,9 @@
-import * as React from "react"
+import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar"
 import { Button } from "../components/ui/button"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { columns } from "../components/questionsTable/questionsColumns"
-import type { Questions } from "../components/questionsTable/questionsColumns"
+import type { Question } from "@/types/questions/Question.type"
 import { DataTable } from "../components/questionsTable/questionDataTable"
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestions } from "@/api/QuestionsAPI";
@@ -12,12 +12,12 @@ import type { Competition } from "@/types/competition/Competition.type"
 
 
 function HomePage() {
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const [questions, setQuestions] = React.useState<Questions[]>([])
-  const [competitions, setCompetitions] = React.useState<Competition[]>([])
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [competitions, setCompetitions] = useState<Competition[]>([])
 
 
-  React.useEffect(() => {
+  useEffect(() => {
     const getAllQuestions = async () => {
       try {
         const data = await getQuestions();
@@ -49,14 +49,18 @@ function HomePage() {
     getAllQuestions()
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     const getAllCompetitions = async () => {
       try {
         const data = await getCompetitions();
-        setCompetitions(data);
+        const transformedData = data.map(c => ({
+          ...c,
+          date: new Date(c.date)  // Convert string to Date
+        }));
+        setCompetitions(transformedData);
 
         logFrontend({
-          level: 'INFO',
+          level: 'DEBUG',
           message: `Competitions data loaded.`,
           component: 'HomePage',
           url: window.location.href,
@@ -80,7 +84,7 @@ function HomePage() {
     getAllCompetitions()
   }, [])
 
-  const competitionsForSelectedDate = React.useMemo(() => {
+  const competitionsForSelectedDate = useMemo(() => {
     if (!date) return []
     return competitions.filter((c) => {
       // Create a new Date object from the string before calling toDateString

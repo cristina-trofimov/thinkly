@@ -257,7 +257,6 @@ describe("SignupForm", () => {
                     password: "password123",
                     firstName: "John",
                     lastName: "Doe",
-                    username: "test",
                 });
             });
         });
@@ -509,38 +508,6 @@ describe("SignupForm", () => {
             await user.click(signInButton);
 
             expect(mockNavigate).toHaveBeenCalledWith("/");
-        });
-    });
-
-    describe("Username Generation", () => {
-        test("generates username from email (part before @)", async () => {
-            mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
-
-            render(<SignupForm />);
-
-            const firstNameInput = screen.getByLabelText("First Name");
-            const lastNameInput = screen.getByLabelText("Last Name");
-            const emailInput = screen.getByLabelText("Email");
-            const passwordInput = screen.getByLabelText(/^Password$/);
-            const confirmPasswordInput = screen.getByLabelText("Confirm Password");
-            const submitButton = screen.getByRole("button", { name: /create account/i });
-
-            fireEvent.change(firstNameInput, { target: { value: "John" } });
-            fireEvent.change(lastNameInput, { target: { value: "Doe" } });
-            fireEvent.change(emailInput, { target: { value: "john.doe@example.com" } });
-            fireEvent.change(passwordInput, { target: { value: "password123" } });
-            fireEvent.change(confirmPasswordInput, { target: { value: "password123" } });
-
-            fireEvent.click(submitButton);
-
-            await waitFor(() => {
-                expect(mockSignup).toHaveBeenCalledWith(
-                    expect.objectContaining({
-                        username: "john.doe",
-                    })
-                );
-            });
         });
     });
 });

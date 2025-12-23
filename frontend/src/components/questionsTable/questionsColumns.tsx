@@ -1,19 +1,13 @@
 import type { ColumnDef } from "@tanstack/react-table"
-
-export type Questions = {
-    id: string
-    questionTitle: string
-    date: Date
-    difficulty: "Easy"|"Medium"|"Hard"
-  }
+import type { Question } from "../../types/questions/Question.type"
    
-  export const columns: ColumnDef<Questions>[] = [
+  export const columns: ColumnDef<Question>[] = [
     {
         accessorKey: "id",
         header: "No.",
       },
       {
-        accessorKey: "questionTitle",
+        accessorKey: "title",
         header: "Question",
       },
       {

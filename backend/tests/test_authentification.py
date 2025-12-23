@@ -5,21 +5,17 @@ from unittest.mock import MagicMock, patch
 import sys
 import os
 
-# 1. Get the path to the 'backend' folder (the parent of 'tests')
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 
-# 2. Add 'backend' to the system path so Python can find 'src'
+
 sys.path.append(parent_dir)
 
-# 3. NOW import the file following the folder structure
-# Note: We use the actual filename 'authentification_api' (no .py)
 from src.endpoints import authentification_api
 from src.DB_Methods import database
 
-# --- Setup: Import the app and router ---
-# We assume your file is named 'auth.py'. 
-# If it is named differently, change 'from auth import ...' below.
+
 from fastapi import FastAPI
 
 import bcrypt
@@ -52,22 +48,25 @@ def client(mock_db_session):
 
 @pytest.fixture
 def mock_user():
-    """Creates a mock user object behaving like a SQLAlchemy model."""
     user = MagicMock()
     user.user_id = 1
     user.email = "test@example.com"
-    user.username = "testuser"
     user.first_name = "Test"
     user.last_name = "User"
-    user.type = "participant"
-    # Generate a real hash for "password123" so bcrypt.checkpw works
-    user.salt = bcrypt.hashpw(b"password123", bcrypt.gensalt()).decode() 
+    user.user_type = "participant"
+
+    # ✅ MUST be called hashed_password
+    user.hashed_password = bcrypt.hashpw(
+        b"password123",
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
     return user
 
 @pytest.fixture
 def admin_user(mock_user):
     """Creates a mock admin user."""
-    mock_user.type = "admin"
+    mock_user.user_type = "admin"
     return mock_user
 
 # --- Tests ---
@@ -147,7 +146,7 @@ def test_google_auth_success(client):
     # We create a new user object for this test
     new_google_user = MagicMock()
     new_google_user.email = "googleuser@example.com"
-    new_google_user.type = "participant"
+    new_google_user.user_type = "participant"
     new_google_user.user_id = 99
 
     # 1. Mock the verify_oauth2_token (Google API call)
@@ -166,7 +165,7 @@ def test_profile_endpoint(client, mock_user):
     """Test accessing a protected route with a valid token."""
     
     # Create a valid token manually using your helper function
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
     
     with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.get(
@@ -181,7 +180,7 @@ def test_logout_revocation(client, mock_user):
     """Test that logging out adds the token ID (jti) to the blocklist."""
     
     # 1. Generate token
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.type, "id": mock_user.user_id})
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
     
     # 2. Call Logout
     response = client.post(

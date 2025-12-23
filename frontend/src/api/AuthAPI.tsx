@@ -6,6 +6,14 @@ import type {
     UserProfile,
 } from "@/types/Auth.type";
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     const response = await axiosClient.post<LoginResponse>("/auth/login", data);
     return response.data;
@@ -58,4 +66,8 @@ export async function logout(): Promise<void> {
     localStorage.removeItem("token");
 }
 
-// src/api/auth.ts
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+  // Call your backend endpoint to send the reset email
+  const response = await axiosClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
+  return response.data;
+}
