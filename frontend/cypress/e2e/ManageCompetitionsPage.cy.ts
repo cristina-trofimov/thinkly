@@ -19,7 +19,7 @@ describe('Manage Competitions Page', () => {
 
     // Search for non-existent competition
     cy.get('input[placeholder="Search competitions..."]').clear().type('nonexistent');
-    cy.contains('No competitions found matching your filters.').should('be.visible');
+    cy.contains('No competitions found').should('be.visible');
   });
 
   it('Filters competitions by status', () => {

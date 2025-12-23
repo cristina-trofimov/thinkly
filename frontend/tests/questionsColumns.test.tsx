@@ -40,19 +40,19 @@ function TestTable({ data }: { data: Question[] }) {
 describe("Questions Columns", () => {
   const mockData: Question[] = [
     {
-      id: "1",
+      id: 1,
       title: "Two Sum",
       date: new Date("2024-01-15"),
       difficulty: "Easy",
     },
     {
-      id: "2",
+      id: 2,
       title: "Reverse Linked List",
       date: new Date("2024-02-20"),
       difficulty: "Medium",
     },
     {
-      id: "3",
+      id: 3,
       title: "Merge K Sorted Lists",
       date: new Date("2024-03-10"),
       difficulty: "Hard",

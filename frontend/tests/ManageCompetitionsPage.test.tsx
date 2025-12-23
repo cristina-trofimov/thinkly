@@ -19,19 +19,19 @@ const mockedGetCompetitions = getCompetitions as jest.MockedFunction<typeof getC
 describe('ManageCompetitions', () => {
   const competitions: Competition[] = [
     {
-      id: '1',
+      id: 1,
       competitionTitle: 'Math Contest',
       competitionLocation: 'Toronto',
       date: new Date(Date.now() + 86400000), // Tomorrow -> Upcoming
     },
     {
-      id: '2',
+      id: 2,
       competitionTitle: 'Science Fair',
       competitionLocation: 'Montreal',
       date: new Date(), // Today -> Active
     },
     {
-      id: '3',
+      id: 3,
       competitionTitle: 'History Quiz',
       competitionLocation: 'Vancouver',
       date: new Date(Date.now() - 86400000), // Yesterday -> Completed
