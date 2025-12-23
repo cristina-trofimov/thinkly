@@ -36,13 +36,14 @@ const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "
 const ManageCompetitions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [competitions, setCompetition] = useState<Competition[]>([]);
+
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadCompetitions = async () => {
+    const load = async () => {
       try {
         const data1 = await getCompetitions();
 
@@ -53,14 +54,14 @@ const ManageCompetitions = () => {
         logFrontend({
           level: 'ERROR',
           message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
-          component: 'CreateCompetitionDialog.tsx',
+          component: 'ManageCompetitionsPage.tsx',
           url: window.location.href,
           stack: (err as Error).stack,
         });
       }
     };
 
-    loadCompetitions();
+    load();
 
     return () => { cancelled = true; };
   }, []);
@@ -78,10 +79,7 @@ const ManageCompetitions = () => {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const handleView = (id: string) => {
-    console.log('View competition:', id);
-    // Add your navigation logic here
-  };
+
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -133,7 +131,7 @@ const ManageCompetitions = () => {
         {/* Create New Competition Card - Always First */}
         <Card
           className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 border-dashed border-primary/50 hover:border-primary"
-          onClick={() => setDialogOpen(true)}
+          onClick={() => setCreateDialogOpen(true)}
         >
           <div className="aspect-[4/3] bg-muted/30 flex items-center justify-center">
             <Plus className="w-16 h-16 text-primary" strokeWidth={1.5} />
@@ -196,7 +194,7 @@ const ManageCompetitions = () => {
                     variant="ghost"
                     size="sm"
                     className="text-primary hover:bg-primary/10"
-                    onClick={() => handleView(comp.id)}
+
                   >
                     View →
                   </Button>
@@ -230,7 +228,7 @@ const ManageCompetitions = () => {
           <p className="text-muted-foreground mb-4">
             Get started by creating your first competition
           </p>
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Create Competition
           </Button>
@@ -238,9 +236,9 @@ const ManageCompetitions = () => {
       )}
 
       <CreateCompetitionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        key={dialogOpen ? 'open' : 'closed'}
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        key={createDialogOpen ? 'open' : 'closed'}
       />
     </div>
   );

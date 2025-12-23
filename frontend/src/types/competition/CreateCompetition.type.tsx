@@ -6,8 +6,8 @@ export interface CreateCompetitionDialogProps {
   location?: string;
   questionCooldownTime: number;
   riddleCooldownTime: number;
-  selectedQuestions: string[];
-  selectedRiddles: string[];
+  selectedQuestions: number[];
+  selectedRiddles: number[];
   emailEnabled: boolean;
   emailNotification?: {
     to: string;

@@ -1,5 +1,5 @@
 export interface Riddle {
-    id: string;
+    id: number;
     question: string;
     answer: string;
 }

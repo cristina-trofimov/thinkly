@@ -1,5 +1,4 @@
 import axiosClient from "@/lib/axiosClient";
-import { BACKEND_URL } from "../config";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
@@ -8,11 +7,11 @@ import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../t
 export async function getCompetitions(): Promise<Competition[]> {
   try {
     const response = await axiosClient.get<{
-      id: string;
+      id: number;
       competition_title: string;
       competition_location: string;
       date: Date;
-    }[]>(`${BACKEND_URL}/competitions/`);
+    }[]>(`/competitions/`);
 
     const formatted: Competition[] = response.data.map(c => ({
       id: c.id,
@@ -35,7 +34,7 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
       id: number;
       competition_title: string;
       date: Date;
-    }[]>(`${BACKEND_URL}/homepage/get-competitions`);
+    }[]>(`/homepage/get-competitions`);
 
     const formatted: CompetitionWithParticipants[] = response.data.map(c => ({
       id: c.id,
@@ -62,7 +61,7 @@ export async function createCompetition(
 ): Promise<CompetitionResponse> {
   try {
     const response = await axiosClient.post<CompetitionResponse>(
-      `${BACKEND_URL}/competitions/create`,
+      `/competitions/create`,
       payload
     );
     return response.data;
@@ -80,7 +79,7 @@ export async function createCompetition(
 export async function listCompetitions(): Promise<CompetitionResponse[]> {
   try {
     const response = await axiosClient.get<CompetitionResponse[]>(
-      `${BACKEND_URL}/competitions/list`
+      `/competitions/list`
     );
     return response.data;
   } catch (err) {
@@ -94,19 +93,26 @@ export async function listCompetitions(): Promise<CompetitionResponse[]> {
  * Get a specific competition by ID
  * Requires authentication
  */
-export async function getCompetitionById(
-  competitionId: number
-): Promise<CompetitionResponse> {
+export const getCompetitionById = async (competitionId: string) => {
   try {
-    const response = await axiosClient.get<CompetitionResponse>(
-      `${BACKEND_URL}/competitions/${competitionId}`
-    );
-    return response.data;
-  } catch (err) {
-    console.error(`Error fetching competition ${competitionId}:`, err);
-    throw err;
+    const response = await fetch(`/api/competitions/${competitionId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch competition: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching competition by ID:', error);
+    throw error;
   }
-}
+};
 
 
 /**
@@ -115,10 +121,12 @@ export async function getCompetitionById(
  */
 export async function deleteCompetition(competitionId: number): Promise<void> {
   try {
-    await axiosClient.delete(`${BACKEND_URL}/competitions/${competitionId}`);
+    await axiosClient.delete("/competitions/${competitionId}");
   } catch (err) {
     console.error(`Error deleting competition ${competitionId}:`, err);
     throw err;
   }
 }
+
+
 

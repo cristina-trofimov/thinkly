@@ -1,5 +1,4 @@
 export type Participant = {
-    username: string;
     name: string;
     total_score: number;
     problems_solved: number;

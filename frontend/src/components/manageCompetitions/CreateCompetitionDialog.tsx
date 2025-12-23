@@ -24,12 +24,12 @@ import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
 
-interface CreateCompetitionDialogProps1 {
+interface CreateCompetitionDialogPropsTEMP {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps1) {
+export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogPropsTEMP) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -119,7 +119,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     setOrderedQuestions([...orderedQuestions, question]);
   };
 
-  const removeQuestion = (id: string) => {
+  const removeQuestion = (id: number) => {
     setOrderedQuestions(orderedQuestions.filter(q => q.id !== id));
   };
 
@@ -136,7 +136,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     setOrderedRiddles([...orderedRiddles, riddle]);
   };
 
-  const removeRiddle = (id: string) => {
+  const removeRiddle = (id: number) => {
     setOrderedRiddles(orderedRiddles.filter(r => r.id !== id));
   };
 
