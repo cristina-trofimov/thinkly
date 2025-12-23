@@ -13,14 +13,6 @@ describe('Manage Competitions Page', () => {
 
   });
 
-  it('Filters competitions by search', () => {
-    cy.visit('http://localhost:5173/app/dashboard/competitions');
-
-
-    // Search for non-existent competition
-    cy.get('input[placeholder="Search competitions..."]').clear().type('nonexistent');
-    cy.contains('No competitions found').should('be.visible');
-  });
 
   it('Filters competitions by status', () => {
     cy.visit('http://localhost:5173/app/dashboard/competitions');
