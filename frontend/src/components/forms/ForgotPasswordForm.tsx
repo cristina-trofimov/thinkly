@@ -72,7 +72,7 @@ export default function ForgotPasswordForm({
           <CardTitle>Forgot Password?</CardTitle>
           <CardDescription>
             Enter your email below and we will send a link to reset your
-            password.
+            password if the account exists.
           </CardDescription>
         </CardHeader>
         <CardContent>
