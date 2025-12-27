@@ -12,13 +12,13 @@ export type CreateAlgotimeSession = {
     selectedQuestions: number[]
   }
   
-  export type CreateAlgoTimeRequest = {
+  export type CreateAlgotimeRequest = {
     seriesName: string
     questionCooldown?: number
     sessions: CreateAlgotimeSession[]
   }
   
-  export type CreateAlgoTimeResponse = {
+  export type CreateAlgotimeResponse = {
     series_id: number
     series_name: string
     session_count: number
