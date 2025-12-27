@@ -1,13 +1,6 @@
 import { login, signup } from "@/api/AuthAPI";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Field,
   FieldDescription,
   FieldGroup,
@@ -19,7 +12,7 @@ import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
+export function SignupForm() {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -99,14 +92,6 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   }
 
   return (
-    // <Card {...props}>
-    //     <CardHeader>
-    //         <CardTitle>Create an account</CardTitle>
-    //         <CardDescription>
-    //             Enter your information below to create your account
-    //         </CardDescription>
-    //     </CardHeader>
-    //     <CardContent>
     <form onSubmit={handleSignup}>
       <FieldGroup>
         <div className="text-center">
@@ -208,7 +193,5 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         </FieldGroup>
       </FieldGroup>
     </form>
-    //         </CardContent>
-    //     </Card>
   );
 }
