@@ -48,7 +48,7 @@ describe('LoginForm', () => {
             expect(screen.getByText('Login to your account')).toBeInTheDocument();
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
             expect(screen.getByLabelText('Password')).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
         });
 
         it('renders email and password inputs with correct types', () => {
@@ -65,7 +65,7 @@ describe('LoginForm', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
             // GoogleLogin component should be present
-            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -121,7 +121,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -146,7 +146,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -167,7 +167,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
@@ -190,7 +190,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             // First submission - should fail
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
@@ -223,7 +223,7 @@ describe('LoginForm', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
             // Simulate Google login success by calling the handler directly
-            const loginForm = screen.getByRole('button', { name: /sign in/i }).closest('form');
+            const loginForm = screen.getByRole('button', { name: /Login/i }).closest('form');
 
             // We need to test the handleGoogleSuccess function
             // Since GoogleLogin is a third-party component, we'll verify the API call
@@ -283,7 +283,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -301,7 +301,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrong' } });

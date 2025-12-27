@@ -94,7 +94,7 @@ describe("SignupForm", () => {
             render(<SignupForm />);
 
             expect(screen.getByText("Create an account")).toBeInTheDocument();
-            expect(screen.getByText("Enter your information below to create your account")).toBeInTheDocument();
+            expect(screen.getByText("Fill in the information below to create your account")).toBeInTheDocument();
             expect(screen.getByLabelText("First Name")).toBeInTheDocument();
             expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
             expect(screen.getByLabelText("Email")).toBeInTheDocument();
