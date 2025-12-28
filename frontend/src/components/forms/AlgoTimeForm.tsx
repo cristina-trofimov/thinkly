@@ -202,15 +202,15 @@ export const AlgoTimeSessionForm = () => {
       return false;
     }
 
-    // Check that no session has more than 1 question
-    // const sessionsWithTooMany = repeatSessions.filter(
-    //   session => (sessionQuestions[session.sessionNumber]?.length || 0) > 2
-    // );
+    // Check that no session has more than 6 question
+    const sessionsWithTooMany = repeatSessions.filter(
+      session => (sessionQuestions[session.sessionNumber]?.length || 0) > 6
+    );
 
-    // if (sessionsWithTooMany.length > 0) {
-    //   setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 2.`);
-    //   return false;
-    // }
+    if (sessionsWithTooMany.length > 0) {
+      setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 6.`);
+      return false;
+    }
     setValidationError('');
     return true;
   };
