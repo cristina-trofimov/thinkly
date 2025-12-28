@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { forgotPassword } from "@/api/AuthAPI";
 import thinkly from "@/assets/thinkly_logo.png";
+import { logFrontend } from "@/api/LoggerAPI";
+import { toast } from "sonner";
 
 export default function ForgotPasswordForm({
   className,
@@ -37,15 +39,25 @@ export default function ForgotPasswordForm({
     setLoading(true);
 
     try {
-      const res = await forgotPassword({ email });
-      setSuccess(
-        res.message ||
-          "If your account exists, a password reset email has been sent."
+      await forgotPassword({ email });
+      toast.success(
+        "If the account exists, a password reset email has been sent."
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.error || "Something went wrong. Try again.");
+      const isError = err instanceof Error;
+      const errorMessage = isError
+        ? err.message
+        : "Unknown error during reset password request.";
+
+      logFrontend({
+        level: "ERROR",
+        message: `API Error: Failed to send reset email: ${errorMessage}`,
+        component: "ForgotPasswordForm",
+        url: window.location.href,
+        stack: isError ? err.stack : undefined, // Safely access stack
+      });
+      toast.error("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
@@ -79,7 +91,9 @@ export default function ForgotPasswordForm({
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel className="font-semibold" htmlFor="email">Email</FieldLabel>
+                <FieldLabel className="font-semibold" htmlFor="email">
+                  Email
+                </FieldLabel>
                 <Input
                   id="email"
                   type="email"

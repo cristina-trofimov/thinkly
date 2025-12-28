@@ -11,6 +11,8 @@ import type { DecodedToken } from "../../types/Auth.type";
 import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { logFrontend } from "@/api/LoggerAPI";
+import { toast } from "sonner";
 
 export function SignupForm() {
   const navigate = useNavigate();
@@ -44,7 +46,7 @@ export function SignupForm() {
         lastName: formData.last_name,
       });
 
-      alert("Account created successfully!");
+      toast.success("Account created successfully!");
 
       try {
         const { token } = await login({
@@ -62,29 +64,55 @@ export function SignupForm() {
         const decoded = jwtDecode<DecodedToken>(token);
         console.log("Logged in as:", decoded.sub);
 
+        logFrontend({
+          level: "INFO",
+          message: `Logged in as: ${decoded.sub}`,
+          component: "SignupForm",
+          url: window.location.href,
+        });
+
         if (decoded) {
           navigate("/app/home");
         }
       } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error(err);
+        const isError = err instanceof Error;
+          const errorMessage = isError
+            ? err.message
+            : "Unknown error during login.";
+        if (isError) {
           setError("Invalid email or password");
+          
+          logFrontend({
+            level: "ERROR",
+            message: `Invalid email or password: ${errorMessage}`,
+            component: "SignupForm",
+            url: window.location.href,
+            stack: isError ? err.stack : undefined, // Safely access stack
+          });
+
         } else {
-          console.error("Unknown error during login", err);
+          logFrontend({
+            level: "ERROR",
+            message: `Unknown error during login: ${errorMessage}`,
+            component: "SignupForm",
+            url: window.location.href,
+            stack: isError ? err.stack : undefined, // Safely access stack
+          });
           setError("Invalid email or password");
         }
       } finally {
         setLoading(false);
       }
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message || "Signup failed");
-      } else if (typeof err === "object" && err !== null && "response" in err) {
-        // Optionally handle Axios error shape
+      if (typeof err === "object" && err !== null && "response" in err) {
         // @ts-expect-error TS cannot infer 'response' property
-        setError(err.response?.data?.error || "Signup failed");
+        const message = err.response?.data?.error || "Signup failed";
+        toast.error(message);
+      } else if (err instanceof Error) {
+        const message = err.message || "Signup failed";
+        toast.error(message);
       } else {
-        setError("Signup failed");
+        toast.error("Signup failed");
       }
     } finally {
       setLoading(false);
@@ -101,7 +129,9 @@ export function SignupForm() {
           </p>
         </div>
         <Field>
-          <FieldLabel className="font-semibold" htmlFor="first_name">First Name</FieldLabel>
+          <FieldLabel className="font-semibold" htmlFor="first_name">
+            First Name
+          </FieldLabel>
           <Input
             id="first_name"
             type="text"
@@ -115,7 +145,9 @@ export function SignupForm() {
         </Field>
 
         <Field>
-          <FieldLabel className="font-semibold" htmlFor="last_name">Last Name</FieldLabel>
+          <FieldLabel className="font-semibold" htmlFor="last_name">
+            Last Name
+          </FieldLabel>
           <Input
             id="last_name"
             type="text"
@@ -129,7 +161,9 @@ export function SignupForm() {
         </Field>
 
         <Field>
-          <FieldLabel className="font-semibold" htmlFor="email">Email</FieldLabel>
+          <FieldLabel className="font-semibold" htmlFor="email">
+            Email
+          </FieldLabel>
           <Input
             id="email"
             type="email"
@@ -147,7 +181,9 @@ export function SignupForm() {
         </Field>
 
         <Field>
-          <FieldLabel className="font-semibold" htmlFor="password">Password</FieldLabel>
+          <FieldLabel className="font-semibold" htmlFor="password">
+            Password
+          </FieldLabel>
           <Input
             id="password"
             type="password"
@@ -160,7 +196,9 @@ export function SignupForm() {
         </Field>
 
         <Field>
-          <FieldLabel className="font-semibold" htmlFor="confirm_password">Confirm Password</FieldLabel>
+          <FieldLabel className="font-semibold" htmlFor="confirm_password">
+            Confirm Password
+          </FieldLabel>
           <Input
             id="confirm_password"
             type="password"

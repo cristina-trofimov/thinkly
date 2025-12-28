@@ -6,6 +6,15 @@ import { SignupForm } from "../src/components/forms/SignupForm";
 import { signup, login } from "../src/api/AuthAPI";
 import { useNavigate } from "react-router-dom";
 import { jest } from '@jest/globals';
+import { toast } from "sonner";
+
+// Mock toast notifications
+jest.mock("sonner", () => ({
+    toast: {
+        success: jest.fn(),
+        error: jest.fn(),
+    },
+}));
 
 // Mock the auth API
 jest.mock("@/api/AuthAPI", () => ({
@@ -283,7 +292,7 @@ describe("SignupForm", () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(global.alert).toHaveBeenCalledWith("Account created successfully!");
+                expect(toast.success).toHaveBeenCalledWith("Account created successfully!");
             });
         });
 

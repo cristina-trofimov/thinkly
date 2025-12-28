@@ -14,6 +14,8 @@ import { googleLogin, login } from "@/api/AuthAPI";
 import type { LoginRequest, DecodedToken } from "../../types/Auth.type";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
+import { logFrontend } from "@/api/LoggerAPI";
+import { toast } from "sonner";
 
 export function LoginForm({
   className,
@@ -47,8 +49,20 @@ export function LoginForm({
       // Navigate on success
       navigate("/app/home");
     } catch (err) {
-      console.error(err);
-      setError("Invalid email or password");
+      const isError = err instanceof Error;
+      const errorMessage = isError
+        ? err.message
+        : "Unknown error during login.";
+
+      logFrontend({
+        level: "ERROR",
+        message: `API Error: Failed to login: ${errorMessage}`,
+        component: "LoginForm",
+        url: window.location.href,
+        stack: isError ? err.stack : undefined, // Safely access stack
+      });
+
+      toast.error("Invalid email or password.");
       // Do NOT navigate here
     } finally {
       setLoading(false);
@@ -77,11 +91,23 @@ export function LoginForm({
         navigate("/app/home");
       }
     } catch (err: unknown) {
-      console.error("Google login failed:", err);
-      if (err instanceof Error) {
-        alert(`Google login failed: ${err.message}`);
+      const isError = err instanceof Error;
+      const errorMessage = isError
+        ? err.message
+        : "Unknown error during Google login.";
+
+      logFrontend({
+        level: "ERROR",
+        message: `API Error: Failed to login using Google: ${errorMessage}`,
+        component: "LoginForm",
+        url: window.location.href,
+        stack: isError ? err.stack : undefined, // Safely access stack
+      });
+
+      if (isError) {
+        toast.error("Google login failed: " + err.message);
       } else {
-        alert("Google login failed");
+        toast.error("Google login failed");
       }
     }
   };
@@ -99,7 +125,7 @@ export function LoginForm({
         }; Throwing lint error: unused*/
 
   const handleGoogleError = (): void => {
-    alert("Google Sign-In was unsuccessful. Try again later.");
+    toast.error("Google Sign-In was unsuccessful. Try again later.");
   };
   return (
     <div
