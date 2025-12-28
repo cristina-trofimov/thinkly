@@ -22,6 +22,11 @@ jest.mock("@/api/AuthAPI", () => ({
     login: jest.fn(),
 }));
 
+// Mock the logger API
+jest.mock("@/api/LoggerAPI", () => ({
+    logFrontend: jest.fn(),
+}));
+
 // Mock react-router-dom
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
@@ -402,7 +407,7 @@ describe("SignupForm", () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText("Email already exists")).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith("Email already exists");
             });
         });
 
@@ -424,11 +429,10 @@ describe("SignupForm", () => {
             fireEvent.change(passwordInput, { target: { value: "password123" } });
             fireEvent.change(confirmPasswordInput, { target: { value: "password123" } });
 
-            // <-- Put it here -->
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText(/network error/i)).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith("Network error");
             });
         });
 
