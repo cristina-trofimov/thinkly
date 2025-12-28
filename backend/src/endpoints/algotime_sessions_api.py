@@ -82,8 +82,8 @@ def validate_competition_times(start_dt: datetime, end_dt: datetime):
         )
 
 def generate_unique_series_name(name: str) -> str:
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return f"{name} · {timestamp}"
+    timestamp = datetime.now(timezone.utc).strftime("%H%M%S")
+    return f"{name} · #{timestamp}"
 
 # ---------------ROUTES----------------
 @algotime_router.post("/create", status_code=status.HTTP_201_CREATED)

@@ -238,6 +238,15 @@ export const AlgoTimeSessionForm = () => {
     setValidationError('');
   }
 
+  const getDateRangeString = () => {
+    if (repeatSessions.length === 1) {
+      return format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d, yyyy");
+    }
+    const firstDate = format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d");
+    const lastDate = format(new Date(repeatSessions[repeatSessions.length - 1].date + 'T00:00:00'), "MMM d, yyyy");
+    return `${firstDate} - ${lastDate}`;
+  };
+
   const handleSubmit = async () => {
 
     if (!validateForm()) {
@@ -259,7 +268,7 @@ export const AlgoTimeSessionForm = () => {
       }));
 
       const payload: CreateAlgotimeRequest = {
-        seriesName: seriesName || "AlgoTime Session",
+        seriesName: seriesName || `AlgoTime Session (${getDateRangeString()})`,
         questionCooldown: Number(formData.questionCooldownTime) || 300,
         sessions: sessions,
       };
@@ -376,6 +385,8 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthStart}
                         onMonthChange={setMonthStart}
+                        fromYear={2024}
+                        toYear={2050} 
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
@@ -455,6 +466,8 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthEnd}
                         onMonthChange={setMonthEnd}
+                        fromYear={2024}
+                        toYear={2050} 
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
