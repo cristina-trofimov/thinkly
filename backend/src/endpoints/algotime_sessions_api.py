@@ -81,6 +81,10 @@ def validate_competition_times(start_dt: datetime, end_dt: datetime):
             detail="Competition end time must be after start time"
         )
 
+def generate_unique_series_name(name: str) -> str:
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return f"{name} · {timestamp}"
+
 # ---------------ROUTES----------------
 @algotime_router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_algotime(
@@ -92,8 +96,11 @@ def create_algotime(
 
     try:
         # Create AlgoTime series
+        # To make it unique
+        series_name = generate_unique_series_name(request.seriesName)
+
         series = AlgoTimeSeries(
-            algotime_series_name=request.seriesName
+            algotime_series_name=series_name
         )
         db.add(series)
         db.flush()  # get algotime_series_id

@@ -10,29 +10,17 @@ import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Popover,PopoverContent,PopoverTrigger,} from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format, addDays, addWeeks, addMonths } from "date-fns"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 import {createAlgotime} from "@/api/AlgotimeAPI"
-import {
-  type CreateAlgotimeRequest,
-  type CreateAlgotimeSession,
-} from "@/types/algoTime/AlgoTime.type"
+import { type CreateAlgotimeRequest, type CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type"
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -263,8 +251,7 @@ export const AlgoTimeSessionForm = () => {
     }
     try {
       const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
-        sessionNumber: session.sessionNumber,
-        name: `${session.date} - Session ${session.sessionNumber}`,
+        name: `${format (new Date (session.date + "T00:00:00"), "MMM d, yyyy")} - Session ${session.sessionNumber}`,
         date: session.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
