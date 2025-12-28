@@ -145,34 +145,55 @@ export default function CreateCompetition() {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
+    setValidationError('');
+
     try {
+      // Explicitly convert local selection to UTC ISO string to prevent timezone mismatch on backend
+      const sendAtUTC = emailData.sendAtLocal 
+        ? new Date(emailData.sendAtLocal).toISOString() 
+        : undefined;
+
       const payload: CreateCompetitionProps = {
-        name: formData.name,
+        name: formData.name.trim(),
         date: formData.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        location: formData.location || undefined,
+        location: formData.location?.trim() || undefined,
         questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
         riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
-        selectedQuestions: orderedQuestions.map(q => q.id),
-        selectedRiddles: orderedRiddles.map(r => r.id),
+        // Coerce IDs to numbers as backend Pydantic models expect List[int]
+        selectedQuestions: orderedQuestions.map(q => Number(q.id)),
+        selectedRiddles: orderedRiddles.map(r => Number(r.id)),
         emailEnabled,
         emailNotification: emailEnabled ? {
           to: emailToAll ? "all participants" : emailData.to.trim(),
-          subject: emailData.subject,
-          text: emailData.text,
+          subject: emailData.subject.trim(),
+          text: emailData.text.trim(),
           sendInOneMinute: emailData.sendInOneMinute,
-          sendAtLocal: emailData.sendAtLocal || undefined,
+          sendAtLocal: sendAtUTC,
         } : undefined,
       };
 
       await createCompetition(payload);
       navigate("/app/dashboard/competitions"); 
-    } catch (error) {
-      setValidationError("Failed to create competition. Check logs for details.");
+    } catch (error: any) {
+      const detail = error.response?.data?.detail;
+      const status = error.response?.status;
+      let errorMsg = "Failed to create competition.";
+
+      if (status === 401) {
+        errorMsg = "Unauthorized: Please log in again.";
+      } else if (Array.isArray(detail)) {
+        errorMsg = `Validation Error: ${detail.map((d: any) => d.msg).join(", ")}`;
+      } else if (typeof detail === 'string') {
+        errorMsg = detail;
+      }
+
+      setValidationError(errorMsg);
+      
       logFrontend({
         level: 'ERROR',
-        message: `Submission error: ${(error as Error).message}`,
+        message: `Submission error: ${error.message} | Detail: ${JSON.stringify(detail)}`,
         component: 'CreateCompetitionPage',
         url: window.location.href,
       });
