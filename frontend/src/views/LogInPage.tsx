@@ -11,7 +11,7 @@ export default function LoginPage() {
                         <div className="text-primary-foreground flex size-10 items-center justify-center rounded-md">
                             <img src={thinkly} alt="Your icon" className="size-10" />
                         </div>
-                        Thinkly
+                        <span className="font-semibold">Thinkly</span>
                     </a>
                 </div>
                 <div className="flex flex-1 items-center justify-center">
@@ -27,10 +27,8 @@ export default function LoginPage() {
                         alt="Image"
                         className="max-w-md object-cover dark:brightness-[0.2] dark:grayscale"
                     />
-
                 </div>
             </div>
-
         </div>
     )
 }
