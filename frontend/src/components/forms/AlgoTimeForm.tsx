@@ -28,11 +28,11 @@ import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSe
 import type { Session } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
-import axiosClient from "@/lib/axiosClient";
-
-
-
-
+import {createAlgotime} from "@/api/AlgotimeAPI"
+import {
+  type CreateAlgotimeRequest,
+  type CreateAlgotimeSession,
+} from "@/types/algoTime/AlgoTime.type"
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -42,8 +42,6 @@ const getDifficultyColor = (difficulty: string) => {
     default: return 'text-gray-600 bg-gray-50';
   }
 };
-
-
 
 export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
@@ -76,6 +74,10 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
+  const [seriesName, setSeriesName] = useState("")
+  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
 
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
@@ -213,14 +215,14 @@ export const AlgoTimeSessionForm = () => {
     }
 
     // Check that no session has more than 1 question
-    const sessionsWithTooMany = repeatSessions.filter(
-      session => (sessionQuestions[session.sessionNumber]?.length || 0) > 2
-    );
+    // const sessionsWithTooMany = repeatSessions.filter(
+    //   session => (sessionQuestions[session.sessionNumber]?.length || 0) > 2
+    // );
 
-    if (sessionsWithTooMany.length > 0) {
-      setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 2.`);
-      return false;
-    }
+    // if (sessionsWithTooMany.length > 0) {
+    //   setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 2.`);
+    //   return false;
+    // }
     setValidationError('');
     return true;
   };
@@ -260,14 +262,31 @@ export const AlgoTimeSessionForm = () => {
       return; // Stop submission if validation fails
     }
     try {
-      //saving sessions to send to BE later on commented for later usage
-      // const sessions = repeatSessions.map(session => ({
-      //   sessionNumber: session.sessionNumber,
-      //   date: session.date,
-      //   startTime: formData.startTime,
-      //   endTime: formData.endTime,
-      //   questions: sessionQuestions[session.sessionNumber] || []
-      // }));
+      const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
+        sessionNumber: session.sessionNumber,
+        name: `${session.date} - Session ${session.sessionNumber}`,
+        date: session.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        selectedQuestions: sessionQuestions[session.sessionNumber] || []
+      }));
+
+      const payload: CreateAlgotimeRequest = {
+        seriesName: seriesName || "AlgoTime Session",
+        questionCooldown: Number(formData.questionCooldownTime) || 300,
+        sessions: sessions,
+      };
+
+      setIsSubmitting(true);
+
+      await createAlgotime(payload);
+
+      logFrontend({
+        level: "INFO",
+        message: "AlgoTime sessions created successfully",
+        component: "AlgoTimeSessionForm",
+        url: window.location.href,
+      });
 
       // Handle email notification if recipients are provided
       if (emailData.to.trim()) {
@@ -463,10 +482,6 @@ export const AlgoTimeSessionForm = () => {
 
 
             )}
-
-
-
-
 
             <div className="flex gap-2 mt-8">
               <div className="w-25">

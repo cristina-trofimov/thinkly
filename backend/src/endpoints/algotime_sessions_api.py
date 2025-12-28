@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import AlgotimeSession,AlgotimeSeries,BaseEvent, QuestionInstance, Question
+from models.schema import AlgoTimeSession,AlgoTimeSeries,BaseEvent, QuestionInstance, Question
 from DB_Methods.database import get_db
 from endpoints.authentification_api import get_current_user, role_required
 from datetime import datetime, timezone, timedelta
@@ -92,7 +92,7 @@ def create_algotime(
 
     try:
         # Create AlgoTime series
-        series = AlgotimeSeries(
+        series = AlgoTimeSeries(
             algotime_series_name=request.seriesName
         )
         db.add(series)
@@ -112,7 +112,7 @@ def create_algotime(
             validate_competition_times(start_dt, end_dt)
 
             base_event = BaseEvent(
-                event_name=f"{request.seriesName} - Session {session.name}",
+                event_name=f"{request.seriesName} - {session.name}",
                 question_cooldown=request.questionCooldown,
                 event_start_date=start_dt,
                 event_end_date=end_dt,
@@ -120,7 +120,7 @@ def create_algotime(
             db.add(base_event)
             db.flush()  # get event_id
 
-            algotime_session = AlgotimeSession(
+            algotime_session = AlgoTimeSession(
                 event_id=base_event.event_id,
                 algotime_series_id=series.algotime_series_id
             )
