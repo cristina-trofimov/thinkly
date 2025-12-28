@@ -1,0 +1,469 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { 
+  Plus, 
+  Search, 
+  X, 
+  ArrowUp, 
+  ArrowDown,
+  Trophy,
+  Mail,
+  Clock,
+  MapPin,
+  ArrowLeft
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createCompetition } from "../../api/CompetitionAPI";
+import { logFrontend } from "../../api/LoggerAPI";
+import { getQuestions, getRiddles } from "../../api/QuestionsAPI";
+import buildCompetitionEmail from "../../components/manageCompetitions/BuildEmail";
+
+import { type CreateCompetitionDialogProps } from "../../types/competition/CreateCompetition.type";
+import { type Question } from "../../types/questions/Question.type";
+import { type Riddle } from "../../types/riddle/Riddle.type";
+
+export default function CreateCompetition() {
+  const navigate = useNavigate();
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: "",
+    questionCooldownTime: "300",
+    riddleCooldownTime: "60",
+  });
+
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [emailToAll, setEmailToAll] = useState(true);
+  const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
+  const [emailData, setEmailData] = useState({
+    to: "",
+    subject: "Upcoming Competition Reminder",
+    text: "",
+    sendAtLocal: "",
+    sendInOneMinute: false,
+  });
+
+  const [validationError, setValidationError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
+
+  const [orderedQuestions, setOrderedQuestions] = useState<Question[]>([]);
+  const [orderedRiddles, setOrderedRiddles] = useState<Riddle[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [riddles, setRiddles] = useState<Riddle[]>([]);
+
+  // Build automated email body based on form changes
+  useEffect(() => {
+    if (emailManuallyEdited) return;
+    const autoText = buildCompetitionEmail(formData);
+    if (autoText) {
+      setEmailData((prev) => ({ ...prev, text: autoText }));
+    }
+  }, [
+    formData.name,
+    formData.date,
+    formData.startTime,
+    formData.endTime,
+    formData.location,
+    emailManuallyEdited
+  ]);
+
+  // Load selection data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [qData, rData] = await Promise.all([getQuestions(), getRiddles()]);
+        setQuestions(qData);
+        setRiddles(rData);
+      } catch (err) {
+        logFrontend({
+          level: 'ERROR',
+          message: `Failed to load selection data for CreateCompetitionPage: ${(err as Error).message}`,
+          component: 'CreateCompetitionPage',
+          url: window.location.href,
+        });
+      }
+    };
+    loadData();
+  }, []);
+
+  const filteredQuestions = questions.filter((q) =>
+    q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    !orderedQuestions.find(oq => oq.id === q.id)
+  );
+
+  const filteredRiddles = riddles.filter((r) =>
+    r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
+    !orderedRiddles.find(or => or.id === r.id)
+  );
+
+  const moveItem = (list: any[], setList: any, index: number, direction: 'up' | 'down') => {
+    const newList = [...list];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex >= 0 && newIndex < newList.length) {
+      [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
+      setList(newList);
+    }
+  };
+
+  const validateForm = () => {
+    if (!formData.name.trim() || !formData.date || !formData.startTime || !formData.endTime) {
+      setValidationError("Please fill in all general information fields.");
+      return false;
+    }
+
+    const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    if (competitionDateTime.getTime() <= Date.now()) {
+      setValidationError("Competition must be scheduled for a future date/time.");
+      return false;
+    }
+
+    if (orderedQuestions.length === 0 || orderedRiddles.length === 0) {
+      setValidationError("Select at least one question and one riddle.");
+      return false;
+    }
+
+    if (orderedQuestions.length !== orderedRiddles.length) {
+      setValidationError(`Count mismatch: ${orderedQuestions.length} Questions vs ${orderedRiddles.length} Riddles. Each question needs exactly one preceding riddle.`);
+      return false;
+    }
+
+    setValidationError('');
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    try {
+      const payload: CreateCompetitionDialogProps = {
+        name: formData.name,
+        date: formData.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        location: formData.location || undefined,
+        questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
+        riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
+        selectedQuestions: orderedQuestions.map(q => q.id),
+        selectedRiddles: orderedRiddles.map(r => r.id),
+        emailEnabled,
+        emailNotification: emailEnabled ? {
+          to: emailToAll ? "all participants" : emailData.to.trim(),
+          subject: emailData.subject,
+          text: emailData.text,
+          sendInOneMinute: emailData.sendInOneMinute,
+          sendAtLocal: emailData.sendAtLocal || undefined,
+        } : undefined,
+      };
+
+      await createCompetition(payload);
+      navigate("/app/dashboard/competitions"); // Redirect back to list
+    } catch (error) {
+      setValidationError("Failed to create competition. Check logs for details.");
+      logFrontend({
+        level: 'ERROR',
+        message: `Submission error: ${(error as Error).message}`,
+        component: 'CreateCompetitionPage',
+        url: window.location.href,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getDiffColor = (d: string) => {
+    if (d === "Easy") return "bg-green-100 text-green-700";
+    if (d === "Medium") return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
+  };
+
+  return (
+    <div className="container mx-auto p-6 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mb-2 -ml-2 text-muted-foreground"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">Create New Competition</h1>
+          <p className="text-muted-foreground">Configure the logic, timeline, and participants for a new event.</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="min-w-[140px]"
+          >
+            {isSubmitting ? "Processing..." : "Publish Competition"}
+          </Button>
+        </div>
+      </div>
+
+      {validationError && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center gap-3">
+          <X className="h-5 w-5" />
+          <span className="font-medium text-sm">{validationError}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left Column: Config */}
+        <div className="lg:col-span-1 space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" /> General Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input id="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Winter Hackathon 2024" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date">Event Date</Label>
+                <Input id="date" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="startTime">Start</Label>
+                  <Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime">End</Label>
+                  <Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label>
+                <Input id="location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Online or Physical Address" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" /> Gameplay Logic
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="qCool">Question Cooldown (s)</Label>
+                <Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({...formData, questionCooldownTime: e.target.value})} />
+                <p className="text-[10px] text-muted-foreground italic">Rest period between coding questions.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rCool">Riddle Cooldown (s)</Label>
+                <Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({...formData, riddleCooldownTime: e.target.value})} />
+                <p className="text-[10px] text-muted-foreground italic">Rest period between riddles.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="h-5 w-5 text-primary" /> Notifications
+              </CardTitle>
+              <CardDescription>Configure automated email reminders.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enEmail">Enable Emails</Label>
+                <Switch id="enEmail" checked={emailEnabled} onCheckedChange={setEmailEnabled} />
+              </div>
+
+              {emailEnabled && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="allPart">Send to all participants</Label>
+                    <Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} />
+                  </div>
+                  
+                  {!emailToAll && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">To</Label>
+                      <Input placeholder="alice@example.com, bob@example.com" value={emailData.to} onChange={e => setEmailData({...emailData, to: e.target.value})} />
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Subject</Label>
+                    <Input value={emailData.subject} onChange={e => setEmailData({...emailData, subject: e.target.value})} />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Message Content</Label>
+                    <Textarea 
+                      rows={4} 
+                      className="text-xs"
+                      value={emailData.text} 
+                      onChange={e => {
+                        setEmailManuallyEdited(true);
+                        setEmailData({...emailData, text: e.target.value});
+                      }} 
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Selection */}
+        <div className="lg:col-span-2 space-y-8">
+          
+          {/* Questions Selection */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Coding Questions</CardTitle>
+                  <CardDescription>Select and order the problems for the competition.</CardDescription>
+                </div>
+                <div className="text-right">
+                  <span className="text-2xl font-bold text-primary">{orderedQuestions.length}</span>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search available problems..." 
+                  className="pl-9" 
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Available Pool */}
+                <div className="border rounded-xl bg-slate-50/50 p-4">
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Available Pool</h4>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                    {filteredQuestions.length === 0 && <p className="text-center text-xs py-10 text-muted-foreground">No questions found.</p>}
+                    {filteredQuestions.map(q => (
+                      <div key={q.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-semibold">{q.title}</span>
+                          <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>{q.difficulty}</span>
+                        </div>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100" onClick={() => setOrderedQuestions([...orderedQuestions, q])}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active Order */}
+                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20">
+                  <h4 className="text-xs font-bold uppercase text-primary mb-3 tracking-wider">Competition Flow</h4>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                    {orderedQuestions.length === 0 && <p className="text-center text-xs py-10 text-muted-foreground">Empty. Add questions from the pool.</p>}
+                    {orderedQuestions.map((q, idx) => (
+                      <div key={q.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
+                        <span className="text-lg font-black text-slate-200">{idx + 1}</span>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-sm font-bold truncate">{q.title}</p>
+                        </div>
+                        <div className="flex gap-0.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'up')}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === orderedQuestions.length - 1} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'down')}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => setOrderedQuestions(orderedQuestions.filter(x => x.id !== q.id))}><X className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Riddles Selection */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Riddles</CardTitle>
+                  <CardDescription>Players must solve these to unlock the coding challenges.</CardDescription>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>
+                    {orderedRiddles.length}
+                  </span>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Mapped</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search available riddles..." 
+                  className="pl-9" 
+                  value={riddleSearchQuery}
+                  onChange={e => setRiddleSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-xl bg-slate-50/50 p-4">
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Riddle Pool</h4>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                    {filteredRiddles.map(r => (
+                      <div key={r.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
+                        <span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100" onClick={() => setOrderedRiddles([...orderedRiddles, r])}>
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20">
+                  <h4 className="text-xs font-bold uppercase text-primary mb-3 tracking-wider">Mapping Sequence</h4>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                    {orderedRiddles.map((r, idx) => (
+                      <div key={r.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
+                        <span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span>
+                        <p className="text-xs truncate flex-1">{r.question}</p>
+                        <div className="flex">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'up')}><ArrowUp className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === orderedRiddles.length - 1} onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'down')}><ArrowDown className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}><X className="h-3 w-3" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -10,13 +10,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
-import {useEffect, useState} from 'react';
-import CreateCompetitionDialog from "../../components/manageCompetitions/CreateCompetitionDialog"
-import { type Competition} from "../../types/competition/Competition.type"
-import {logFrontend} from "@/api/LoggerAPI";
-import {getCompetitions} from "@/api/CompetitionAPI";
+import { useEffect, useState } from 'react';
+import { useNavigate, useOutlet } from 'react-router-dom'; 
+import { type Competition } from "../../types/competition/Competition.type"
 
-// Helper function to determine competition status
+// Using @/ alias for standard path resolution in your environment
+import { logFrontend } from "@/api/LoggerAPI";
+import { getCompetitions } from "@/api/CompetitionAPI";
+
+/**
+ * Helper function to determine competition status based on date
+ */
 const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -34,11 +38,12 @@ const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "
 };
 
 const ManageCompetitions = () => {
+  const navigate = useNavigate(); 
+  const outlet = useOutlet(); // Detects if a child route (like createCompetition) is active
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [competitions, setCompetition] = useState<Competition[]>([]);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +51,6 @@ const ManageCompetitions = () => {
     const load = async () => {
       try {
         const data1 = await getCompetitions();
-
         if (!cancelled) {
           setCompetition(data1);
         }
@@ -62,11 +66,23 @@ const ManageCompetitions = () => {
     };
 
     load();
-
     return () => { cancelled = true; };
   }, []);
 
-  // Filter competitions based on search and status, then sort by date (latest first)
+  /**
+   * NESTED ROUTING LOGIC
+   * If 'outlet' is truthy, it means the current route matches a child (e.g., createCompetition).
+   * We return the outlet directly to show the CreateCompetition form instead of the list.
+   */
+  if (outlet) {
+    return outlet;
+  }
+
+  const handleCreateNavigation = () => {
+    // Navigates to the sub-route /app/dashboard/competitions/createCompetition
+    navigate("createCompetition");
+  };
+
   const filteredCompetitions = competitions
     .filter((comp) => {
       const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -79,13 +95,11 @@ const ManageCompetitions = () => {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-
-
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Manage Competitions</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">Manage Competitions</h1>
         <p className="text-muted-foreground">View and manage all your competitions</p>
       </div>
 
@@ -128,20 +142,20 @@ const ManageCompetitions = () => {
 
       {/* Competitions Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Create New Competition Card - Always First */}
+        {/* Create New Competition Card */}
         <Card
-          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 border-dashed border-primary/50 hover:border-primary"
-          onClick={() => setCreateDialogOpen(true)}
+          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+          onClick={handleCreateNavigation}
         >
-          <div className="aspect-[4/3] bg-muted/30 flex items-center justify-center">
-            <Plus className="w-16 h-16 text-primary" strokeWidth={1.5} />
+          <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+            <Plus className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
           </div>
-          <CardContent className="p-4">
+          <CardContent className="p-4 bg-white">
             <h3 className="font-semibold text-base text-center text-primary">
               Create New Competition
             </h3>
             <p className="text-sm text-muted-foreground text-center mt-1">
-              Add a new competition
+              Setup a new coding event
             </p>
           </CardContent>
         </Card>
@@ -153,7 +167,7 @@ const ManageCompetitions = () => {
           return (
             <Card
               key={comp.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow"
+              className="overflow-hidden hover:shadow-lg transition-shadow bg-white"
             >
               <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
@@ -194,9 +208,8 @@ const ManageCompetitions = () => {
                     variant="ghost"
                     size="sm"
                     className="text-primary hover:bg-primary/10"
-
                   >
-                    View →
+                    View Details
                   </Button>
                 </div>
               </CardContent>
@@ -204,42 +217,6 @@ const ManageCompetitions = () => {
           );
         })}
       </div>
-
-      {/* No Results Message */}
-      {filteredCompetitions.length === 0 && competitions.length > 0 && (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-            <Search className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No competitions found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search or filter criteria
-          </p>
-        </div>
-      )}
-
-      {/* Empty State - No Competitions at All */}
-      {competitions.length === 0 && (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
-            <Plus className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No competitions yet</h3>
-          <p className="text-muted-foreground mb-4">
-            Get started by creating your first competition
-          </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Competition
-          </Button>
-        </div>
-      )}
-
-      <CreateCompetitionDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        key={createDialogOpen ? 'open' : 'closed'}
-      />
     </div>
   );
 };
