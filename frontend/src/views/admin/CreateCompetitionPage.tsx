@@ -175,7 +175,10 @@ export default function CreateCompetition() {
       };
 
       await createCompetition(payload);
-      navigate("/app/dashboard/competitions"); 
+      navigate("/app/dashboard/competitions", { 
+        state: { refresh: Date.now() }, 
+        replace: true 
+      }); 
     } catch (error: any) {
       const detail = error.response?.data?.detail;
       const status = error.response?.status;

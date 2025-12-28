@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user, role_required
 from endpoints.send_email_api import send_email_via_brevo 
