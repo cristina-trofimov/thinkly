@@ -23,7 +23,7 @@ import { createCompetition } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
-import { type CreateCompetitionDialogProps } from "@/types/competition/CreateCompetition.type";
+import { type CreateCompetitionProps } from "@/types/competition/CreateCompetition.type";
 import { type Question } from "@/types/questions/Question.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
 
@@ -146,7 +146,7 @@ export default function CreateCompetition() {
 
     setIsSubmitting(true);
     try {
-      const payload: CreateCompetitionDialogProps = {
+      const payload: CreateCompetitionProps = {
         name: formData.name,
         date: formData.date,
         startTime: formData.startTime,
@@ -283,7 +283,7 @@ export default function CreateCompetition() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Mail className="h-5 w-5 text-primary" /> Notifications
               </CardTitle>
-              <CardDescription>Configure automated email reminders.</CardDescription>
+              <CardDescription>Scheduled reminders (24h and 5m before start).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -292,15 +292,15 @@ export default function CreateCompetition() {
               </div>
 
               {emailEnabled && (
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4 pt-2 border-t mt-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="allPart">Send to all participants</Label>
+                    <Label htmlFor="allPart" className="text-xs">Send to all participants</Label>
                     <Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} />
                   </div>
                   
                   {!emailToAll && (
                     <div className="space-y-1">
-                      <Label className="text-xs">To (comma-separated)</Label>
+                      <Label className="text-xs font-semibold">To (comma-separated)</Label>
                       <Input 
                         placeholder="alice@example.com, bob@example.com, charlie@example.com" 
                         value={emailData.to} 
@@ -310,12 +310,12 @@ export default function CreateCompetition() {
                   )}
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Subject</Label>
+                    <Label className="text-xs font-semibold">Subject</Label>
                     <Input value={emailData.subject} onChange={e => setEmailData({...emailData, subject: e.target.value})} />
                   </div>
 
                   <div className="space-y-1">
-                    <Label className="text-xs">Message Content</Label>
+                    <Label className="text-xs font-semibold">Message Content</Label>
                     <Textarea 
                       rows={4} 
                       className="text-xs"
@@ -325,6 +325,29 @@ export default function CreateCompetition() {
                         setEmailData({...emailData, text: e.target.value});
                       }} 
                     />
+                  </div>
+
+                  {/* Immediate Test and Custom Reminders */}
+                  <div className="space-y-4 pt-4 border-t border-dashed">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-xs font-semibold">Send test in 1 minute</Label>
+                        <p className="text-[10px] text-muted-foreground italic">Verify settings immediately.</p>
+                      </div>
+                      <Switch 
+                        checked={emailData.sendInOneMinute} 
+                        onCheckedChange={v => setEmailData({...emailData, sendInOneMinute: v})} 
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Additional custom reminder</Label>
+                      <Input 
+                        type="datetime-local" 
+                        className="h-8 text-xs" 
+                        value={emailData.sendAtLocal} 
+                        onChange={e => setEmailData({...emailData, sendAtLocal: e.target.value})} 
+                      />
+                    </div>
                   </div>
                 </div>
               )}

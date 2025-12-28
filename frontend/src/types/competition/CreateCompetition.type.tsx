@@ -1,4 +1,4 @@
-export interface CreateCompetitionDialogProps {
+export interface CreateCompetitionProps {
   name: string;
   date: string; // YYYY-MM-DD
   startTime: string; // HH:MM
