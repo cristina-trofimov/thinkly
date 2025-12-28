@@ -174,9 +174,9 @@ export default function FileUploadDropzone() {
                             : x
                     )
                 );
-            } catch (err: any) {
+            } catch (err: unknown) {
                 setItems((prev) =>
-                    prev.map((x) => (x.id === it.id ? { ...x, status: "error", error: err?.message ?? "Upload failed" } : x))
+                    prev.map((x) => (x.id === it.id ? { ...x, status: "error", error: (err as Error)?.message ?? "Upload failed" } : x))
                 );
             } finally {
                 completed += 1;
