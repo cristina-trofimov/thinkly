@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user, role_required
+from endpoints.send_email_api import send_email_via_brevo 
 import logging
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
@@ -186,6 +187,8 @@ def create_competition_emails(
         logger.info(f"  - 5min reminder: {time_5min}")
         if other_time:
             logger.info(f"  - Custom time: {other_time}")
+            
+        return competition_email
 
     except Exception as e:
         logger.error(f"Failed to create competition email record: {str(e)}")
@@ -283,92 +286,68 @@ async def create_competition(
         db: Session = Depends(get_db),
         current_user: dict = Depends(role_required("admin"))
 ):
-    """
-    Create a new competition event.
-    Only accessible by users with 'owner' role.
-    """
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
 
-    # Check if competition name already exists
     if check_competition_name_exists(db, request.name):
-        logger.warning(f"Competition creation failed: Name '{request.name}' already exists")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Competition with name '{request.name}' already exists"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Competition with name '{request.name}' already exists")
 
-    # Parse and validate datetime
     start_dt = parse_datetime_from_request(request.date, request.startTime)
     end_dt = parse_datetime_from_request(request.date, request.endTime)
     validate_competition_times(start_dt, end_dt)
 
     try:
-        # Create BaseEvent
         base_event = BaseEvent(
             event_name=request.name,
             event_location=request.location,
             question_cooldown=request.questionCooldownTime,
             event_start_date=start_dt,
             event_end_date=end_dt,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
         )
         db.add(base_event)
         _commit_or_rollback(db)
         db.refresh(base_event)
 
-        logger.info(f"BaseEvent created with ID: {base_event.event_id}")
-
-        # Create Competition
-        competition = Competition(
-            event_id=base_event.event_id,
-            riddle_cooldown=request.riddleCooldownTime
-        )
+        competition = Competition(event_id=base_event.event_id, riddle_cooldown=request.riddleCooldownTime)
         db.add(competition)
         _commit_or_rollback(db)
         db.refresh(competition)
 
-        logger.info(f"Competition created with event_id: {competition.event_id}")
-
-        # Create QuestionInstances pairing question[i] with riddle[i]
-        for index, (question_id, riddle_id) in enumerate(
-                zip(request.selectedQuestions, request.selectedRiddles)
-        ):
-            question_instance = QuestionInstance(
-                event_id=base_event.event_id,
-                question_id=question_id,
-                riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
-            )
-            db.add(question_instance)
-
+        for q_id, r_id in zip(request.selectedQuestions, request.selectedRiddles):
+            db.add(QuestionInstance(event_id=base_event.event_id, question_id=q_id, riddle_id=r_id))
         _commit_or_rollback(db)
 
-        logger.info(
-            f"Added {len(request.selectedQuestions)} question+riddle pairs"
-        )
-
-        _commit_or_rollback(db)
-        logger.info(f"Added {len(request.selectedQuestions)} questions and {len(request.selectedRiddles)} riddles")
-
-        # Handle email notifications
+        # Email Triggering Logic
         if request.emailEnabled and request.emailNotification:
-            create_competition_emails(
-                db,
-                competition,
-                request.emailNotification,
-                start_dt,
-                end_dt,
-                request.name,
-                request.date,
-                request.startTime,
-                request.endTime,
-                request.location
-            )
+            # 1. Save to DB
+            email_record = create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
 
-        logger.info(f"SUCCESSFUL COMPETITION CREATION: '{request.name}' by user '{user_email}'")
+            # 2. Resolve Recipients
+            recipients = []
+            if request.emailNotification.to.strip().lower() == "all participants":
+                recipients = [u.email for u in db.query(UserAccount).all()]
+            else:
+                recipients = [e.strip() for e in request.emailNotification.to.split(",") if e.strip()]
+
+            if recipients:
+                # A. Send/Schedule 24h Reminder
+                # if email_record.time_24h_before and email_record.time_24h_before > datetime.now(timezone.utc):
+                #      TO-DO in future features: have something that watches if the email can be sent yet (Brevo only allows less than 3 days of email scheduling)
+
+                # B. Send/Schedule 5m Reminder
+                # if email_record.time_5min_before and email_record.time_5min_before > datetime.now(timezone.utc):
+                #     TO-DO in future features: have something that watches if the email can be sent yet (Brevo only allows less than 3 days of email scheduling)
+
+                # C. Send Immediate Test
+                if request.emailNotification.sendInOneMinute:
+                    # Send now (Brevo handles immediate delivery if sendAt is None or very soon)
+                    send_email_via_brevo(to=recipients, subject=f"[TEST] {request.emailNotification.subject}", text=request.emailNotification.text)
+
+                # D. Send/Schedule Custom Reminder
+                if request.emailNotification.sendAtLocal and not request.emailNotification.sendInOneMinute:
+                    send_email_via_brevo(to=recipients, subject=request.emailNotification.subject, text=request.emailNotification.text, sendAt=request.emailNotification.sendAtLocal)
+            else:
+                logger.warning("Email enabled but no recipients resolved.")
 
         return CompetitionResponse(
             event_id=base_event.event_id,
@@ -383,15 +362,10 @@ async def create_competition(
             created_at=base_event.created_at
         )
 
-    except HTTPException:
-        raise
     except Exception as e:
         logger.exception(f"FATAL error during competition creation: {str(e)}")
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during competition creation"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during competition creation")
 
 
 @competitions_router.get("/{competition_id}", response_model=CompetitionResponse)
