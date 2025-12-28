@@ -19,13 +19,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createCompetition } from "@/api/CompetitionAPI";
-import { logFrontend } from "@/api/LoggerAPI";
-import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
-import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
-import { type CreateCompetitionProps } from "@/types/competition/CreateCompetition.type";
-import { type Question } from "@/types/questions/Question.type";
-import { type Riddle } from "@/types/riddle/Riddle.type";
+
+// Using relative paths to fix resolution issues in the build environment
+import { createCompetition } from "../../api/CompetitionAPI";
+import { logFrontend } from "../../api/LoggerAPI";
+import { getQuestions, getRiddles } from "../../api/QuestionsAPI";
+import buildCompetitionEmail from "../../components/manageCompetitions/BuildEmail";
+import { type CreateCompetitionProps } from "../../types/competition/CreateCompetition.type";
+import { type Question } from "../../types/questions/Question.type";
+import { type Riddle } from "../../types/riddle/Riddle.type";
+
+interface PydanticError {
+  loc: (string | number)[];
+  msg: string;
+  type: string;
+}
 
 export default function CreateCompetition() {
   const navigate = useNavigate();
@@ -68,22 +76,15 @@ export default function CreateCompetition() {
     if (autoText) {
       setEmailData((prev) => ({ ...prev, text: autoText }));
     }
-  }, [
-    formData.name,
-    formData.date,
-    formData.startTime,
-    formData.endTime,
-    formData.location,
-    emailManuallyEdited
-  ]);
+  }, [formData, emailManuallyEdited]);
 
   // Load selection data
   useEffect(() => {
     const loadData = async () => {
       try {
         const [qData, rData] = await Promise.all([getQuestions(), getRiddles()]);
-        setQuestions(qData);
-        setRiddles(rData);
+        setQuestions(qData || []);
+        setRiddles(rData || []);
       } catch (err) {
         logFrontend({
           level: 'ERROR',
@@ -96,17 +97,22 @@ export default function CreateCompetition() {
     loadData();
   }, []);
 
-  const filteredQuestions = questions.filter((q) =>
+  const filteredQuestions = (questions || []).filter((q) =>
     q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
     !orderedQuestions.find(oq => oq.id === q.id)
   );
 
-  const filteredRiddles = riddles.filter((r) =>
+  const filteredRiddles = (riddles || []).filter((r) =>
     r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
     !orderedRiddles.find(or => or.id === r.id)
   );
 
-  const moveItem = (list: any[], setList: any, index: number, direction: 'up' | 'down') => {
+  const moveItem = <T,>(
+    list: T[], 
+    setList: React.Dispatch<React.SetStateAction<T[]>>, 
+    index: number, 
+    direction: 'up' | 'down'
+  ) => {
     const newList = [...list];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex >= 0 && newIndex < newList.length) {
@@ -148,7 +154,6 @@ export default function CreateCompetition() {
     setValidationError('');
 
     try {
-      // Explicitly convert local selection to UTC ISO string to prevent timezone mismatch on backend
       const sendAtUTC = emailData.sendAtLocal 
         ? new Date(emailData.sendAtLocal).toISOString() 
         : undefined;
@@ -161,7 +166,6 @@ export default function CreateCompetition() {
         location: formData.location?.trim() || undefined,
         questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
         riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
-        // Coerce IDs to numbers as backend Pydantic models expect List[int]
         selectedQuestions: orderedQuestions.map(q => Number(q.id)),
         selectedRiddles: orderedRiddles.map(r => Number(r.id)),
         emailEnabled,
@@ -179,15 +183,27 @@ export default function CreateCompetition() {
         state: { refresh: Date.now() }, 
         replace: true 
       }); 
-    } catch (error: any) {
-      const detail = error.response?.data?.detail;
+    } catch (err: unknown) {
+      // Cast err safely to handle specific response structures
+      const error = err as {
+        response?: {
+          data?: {
+            detail?: string | PydanticError[];
+          };
+          status?: number;
+        };
+        message?: string;
+      };
+
+      const responseData = error.response?.data;
+      const detail = responseData?.detail;
       const status = error.response?.status;
       let errorMsg = "Failed to create competition.";
 
       if (status === 401) {
         errorMsg = "Unauthorized: Please log in again.";
       } else if (Array.isArray(detail)) {
-        errorMsg = `Validation Error: ${detail.map((d: any) => d.msg).join(", ")}`;
+        errorMsg = `Validation Error: ${detail.map((d: PydanticError) => d.msg).join(", ")}`;
       } else if (typeof detail === 'string') {
         errorMsg = detail;
       }
@@ -196,7 +212,7 @@ export default function CreateCompetition() {
       
       logFrontend({
         level: 'ERROR',
-        message: `Submission error: ${error.message} | Detail: ${JSON.stringify(detail)}`,
+        message: `Submission error: ${error.message ?? "Unknown Error"}`,
         component: 'CreateCompetitionPage',
         url: window.location.href,
       });
@@ -234,7 +250,7 @@ export default function CreateCompetition() {
               disabled={isSubmitting}
               className="min-w-[140px]"
             >
-              {isSubmitting ? "Processing..." : "Publish Competition"}
+              {isSubmitting ? "Publishing..." : "Publish Competition"}
             </Button>
           </div>
         </div>
@@ -248,7 +264,6 @@ export default function CreateCompetition() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Config */}
         <div className="lg:col-span-1 space-y-8">
           <Card>
             <CardHeader>
@@ -292,12 +307,10 @@ export default function CreateCompetition() {
               <div className="space-y-2">
                 <Label htmlFor="qCool">Question Cooldown (s)</Label>
                 <Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({...formData, questionCooldownTime: e.target.value})} />
-                <p className="text-[10px] text-muted-foreground italic">Rest period between coding questions.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rCool">Riddle Cooldown (s)</Label>
                 <Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({...formData, riddleCooldownTime: e.target.value})} />
-                <p className="text-[10px] text-muted-foreground italic">Rest period between riddles.</p>
               </div>
             </CardContent>
           </Card>
@@ -307,37 +320,28 @@ export default function CreateCompetition() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Mail className="h-5 w-5 text-primary" /> Notifications
               </CardTitle>
-              <CardDescription>Scheduled reminders (24h and 5m before start).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="enEmail">Enable Emails</Label>
                 <Switch id="enEmail" checked={emailEnabled} onCheckedChange={setEmailEnabled} />
               </div>
-
               {emailEnabled && (
                 <div className="space-y-4 pt-2 border-t mt-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="allPart" className="text-xs">Send to all participants</Label>
                     <Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} />
                   </div>
-                  
                   {!emailToAll && (
                     <div className="space-y-1">
                       <Label className="text-xs font-semibold">To (comma-separated)</Label>
-                      <Input 
-                        placeholder="alice@example.com, bob@example.com, charlie@example.com" 
-                        value={emailData.to} 
-                        onChange={e => setEmailData({...emailData, to: e.target.value})} 
-                      />
+                      <Input placeholder="alice@example.com" value={emailData.to} onChange={e => setEmailData({...emailData, to: e.target.value})} />
                     </div>
                   )}
-
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold">Subject</Label>
                     <Input value={emailData.subject} onChange={e => setEmailData({...emailData, subject: e.target.value})} />
                   </div>
-
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold">Message Content</Label>
                     <Textarea 
@@ -350,38 +354,13 @@ export default function CreateCompetition() {
                       }} 
                     />
                   </div>
-
-                  {/* Immediate Test and Custom Reminders */}
-                  <div className="space-y-4 pt-4 border-t border-dashed">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label className="text-xs font-semibold">Send test in 1 minute</Label>
-                        <p className="text-[10px] text-muted-foreground italic">Verify settings immediately.</p>
-                      </div>
-                      <Switch 
-                        checked={emailData.sendInOneMinute} 
-                        onCheckedChange={v => setEmailData({...emailData, sendInOneMinute: v})} 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Additional custom reminder</Label>
-                      <Input 
-                        type="datetime-local" 
-                        className="h-8 text-xs" 
-                        value={emailData.sendAtLocal} 
-                        onChange={e => setEmailData({...emailData, sendAtLocal: e.target.value})} 
-                      />
-                    </div>
-                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Selection */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Questions Selection */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -405,50 +384,37 @@ export default function CreateCompetition() {
                   onChange={e => setSearchQuery(e.target.value)}
                 />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-xl bg-slate-50/50 p-4">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Available Pool</h4>
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                    {filteredQuestions.length === 0 && <p className="text-center text-xs py-10 text-muted-foreground">No questions found.</p>}
-                    {filteredQuestions.map(q => (
-                      <div key={q.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm font-semibold">{q.title}</span>
-                          <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>{q.difficulty}</span>
-                        </div>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100" onClick={() => setOrderedQuestions([...orderedQuestions, q])}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[400px] overflow-y-auto">
+                  {filteredQuestions.map(q => (
+                    <div key={q.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-semibold">{q.title}</span>
+                        <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>{q.difficulty}</span>
                       </div>
-                    ))}
-                  </div>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedQuestions([...orderedQuestions, q])}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20">
-                  <h4 className="text-xs font-bold uppercase text-primary mb-3 tracking-wider">Competition Flow</h4>
-                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                    {orderedQuestions.length === 0 && <p className="text-center text-xs py-10 text-muted-foreground">Empty. Add questions from the pool.</p>}
-                    {orderedQuestions.map((q, idx) => (
-                      <div key={q.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
-                        <span className="text-lg font-black text-slate-200">{idx + 1}</span>
-                        <div className="flex-1 overflow-hidden">
-                          <p className="text-sm font-bold truncate">{q.title}</p>
-                        </div>
-                        <div className="flex gap-0.5">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'up')}><ArrowUp className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === orderedQuestions.length - 1} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'down')}><ArrowDown className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => setOrderedQuestions(orderedQuestions.filter(x => x.id !== q.id))}><X className="h-3.5 w-3.5" /></Button>
-                        </div>
+                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[400px] overflow-y-auto">
+                  {orderedQuestions.map((q, idx) => (
+                    <div key={q.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
+                      <span className="text-lg font-black text-slate-200">{idx + 1}</span>
+                      <div className="flex-1 overflow-hidden"><p className="text-sm font-bold truncate">{q.title}</p></div>
+                      <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'up')}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === orderedQuestions.length - 1} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'down')}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setOrderedQuestions(orderedQuestions.filter(x => x.id !== q.id))}><X className="h-3.5 w-3.5" /></Button>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Riddles Selection */}
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -460,51 +426,33 @@ export default function CreateCompetition() {
                   <span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>
                     {orderedRiddles.length}
                   </span>
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Mapped</p>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search available riddles..." 
-                  className="pl-9" 
-                  value={riddleSearchQuery}
-                  onChange={e => setRiddleSearchQuery(e.target.value)}
-                />
+                <Input placeholder="Search riddles..." className="pl-9" value={riddleSearchQuery} onChange={e => setRiddleSearchQuery(e.target.value)} />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-xl bg-slate-50/50 p-4">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Riddle Pool</h4>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                    {filteredRiddles.map(r => (
-                      <div key={r.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
-                        <span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-primary opacity-0 group-hover:opacity-100" onClick={() => setOrderedRiddles([...orderedRiddles, r])}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[300px] overflow-y-auto">
+                  {filteredRiddles.map(r => (
+                    <div key={r.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary">
+                      <span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedRiddles([...orderedRiddles, r])}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20">
-                  <h4 className="text-xs font-bold uppercase text-primary mb-3 tracking-wider">Mapping Sequence</h4>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                    {orderedRiddles.map((r, idx) => (
-                      <div key={r.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
-                        <span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span>
-                        <p className="text-xs truncate flex-1">{r.question}</p>
-                        <div className="flex">
-                          <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === 0} onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'up')}><ArrowUp className="h-3 w-3" /></Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" disabled={idx === orderedRiddles.length - 1} onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'down')}><ArrowDown className="h-3 w-3" /></Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}><X className="h-3 w-3" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[300px] overflow-y-auto">
+                  {orderedRiddles.map((r, idx) => (
+                    <div key={r.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
+                      <span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span>
+                      <p className="text-xs truncate flex-1">{r.question}</p>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
