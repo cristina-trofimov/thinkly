@@ -19,14 +19,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createCompetition } from "../../api/CompetitionAPI";
-import { logFrontend } from "../../api/LoggerAPI";
-import { getQuestions, getRiddles } from "../../api/QuestionsAPI";
-import buildCompetitionEmail from "../../components/manageCompetitions/BuildEmail";
-
-import { type CreateCompetitionDialogProps } from "../../types/competition/CreateCompetition.type";
-import { type Question } from "../../types/questions/Question.type";
-import { type Riddle } from "../../types/riddle/Riddle.type";
+import { createCompetition } from "@/api/CompetitionAPI";
+import { logFrontend } from "@/api/LoggerAPI";
+import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
+import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
+import { type CreateCompetitionDialogProps } from "@/types/competition/CreateCompetition.type";
+import { type Question } from "@/types/questions/Question.type";
+import { type Riddle } from "@/types/riddle/Riddle.type";
 
 export default function CreateCompetition() {
   const navigate = useNavigate();
@@ -168,7 +167,7 @@ export default function CreateCompetition() {
       };
 
       await createCompetition(payload);
-      navigate("/app/dashboard/competitions"); // Redirect back to list
+      navigate("/app/dashboard/competitions"); 
     } catch (error) {
       setValidationError("Failed to create competition. Check logs for details.");
       logFrontend({
@@ -189,42 +188,42 @@ export default function CreateCompetition() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mb-2 -ml-2 text-muted-foreground"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back
-          </Button>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Create New Competition</h1>
-          <p className="text-muted-foreground">Configure the logic, timeline, and participants for a new event.</p>
+    <div className="container mx-auto p-6 max-w-7xl">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mb-2 -ml-2 text-muted-foreground"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <h1 className="text-3xl font-bold tracking-tight text-primary">Create New Competition</h1>
+            <p className="text-muted-foreground text-sm">Configure the logic, timeline, and participants for a new event.</p>
+          </div>
+          <div className="flex gap-3 h-fit mt-auto">
+            <Button variant="outline" onClick={() => navigate(-1)} disabled={isSubmitting}>Cancel</Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting}
+              className="min-w-[140px]"
+            >
+              {isSubmitting ? "Processing..." : "Publish Competition"}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting}
-            className="min-w-[140px]"
-          >
-            {isSubmitting ? "Processing..." : "Publish Competition"}
-          </Button>
-        </div>
+
+        {validationError && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+            <X className="h-4 w-4" />
+            <span className="font-medium text-xs">{validationError}</span>
+          </div>
+        )}
       </div>
 
-      {validationError && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg flex items-center gap-3">
-          <X className="h-5 w-5" />
-          <span className="font-medium text-sm">{validationError}</span>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         {/* Left Column: Config */}
         <div className="lg:col-span-1 space-y-8">
           <Card>
@@ -301,8 +300,12 @@ export default function CreateCompetition() {
                   
                   {!emailToAll && (
                     <div className="space-y-1">
-                      <Label className="text-xs">To</Label>
-                      <Input placeholder="alice@example.com, bob@example.com" value={emailData.to} onChange={e => setEmailData({...emailData, to: e.target.value})} />
+                      <Label className="text-xs">To (comma-separated)</Label>
+                      <Input 
+                        placeholder="alice@example.com, bob@example.com, charlie@example.com" 
+                        value={emailData.to} 
+                        onChange={e => setEmailData({...emailData, to: e.target.value})} 
+                      />
                     </div>
                   )}
 
@@ -331,7 +334,6 @@ export default function CreateCompetition() {
 
         {/* Right Column: Selection */}
         <div className="lg:col-span-2 space-y-8">
-          
           {/* Questions Selection */}
           <Card>
             <CardHeader className="pb-3">
@@ -358,7 +360,6 @@ export default function CreateCompetition() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Available Pool */}
                 <div className="border rounded-xl bg-slate-50/50 p-4">
                   <h4 className="text-xs font-bold uppercase text-muted-foreground mb-3 tracking-wider">Available Pool</h4>
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
@@ -377,7 +378,6 @@ export default function CreateCompetition() {
                   </div>
                 </div>
 
-                {/* Active Order */}
                 <div className="border rounded-xl bg-primary/5 p-4 border-primary/20">
                   <h4 className="text-xs font-bold uppercase text-primary mb-3 tracking-wider">Competition Flow</h4>
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
