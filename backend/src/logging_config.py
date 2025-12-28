@@ -1,7 +1,5 @@
 import logging.config
-import logging.handlers
 import os
-import sys
 
 class AnsiColors:
     PINK = '\x1b[35;20m'   # DEBUG

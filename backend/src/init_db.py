@@ -1,14 +1,6 @@
 import logging
 from sqlalchemy import text
 from db import engine, Base
-from models.schema import (
-    UserAccount, UserPreferences, UserSession, 
-    BaseEvent, Competition, CompetitionEmail, 
-    AlgoTimeSeries, AlgoTimeSession, 
-    Question, TestCase, Tag, Riddle, QuestionInstance, 
-    Participation, Submission, 
-    CompetitionLeaderboardEntry, AlgoTimeLeaderboardEntry
-)
 
 # Initialize the logger for the current module 
 logger = logging.getLogger(__name__)

@@ -320,7 +320,7 @@ async def create_competition(
         # Email Triggering Logic
         if request.emailEnabled and request.emailNotification:
             # 1. Save to DB
-            email_record = create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
+            create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
 
             # 2. Resolve Recipients
             recipients = []
