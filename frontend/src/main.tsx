@@ -21,6 +21,7 @@ import CodingView from "./components/codingPage/CodingView.tsx";
 import HomePage from "./views/HomePage.tsx";
 import SignupPage from "./views/SignupPage.tsx";
 import ManageCompetitions from "./views/admin/ManageCompetitionsPage.tsx";
+import CreateCompetition from "./views/admin/CreateCompetitionPage.tsx";
 import ErrorPage from "./components/ErrorPage.tsx";
 import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
@@ -122,7 +123,16 @@ const router = createBrowserRouter([
             element: <ManageCompetitions />,
             handle: {
               crumb: { title: "Manage Competitions" }
-            }
+            },
+            children: [
+              {
+                path: "createCompetition",
+                element: <CreateCompetition />,
+                handle: {
+                  crumb: { title: "Create Competition" }
+                }
+              },
+            ]
           },
           {
             path: "manageAccounts",
