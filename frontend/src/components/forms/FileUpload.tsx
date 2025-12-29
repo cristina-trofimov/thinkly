@@ -222,7 +222,7 @@ export default function FileUploadDropzone() {
 
 
                     <div className="flex flex-wrap gap-2">
-                        <Button onClick={uploadAll} disabled={!hasQueued || isUploading}>
+                        <Button className="cursor-pointer" onClick={uploadAll} disabled={!hasQueued || isUploading}>
                             Upload
                         </Button>
 
