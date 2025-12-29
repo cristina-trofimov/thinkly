@@ -13,10 +13,9 @@ import { Plus, Search, Filter } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutlet, useLocation } from 'react-router-dom'; 
 import { type Competition } from "../../types/competition/Competition.type"
-
-// Using @/ alias to resolve paths correctly in the build environment
-import { logFrontend } from "@/api/LoggerAPI";
-import { getCompetitions } from "@/api/CompetitionAPI";
+import { toast } from "sonner";
+import { logFrontend } from "../../api/LoggerAPI";
+import { getCompetitions } from "../../api/CompetitionAPI";
 
 const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
   const today = new Date();
@@ -39,6 +38,17 @@ const ManageCompetitions = () => {
   const [competitions, setCompetition] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // 1. Handle Success Toast from Navigation State
+  useEffect(() => {
+    if (location.state?.success) {
+      toast.success("Competition published successfully!");
+      
+      // Clear the state so the toast doesn't show up again if the user refreshes
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // 2. Fetch data
   useEffect(() => {
     let cancelled = false;
 
@@ -63,16 +73,8 @@ const ManageCompetitions = () => {
 
     load();
     return () => { cancelled = true; };
-    
-    /**
-     * Using location.key as a dependency.
-     * The 'key' property is unique for every navigation event. 
-     * By depending on it, we guarantee that the list re-fetches whenever 
-     * we navigate "back" to this route from a child or a separate link.
-     */
   }, [location.key]);
 
-  // If we are currently in the CreateCompetition child route, render it instead.
   if (outlet) return outlet;
 
   const handleCreateNavigation = () => {
