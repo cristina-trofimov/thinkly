@@ -230,7 +230,7 @@ export default function FileUploadDropzone() {
                             Add more
                         </Button>
 
-                        <Button variant="ghost" onClick={clearQueued} disabled={isUploading || items.length === 0}>
+                        <Button variant="ghost" className="cursor-pointer" onClick={clearQueued} disabled={isUploading || items.length === 0}>
                             Clear
                         </Button>
                     </div>
