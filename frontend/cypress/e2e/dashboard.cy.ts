@@ -23,7 +23,7 @@ describe('Admin Dashboard', () => {
 
     // 2. Open the Select dropdown
     // shadcn/ui Select usually renders the value text in a button/trigger
-    cy.contains('Last 3 months').click();
+    cy.contains('Last 3 months').click({ force: true });
 
     // 3. Click the "Last 7 days" option
     // Note: shadcn/ui renders options in a portal, often at the body root
