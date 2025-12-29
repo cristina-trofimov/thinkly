@@ -226,7 +226,7 @@ export default function FileUploadDropzone() {
                             Upload
                         </Button>
 
-                        <Button variant="secondary" onClick={openPicker} disabled={isUploading}>
+                        <Button variant="secondary" className="cursor-pointer" onClick={openPicker} disabled={isUploading}>
                             Add more
                         </Button>
 
