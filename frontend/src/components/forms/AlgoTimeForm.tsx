@@ -403,6 +403,7 @@ export const AlgoTimeSessionForm = () => {
                         onMonthChange={setMonthStart}
                         fromYear={2024}
                         toYear={2050} 
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
@@ -413,7 +414,8 @@ export const AlgoTimeSessionForm = () => {
                           day_button: "hover:bg-primary/50 hover:text-white",
                           day_selected: "bg-primary/70 text-white",
                           today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
-                          month_caption: "text-primary"
+                          month_caption: "text-primary",
+                          day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
 
                       />
@@ -484,11 +486,19 @@ export const AlgoTimeSessionForm = () => {
                         onMonthChange={setMonthEnd}
                         fromYear={2024}
                         toYear={2050} 
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
                           }
                           setOpenEnd(false)
+                        }}
+                        classNames={{
+                          day_button: "hover:bg-primary/50 hover:text-white",
+                          day_selected: "bg-primary/70 text-white",
+                          today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
+                          month_caption: "text-primary",
+                          day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
                       />
                     </PopoverContent>
