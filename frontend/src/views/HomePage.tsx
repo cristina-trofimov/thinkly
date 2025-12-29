@@ -114,7 +114,7 @@ function HomePage() {
         </Button> */}
 
         {/* This section of div is for calendar and search bar and table */}
-        <div className="flex w-full  gap-6 items-start">
+        <div className="flex w-full  gap-4 items-start">
           <div className="flex flex-col w-full gap-4">
             <HomePageBanner date={date ?? new Date()} />
             {/* This div is for search and table */}
@@ -143,8 +143,8 @@ function HomePage() {
               Competitions on {date?.toLocaleDateString() ?? "—"}
             </h2> */}
 
-            <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-secondary">
-              <p className="text-left text-lg font-semibold mb-2">
+            <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
+              <p className="text-left text-lg font-semibold mb-1">
               Competitions on {date?.toLocaleDateString() ?? "—"}
             </p>
               {competitionsForSelectedDate.length === 0 ? (
