@@ -258,7 +258,7 @@ export default function FileUploadDropzone() {
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <div className="truncate font-medium">{it.file.name}</div>
-                                                    <Badge variant="secondary" className="rounded-xl">
+                                                    <Badge variant="secondary" className="rounded-lg text-gray-500">
                                                         {badge}
                                                     </Badge>
                                                 </div>
