@@ -277,7 +277,7 @@ export default function FileUploadDropzone() {
                                                 size="icon"
                                                 onClick={() => removeQueued(it.id)}
                                                 disabled={it.status === "uploading"}
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                                 <span className="sr-only">Remove file</span>
