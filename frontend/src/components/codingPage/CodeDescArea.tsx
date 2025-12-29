@@ -142,7 +142,7 @@ const CodeDescArea = (
                         {problemInfo.title}
                     </h1>
 
-                    <p className='max-h-[500px] text-left leading-6 break-words overflow-scroll whitespace-normal' >
+                    <p className='max-h-125 text-left leading-6 wrap-break-word overflow-scroll whitespace-normal' >
                         {problemInfo.description}
                     </p>
                     {problemInfo.examples.map((e, idx) => {

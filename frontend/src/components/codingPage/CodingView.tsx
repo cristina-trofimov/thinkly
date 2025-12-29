@@ -1,12 +1,5 @@
-import { useEffect, useRef, } from 'react'
+import { useEffect, useRef, useState, } from 'react'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
-import {
-  SandboxCodeEditor, SandboxConsole, SandboxLayout, SandboxPreview, SandboxProvider,
-  SandboxTabs,
-  SandboxTabsContent,
-  SandboxTabsList,
-  SandboxTabsTrigger
-} from "../ui/shadcn-io/sandbox";
 import CodeDescArea from "./CodeDescArea";
 import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
 import { Button } from "../ui/button";
@@ -17,7 +10,9 @@ import type { ImperativePanelHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../../types/SubmissionType.type';
 import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
-
+import MonacoEditor from "@monaco-editor/react";
+import Console from "@code-editor/console-feed";
+import { buildMonacoCode } from '../helpers/monacoConfig';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -65,6 +60,20 @@ const CodingView = () => {
 
   const [selectedLang, setSelectedLang] = useStateCallback(languages[0])
   const { template, files } = sampleTemps[selectedLang]!
+
+  const { code, language } = buildMonacoCode({
+    language: "Javascript",
+    problemName: "twoSum",
+    inputVars: [
+      { name: "nums", type: "number[]" },
+      { name: "target", type: "number" },
+    ],
+    outputType: "number[]",
+  });
+
+  // const [language, setLanguage] = useState("javascript");
+  // const [code, setCode] = useState("");
+  const [logs, setLogs] = useState([]);
 
   const outputTabs = [
     { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },
@@ -129,21 +138,25 @@ const CodingView = () => {
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
   return (
-    <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
-      template={template} files={files}
-      options={{ autorun: true, activeFile: Object.keys(files)[0], }}
-      className='px-2 h-[750px] min-h-[calc(100vh-4rem)]
-      min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
-    >
-      <SandboxLayout data-testid="sandbox-layout" >
-        <Button>
-          <CloudUpload size={16} />Submit
-        </Button>
+    <div className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'>
+    {/* // <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
+    //   template={template} files={files}
+    //   options={{ autorun: true, activeFile: Object.keys(files)[0], }}
+    //   // className='px-2 h-182.5 min-h-[calc(100vh-4.5rem)]
+    //   className='px-2 h-182.5 min-h-[calc(90vh)]
+    //   min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+    // > */}
+      {/* <SandboxLayout data-testid="sandbox-layout" > */}
+        <div className='flex items-center justify-center mb-2 w-full' >
+          <Button>
+            <CloudUpload size={16} />Submit
+          </Button>
+        </div>
         <ResizablePanelGroup direction="horizontal" className='h-full w-full flex' >
           {/* Description panel */}
           <ResizablePanel data-testid="desc-area"
             defaultSize={50} ref={descPanelRef}
-            className='mr-[3px] rounded-md border'
+            className='mr-0.75 rounded-md border'
           >
             <CodeDescArea problemInfo={problemInfo}
               submissions={submissions} />
@@ -160,7 +173,7 @@ const CodingView = () => {
               {/* Coding area panel */}
               <ResizablePanel
                 defaultSize={65} ref={codePanelRef}
-                className="ml-[3px] mb-1 rounded-md border"
+                className="ml-0.75 mb-1 rounded-md border"
               >
                 <div data-testid="coding-area" >
 
@@ -198,9 +211,9 @@ const CodingView = () => {
                           <ChevronDown />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className='z-99999' >
+                      <DropdownMenuContent className='z-9999999' >
                         <div data-testid='languageMenu'
-                          className="z-10 bg-white w-26 border-1 rounded-lg"
+                          className="z-10 bg-white w-26 border rounded-lg"
                         >
                           {languages.map((lang) => (
                             <DropdownMenuItem data-testid={`languageItem-${lang}`} key={lang}
@@ -217,9 +230,21 @@ const CodingView = () => {
                     </DropdownMenu>
                   </div>
                 </div>
-                <SandboxCodeEditor data-testid="sandbox-code-editor" showRunButton
-                  showLineNumbers showInlineErrors
+                <MonacoEditor
+                  key={language}
+                  language={language}
+                  value={code}
+                  // value={sampleTemps}
+                  theme="vs-dark"
+                  // onChange={(value) => setCode(value)}
+                  options={{
+                    fontSize: 14,
+                    automaticLayout: true,
+                  }}
                 />
+                {/* <SandboxCodeEditor data-testid="sandbox-code-editor" showRunButton
+                  showLineNumbers showInlineErrors
+                /> */}
               </ResizablePanel>
 
               <ResizableHandle withHandle className='my-[0.5px] border-none h-[0.5px]'
@@ -228,10 +253,13 @@ const CodingView = () => {
               {/* Output panel */}
               <ResizablePanel data-testid="output-area"
                 defaultSize={35} ref={outputPanelRef}
-                className="ml-[3px] mt-1 rounded-md border"
+                className="ml-0.75 mt-1 rounded-md border"
               >
+                <div style={{ background: "#1e1e1e", color: "white", padding: "10px", height: "200px", overflowY: "auto" }}>
+                  {/* <Console logs={logs} variant="dark" /> */}
+                </div>
 
-                <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
+                {/* <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
                   <SandboxTabsList data-testid="sandbox-tabs-list"
                     className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                         border-b border-border/75 dark:border-border/50 py-1.5"
@@ -256,9 +284,9 @@ const CodingView = () => {
                         </SandboxTabsTrigger>
                       })}
                     </div>
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-2 gap-1"> */}
                       {/* Size buttons */}
-                      <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
+                      {/* <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                         className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
                           : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
@@ -282,13 +310,14 @@ const CodingView = () => {
                       showSyntaxError showResetConsoleButton
                     />
                   </SandboxTabsContent>
-                </SandboxTabs>
+                </SandboxTabs> */}
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
-      </SandboxLayout>
-    </SandboxProvider>
+      {/* </SandboxLayout> */}
+    {/* </SandboxProvider> */}
+    </div>
   );
 };
 
