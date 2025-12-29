@@ -62,7 +62,7 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
-  const [seriesName, setSeriesName] = useState("")
+ 
   
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -268,7 +268,7 @@ export const AlgoTimeSessionForm = () => {
       }));
 
       const payload: CreateAlgotimeRequest = {
-        seriesName: seriesName || `AlgoTime Session (${getDateRangeString()})`,
+        seriesName: `AlgoTime Session (${getDateRangeString()})`,
         questionCooldown: Number(formData.questionCooldownTime) || 300,
         sessions: sessions,
       };
@@ -310,10 +310,15 @@ export const AlgoTimeSessionForm = () => {
 
       handleReset();
 
-    } catch (error:any) {
+    } catch (error: unknown) {
       setIsSubmitting(false);
+
+      const isAxiosError = (err: unknown): err is { response?: { status?: number; data?: { detail?: string } } } => {
+        return typeof err === 'object' && err !== null && 'response' in err;
+      };
+
       // 409 handling
-      if (error.response?.status === 409) {
+      if (isAxiosError(error) && error.response?.status === 409) {
         setValidationError(
           error.response?.data?.detail || 
           'A series with this name already exists. Please try again.'
@@ -662,8 +667,9 @@ export const AlgoTimeSessionForm = () => {
             <Button
               type="submit"
               className="cursor-pointer"
+              disabled={isSubmitting}
             >
-              Create
+              {isSubmitting ? "Creating..." : "Create"}
             </Button>
 
           </div>

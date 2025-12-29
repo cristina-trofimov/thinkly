@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import AlgoTimeSession,AlgoTimeSeries,BaseEvent, QuestionInstance, Question
 from DB_Methods.database import get_db
-from endpoints.authentification_api import get_current_user, role_required
-from datetime import datetime, timezone, timedelta
+from endpoints.authentification_api import role_required
+from datetime import datetime, timezone
 from pydantic import BaseModel, validator
 from typing import List
 import logging
@@ -51,7 +51,7 @@ def validate_questions_exist(db: Session, question_ids: List[int]):
     )
     
     if count != len(set(question_ids)):
-        logger.error(f"Selected question does not exist")
+        logger.error("Selected question does not exist")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="One or more questions do not exist"
@@ -183,7 +183,7 @@ def create_algotime(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         logger.exception("Failed to create AlgoTime")
         raise HTTPException(
