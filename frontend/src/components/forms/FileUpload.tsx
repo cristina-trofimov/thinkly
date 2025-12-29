@@ -216,7 +216,7 @@ export default function FileUploadDropzone() {
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
                         className={[
-                            "rounded-2xl border-2 border-dashed p-6 cursor-pointer select-none transition",
+                            "rounded-lg border-2 border-dashed p-6 cursor-pointer select-none transition",
                             isOver ? "border-foreground bg-muted/50" : "border-muted-foreground/30",
                         ].join(" ")}
                         role="button"
@@ -239,15 +239,15 @@ export default function FileUploadDropzone() {
 
 
                     <div className="flex flex-wrap gap-2">
-                        <Button onClick={uploadAll} disabled={!hasQueued || isUploading}>
+                        <Button className="cursor-pointer" onClick={uploadAll} disabled={!hasQueued || isUploading}>
                             Upload
                         </Button>
 
-                        <Button variant="secondary" onClick={openPicker} disabled={isUploading}>
+                        <Button variant="secondary" className="cursor-pointer" onClick={openPicker} disabled={isUploading}>
                             Add more
                         </Button>
 
-                        <Button variant="ghost" onClick={clearQueued} disabled={isUploading || items.length === 0}>
+                        <Button variant="ghost" className="cursor-pointer" onClick={clearQueued} disabled={isUploading || items.length === 0}>
                             Clear
                         </Button>
                     </div>
@@ -275,7 +275,7 @@ export default function FileUploadDropzone() {
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <div className="truncate font-medium">{it.file.name}</div>
-                                                    <Badge variant="secondary" className="rounded-xl">
+                                                    <Badge variant="secondary" className="rounded-lg text-gray-500">
                                                         {badge}
                                                     </Badge>
                                                 </div>
@@ -294,7 +294,7 @@ export default function FileUploadDropzone() {
                                                 size="icon"
                                                 onClick={() => removeQueued(it.id)}
                                                 disabled={it.status === "uploading"}
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                                 <span className="sr-only">Remove file</span>
