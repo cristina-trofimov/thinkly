@@ -6,11 +6,25 @@ import { SignupForm } from "../src/components/forms/SignupForm";
 import { signup, login } from "../src/api/AuthAPI";
 import { useNavigate } from "react-router-dom";
 import { jest } from '@jest/globals';
+import { toast } from "sonner";
+
+// Mock toast notifications
+jest.mock("sonner", () => ({
+    toast: {
+        success: jest.fn(),
+        error: jest.fn(),
+    },
+}));
 
 // Mock the auth API
 jest.mock("@/api/AuthAPI", () => ({
     signup: jest.fn(),
     login: jest.fn(),
+}));
+
+// Mock the logger API
+jest.mock("@/api/LoggerAPI", () => ({
+    logFrontend: jest.fn(),
 }));
 
 // Mock react-router-dom
@@ -94,7 +108,7 @@ describe("SignupForm", () => {
             render(<SignupForm />);
 
             expect(screen.getByText("Create an account")).toBeInTheDocument();
-            expect(screen.getByText("Enter your information below to create your account")).toBeInTheDocument();
+            expect(screen.getByText("Fill in the information below to create your account")).toBeInTheDocument();
             expect(screen.getByLabelText("First Name")).toBeInTheDocument();
             expect(screen.getByLabelText("Last Name")).toBeInTheDocument();
             expect(screen.getByLabelText("Email")).toBeInTheDocument();
@@ -283,7 +297,7 @@ describe("SignupForm", () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(global.alert).toHaveBeenCalledWith("Account created successfully!");
+                expect(toast.success).toHaveBeenCalledWith("Account created successfully!");
             });
         });
 
@@ -393,7 +407,7 @@ describe("SignupForm", () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText("Email already exists")).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith("Email already exists");
             });
         });
 
@@ -415,11 +429,10 @@ describe("SignupForm", () => {
             fireEvent.change(passwordInput, { target: { value: "password123" } });
             fireEvent.change(confirmPasswordInput, { target: { value: "password123" } });
 
-            // <-- Put it here -->
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText(/network error/i)).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith("Network error");
             });
         });
 
