@@ -13,6 +13,7 @@ import { useStateCallback } from '../helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
 import Console from "@code-editor/console-feed";
 import { buildMonacoCode } from '../helpers/monacoConfig';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -255,20 +256,16 @@ const CodingView = () => {
                 defaultSize={35} ref={outputPanelRef}
                 className="ml-0.75 mt-1 rounded-md border"
               >
-                <div style={{ background: "#1e1e1e", color: "white", padding: "10px", height: "200px", overflowY: "auto" }}>
-                  {/* <Console logs={logs} variant="dark" /> */}
-                </div>
-
-                {/* <SandboxTabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
-                  <SandboxTabsList data-testid="sandbox-tabs-list"
+                <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
+                  <TabsList data-testid="sandbox-tabs-list"
                     className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                         border-b border-border/75 dark:border-border/50 py-1.5"
                   >
-                    <div className='w-full flex rounded-none h-10 bg-muted 
+                    <div className='w-full flex rounded-none h-10 bg-muted gap-2
                         border-b border-border/75 dark:border-border/50 py-0 px-4'
                     >
                       {outputTabs.map(tab => {
-                        return <SandboxTabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
+                        return <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
                           className='bg-muted rounded-none
                           data-[state=active]:border-primary
                           data-[state=active]:text-primary
@@ -281,12 +278,12 @@ const CodingView = () => {
                           flex items-center gap-2 transition-all'
                         >
                           {tab.icon}{tab.text}
-                        </SandboxTabsTrigger>
+                        </TabsTrigger>
                       })}
                     </div>
-                    <div className="grid grid-cols-2 gap-1"> */}
+                    <div className="grid grid-cols-2 gap-1">
                       {/* Size buttons */}
-                      {/* <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
+                      <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                         className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
                         {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
                           : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
@@ -297,20 +294,28 @@ const CodingView = () => {
                           : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
                       </Button>
                     </div>
-                  </SandboxTabsList>
-                  <SandboxTabsContent data-testid="sandbox-tabs-content" value="preview" >
-                    <SandboxPreview data-testid="sandbox-preview"
-                      showOpenInCodeSandbox={true}
-                      showRefreshButton={true}
-                    />
-                  </SandboxTabsContent>
-                  <SandboxTabsContent data-testid="sandbox-tabs-content" value="console">
-                    <SandboxConsole data-testid="sandbox-console"
-                      showHeader showRestartButton
-                      showSyntaxError showResetConsoleButton
-                    />
-                  </SandboxTabsContent>
-                </SandboxTabs> */}
+                  </TabsList>
+                  <TabsContent data-testid="sandbox-tabs-content" value="preview" >
+                    <div data-testid="preview"
+                      style={{
+                        background: "#e0ffff", color: "white", padding: "10px",
+                        height: "200px", overflowY: "auto"
+                      }}
+                    >
+                      {/* <Console logs={logs} variant="dark" /> */}
+                    </div>
+                  </TabsContent>
+                  <TabsContent data-testid="sandbox-tabs-content" value="console">
+                    <div data-testid="console"
+                      style={{
+                        background: "#1e1e1e", color: "white", padding: "10px",
+                        height: "200px", overflowY: "auto"
+                      }}
+                    >
+                      {/* <Console logs={logs} variant="dark" /> */}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
