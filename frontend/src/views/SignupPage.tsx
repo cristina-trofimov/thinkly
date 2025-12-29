@@ -1,6 +1,7 @@
 import thinkly from "@/assets/thinkly_logo.png"
 import scsLogo from "@/assets/logo.png"
 import { SignupForm } from "@/components/forms/SignupForm";
+// import FileUploadDropzone from "@/components/forms/FileUpload";
 
 export default function SignupPage() {
     return (
@@ -17,6 +18,7 @@ export default function SignupPage() {
                 <div className="flex flex-1 items-center justify-center">
                     <div className="w-full max-w-xs">
                         <SignupForm />
+                        {/* <FileUploadDropzone /> */}
                     </div>
                 </div>
             </div>
