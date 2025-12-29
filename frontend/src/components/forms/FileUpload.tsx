@@ -199,7 +199,7 @@ export default function FileUploadDropzone() {
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
                         className={[
-                            "rounded-2xl border-2 border-dashed p-6 cursor-pointer select-none transition",
+                            "rounded-lg border-2 border-dashed p-6 cursor-pointer select-none transition",
                             isOver ? "border-foreground bg-muted/50" : "border-muted-foreground/30",
                         ].join(" ")}
                         role="button"
