@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useMemo, useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
-
+import {toast} from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -142,10 +142,12 @@ export default function FileUploadDropzone() {
         setError("");
         setOverallProgress(0);
 
+        let success = 0;
+        let fail=0;
         const queued = items.filter((i) => i.status === "queued");
         if (queued.length === 0) return;
 
-        let completed = 0;
+        const completed = 0;
 
         setItems((prev) =>
             prev.map((i) => (i.status === "queued" ? { ...i, status: "uploading", error: undefined } : i))
@@ -167,6 +169,8 @@ export default function FileUploadDropzone() {
 
                 const { data } = supabase.storage.from(bucket).getPublicUrl(path);
 
+                success += 1;
+
                 setItems((prev) =>
                     prev.map((x) =>
                         x.id === it.id
@@ -175,16 +179,29 @@ export default function FileUploadDropzone() {
                     )
                 );
             } catch (err: unknown) {
+                fail += 1;
                 setItems((prev) =>
                     prev.map((x) => (x.id === it.id ? { ...x, status: "error", error: (err as Error)?.message ?? "Upload failed" } : x))
                 );
             } finally {
-                completed += 1;
                 setOverallProgress(Math.round((completed / queued.length) * 100));
             }
         }
+
+        
+        const total = queued.length;
+
+        if (success === total) {
+            toast.success(`${success} file${success === 1 ? "" : "s"} uploaded successfully.`);
+        } else if (success === 0) {
+            toast.error(`0/${total} files uploaded.`);
+        } else {
+            toast.success(`${success}/${total} uploaded • ${fail} failed.`);
+        }
     }
 
+
+    
     return (
         <div className="max-w-3xl">
             <Card className="rounded-2xl">
