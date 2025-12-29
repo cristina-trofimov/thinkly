@@ -1,7 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
+import { type CreateCompetitionProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -57,7 +57,7 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
  * Requires owner authentication
  */
 export async function createCompetition(
-  payload: CreateCompetitionDialogProps
+  payload: CreateCompetitionProps
 ): Promise<CompetitionResponse> {
   try {
     const response = await axiosClient.post<CompetitionResponse>(

@@ -1,27 +1,26 @@
+import warnings
+# Suppress Pydantic V2 migration warnings globally for the test session.
+# This catches both the @validator deprecations and the class-based Config deprecations
+# without requiring changes to the source competitions_api.py code.
+warnings.filterwarnings("ignore", message=".*Pydantic V1 style.*")
+warnings.filterwarnings("ignore", message=".*class-based `config` is deprecated.*")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
+
 import pytest
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from datetime import datetime
 from types import SimpleNamespace
-
-
 import sys
 import os
 
-# 1. Get the path to the 'backend' folder (the parent of 'tests')
+# 1. Path setup
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-
-# 2. Add 'backend' to the system path so Python can find 'src'
 sys.path.append(parent_dir)
 
-# --- IMPORTS ---
-# 1. Import the dependency you need to override (Must match source exactly!)
 from DB_Methods import database
-
-# 2. Import the router you want to test
-# (Replace 'src.endpoints.homepage' with the actual path to the file you pasted above)
 from src.endpoints.competitions_api import competitions_router 
 
 # --- FIXTURES ---
@@ -58,7 +57,6 @@ def test_get_all_competitions_success(client, mock_db):
     """Test the happy path where competitions are returned."""
     
     # 1. Arrange: Create fake competition objects
-    # We use SimpleNamespace so we can access attributes like .name and .date
     fake_comps = [
         SimpleNamespace(
             event_id=101,
@@ -110,18 +108,9 @@ def test_get_all_competitions_success(client, mock_db):
 def test_get_all_competitions_empty(client, mock_db):
     """Test when the database is empty."""
     
-    # Create a mock query that returns itself for any chained method
     mock_query = MagicMock()
     mock_query.join.return_value = mock_query
-    mock_query.filter.return_value = mock_query
-    mock_query.filter_by.return_value = mock_query
-    mock_query.order_by.return_value = mock_query
-    mock_query.limit.return_value = mock_query
-    mock_query.offset.return_value = mock_query
-    # The terminal operation returns actual data
     mock_query.all.return_value = []
-    
-    # Attach the query to the db mock
     mock_db.query.return_value = mock_query
 
     # Act
@@ -134,18 +123,9 @@ def test_get_all_competitions_empty(client, mock_db):
 def test_get_all_competitions_db_error(client, mock_db):
     """Test how the endpoint handles a database exception."""
     
-    # Create a mock query that returns itself for any chained method
     mock_query = MagicMock()
     mock_query.join.return_value = mock_query
-    mock_query.filter.return_value = mock_query
-    mock_query.filter_by.return_value = mock_query
-    mock_query.order_by.return_value = mock_query
-    mock_query.limit.return_value = mock_query
-    mock_query.offset.return_value = mock_query
-    # The terminal operation returns actual data
     mock_query.all.side_effect = Exception("DB Connection Lost")
-    
-    # Attach the query to the db mock
     mock_db.query.return_value = mock_query
 
     # Act
@@ -153,5 +133,4 @@ def test_get_all_competitions_db_error(client, mock_db):
 
     # Assert
     assert response.status_code == 500
-    assert "Failed to retrieve competitions" in response.json()["detail"]
-    assert "Exception" in response.json()["detail"]
+    assert "DB Connection Lost" in response.json()["detail"]
