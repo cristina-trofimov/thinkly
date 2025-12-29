@@ -99,6 +99,17 @@ def create_algotime(
         # To make it unique
         series_name = generate_unique_series_name(request.seriesName)
 
+        existing_series = db.query(AlgoTimeSeries).filter(
+            AlgoTimeSeries.algotime_series_name == series_name
+        ).first()
+        
+        if existing_series:
+            logger.warning(f"Series name '{series_name}' already exists")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"A series with the name '{series_name}' already exists"
+            )
+
         series = AlgoTimeSeries(
             algotime_series_name=series_name
         )
@@ -117,6 +128,21 @@ def create_algotime(
             )
 
             validate_competition_times(start_dt, end_dt)
+
+            event_name = f"{request.seriesName} - {session.name}"
+            
+            # Check if event name already exists - throw 409
+            existing_event = db.query(BaseEvent).filter(
+                BaseEvent.event_name == event_name
+            ).first()
+            
+            if existing_event:
+                logger.warning(f"Event name '{event_name}' already exists")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"A session with the name '{event_name}' already exists"
+                )
+
 
             base_event = BaseEvent(
                 event_name=f"{request.seriesName} - {session.name}",

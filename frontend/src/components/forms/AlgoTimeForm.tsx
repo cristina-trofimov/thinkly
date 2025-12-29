@@ -310,9 +310,20 @@ export const AlgoTimeSessionForm = () => {
 
       handleReset();
 
-    } catch (error) {
+    } catch (error:any) {
+      setIsSubmitting(false);
+      // 409 handling
+      if (error.response?.status === 409) {
+        setValidationError(
+          error.response?.data?.detail || 
+          'A series with this name already exists. Please try again.'
+        );
+
+      } else {
       console.error('Session creation failed:', error);
       setValidationError('Failed to create session. Please try again.');
+      toast.error("Failed to create session");
+      }
       setTimeout(() => {
         errorRef.current?.scrollIntoView({
           behavior: 'smooth',
