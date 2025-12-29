@@ -1,6 +1,6 @@
 
 //Uncomment SignupPage.tsx to see this component in action
-
+import { Trash2 } from "lucide-react";
 import { useMemo, useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -53,7 +53,7 @@ export default function FileUploadDropzone() {
     const [error, setError] = useState<string>("");
     const [overallProgress, setOverallProgress] = useState<number>(0);
 
-//In my supabase storage settings, my bucket is called "uploads" with "public" folder with public access
+    //In my supabase storage settings, my bucket is called "uploads" with "public" folder with public access
     const bucket = "uploads";
     const folder = "public";
 
@@ -66,7 +66,7 @@ export default function FileUploadDropzone() {
 
     function validateFile(file: File) {
 
-//I set max file size to 100MB and only allow image/audio/video/pdf files
+        //I set max file size to 100MB and only allow image/audio/video/pdf files
         const maxMB = 100;
         if (file.size > maxMB * 1024 * 1024) return `File too large. Max ${maxMB}MB.`;
 
@@ -266,19 +266,21 @@ export default function FileUploadDropzone() {
                                                 <div className="text-xs text-muted-foreground">
                                                     {it.status === "queued" && "Ready to upload"}
                                                     {it.status === "uploading" && "Uploading…"}
-                                                    {it.status === "uploaded" && "Uloaded"}
+                                                    {it.status === "uploaded" && "Uploaded"}
                                                     {it.status === "error" && `error: ${it.error ?? "Upload failed"}`}
                                                 </div>
                                             </div>
 
 
                                             <Button
-                                                variant="outline"
-                                                className="rounded-xl"
+                                                variant="ghost"
+                                                size="icon"
                                                 onClick={() => removeQueued(it.id)}
                                                 disabled={it.status === "uploading"}
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
                                             >
-                                                Remove
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Remove file</span>
                                             </Button>
                                         </div>
                                     );
