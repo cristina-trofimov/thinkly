@@ -414,12 +414,14 @@ export const AlgoTimeSessionForm = () => {
                           today: new Date()
                         }}
                         modifiersClassNames={{
-                          today: formData.date ? "bg-gray-200 text-gray-900 font-normal rounded-md" : "bg-primary text-white rounded-md"
+                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
+                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
+                            : ""
                         }}
                         classNames={{
                           day_button: "hover:bg-primary/10",
                           day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-                          today: "bg-gray-200 text-gray-900 font-normal rounded-md",
+                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
                           month_caption: "text-primary",
                           day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
@@ -503,12 +505,14 @@ export const AlgoTimeSessionForm = () => {
                           today: new Date()
                         }}
                         modifiersClassNames={{
-                          today: formData.date ? "bg-gray-200 text-gray-900 font-normal rounded-md" : "bg-primary text-white rounded-md"
+                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
+                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
+                            : ""
                         }}
                         classNames={{
                           day_button: "hover:bg-primary/10",
                           day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-                          today: "bg-gray-200 text-gray-900 font-normal rounded-md",
+                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
                           month_caption: "text-primary",
                           day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
