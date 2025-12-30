@@ -383,7 +383,7 @@ export const AlgoTimeSessionForm = () => {
                       <Button
                         id="date-picker"
                         variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
                       >
                         <CalendarIcon className="size-3.5" />
                         <span className="sr-only">Select date</span>
@@ -435,15 +435,15 @@ export const AlgoTimeSessionForm = () => {
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="cursor-pointer">
                     <SelectValue placeholder="Does not repeat" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Does not repeat</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem className="cursor-pointer" value="none">Does not repeat</SelectItem>
+                    <SelectItem className="cursor-pointer" value="daily">Daily</SelectItem>
+                    <SelectItem className="cursor-pointer" value="weekly">Weekly</SelectItem>
+                    <SelectItem className="cursor-pointer" value="biweekly">Every 2 weeks</SelectItem>
+                    <SelectItem className="cursor-pointer" value="monthly">Monthly</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -466,7 +466,7 @@ export const AlgoTimeSessionForm = () => {
                       <Button
                         id="date-picker"
                         variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
                       >
                         <CalendarIcon className="size-3.5" />
                         <span className="sr-only">Select date</span>
@@ -520,7 +520,7 @@ export const AlgoTimeSessionForm = () => {
                   step="60"
                   value={formData.startTime || "12:00:00"}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
                 />
               </div>
 
@@ -534,7 +534,7 @@ export const AlgoTimeSessionForm = () => {
                   step="60"
                   value={formData.endTime || "12:00:00"}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
                 />
               </div>
             </div>
