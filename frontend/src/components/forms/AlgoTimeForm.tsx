@@ -401,8 +401,8 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthStart}
                         onMonthChange={setMonthStart}
-                        fromYear={2024}
-                        toYear={2050} 
+                        startMonth={new Date(2024, 0, 1)}
+                        endMonth={new Date(2050, 11, 31)}
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
@@ -484,8 +484,8 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthEnd}
                         onMonthChange={setMonthEnd}
-                        fromYear={2024}
-                        toYear={2050} 
+                        startMonth={new Date(2024, 0, 1)}
+                        endMonth={new Date(2050, 11, 31)}
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
