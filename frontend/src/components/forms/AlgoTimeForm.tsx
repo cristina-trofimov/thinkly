@@ -411,9 +411,9 @@ export const AlgoTimeSessionForm = () => {
                           setOpenStart(false)
                         }}
                         classNames={{
-                          day_button: "hover:bg-primary/50 hover:text-white",
-                          day_selected: "bg-primary/70 text-white",
-                          today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
+                          day_button: "hover:bg-primary/10",
+                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white",
+                          today: "bg-gray-200 text-gray-900 font-normal rounded-md",
                           month_caption: "text-primary",
                           day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
@@ -494,9 +494,9 @@ export const AlgoTimeSessionForm = () => {
                           setOpenEnd(false)
                         }}
                         classNames={{
-                          day_button: "hover:bg-primary/50 hover:text-white",
-                          day_selected: "bg-primary/70 text-white",
-                          today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
+                          day_button: "hover:bg-primary/10",
+                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white",
+                          today: "bg-gray-200 text-gray-900 font-normal rounded-md",
                           month_caption: "text-primary",
                           day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
