@@ -33,7 +33,7 @@ const getDifficultyColor = (difficulty: string) => {
 
 export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
-    date: "",
+    date: format(new Date(), "yyyy-MM-dd"),
     startTime: "",
     endTime: "",
     questionCooldownTime: "",
