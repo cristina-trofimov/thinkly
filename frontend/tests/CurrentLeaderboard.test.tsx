@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { CurrentLeaderboard } from "../src/components/leaderboards/CurrentLeaderboard";
+import { CurrentLeaderboard, CurrentStandings } from "../src/components/leaderboards/CurrentLeaderboard";
 import axiosClient from "@/lib/axiosClient";
 import type { Participant } from "../src/types/account/Participant.type";
 // Mock axios
@@ -8,11 +8,11 @@ jest.mock("@/lib/axiosClient");
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 describe("CurrentLeaderboard Component", () => {
-  const mockStandings = {
+  const mockStandings: CurrentStandings = {
     competitionName: "Algo Competition",
     participants: [
-    {user_id: 1, name: "Alice", points: 900, rank: 7, problemsSolved: 10, totalTime: "3600",} as Participant,
-    {user_id: 2, name: "Bob", points: 1200, rank: 1, problemsSolved: 12, totalTime: "3400",} as Participant,
+    {user_id: 1, username: "alice123", name: "Alice", total_score: 900, rank: 7, problems_solved: 10} as Participant,
+    {user_id: 2, username: "bob456", name: "Bob", total_score: 1200, rank: 1, problems_solved: 12} as Participant,
   ],
   };
 

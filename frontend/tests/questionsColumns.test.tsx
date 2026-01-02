@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react"
-import { columns, type Questions } from "../src/components/questionsTable/questionsColumns"
+import { columns } from "../src/components/questionsTable/questionsColumns"
+import { type Question } from "../src/types/questions/Question.type"
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 
 // Helper component to test columns
-function TestTable({ data }: { data: Questions[] }) {
+function TestTable({ data }: { data: Question[] }) {
   const table = useReactTable({
     data,
     columns,
@@ -37,22 +38,22 @@ function TestTable({ data }: { data: Questions[] }) {
 }
 
 describe("Questions Columns", () => {
-  const mockData: Questions[] = [
+  const mockData: Question[] = [
     {
-      id: "1",
-      questionTitle: "Two Sum",
+      id: 1,
+      title: "Two Sum",
       date: new Date("2024-01-15"),
       difficulty: "Easy",
     },
     {
-      id: "2",
-      questionTitle: "Reverse Linked List",
+      id: 2,
+      title: "Reverse Linked List",
       date: new Date("2024-02-20"),
       difficulty: "Medium",
     },
     {
-      id: "3",
-      questionTitle: "Merge K Sorted Lists",
+      id: 3,
+      title: "Merge K Sorted Lists",
       date: new Date("2024-03-10"),
       difficulty: "Hard",
     },

@@ -92,7 +92,11 @@ export const columns: ColumnDef<Account>[] = [
       const user = row.original;
       const onUserUpdate = table.options.meta?.onUserUpdate;
 
-      return <ActionsCell user={user} onUserUpdate={onUserUpdate} />;
+      return (
+        <div className="flex justify-center">
+          <ActionsCell user={user} onUserUpdate={onUserUpdate} />
+        </div>
+      );
     },
   },
 ];

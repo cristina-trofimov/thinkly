@@ -136,7 +136,7 @@ const CodingView = () => {
     codeAndOutputPanelRef.current.resize(codeAndOutputSize);
     codePanelRef.current.resize(codeSize);
     outputPanelRef.current.resize(outputSize);
-  }, [fullCode, fullOutput, closeCode, closeOutput])
+  }, [fullCode, fullOutput, closeCode, setCloseCode, closeOutput, setCloseOutput])
 
   return (
     <div className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'>

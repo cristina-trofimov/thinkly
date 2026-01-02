@@ -1,7 +1,7 @@
 import os
 import requests
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from email_validator import validate_email, EmailNotValidError
@@ -79,88 +79,91 @@ def normalize_iso_utc(iso_str):
         logger.warning(f"Failed to parse or normalize ISO8601 timestamp: '{iso_str}'")
         return None
 
-# Routes
-    
-@email_router.post("/send")
-async def send_email(request: SendEmailRequest):
-    """Send an email via Brevo API"""
-    logger.info(f"Received request to send email. Recipients count: {len(request.to)}. Subject: {request.subject[:30]}...")
 
-    sender_email = DEFAULT_SENDER_EMAIL
-    sender_name = DEFAULT_SENDER_NAME
+def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | None = None,
+                         html: str | None = None) -> dict:
+    """Send an email via Brevo with full logging and validation."""
 
     # Validate sender email
     try:
-        validate_email(sender_email)
+        validate_email(DEFAULT_SENDER_EMAIL)
     except EmailNotValidError as e:
-        logger.error(f"Configuration error: Default sender email is invalid: {sender_email}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Invalid default senderEmail: {e}")
+        logger.error(f"Invalid default sender email: {DEFAULT_SENDER_EMAIL}")
+        raise ValueError(f"Invalid sender email: {e}")
 
-    # Process scheduled send time
-    scheduledAt = normalize_iso_utc(request.sendAt)
-    if request.sendAt and not scheduledAt:
-        logger.error(f"Validation failed: Invalid ISO8601 format provided for sendAt: {request.sendAt}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Field 'sendAt' must be a valid ISO8601 timestamp (e.g., 2025-10-26T20:00:00Z)."
-        )
+    # Validate recipients
+    if not to or not isinstance(to, list):
+        raise ValueError("Recipient 'to' must be a non-empty list of emails")
 
-    # JSON payload for Brevo
+    for recipient in to:
+        try:
+            validate_email(recipient)
+        except EmailNotValidError as e:
+            logger.error(f"Invalid recipient email: {recipient}")
+            raise ValueError(f"Invalid recipient '{recipient}': {e}")
+
+    # Validate subject & text
+    if not subject or not subject.strip():
+        raise ValueError("Email subject is required")
+    if not text or not text.strip():
+        raise ValueError("Email body text is required")
+
+    scheduledAt = normalize_iso_utc(sendAt)
+
     payload = {
-        "sender": {"email": sender_email, "name": sender_name},
-        "to": [{"email": r} for r in request.to],
-        "subject": request.subject,
+        "sender": {"email": DEFAULT_SENDER_EMAIL, "name": DEFAULT_SENDER_NAME},
+        "to": [{"email": r} for r in to],
+        "subject": subject,
+        "textContent": text
     }
 
-    if request.text:
-        payload["textContent"] = request.text
+    # Add HTML content if provided
+    if html:
+        payload["htmlContent"] = html
+        logger.debug("HTML content included in email")
+
     if scheduledAt:
         payload["scheduledAt"] = scheduledAt
-        logger.info(f"Email scheduled for future delivery: {scheduledAt}")
+        logger.info(f"Email scheduled for {scheduledAt}")
 
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        # NOTE: BREVO_API_KEY is not logged
-        "api-key": BREVO_API_KEY 
+        "api-key": BREVO_API_KEY
     }
 
     try:
-        # Log the external API call attempt
-        logger.debug(f"Calling Brevo API: {BREVO_SEND_URL} with subject '{request.subject[:15]}...'")
+        logger.debug(f"Sending email via Brevo to {to}, subject: {subject[:30]}...")
         resp = requests.post(BREVO_SEND_URL, headers=headers, json=payload, timeout=20)
-        
     except requests.RequestException as e:
-        # Log network failures (timeouts, connection issues)
-        logger.exception("Network error when trying to reach Brevo API.")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail={"error": "Network error calling Brevo", "detail": str(e)}
-        )
+        logger.exception("Network error when calling Brevo API")
+        raise RuntimeError(f"Network error calling Brevo: {e}")
 
     if resp.status_code >= 400:
-        # Log Brevo API failure (4xx or 5xx response from Brevo)
-        detail = None
         try:
             detail = resp.json()
         except Exception:
             detail = resp.text
-            
-        logger.error(f"Brevo API returned error. Status: {resp.status_code}. Detail: {detail}")
-        
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, # Using 502 as this is an upstream error
-            detail={
-                "error": "Brevo API error",
-                "status": resp.status_code,
-                "detail": detail
-            }
-        )
+        logger.error(f"Brevo API returned error {resp.status_code}: {detail}")
+        raise RuntimeError(f"Brevo API error {resp.status_code}: {detail}")
 
-    # Successful completion log
-    logger.info(f"SUCCESS: Email sent successfully via Brevo. Message ID: {resp.json().get('messageId')}. Scheduled: {bool(scheduledAt)}")
-    
-    return {"ok": True, "brevo": resp.json(), "scheduledAt": scheduledAt}
+    logger.info(f"SUCCESS: Email sent successfully. Message ID: {resp.json().get('messageId')}")
+    return {"brevo": resp.json(), "scheduledAt": scheduledAt}
+
+# Routes
+
+@email_router.post("/send")
+async def send_email(request: SendEmailRequest):
+    try:
+        result = send_email_via_brevo(
+            to=request.to,
+            subject=request.subject,
+            text=request.text,
+            sendAt=request.sendAt
+        )
+        return {"ok": True, **result}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @email_router.get("/health")

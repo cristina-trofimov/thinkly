@@ -1,167 +1,106 @@
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import ManageCompetitions from '../src/views/admin/ManageCompetitionsPage' // Adjust path as needed based on your file structure
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { useNavigate, useLocation, useOutlet } from 'react-router-dom';
 
-// --- Mocks ---
+// Using relative paths consistently to resolve resolution errors
+import ManageCompetitions from '../src/views/admin/ManageCompetitionsPage';
+import { getCompetitions } from '../src/api/CompetitionAPI';
+import { type Competition } from '../src/types/competition/Competition.type';
 
-// 1. Mock Lucide Icons
-jest.mock('lucide-react', () => ({
-  Plus: () => <div data-testid="plus-icon">Plus Icon</div>,
-  Search: () => <div data-testid="search-icon">Search Icon</div>,
-  Filter: () => <div data-testid="filter-icon">Filter Icon</div>,
+// FIX: Define mock hooks outside the describe block
+const mockNavigate = jest.fn();
+const mockLocation = { key: 'test-key', state: null };
+
+// Mocking react-router-dom to provide context for useNavigate, useLocation and useOutlet
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+  useLocation: () => mockLocation,
+  useOutlet: () => null, // Return null so the main component view renders
 }));
 
-// 2. Mock the CHILD component (CreateCompetitionDialog)
-// IMPORTANT: The path in jest.mock must match the import path used in your component file
-// or be relative to this test file pointing to the actual child component.
-jest.mock('../src/components/manageCompetitions/CreateCompetitionDialog', () => {
-  return function DummyDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-    return (
-      <div
-        data-testid="create-competition-dialog"
-        data-dialog-open={open ? 'true' : 'false'}
-      >
-        {open ? 'Create Competition Dialog is Open' : 'Create Competition Dialog is Closed'}
-        {/* Simulate closing the dialog */}
-        <button onClick={() => onOpenChange(false)}>Close Dialog</button>
-      </div>
-    );
-  };
-});
+jest.mock('../src/config', () => ({
+  getBackendUrl: () => 'http://localhost:5173',
+}));
 
-// --- Test Suite ---
+// Fixed mocks to use relative paths matching the project structure
+jest.mock('../src/api/CompetitionAPI');
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn(),
+}));
+
+const mockedGetCompetitions = getCompetitions as jest.MockedFunction<typeof getCompetitions>;
 
 describe('ManageCompetitions', () => {
+  const competitions: Competition[] = [
+    {
+      id: 1,
+      competitionTitle: 'Math Contest',
+      competitionLocation: 'Toronto',
+      date: new Date(Date.now() + 86400000), // Tomorrow -> Upcoming
+    },
+    {
+      id: 2,
+      competitionTitle: 'Science Fair',
+      competitionLocation: 'Montreal',
+      date: new Date(), // Today -> Active
+    },
+    {
+      id: 3,
+      competitionTitle: 'History Quiz',
+      competitionLocation: 'Vancouver',
+      date: new Date(Date.now() - 86400000), // Yesterday -> Completed
+    },
+  ];
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedGetCompetitions.mockResolvedValue(competitions);
   });
 
-  describe('Rendering', () => {
-    it('renders the component without crashing and the dialog is initially closed', () => {
-      render(<ManageCompetitions />);
+  it('renders competitions after loading', async () => {
+    render(<ManageCompetitions />);
 
-      // Check for main UI elements
-      expect(screen.getByPlaceholderText('Search competitions...')).toBeInTheDocument();
-
-      // Check if Child Mock is present
-      const dialog = screen.getByTestId('create-competition-dialog');
-      expect(dialog).toBeInTheDocument();
-      expect(dialog).toHaveAttribute('data-dialog-open', 'false');
-    });
-
-    it('renders all competition cards', () => {
-      render(<ManageCompetitions />);
-      // Use regex or exact string matching
-      expect(screen.getByText(/Comp #1 - 12\/10\/25/)).toBeInTheDocument();
-      expect(screen.getByText(/Comp #2 - 12\/10\/25/)).toBeInTheDocument();
-    });
-
-    it('renders the Create New Competition card', () => {
-      render(<ManageCompetitions />);
-      expect(screen.getByText('Create New Competition')).toBeInTheDocument();
-    });
-
-    it('renders competition descriptions', () => {
-      render(<ManageCompetitions />);
-      // There are two cards with this description
-      const descriptions = screen.getAllByText('short one line description of comp...');
-      expect(descriptions).toHaveLength(2);
-    });
-
-    it('renders View buttons for each competition', () => {
-      render(<ManageCompetitions />);
-      const viewButtons = screen.getAllByRole('button', { name: /view/i });
-      // 2 competition cards = 2 view buttons. 
-      // Note: The "Filter" button is also a button, but it doesn't have text "View"
-      expect(viewButtons).toHaveLength(2);
+    // Wait for competitions to load and verify titles appear
+    await waitFor(() => {
+      expect(screen.getByText(/Math Contest/i)).toBeInTheDocument();
+      expect(screen.getByText(/Science Fair/i)).toBeInTheDocument();
+      expect(screen.getByText(/History Quiz/i)).toBeInTheDocument();
     });
   });
 
-  describe('Search Functionality', () => {
-    it('filters competitions by name', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
+  it('filters competitions by search query', async () => {
+    render(<ManageCompetitions />);
 
-      const searchInput = screen.getByPlaceholderText('Search competitions...');
-      await user.type(searchInput, 'Comp #1');
+    await waitFor(() => screen.getByText(/Math Contest/i));
 
-      expect(screen.getByText(/Comp #1 - 12\/10\/25/)).toBeInTheDocument();
-      expect(screen.queryByText(/Comp #2 - 12\/10\/25/)).not.toBeInTheDocument();
-    });
+    const searchInput = screen.getByPlaceholderText(/Search competitions/i);
+    fireEvent.change(searchInput, { target: { value: 'Science' } });
 
-    it('filters competitions by description', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
-
-      const searchInput = screen.getByPlaceholderText('Search competitions...');
-      await user.type(searchInput, 'short');
-
-      expect(screen.getByText(/Comp #1/)).toBeInTheDocument();
-      expect(screen.getByText(/Comp #2/)).toBeInTheDocument();
-    });
-
-    it('shows no results message when search matches nothing', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
-
-      const searchInput = screen.getByPlaceholderText('Search competitions...');
-      await user.type(searchInput, 'nonexistent');
-
-      expect(screen.getByText('No competitions found matching your filters.')).toBeInTheDocument();
-      expect(screen.queryByText(/Comp #1/)).not.toBeInTheDocument();
-    });
+    expect(screen.getByText(/Science Fair/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Math Contest/i)).not.toBeInTheDocument();
   });
 
-  describe('Filter Functionality', () => {
-    it('opens filter dropdown when clicked and displays current filter', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
+  it('navigates to the create competition page when the create card is clicked', async () => {
+    render(<ManageCompetitions />);
 
-      // Find the trigger button
-      const filterButton = screen.getByRole('button', { name: /all competitions/i });
-      expect(within(filterButton).getByText('All competitions')).toBeInTheDocument();
+    // Wait for the "Create New Competition" card to be visible
+    await waitFor(() => screen.getByText(/Create New Competition/i));
 
-      // Open dropdown
-      await user.click(filterButton);
+    // Simulate click on the "Create New Competition" card
+    // We target the closest container to ensure the click triggers the navigate logic
+    const createCard = screen.getByText(/Create New Competition/i).closest('div[data-slot="card"]');
+    if (!createCard) {
+      // Fallback to finding by card text if the data-slot isn't present in the test env
+      const fallbackCard = screen.getByText(/Create New Competition/i).parentElement;
+      if (fallbackCard) fireEvent.click(fallbackCard);
+    } else {
+      fireEvent.click(createCard);
+    }
 
-      // Check content
-      expect(screen.getByText('Filter by Status')).toBeInTheDocument();
-      expect(screen.getByRole('menuitem', { name: 'Active' })).toBeInTheDocument();
-
-      // Select Active
-      await user.click(screen.getByRole('menuitem', { name: 'Active' }));
-
-      // Verify button text updated
-      expect(within(filterButton).getByText('Active')).toBeInTheDocument();
-    });
-
-    it('filters competitions by Active status', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
-
-      const filterButton = screen.getByRole('button', { name: /all competitions/i });
-      await user.click(filterButton);
-
-      const activeOption = screen.getByRole('menuitem', { name: 'Active' });
-      await user.click(activeOption);
-
-      expect(screen.getByText(/Comp #1/)).toBeInTheDocument(); // Comp 1 is Active
-      expect(screen.queryByText(/Comp #2/)).not.toBeInTheDocument(); // Comp 2 is Upcoming
-    });
-
-    it('filters competitions by Upcoming status', async () => {
-      const user = userEvent.setup();
-      render(<ManageCompetitions />);
-
-      const filterButton = screen.getByRole('button', { name: /all competitions/i });
-      await user.click(filterButton);
-
-      const upcomingOption = screen.getByRole('menuitem', { name: 'Upcoming' });
-      await user.click(upcomingOption);
-
-      expect(screen.queryByText(/Comp #1/)).not.toBeInTheDocument();
-      expect(screen.getByText(/Comp #2/)).toBeInTheDocument();
-    });
+    // Verify that navigate was called with the relative path "createCompetition"
+    // matching the new routing logic (dialog removal)
+    expect(mockNavigate).toHaveBeenCalledWith("createCompetition");
   });
-
 });

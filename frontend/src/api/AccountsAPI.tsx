@@ -9,16 +9,16 @@ export async function getAccounts(): Promise<Account[]> {
         first_name: string;
         last_name: string;
         email: string;
-        type: "Participant" | "Admin" | "Owner";
+        user_type: "participant" | "admin" | "owner";
       }[]
-    >("/manageAccounts/users");
+    >("/manage-accounts/users");
 
     const formattedAccounts: Account[] = response.data.map((user) => ({
       id: user.user_id,
       firstName: user.first_name,
       lastName: user.last_name,
       email: user.email,
-      accountType: user.type,
+      accountType: user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1) as "Participant" | "Admin" | "Owner",
     }));
 
     return formattedAccounts;
@@ -37,7 +37,7 @@ export async function deleteAccounts(userIds: number[]): Promise<{
 }> {
   try {
     const response = await axiosClient.delete(
-      "/manageAccounts/users/batch-delete",
+      "/manage-accounts/users/batch-delete",
       {
         data: { user_ids: userIds.map((id) => id) },
       }
@@ -60,7 +60,7 @@ export async function updateAccount(
       last_name: string;
       email: string;
       type: "Participant" | "Admin" | "Owner";
-    }>(`/manageAccounts/users/${userId}`, updatedFields);
+    }>(`/manage-accounts/users/${userId}`, updatedFields);
 
     const formattedAccounts: Account = {
       id: updatedAccount.data.user_id,

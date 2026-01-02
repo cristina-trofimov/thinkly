@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
 import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
+export type { CurrentStandings };
 import { getCurrentLeaderboardStandings } from "../../api/LeaderboardsAPI";
-
-
 
 export function CurrentLeaderboard() {
   const [standings, setStandings] = useState<CurrentStandings | null>(null);

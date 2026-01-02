@@ -10,152 +10,175 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Plus, Search, Filter } from 'lucide-react';
-import { useState } from 'react';
-import CreateCompetitionDialog from "../../components/manageCompetitions/CreateCompetitionDialog"
+import { useEffect, useState } from 'react';
+import { useNavigate, useOutlet, useLocation } from 'react-router-dom'; 
+import { type Competition } from "../../types/competition/Competition.type"
+import { toast } from "sonner";
+import { logFrontend } from "../../api/LoggerAPI";
+import { getCompetitions } from "../../api/CompetitionAPI";
 
-interface Competition {
-  id: string;
-  name: string;
-  date: string;
-  description: string;
-  color: string;
-  status?: string;
-}
+const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const compDate = new Date(competitionDate);
+  compDate.setHours(0, 0, 0, 0);
+
+  if (today.getTime() > compDate.getTime()) return "Completed";
+  if (today.getTime() === compDate.getTime()) return "Active";
+  return "Upcoming";
+};
 
 const ManageCompetitions = () => {
+  const navigate = useNavigate(); 
+  const outlet = useOutlet();
+  const location = useLocation(); 
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [competitions, setCompetition] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Sample data until backend gets integrated
-  const competitions: Competition[] = [
-    {
-      id: '1',
-      name: 'Comp #1',
-      date: '12/10/25',
-      description: 'short one line description of comp...',
-      color: 'bg-pink-600',
-      status: 'Active'
-    },
-    {
-      id: '2',
-      name: 'Comp #2',
-      date: '12/10/25',
-      description: 'short one line description of comp...',
-      color: 'bg-yellow-400',
-      status: 'Upcoming'
+  // 1. Handle Success Toast from Navigation State
+  useEffect(() => {
+    if (location.state?.success) {
+      toast.success("Competition published successfully!");
+      
+      // Clear the state so the toast doesn't show up again if the user refreshes
+      window.history.replaceState({}, document.title);
     }
-  ];
+  }, [location.state]);
 
-  // Filter competitions based on search and status
-  const filteredCompetitions = competitions.filter((comp) => {
-    const matchesSearch = comp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      comp.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !statusFilter || comp.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // 2. Fetch data
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleView = (id: string) => {
-    console.log('View competition:', id);
-    // Add your navigation logic here
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await getCompetitions();
+        if (!cancelled) {
+          setCompetition(data);
+        }
+      } catch (err) {
+        logFrontend({
+          level: 'ERROR',
+          message: `Failed to load competitions: ${(err as Error).message}`,
+          component: 'ManageCompetitionsPage.tsx',
+          url: window.location.href,
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [location.key]);
+
+  if (outlet) return outlet;
+
+  const handleCreateNavigation = () => {
+    navigate("createCompetition");
   };
 
+  const filteredCompetitions = competitions
+    .filter((comp) => {
+      const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        comp.competitionLocation.toLowerCase().includes(searchQuery.toLowerCase());
+      const status = getCompetitionStatus(comp.date);
+      const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
-    <div className="p-6">
-      {/* Search and Filter Bar */}
-      <div className="flex items-center py-4 gap-3 mb-2">
-        <div className="relative items-center">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">Manage Competitions</h1>
+        <p className="text-muted-foreground">View and manage all your competitions</p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search competitions..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            className="pl-9 w-xs"
+            className="pl-9"
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-0.5">
-              <Filter className="h-4 w-4 text-primary" />
-              <span className="ml-2 hidden md:inline-flex items-center">
-                {statusFilter ?? "All competitions"}
-              </span>
+            <Button variant="outline" className="gap-2 sm:w-auto w-full">
+              <Filter className="h-4 w-4" />
+              <span>{statusFilter ?? "All competitions"}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setStatusFilter(undefined)}>
-              All
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Active")}>
-              Active
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Upcoming")}>
-              Upcoming
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Completed")}>
-              Completed
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter(undefined)}>All competitions</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Active")}>Active</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Upcoming")}>Upcoming</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setStatusFilter("Completed")}>Completed</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Competitions Grid */}
-      <div className="flex gap-6 mt-6 px-6">
-        {/* Existing Competitions */}
-        {filteredCompetitions.map((comp) => (
-          <Card key={comp.id} className="border-border rounded-2xl w-[190px] h-[320px] flex flex-col">
-            <div
-              className={`min-h-[146px] min-w-[146px] ${comp.color} mx-auto`}
-            />
-            <CardContent className="p-4 pt-0 flex-1 flex flex-col justify-between">
-              <div className="mb-3">
-                <h3 className="font-semibold text-sm mb-1 text-center">
-                  {comp.name} - {comp.date}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {comp.description}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-[66px] h-[36px] mx-auto text-primary hover:bg-accent"
-                onClick={() => handleView(comp.id)}
-              >
-                View
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-
-        {/* Create New Competition Card */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Create Button Card */}
         <Card
-          className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow border-border rounded-2xl w-[190px] h-[235px] flex flex-col"
-          onClick={() => setDialogOpen(true)}
+          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+          onClick={handleCreateNavigation}
         >
-          <div className="min-h-[146px] min-w-[146px] bg-muted flex items-center justify-center mx-auto">
-            <Plus className="w-30 h-30 text-primary" strokeWidth={1} />
+          <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+            <Plus className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
           </div>
-          <CardContent className="flex-1 flex flex-col justify-center px-2">
-            <h3 className="font-semibold text-sm text-center">
-              Create New Competition
-            </h3>
+          <CardContent className="p-4 bg-white text-center">
+            <h3 className="font-semibold text-base text-primary">Create New Competition</h3>
+            <p className="text-sm text-muted-foreground mt-1">Setup a new coding event</p>
           </CardContent>
         </Card>
 
-        {/* No Results matching the filter Message */}
-        {filteredCompetitions.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            No competitions found matching your filters.
+        {/* Loading Skeleton Placeholder */}
+        {loading && competitions.length === 0 && (
+          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
+            Refreshing competition list...
           </div>
         )}
+
+        {/* Competition Cards */}
+        {filteredCompetitions.map((comp) => {
+          const status = getCompetitionStatus(comp.date);
+          return (
+            <Card key={comp.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white">
+              <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-grid-primary/5"></div>
+                <div className="relative z-10 text-center">
+                  <div className="text-5xl font-bold text-primary/80 mb-2">{comp.competitionTitle.charAt(0).toUpperCase()}</div>
+                  <div className="text-xs font-medium text-primary/60 uppercase tracking-wider">Competition</div>
+                </div>
+              </div>
+              <CardContent className="p-4 space-y-3">
+                <div>
+                  <h3 className="font-semibold text-base mb-1 line-clamp-1">{comp.competitionTitle}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-1">📍 {comp.competitionLocation}</p>
+                  <p className="text-xs text-muted-foreground mt-1">📅 {new Date(comp.date).toLocaleDateString()}</p>
+                </div>
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    status === "Active" ? "bg-green-100 text-green-700" :
+                    status === "Upcoming" ? "bg-blue-100 text-blue-700" :
+                    "bg-gray-100 text-gray-700"
+                  }`}>{status}</span>
+                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">View Details</Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-      <CreateCompetitionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        key={dialogOpen ? 'open' : 'closed'}
-      />
     </div>
   );
 };
