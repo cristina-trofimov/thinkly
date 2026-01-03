@@ -24,12 +24,12 @@ import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
 
-interface CreateCompetitionDialogPropsTEMP {
+interface CreateCompetitionDialogProps1 {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogPropsTEMP) {
+export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCompetitionDialogProps1) {
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -45,7 +45,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
   const [emailData, setEmailData] = useState({
     to: "",
     subject: "",
-    text: "",
+    body: "",
     sendAtLocal: "",
     sendInOneMinute: false,
   });
@@ -61,20 +61,31 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
 
   // for the email building
   useEffect(() => {
-    if (emailManuallyEdited) return;
+  // Reset the manual edit flag when any form field changes
+  setEmailManuallyEdited(false);
+}, [
+  formData.name,
+  formData.date,
+  formData.startTime,
+  formData.endTime,
+  formData.location,
+]);
 
-    const autoText = buildCompetitionEmail(formData);
-    if (autoText) {
-      setEmailData((prev) => ({ ...prev, text: autoText }));
-    }
-  }, [
-    formData.name,
-    formData.date,
-    formData.startTime,
-    formData.endTime,
-    formData.location,
-    emailManuallyEdited
-  ]);
+useEffect(() => {
+  if (emailManuallyEdited) return;
+
+  const autoText = buildCompetitionEmail(formData);
+  if (autoText) {
+    setEmailData((prev) => ({ ...prev, body: autoText }));
+  }
+}, [
+  formData.name,
+  formData.date,
+  formData.startTime,
+  formData.endTime,
+  formData.location,
+  emailManuallyEdited
+]);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,7 +130,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     setOrderedQuestions([...orderedQuestions, question]);
   };
 
-  const removeQuestion = (id: number) => {
+  const removeQuestion = (id: string) => {
     setOrderedQuestions(orderedQuestions.filter(q => q.id !== id));
   };
 
@@ -136,7 +147,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     setOrderedRiddles([...orderedRiddles, riddle]);
   };
 
-  const removeRiddle = (id: number) => {
+  const removeRiddle = (id: string) => {
     setOrderedRiddles(orderedRiddles.filter(r => r.id !== id));
   };
 
@@ -197,13 +208,13 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
         location: formData.location || undefined,
         questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
         riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
-        selectedQuestions: orderedQuestions.map(q => q.id),
-        selectedRiddles: orderedRiddles.map(r => r.id),
+        selectedQuestions: orderedQuestions.map(q => parseInt(q.id)),
+        selectedRiddles: orderedRiddles.map(r => parseInt(r.id)),
         emailEnabled,
         emailNotification: emailEnabled ? {
           to: emailToAll ? "all participants" : emailData.to.trim(),
           subject: emailData.subject,
-          text: emailData.text,
+          body: emailData.body,
           sendInOneMinute: emailData.sendInOneMinute,
           sendAtLocal: emailData.sendAtLocal || undefined,
         } : undefined,
@@ -251,7 +262,7 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     setEmailData({
       to: "",
       subject: "",
-      text: "",
+      body: "",
       sendAtLocal: "",
       sendInOneMinute: false,
     });
@@ -621,10 +632,10 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
                 <Textarea
                   id="emailText"
                   rows={5}
-                  value={emailData.text}
+                  value={emailData.body}
                   onChange={(e) => {
                     setEmailManuallyEdited(true);
-                    setEmailData({ ...emailData, text: e.target.value });
+                    setEmailData({ ...emailData, body: e.target.value });
                   }}
                   placeholder="Message that will be sent in reminders"
                 />
@@ -678,3 +689,4 @@ export default function CreateCompetitionDialog({ open, onOpenChange }: CreateCo
     </Dialog>
   );
 }
+

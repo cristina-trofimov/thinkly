@@ -12,6 +12,7 @@ import {
 import { Plus, Search, Filter } from 'lucide-react';
 import {useEffect, useState} from 'react';
 import CreateCompetitionDialog from "../../components/manageCompetitions/CreateCompetitionDialog"
+import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog"
 import { type Competition} from "../../types/competition/Competition.type"
 import {logFrontend} from "@/api/LoggerAPI";
 import {getCompetitions} from "@/api/CompetitionAPI";
@@ -37,8 +38,24 @@ const ManageCompetitions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
   const [competitions, setCompetition] = useState<Competition[]>([]);
 
+  const loadCompetitions = async () => {
+    try {
+      const data1 = await getCompetitions();
+      setCompetition(data1);
+    } catch (err) {
+      logFrontend({
+        level: 'ERROR',
+        message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
+        component: 'ManageCompetitionsPage.tsx',
+        url: window.location.href,
+        stack: (err as Error).stack,
+      });
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +96,15 @@ const ManageCompetitions = () => {
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const handleView = (id: string) => {
+    setSelectedCompetitionId(id);
+    setEditDialogOpen(true);
+  };
 
+  const handleEditSuccess = () => {
+    // Reload competitions after successful edit
+    loadCompetitions();
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -194,7 +219,7 @@ const ManageCompetitions = () => {
                     variant="ghost"
                     size="sm"
                     className="text-primary hover:bg-primary/10"
-
+                    onClick={() => handleView(comp.id)}
                   >
                     View →
                   </Button>
@@ -240,6 +265,16 @@ const ManageCompetitions = () => {
         onOpenChange={setCreateDialogOpen}
         key={createDialogOpen ? 'open' : 'closed'}
       />
+
+      {selectedCompetitionId && (
+        <EditCompetitionDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          competitionId={selectedCompetitionId}
+          onSuccess={handleEditSuccess}
+          key={editDialogOpen ? selectedCompetitionId : 'closed'}
+        />
+      )}
     </div>
   );
 };

@@ -13,10 +13,10 @@ competitions_router = APIRouter(tags=["Competitions"])
 
 
 # ---------------- Models ----------------
-class EmailNotificationRequest(BaseModel): #email for competition creation
-    to: str  # Can be "all participants" or comma-separated emails
+class EmailNotificationRequest(BaseModel):
+    to: str
     subject: str
-    text: str
+    body: str
     sendInOneMinute: bool = False
     sendAtLocal: Optional[str] = None
 
@@ -28,6 +28,17 @@ class EmailNotificationRequest(BaseModel): #email for competition creation
             except ValueError:
                 raise ValueError('sendAtLocal must be a valid ISO format datetime')
         return v
+
+
+class EmailNotificationResponse(BaseModel):
+    to: str
+    subject: str
+    body: str
+    sendInOneMinute: bool
+    sendAtLocal: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 class CreateCompetitionRequest(BaseModel):
@@ -93,6 +104,24 @@ class CompetitionResponse(BaseModel):
         from_attributes = True
 
 
+class DetailedCompetitionResponse(BaseModel):
+    """Response model for editing competitions - includes all necessary details"""
+    id: int
+    competitionTitle: str
+    competitionLocation: Optional[str]
+    date: str  # ISO date string
+    startTime: str  # HH:MM format
+    endTime: str  # HH:MM format
+    questionCooldownTime: int
+    riddleCooldownTime: int
+    selectedQuestions: List[int]  # List of question IDs in order
+    selectedRiddles: List[int]  # List of riddle IDs in order
+    emailNotification: Optional[EmailNotificationResponse] = None
+
+    class Config:
+        from_attributes = True
+
+
 # ---------------- Helper Functions ----------------
 def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
     """
@@ -112,15 +141,15 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         )
 
 
-def validate_competition_times(start_dt: datetime, end_dt: datetime):
+def validate_competition_times(start_dt: datetime, end_dt: datetime, skip_future_check: bool = False):
     """Validates that competition times are logical and in the future."""
-    now = datetime.now(timezone.utc)
-
-    if start_dt <= now:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Competition start time must be in the future"
-        )
+    if not skip_future_check:
+        now = datetime.now(timezone.utc)
+        if start_dt <= now:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Competition start time must be in the future"
+            )
 
     if end_dt <= start_dt:
         raise HTTPException(
@@ -129,9 +158,12 @@ def validate_competition_times(start_dt: datetime, end_dt: datetime):
         )
 
 
-def check_competition_name_exists(db: Session, name: str) -> bool:
+def check_competition_name_exists(db: Session, name: str, exclude_id: Optional[int] = None) -> bool:
     """Check if a competition with this name already exists."""
-    existing = db.query(BaseEvent).filter(BaseEvent.event_name == name).first()
+    query = db.query(BaseEvent).filter(BaseEvent.event_name == name)
+    if exclude_id:
+        query = query.filter(BaseEvent.event_id != exclude_id)
+    existing = query.first()
     return existing is not None
 
 
@@ -150,6 +182,7 @@ def create_competition_emails(
     """
     Creates scheduled email record for the competition.
     Stores reminder times: 24 hours before, 5 minutes before, and optional custom time.
+    Also stores the email body text, subject, and recipients.
     """
     try:
         # Calculate reminder times
@@ -165,14 +198,12 @@ def create_competition_emails(
                 email_data.sendAtLocal.replace('Z', '+00:00')
             )
 
-        # Create single email record with all reminder times
+        # Create single email record with all reminder times and email content
         competition_email = CompetitionEmail(
             competition_id=competition.event_id,
-            name=competition_name,
-            date=date_str,
-            start_time=start_time_str,
-            end_time=end_time_str,
-            location=location,
+            subject=email_data.subject,
+            to=email_data.to,
+            body=email_data.body,
             time_24h_before=time_24h,
             time_5min_before=time_5min,
             other_time=other_time
@@ -203,7 +234,6 @@ def get_all_competitions(db: Session = Depends(get_db)):
         competitions = db.query(Competition).join(BaseEvent).all()
         logger.info(f"Fetched {len(competitions)} competitions from the database.")
 
-        # Manually construct the response with base_event data
         return [
             {
                 "id": comp.event_id,
@@ -290,7 +320,6 @@ async def create_competition(
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
 
-    # Check if competition name already exists
     if check_competition_name_exists(db, request.name):
         logger.warning(f"Competition creation failed: Name '{request.name}' already exists")
         raise HTTPException(
@@ -298,13 +327,11 @@ async def create_competition(
             detail=f"Competition with name '{request.name}' already exists"
         )
 
-    # Parse and validate datetime
     start_dt = parse_datetime_from_request(request.date, request.startTime)
     end_dt = parse_datetime_from_request(request.date, request.endTime)
     validate_competition_times(start_dt, end_dt)
 
     try:
-        # Create BaseEvent
         base_event = BaseEvent(
             event_name=request.name,
             event_location=request.location,
@@ -320,7 +347,6 @@ async def create_competition(
 
         logger.info(f"BaseEvent created with ID: {base_event.event_id}")
 
-        # Create Competition
         competition = Competition(
             event_id=base_event.event_id,
             riddle_cooldown=request.riddleCooldownTime
@@ -331,7 +357,6 @@ async def create_competition(
 
         logger.info(f"Competition created with event_id: {competition.event_id}")
 
-        # Create QuestionInstances pairing question[i] with riddle[i]
         for index, (question_id, riddle_id) in enumerate(
                 zip(request.selectedQuestions, request.selectedRiddles)
         ):
@@ -345,15 +370,8 @@ async def create_competition(
             db.add(question_instance)
 
         _commit_or_rollback(db)
+        logger.info(f"Added {len(request.selectedQuestions)} question+riddle pairs")
 
-        logger.info(
-            f"Added {len(request.selectedQuestions)} question+riddle pairs"
-        )
-
-        _commit_or_rollback(db)
-        logger.info(f"Added {len(request.selectedQuestions)} questions and {len(request.selectedRiddles)} riddles")
-
-        # Handle email notifications
         if request.emailEnabled and request.emailNotification:
             create_competition_emails(
                 db,
@@ -394,18 +412,18 @@ async def create_competition(
         )
 
 
-@competitions_router.get("/{competition_id}", response_model=CompetitionResponse)
-async def get_competition(
+@competitions_router.get("/{competition_id}", response_model=DetailedCompetitionResponse)
+async def get_competition_detailed(
         competition_id: int,
         db: Session = Depends(get_db),
         current_user: dict = Depends(get_current_user)
 ):
     """
-    Get details of a specific competition.
-    Accessible by any authenticated user.
+    Get full details of a competition for editing purposes.
+    Returns all fields needed by the edit dialog.
     """
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' requesting competition ID: {competition_id}")
+    logger.info(f"User '{user_email}' requesting detailed competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
@@ -422,15 +440,173 @@ async def get_competition(
                 detail="Competition details not found"
             )
 
-        question_count = db.query(QuestionInstance).filter(
-            QuestionInstance.event_id == competition_id,
-            ~QuestionInstance.is_riddle
-        ).count()
+        # Get ordered question instances
+        question_instances = (
+            db.query(QuestionInstance)
+            .filter(QuestionInstance.event_id == competition_id)
+            .order_by(QuestionInstance.question_instance_id)
+            .all()
+        )
 
-        riddle_count = db.query(QuestionInstance).filter(
-            QuestionInstance.event_id == competition_id,
-            QuestionInstance.is_riddle
-        ).count()
+        selected_questions = [qi.question_id for qi in question_instances]
+        selected_riddles = [qi.riddle_id for qi in question_instances]
+
+        # Extract date and time from datetime
+        date_str = base_event.event_start_date.strftime('%Y-%m-%d')
+        start_time_str = base_event.event_start_date.strftime('%H:%M')
+        end_time_str = base_event.event_end_date.strftime('%H:%M')
+
+        # Get email notification if exists
+        email_notification = None
+        competition_email = db.query(CompetitionEmail).filter(
+            CompetitionEmail.competition_id == competition_id
+        ).first()
+
+        if competition_email:
+            logger.info(f"Found competition email for ID {competition_id}")
+            logger.info(f"  - Subject: {competition_email.subject}")
+            logger.info(f"  - To: {competition_email.to}")
+            logger.info(f"  - Body length: {len(competition_email.body) if competition_email.body else 0}")
+            logger.info(f"  - time_24h_before: {competition_email.time_24h_before}")
+            logger.info(f"  - time_5min_before: {competition_email.time_5min_before}")
+            logger.info(f"  - other_time: {competition_email.other_time}")
+
+            send_in_one_minute = False
+            send_at_local = None
+
+            if competition_email.other_time:
+                # Format datetime for datetime-local input (YYYY-MM-DDTHH:mm)
+                send_at_local = competition_email.other_time.strftime('%Y-%m-%dT%H:%M')
+                logger.info(f"  - Formatted send_at_local: {send_at_local}")
+
+            email_notification = EmailNotificationResponse(
+                to=competition_email.to,
+                subject=competition_email.subject,
+                body=competition_email.body,
+                sendInOneMinute=send_in_one_minute,
+                sendAtLocal=send_at_local
+            )
+
+            logger.info(f"Email notification response created successfully")
+        else:
+            logger.info(f"No email notification found for competition ID {competition_id}")
+
+        return DetailedCompetitionResponse(
+            id=base_event.event_id,
+            competitionTitle=base_event.event_name,
+            competitionLocation=base_event.event_location,
+            date=date_str,
+            startTime=start_time_str,
+            endTime=end_time_str,
+            questionCooldownTime=base_event.question_cooldown,
+            riddleCooldownTime=competition.riddle_cooldown,
+            selectedQuestions=selected_questions,
+            selectedRiddles=selected_riddles,
+            emailNotification=email_notification
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error retrieving detailed competition {competition_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve competition details"
+        )
+
+
+@competitions_router.put("/{competition_id}", response_model=CompetitionResponse)
+async def update_competition(
+        competition_id: int,
+        request: CreateCompetitionRequest,
+        db: Session = Depends(get_db),
+        current_user: dict = Depends(role_required("admin"))
+):
+    """
+    Update an existing competition.
+    Only accessible by users with 'admin' role.
+    """
+    user_email = current_user.get("sub")
+    logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
+
+    try:
+        # Check if competition exists
+        base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
+        if not base_event:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Competition not found"
+            )
+
+        competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
+        if not competition:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Competition details not found"
+            )
+
+        # Check if new name conflicts with another competition
+        if request.name != base_event.event_name:
+            if check_competition_name_exists(db, request.name, exclude_id=competition_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Competition with name '{request.name}' already exists"
+                )
+
+        # Parse and validate times (skip future check for updates)
+        start_dt = parse_datetime_from_request(request.date, request.startTime)
+        end_dt = parse_datetime_from_request(request.date, request.endTime)
+        validate_competition_times(start_dt, end_dt, skip_future_check=True)
+
+        # Update BaseEvent
+        base_event.event_name = request.name
+        base_event.event_location = request.location
+        base_event.question_cooldown = request.questionCooldownTime
+        base_event.event_start_date = start_dt
+        base_event.event_end_date = end_dt
+        base_event.updated_at = datetime.now(timezone.utc)
+
+        # Update Competition
+        competition.riddle_cooldown = request.riddleCooldownTime
+
+        # Delete existing question instances
+        db.query(QuestionInstance).filter(
+            QuestionInstance.event_id == competition_id
+        ).delete()
+
+        # Create new question instances
+        for question_id, riddle_id in zip(request.selectedQuestions, request.selectedRiddles):
+            question_instance = QuestionInstance(
+                event_id=competition_id,
+                question_id=question_id,
+                riddle_id=riddle_id,
+                points=0,
+                is_riddle_completed=False
+            )
+            db.add(question_instance)
+
+        # Update or delete email notifications
+        db.query(CompetitionEmail).filter(
+            CompetitionEmail.competition_id == competition_id
+        ).delete()
+
+        if request.emailEnabled and request.emailNotification:
+            create_competition_emails(
+                db,
+                competition,
+                request.emailNotification,
+                start_dt,
+                end_dt,
+                request.name,
+                request.date,
+                request.startTime,
+                request.endTime,
+                request.location
+            )
+
+        _commit_or_rollback(db)
+
+        logger.info(f"SUCCESSFUL UPDATE: Competition '{request.name}' (ID: {competition_id}) by '{user_email}'")
 
         return CompetitionResponse(
             event_id=base_event.event_id,
@@ -440,18 +616,19 @@ async def get_competition(
             event_end_date=base_event.event_end_date,
             question_cooldown=base_event.question_cooldown,
             riddle_cooldown=competition.riddle_cooldown,
-            question_count=question_count,
-            riddle_count=riddle_count,
+            question_count=len(request.selectedQuestions),
+            riddle_count=len(request.selectedRiddles),
             created_at=base_event.created_at
         )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error retrieving competition {competition_id}: {str(e)}")
+        logger.exception(f"Error updating competition {competition_id}: {str(e)}")
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve competition"
+            detail="Failed to update competition"
         )
 
 
@@ -493,3 +670,6 @@ async def delete_competition(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete competition"
         )
+
+
+

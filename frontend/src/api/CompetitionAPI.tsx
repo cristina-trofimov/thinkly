@@ -7,7 +7,7 @@ import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../t
 export async function getCompetitions(): Promise<Competition[]> {
   try {
     const response = await axiosClient.get<{
-      id: number;
+      id: string;
       competition_title: string;
       competition_location: string;
       date: Date;
@@ -90,27 +90,18 @@ export async function listCompetitions(): Promise<CompetitionResponse[]> {
 
 
 /**
- * Get a specific competition by ID
+ * Get a specific competition by ID with all details for editing
  * Requires authentication
  */
 export const getCompetitionById = async (competitionId: string) => {
   try {
-    const response = await fetch(`/api/competitions/${competitionId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch competition: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching competition by ID:', error);
-    throw error;
+    const response = await axiosClient.get(
+      `/competitions/${competitionId}`
+    );
+    return response.data;
+  } catch (err) {
+    console.error('Error fetching competition by ID:', err);
+    throw err;
   }
 };
 
@@ -121,12 +112,27 @@ export const getCompetitionById = async (competitionId: string) => {
  */
 export async function deleteCompetition(competitionId: number): Promise<void> {
   try {
-    await axiosClient.delete("/competitions/${competitionId}");
+    await axiosClient.delete(`/competitions/${competitionId}`);
   } catch (err) {
     console.error(`Error deleting competition ${competitionId}:`, err);
     throw err;
   }
 }
 
-
+/**
+ * Update an existing competition
+ * Requires owner authentication
+ */
+export const updateCompetition = async (payload: any) => {
+  try {
+    const response = await axiosClient.put(
+      `/competitions/${payload.id}`,
+      payload
+    );
+    return response.data;
+  } catch (err) {
+    console.error('Error updating competition:', err);
+    throw err;
+  }
+};
 
