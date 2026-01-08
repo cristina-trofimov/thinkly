@@ -1,19 +1,18 @@
-import { useEffect, useRef, useState, } from 'react'
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "../ui/resizable";
+import React, { useLayoutEffect, useState, } from 'react'
 import CodeDescArea from "./CodeDescArea";
 import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { getSandpackConfigs } from "../helpers/SandpackConfig";
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../../types/SubmissionType.type';
 import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
-import MonacoEditor from "@monaco-editor/react";
+import MonacoEditor, * as monaco from "@monaco-editor/react";
 import Console from "@code-editor/console-feed";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
+import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -51,19 +50,24 @@ const CodingView = () => {
     { "status": "Wrong Answer", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40" },
   ]
 
-  const templates = getSandpackConfigs(problemName, inputVars, outputType)
-  const sampleTemps = {
-    "Javascript": templates.Javascript,
-    "Typescript": templates.Typescript,
+  const submitCode = () => {
+    console.log("submitting code")
   }
 
-  const languages = Object.keys(sampleTemps) as Array<keyof typeof sampleTemps>
+  const runCode = () => {
+    console.log("running code")
+  }
 
-  const [selectedLang, setSelectedLang] = useStateCallback(languages[0])
-  const { template, files } = sampleTemps[selectedLang]!
+  const resetEditor = () => {
+    console.log("resetting editor")
+    setCode(templateCode)
+    // monaco.Editor.d
+  }
 
-  const { code, language } = buildMonacoCode({
-    language: "Javascript",
+  const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
+
+  const { templateCode, language } = buildMonacoCode({
+    language: selectedLang,
     problemName: "twoSum",
     inputVars: [
       { name: "nums", type: "number[]" },
@@ -72,256 +76,224 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  // const [language, setLanguage] = useState("javascript");
-  // const [code, setCode] = useState("");
+  const [ code, setCode ] = useStateCallback<string>(templateCode)
   const [logs, setLogs] = useState([]);
 
   const outputTabs = [
     { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },
     { id: 'console', text: 'Console', icon: <Terminal size={16} /> },
   ]
+  
+  const [fullCode, setFullCode] = useState(false)
+  const [fullOutput, setFullOutput] = useState(false)
+  const [closeCode, setCloseCode] = useState(false)
+  const [closeOutput, setCloseOutput] = useState(false)
 
-  const codePanelRef = useRef<ImperativePanelHandle>(null)
-  const descPanelRef = useRef<ImperativePanelHandle>(null)
-  const outputPanelRef = useRef<ImperativePanelHandle>(null)
-  const codeAndOutputPanelRef = useRef<ImperativePanelHandle>(null)
+  const mainPanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
+  const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
-  const [fullCode, setFullCode] = useStateCallback(false)
-  const [fullOutput, setFullOutput] = useStateCallback(false)
-  const [closeCode, setCloseCode] = useStateCallback(false)
-  const [closeOutput, setCloseOutput] = useStateCallback(false)
-
-  useEffect(() => {
-    if (!descPanelRef.current || !codeAndOutputPanelRef.current
-      || !codePanelRef.current || !outputPanelRef.current)
-      return;
-
-    let descSize, codeAndOutputSize, codeSize, outputSize;
+  useLayoutEffect(() => {
+    let mainPanelSize: number[], codePanelSize: number[]
 
     if (fullCode) {
-      descSize = 0;
-      codeAndOutputSize = 100;
-      codeSize = 100;
-      outputSize = 0;
+      mainPanelSize = [0, 100] // 1st is desc, 2nd is editor
+      codePanelSize = [100, 0] // 1st is code, 2nd is console
     } else if (fullOutput) {
-      descSize = 0;
-      codeAndOutputSize = 100;
-      codeSize = 0;
-      outputSize = 100;
+      mainPanelSize = [0, 100]
+      codePanelSize = [0, 100]
     } else if (closeCode && closeOutput) {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 65;
-      outputSize = 35;
-      setCloseCode(false)
-      setCloseOutput(false)
+      mainPanelSize = [50, 50]
+      codePanelSize = [65, 35]
     } else if (closeCode) {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 5;
-      outputSize = 95;
+      mainPanelSize = [50, 50]
+      codePanelSize = [4, 96]
     } else if (closeOutput) {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 95;
-      outputSize = 5;
+      mainPanelSize = [50, 50]
+      codePanelSize = [96, 4]
     } else {
-      descSize = 50;
-      codeAndOutputSize = 50;
-      codeSize = 75;
-      outputSize = 25;
+      mainPanelSize = [50, 50]
+      codePanelSize = [75, 25]
     }
 
-    descPanelRef.current.resize(descSize);
-    codeAndOutputPanelRef.current.resize(codeAndOutputSize);
-    codePanelRef.current.resize(codeSize);
-    outputPanelRef.current.resize(outputSize);
-  }, [fullCode, fullOutput, closeCode, setCloseCode, closeOutput, setCloseOutput])
+    mainPanelGroup.current?.setLayout(mainPanelSize)
+    codePanelGroup.current?.setLayout(codePanelSize)
+  }, [fullCode, fullOutput, closeCode, closeOutput])
 
   return (
-    <div className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'>
-    {/* // <SandboxProvider data-testid="sandbox-provider" key="sandbox-provider"
-    //   template={template} files={files}
-    //   options={{ autorun: true, activeFile: Object.keys(files)[0], }}
-    //   // className='px-2 h-182.5 min-h-[calc(100vh-4.5rem)]
-    //   className='px-2 h-182.5 min-h-[calc(90vh)]
-    //   min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
-    // > */}
-      {/* <SandboxLayout data-testid="sandbox-layout" > */}
-        <div className='flex items-center justify-center mb-2 w-full' >
-          <Button>
-            <CloudUpload size={16} />Submit
-          </Button>
-        </div>
-        <ResizablePanelGroup direction="horizontal" className='h-full w-full flex' >
-          {/* Description panel */}
-          <ResizablePanel data-testid="desc-area"
-            defaultSize={50} ref={descPanelRef}
-            className='mr-0.75 rounded-md border'
-          >
-            <CodeDescArea problemInfo={problemInfo}
-              submissions={submissions} />
-          </ResizablePanel>
+    <div data-testid="sandbox-provider" key="sandbox-provider"
+      className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+    >
+      <div className='flex items-center justify-center mb-2 w-full' >
+        <Button onClick={submitCode} >
+          <CloudUpload size={16} />Submit
+        </Button>
+      </div>
+      <PanelGroup ref={mainPanelGroup} direction="horizontal"
+        className='h-full w-full' 
+      >
+        {/* Description panel */}
+        <Panel data-testid="desc-area" collapsible collapsedSize={5}
+          defaultSize={50} minSize={0} maxSize={100}
+          className='mr-0.75 rounded-md border'
+        >
+          <CodeDescArea problemInfo={problemInfo}
+            submissions={submissions} />
+        </Panel>
 
-          <ResizableHandle withHandle className="w-[0.35px] mx-[1.5px] border-none"
-            style={{ background: "transparent" }} />
+        <PanelResizeHandle className="w-[0.35px] mx-[1.5px] border-none"
+          style={{ background: "transparent" }} 
+        />
 
-          {/* Second panel */}
-          <ResizablePanel data-testid="second-panel"
-            defaultSize={50} ref={codeAndOutputPanelRef}
-          >
-            <ResizablePanelGroup direction="vertical" >
-              {/* Coding area panel */}
-              <ResizablePanel
-                defaultSize={65} ref={codePanelRef}
-                className="ml-0.75 mb-1 rounded-md border"
-              >
-                <div data-testid="coding-area" >
+        {/* Second panel */}
+        <Panel data-testid="second-panel" defaultSize={50} minSize={0} maxSize={100} >
+          <PanelGroup direction="vertical" ref={codePanelGroup} >
+            {/* Coding area panel */}
+            <Panel defaultSize={65}
+              className="ml-0.75 mb-1 rounded-md border"
+            >
+              <div data-testid="coding-area" >
 
-                  <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                        border-b border-border/75 dark:border-border/50 py-1.5 px-4"
-                  >
-                    <span className="text-lg font-medium" >Code</span>
-                    <div className="grid grid-cols-4 gap-1">
-                      {/* Size buttons */}
-                      <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        <Play size={22} color="green" className='hover:fill-green fill-transparent' />
-                      </Button>
-                      <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        <RotateCcw size={22} color="black" />
-                      </Button>
-                      <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
-                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
-                          : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
-                      </Button>
-                      <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
-                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
-                          : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2" >
-                    <DropdownMenu data-testid='languageDropdown'>
-                      <DropdownMenuTrigger asChild>
-                        <Button data-testid='languageBtn'
-                          className="bg-background text-black text-s font-semibold h-7
-                                    hover:bg-primary/20 focus:bg-primary/55" >
-                          {selectedLang}
-                          <ChevronDown />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className='z-9999999' >
-                        <div data-testid='languageMenu'
-                          className="z-10 bg-white w-26 border rounded-lg"
-                        >
-                          {languages.map((lang) => (
-                            <DropdownMenuItem data-testid={`languageItem-${lang}`} key={lang}
-                              className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                              onSelect={() => {
-                                setSelectedLang(lang);
-                              }}
-                            >
-                              {lang}
-                            </DropdownMenuItem>
-                          ))}
-                        </div>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                      border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                >
+                  <span className="text-lg font-medium" >Code</span>
+                  <div className="grid grid-cols-4 gap-1">
+                    {/* Size buttons */}
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
+                      onClick={runCode}
+                    >
+                      <Play size={22} color="green" className='hover:fill-green fill-transparent' />
+                    </Button>
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
+                      onClick={resetEditor}
+                    >
+                      <RotateCcw size={22} color="black" />
+                    </Button>
+                    <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                      {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
+                        : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
+                    </Button>
+                    <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                      {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
+                        : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
+                    </Button>
                   </div>
                 </div>
-                <MonacoEditor
-                  key={language}
-                  language={language}
-                  value={code}
-                  // value={sampleTemps}
-                  theme="vs-dark"
-                  // onChange={(value) => setCode(value)}
-                  options={{
-                    fontSize: 14,
-                    automaticLayout: true,
-                  }}
-                />
-                {/* <SandboxCodeEditor data-testid="sandbox-code-editor" showRunButton
-                  showLineNumbers showInlineErrors
-                /> */}
-              </ResizablePanel>
+                <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2" >
+                  <DropdownMenu data-testid='languageDropdown'>
+                    <DropdownMenuTrigger>
+                      <Button data-testid='languageBtn'
+                        className="bg-background text-black text-base font-bold h-7
+                                  hover:bg-primary/20 focus:bg-primary/55" >
+                        {selectedLang}
+                        <ChevronDown />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className='z-999' >
+                      <div data-testid='languageMenu'
+                        className="z-10 text-sm bg-white w-26 border rounded-lg"
+                      >
+                        {supportedLanguages.map((lang) => (
+                          <DropdownMenuItem data-testid={`languageItem-${lang}`} key={lang}
+                            className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                            onSelect={() => { setSelectedLang(lang); setCode(templateCode) }}
+                          >
+                            {lang}
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <MonacoEditor
+                key="code-editor"
+                language={language}
+                value={templateCode}
+                // value={code}
+                theme="vs-dark"
+                onChange={(value) => setCode(value ?? templateCode)}
+                options={{
+                  fontSize: 14,
+                  automaticLayout: true,
+                }}
+              />
+            </Panel>
 
-              <ResizableHandle withHandle className='my-[0.5px] border-none h-[0.5px]'
-                style={{ background: "transparent", }} />
+            <PanelResizeHandle className='my-[0.5px] border-none h-[0.5px]'
+              style={{ background: "transparent" }} 
+            />
 
-              {/* Output panel */}
-              <ResizablePanel data-testid="output-area"
-                defaultSize={35} ref={outputPanelRef}
-                className="ml-0.75 mt-1 rounded-md border"
-              >
-                <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
-                  <TabsList data-testid="sandbox-tabs-list"
-                    className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                        border-b border-border/75 dark:border-border/50 py-1.5"
+            {/* Output panel */}
+            <Panel data-testid="output-area" defaultSize={35} 
+              className="ml-0.75 mt-1 rounded-md border"
+            >
+              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
+                <TabsList data-testid="sandbox-tabs-list"
+                  className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                      border-b border-border/75 dark:border-border/50 py-1.5"
+                >
+                  <div className='w-full flex rounded-none h-10 bg-muted gap-3
+                      border-b border-border/75 dark:border-border/50 py-0 px-4'
                   >
-                    <div className='w-full flex rounded-none h-10 bg-muted gap-2
-                        border-b border-border/75 dark:border-border/50 py-0 px-4'
-                    >
-                      {outputTabs.map(tab => {
-                        return <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
-                          className='bg-muted rounded-none
-                          data-[state=active]:border-primary
-                          data-[state=active]:text-primary
-                          data-[state=active]:bg-muted
-                          data-[state=active]:shadow-none
-                          data-[state=active]:border-b-[2.5px]
-                          data-[state=active]:border-x-0
-                          data-[state=active]:border-t-0
-                          dark:data-[state=active]:border-primary
-                          flex items-center gap-2 transition-all'
-                        >
-                          {tab.icon}{tab.text}
-                        </TabsTrigger>
-                      })}
-                    </div>
-                    <div className="grid grid-cols-2 gap-1">
-                      {/* Size buttons */}
-                      <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
-                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
-                          : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
-                      </Button>
-                      <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
-                        className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                        {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
-                          : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
-                      </Button>
-                    </div>
-                  </TabsList>
-                  <TabsContent data-testid="sandbox-tabs-content" value="preview" >
-                    <div data-testid="preview"
-                      style={{
-                        background: "#e0ffff", color: "white", padding: "10px",
-                        height: "200px", overflowY: "auto"
-                      }}
-                    >
-                      {/* <Console logs={logs} variant="dark" /> */}
-                    </div>
-                  </TabsContent>
-                  <TabsContent data-testid="sandbox-tabs-content" value="console">
-                    <div data-testid="console"
-                      style={{
-                        background: "#1e1e1e", color: "white", padding: "10px",
-                        height: "200px", overflowY: "auto"
-                      }}
-                    >
-                      {/* <Console logs={logs} variant="dark" /> */}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      {/* </SandboxLayout> */}
-    {/* </SandboxProvider> */}
+                    {outputTabs.map(tab => {
+                      return <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
+                        className='bg-muted rounded-none
+                        data-[state=active]:border-primary
+                        data-[state=active]:text-primary
+                        data-[state=active]:bg-muted
+                        data-[state=active]:shadow-none
+                        data-[state=active]:border-b-[2.5px]
+                        data-[state=active]:border-x-0
+                        data-[state=active]:border-t-0
+                        dark:data-[state=active]:border-primary
+                        flex items-center gap-2 transition-all'
+                      >
+                        {tab.icon}{tab.text}
+                      </TabsTrigger>
+                    })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pr-5">
+                    {/* Size buttons */}
+                    <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                      {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
+                        : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
+                    </Button>
+                    <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
+                      {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
+                        : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
+                    </Button>
+                  </div>
+                </TabsList>
+                <TabsContent data-testid="preview-tab" value="preview" >
+                  <div data-testid="preview" className='h-full'
+                    style={{
+                      background: "#e0ffff", color: "white", padding: "10px",
+                      overflowY: "auto"
+                    }}
+                  >
+                    {/* <Console logs={logs} variant="dark" /> */}
+                  </div>
+                </TabsContent>
+                <TabsContent data-testid="output-tab" value="console">
+                  <div data-testid="console" className='h-full'
+                    style={{
+                      background: "#1e1e1e", color: "white", padding: "10px",
+                      overflowY: "auto"
+                    }}
+                  >
+                    {/* <Console logs={logs} variant="dark" /> */}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+      </PanelGroup>
     </div>
   );
 };

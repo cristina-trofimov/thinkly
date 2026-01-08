@@ -17,9 +17,8 @@ export function buildMonacoCode({
     }
   
     return {
-      language: template.fileExt,
-      filename: template.filename,
-      code: template.codeBuilder(problemName, inputVars, outputType),
+      language: template.monacoID,
+      templateCode: template.codeBuilder(problemName, inputVars, outputType),
     };
-  }
+}
   
