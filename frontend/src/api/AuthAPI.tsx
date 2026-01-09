@@ -1,9 +1,9 @@
 import axiosClient from "@/lib/axiosClient";
+import type { Account } from "@/types/account/Account.type";
 import type {
     LoginRequest,
     LoginResponse,
     SignupRequest,
-    UserProfile,
 } from "@/types/Auth.type";
 
 export interface ForgotPasswordRequest {
@@ -28,20 +28,19 @@ export async function googleLogin(credential: string): Promise<LoginResponse> {
     return response.data;
 }
 
-export async function getProfile(): Promise<UserProfile> {
+export async function getProfile(): Promise<Account> {
     const token = localStorage.getItem("token");
     if (!token) {
         throw new Error("No token found — please log in first.");
     }
 
-    const response = await axiosClient.get<UserProfile>("/auth/profile", {
+    const response = await axiosClient.get<Account>("/auth/profile", {
         headers: {
             Authorization: `Bearer ${token}`,
         },
     });
 
     return response.data;
-
 }
 
 export async function logout(): Promise<void> {

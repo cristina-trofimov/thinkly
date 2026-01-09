@@ -20,14 +20,11 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { getProfile } from "@/api/AuthAPI"
+import type { Account } from "@/types/account/Account.type"
 
 // Sample data - can keep navMain and other even when backend is implemented, but remove user
 const data = {
-  user: {
-    firstName: "shadcn",
-    lastName: "example",
-    email: "m@example.com",
-  },
   navMain: [
     {
       name: "AlgoTime",
@@ -60,6 +57,27 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = React.useState<Account | null>(null);
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const currentAccount = await getProfile();
+        setUser({
+            id: currentAccount.id,
+            firstName: currentAccount.firstName,
+            lastName: currentAccount.lastName,
+            email: currentAccount.email,
+            accountType: currentAccount.accountType, 
+          });
+      } catch (error) {
+        console.error("Failed to load user profile:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+  
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -89,7 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSection link={data.navOther} label="Other" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -27,16 +27,13 @@ import {
 import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
+import type { Account } from "@/types/account/Account.type"
 
 interface NavUserProps {
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-  }
+  user: Account | null;
 }
 
-export function NavUser({ user }: Readonly<NavUserProps>) {
+export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate();
 
@@ -52,9 +49,8 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       if (err instanceof Error) {
         alert(err.message);
       } else if (typeof err === "object" && err !== null && "response" in err) {
-        // For Axios-like errors
-        // @ts-expect-error TS can't infer 'response' property
-        alert(err.response?.data?.error);
+        const axiosError = err as { response?: { data?: { error?: string } } };
+        alert(axiosError.response?.data?.error || "An unknown error occurred during logout");
       } else {
         alert(String(err));
       }
@@ -71,13 +67,13 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <AvatarInitials
-                firstName={user.firstName}
-                lastName={user.lastName}
+                firstName={user?.firstName ?? ""}
+                lastName={user?.lastName ?? ""}
                 size="md"
               />
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.firstName} {user.lastName}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
+                <span className="truncate text-xs">{user?.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -91,13 +87,13 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <AvatarInitials
-                  firstName={user.firstName}
-                  lastName={user.lastName}
+                  firstName={user?.firstName ?? ""}
+                  lastName={user?.lastName ?? ""}
                   size="md"
                 />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.firstName} {user.lastName}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
+                  <span className="truncate text-xs">{user?.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>

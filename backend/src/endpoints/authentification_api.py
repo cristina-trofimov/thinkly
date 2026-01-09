@@ -214,7 +214,7 @@ async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
     logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
-    return {"id": user.user_id, "email": user.email, "role": user.user_type}
+    return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email, "role": user.user_type}
 
 
 @auth_router.post("/logout")
