@@ -30,6 +30,15 @@ function ProfilePage() {
     // Temporary value state for the input field
     const [tempValue, setTempValue] = React.useState("");
 
+    // Check for pending success messages after a page refresh
+    React.useEffect(() => {
+        const pendingToast = sessionStorage.getItem("profileUpdateToast");
+        if (pendingToast) {
+            toast.success(pendingToast);
+            sessionStorage.removeItem("profileUpdateToast");
+        }
+    }, []);
+
     React.useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -89,10 +98,13 @@ function ProfilePage() {
             const fieldLabel = editingField.charAt(0).toUpperCase() + 
                                editingField.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase();
             
-            toast.success(`${fieldLabel} updated successfully.`);
+            // Store the success message in session storage so it survives the reload
+            sessionStorage.setItem("profileUpdateToast", `${fieldLabel} updated successfully.`);
+            
             setEditingField(null);
             setTempValue("");
-            // Refresh to sync global UI components like the navbar name
+            
+            // Full refresh to update navbar/sidebar names
             window.location.reload();
         } catch (error) {
             console.error(`Error updating ${editingField}:`, error);
