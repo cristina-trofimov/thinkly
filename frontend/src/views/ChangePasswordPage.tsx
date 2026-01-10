@@ -7,10 +7,11 @@ import { Label } from "../components/ui/label";
 import { Input } from "../components/ui/input";
 import { changePassword } from "../api/AuthAPI";
 import { toast } from "sonner";
+import { logFrontend } from "@/api/LoggerAPI";
 
 function ChangePasswordPage() {
   const navigate = useNavigate();
-  
+
   // Form State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -45,15 +46,33 @@ function ChangePasswordPage() {
       });
 
       toast.success("Password updated successfully.");
-      
+
       // Navigate back to profile after a brief delay
       setTimeout(() => {
         navigate(-1);
       }, 1000);
 
-    } catch (err: any) {
-      console.error("Change password error:", err);
-      const errorMessage = err.response?.data?.detail || "Failed to update password. Check your current password.";
+    } catch (err: unknown) {
+      logFrontend({
+        level: 'ERROR',
+        message: `Change password error: ${err instanceof Error ? err.message : String(err)}`,
+        component: 'SomePage',
+        url: window.location.href,
+      });
+
+      // 1. Default fallback message
+      let errorMessage = "Failed to update password. Check your current password.";
+
+      // 2. Check if it's an object with Axios-style data without using 'any'
+      if (err && typeof err === 'object' && 'response' in err) {
+        // We cast to a specific shape rather than 'any'
+        const axiosError = err as { response?: { data?: { detail?: string } } };
+        errorMessage = axiosError.response?.data?.detail || errorMessage;
+      } else if (err instanceof Error) {
+        // 3. Fallback to standard Error message if available
+        errorMessage = err.message;
+      }
+
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -66,10 +85,10 @@ function ChangePasswordPage() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mb-2 -ml-2 text-muted-foreground" 
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mb-2 -ml-2 text-muted-foreground"
               onClick={() => navigate(-1)}
               disabled={isSubmitting}
             >
@@ -84,7 +103,7 @@ function ChangePasswordPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         <Card className="rounded-3xl border-muted/20 shadow-md overflow-hidden">
           <CardContent className="p-8 space-y-8">
-            
+
             {/* Current Password */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold flex items-center gap-2">
@@ -126,9 +145,8 @@ function ChangePasswordPage() {
                   placeholder="Repeat your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`h-10 focus-visible:ring-[#8065CD] rounded-xl ${
-                    confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
-                  }`}
+                  className={`h-10 focus-visible:ring-[#8065CD] rounded-xl ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
+                    }`}
                   disabled={isSubmitting}
                 />
                 {confirmPassword && newPassword !== confirmPassword && (
