@@ -1,18 +1,21 @@
 import React from "react";
-import { getProfile } from "../api/AuthAPI";
-import type { Account } from "../types/account/Account.type";
-import { Card, CardContent } from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
-import { Badge } from "../components/ui/badge";
+import { getProfile } from "@/api/AuthAPI";
+import type { Account } from "@/types/account/Account.type";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { IdCardLanyard, Mail, User, IdCard, Pencil, KeyRound, Check, X } from "lucide-react";
-import { AvatarInitials } from "../components/helpers/AvatarInitials";
-import { Button } from "../components/ui/button";
+import { AvatarInitials } from "@/components/helpers/AvatarInitials";
+import { Button } from "@/components/ui/button";
+import { useNavigate, useOutlet } from "react-router-dom";
 
 function ProfilePage() {
     const [user, setUser] = React.useState<Account | null>(null);
     const [loading, setLoading] = React.useState(true);
+    const navigate = useNavigate(); 
+    const outlet = useOutlet();
 
     // State to track which field is currently being edited
     const [editingField, setEditingField] = React.useState<"firstName" | "lastName" | "email" | null>(null);
@@ -63,6 +66,15 @@ function ProfilePage() {
         setTempValue("");
     };
 
+    const handleChangePasswordNavigation = () => {
+        // Navigates to /app/profile/changePassword
+        navigate("changePassword");
+    };
+
+    if (outlet) {
+        return outlet;
+    }
+
     if (loading) {
         return (
             <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
@@ -72,7 +84,7 @@ function ProfilePage() {
     }
 
     return (
-        <div className="container mx-auto max-w-5xl p-6 md:p-10 space-y-10">
+        <div className="container mx-auto max-w-5xl p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
                 <div className="relative group">
@@ -109,16 +121,16 @@ function ProfilePage() {
                     <IdCard className="h-5 w-5 text-[#8065CD]" />
                     Personal Information
                 </h2>
-                <Card className="rounded-3xl border-muted/20 shadow-md">
+                <Card className="rounded-3xl border-muted/20 shadow-md overflow-hidden">
                     <CardContent className="p-8 space-y-8">
                         {/* First Name Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2">
+                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
                                 <User className="h-4 w-4 opacity-70" /> First Name
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
                                 {editingField === "firstName" ? (
-                                    <div className="flex items-center gap-2 w-full">
+                                    <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
@@ -152,12 +164,12 @@ function ProfilePage() {
 
                         {/* Last Name Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2">
+                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
                                 <User className="h-4 w-4 opacity-70" /> Last Name
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
                                 {editingField === "lastName" ? (
-                                    <div className="flex items-center gap-2 w-full">
+                                    <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
@@ -191,12 +203,12 @@ function ProfilePage() {
 
                         {/* Email Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2">
+                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
                                 <Mail className="h-4 w-4 opacity-70" /> Email
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
                                 {editingField === "email" ? (
-                                    <div className="flex items-center gap-2 w-full">
+                                    <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
@@ -230,7 +242,7 @@ function ProfilePage() {
 
                         {/* Password Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2">
+                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
                                 <KeyRound className="h-4 w-4 opacity-70" /> Password
                             </Label>
                             <div className="flex items-center justify-between group">
@@ -240,6 +252,7 @@ function ProfilePage() {
                                 <Button
                                     variant="ghost"
                                     className="h-9 px-4 text-sm font-medium text-[#8065CD] hover:bg-[#8065CD]/10 rounded-xl transition-all"
+                                    onClick={handleChangePasswordNavigation}
                                 >
                                     Change Password
                                 </Button>
