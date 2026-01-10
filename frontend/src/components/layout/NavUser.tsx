@@ -5,11 +5,6 @@ import {
   LogOut,
 } from "lucide-react"
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -28,6 +23,7 @@ import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
 import type { Account } from "@/types/account/Account.type"
+import { logFrontend } from '../../api/LoggerAPI'; 
 
 interface NavUserProps {
   user: Account | null;
@@ -43,7 +39,12 @@ export function NavUser({ user }: NavUserProps) {
       alert("You have been logged out.");
       navigate('/');
     } catch (err: unknown) {
-      console.error("Logout failed:", err);
+      logFrontend({
+        level: 'ERROR', 
+        message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
+        component: 'NavUser',
+        url: window.location.href,
+    });
 
       // Narrow the type
       if (err instanceof Error) {
@@ -55,6 +56,16 @@ export function NavUser({ user }: NavUserProps) {
         alert(String(err));
       }
     }
+  };
+
+  const handleProfileClick = () => {
+    navigate('/app/profile');
+    logFrontend({
+        level: 'INFO', 
+        message: `Navigated to the user profile page.`,
+        component: 'NavUser',
+        url: window.location.href,
+    });
   };
 
   return (
@@ -99,9 +110,9 @@ export function NavUser({ user }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileClick}>
                 <BadgeCheck />
-                Account
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />

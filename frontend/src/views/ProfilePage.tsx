@@ -1,0 +1,255 @@
+import React from "react";
+import { getProfile } from "../api/AuthAPI";
+import type { Account } from "../types/account/Account.type";
+import { Card, CardContent } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Separator } from "../components/ui/separator";
+import { Badge } from "../components/ui/badge";
+import { IdCardLanyard, Mail, User, IdCard, Pencil, KeyRound, Check, X } from "lucide-react";
+import { AvatarInitials } from "../components/helpers/AvatarInitials";
+import { Button } from "../components/ui/button";
+
+function ProfilePage() {
+    const [user, setUser] = React.useState<Account | null>(null);
+    const [loading, setLoading] = React.useState(true);
+
+    // State to track which field is currently being edited
+    const [editingField, setEditingField] = React.useState<"firstName" | "lastName" | "email" | null>(null);
+    // Temporary value state for the input field
+    const [tempValue, setTempValue] = React.useState("");
+
+    React.useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const currentAccount = await getProfile();
+                setUser({
+                    id: currentAccount.id,
+                    firstName: currentAccount.firstName,
+                    lastName: currentAccount.lastName,
+                    email: currentAccount.email,
+                    accountType: currentAccount.accountType,
+                });
+            } catch (error) {
+                console.error("Failed to load user profile:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const startEditing = (field: "firstName" | "lastName" | "email", value: string) => {
+        setEditingField(field);
+        setTempValue(value);
+    };
+
+    const cancelEditing = () => {
+        setEditingField(null);
+        setTempValue("");
+    };
+
+    const saveField = () => {
+        if (!user || !editingField) return;
+
+        // Update local state (Backend logic will be added later)
+        setUser({
+            ...user,
+            [editingField]: tempValue
+        });
+        
+        setEditingField(null);
+        setTempValue("");
+    };
+
+    if (loading) {
+        return (
+            <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8065CD] border-t-transparent" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="container mx-auto max-w-5xl p-6 md:p-10 space-y-10">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
+                <div className="relative group">
+                    <div className="size-35 rounded-full border-4 border-white shadow-xl overflow-hidden ring-2 ring-[#8065CD]/20 flex items-center justify-center bg-background">
+                        <AvatarInitials
+                            firstName={user?.firstName ?? ""}
+                            lastName={user?.lastName ?? ""}
+                            size="xl"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex-1 text-center md:text-left space-y-2 py-2">
+                    <div className="flex flex-col md:flex-row items-center gap-3">
+                        <h1 className="text-3xl font-bold tracking-tight text-primary">
+                            {user?.firstName} {user?.lastName}
+                        </h1>
+                        <Badge className="bg-[#8065CD] hover:bg-[#6d54b5] text-white capitalize rounded-full px-4 py-0.5">
+                            {user?.accountType ?? "Participant"}
+                        </Badge>
+                    </div>
+                    <p className="text-muted-foreground flex items-center justify-center md:justify-start gap-2">
+                        <IdCardLanyard className="h-4 w-4" />
+                        User ID: {user?.id}
+                    </p>
+                </div>
+            </div>
+
+            <Separator />
+
+            {/* Content */}
+            <div className="lg:col-span-2 space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <IdCard className="h-5 w-5 text-[#8065CD]" />
+                    Personal Information
+                </h2>
+                <Card className="rounded-3xl border-muted/20 shadow-md">
+                    <CardContent className="p-8 space-y-8">
+                        {/* First Name Field */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <User className="h-4 w-4 opacity-70" /> First Name
+                            </Label>
+                            <div className="flex items-center justify-between group min-h-[40px]">
+                                {editingField === "firstName" ? (
+                                    <div className="flex items-center gap-2 w-full">
+                                        <Input 
+                                            value={tempValue} 
+                                            onChange={(e) => setTempValue(e.target.value)}
+                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            autoFocus
+                                        />
+                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Label className="text-muted-foreground text-base font-normal">
+                                            {user?.firstName ?? ""}
+                                        </Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                            onClick={() => startEditing("firstName", user?.firstName ?? "")}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Last Name Field */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <User className="h-4 w-4 opacity-70" /> Last Name
+                            </Label>
+                            <div className="flex items-center justify-between group min-h-[40px]">
+                                {editingField === "lastName" ? (
+                                    <div className="flex items-center gap-2 w-full">
+                                        <Input 
+                                            value={tempValue} 
+                                            onChange={(e) => setTempValue(e.target.value)}
+                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            autoFocus
+                                        />
+                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Label className="text-muted-foreground text-base font-normal">
+                                            {user?.lastName ?? ""}
+                                        </Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                            onClick={() => startEditing("lastName", user?.lastName ?? "")}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Email Field */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <Mail className="h-4 w-4 opacity-70" /> Email
+                            </Label>
+                            <div className="flex items-center justify-between group min-h-[40px]">
+                                {editingField === "email" ? (
+                                    <div className="flex items-center gap-2 w-full">
+                                        <Input 
+                                            value={tempValue} 
+                                            onChange={(e) => setTempValue(e.target.value)}
+                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            autoFocus
+                                        />
+                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                            <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Label className="text-muted-foreground text-base font-normal">
+                                            {user?.email ?? ""}
+                                        </Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                            onClick={() => startEditing("email", user?.email ?? "")}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Password Field */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <KeyRound className="h-4 w-4 opacity-70" /> Password
+                            </Label>
+                            <div className="flex items-center justify-between group">
+                                <Label className="text-muted-foreground text-base font-normal tracking-widest">
+                                    ••••••••••••
+                                </Label>
+                                <Button
+                                    variant="ghost"
+                                    className="h-9 px-4 text-sm font-medium text-[#8065CD] hover:bg-[#8065CD]/10 rounded-xl transition-all"
+                                >
+                                    Change Password
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+export default ProfilePage;

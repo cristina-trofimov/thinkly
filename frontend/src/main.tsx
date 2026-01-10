@@ -27,6 +27,7 @@ import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
 import ForgotPasswordForm from "./components/forms/ForgotPasswordForm.tsx";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
+import ProfilePage from "./views/ProfilePage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -155,6 +156,13 @@ const router = createBrowserRouter([
         element: <CodingView />,
         handle: {
           crumb: { title: "Coding" },
+        },
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
+        handle: {
+          crumb: { title: "Profile" },
         },
       },
     ],
