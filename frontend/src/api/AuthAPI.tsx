@@ -14,6 +14,15 @@ export interface ForgotPasswordResponse {
   message: string;
 }
 
+export interface ChangePasswordRequest {
+    old_password: string;
+    new_password: string;
+}
+
+export interface ChangePasswordResponse {
+    message: string;
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     const response = await axiosClient.post<LoginResponse>("/auth/login", data);
     return response.data;
@@ -69,4 +78,23 @@ export async function forgotPassword(data: ForgotPasswordRequest): Promise<Forgo
   // Call your backend endpoint to send the reset email
   const response = await axiosClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
   return response.data;
+}
+
+export async function changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("No token found — please log in first.");
+    }
+
+    const response = await axiosClient.post<ChangePasswordResponse>(
+        "/auth/change-password",
+        data,
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        }
+    );
+
+    return response.data;
 }
