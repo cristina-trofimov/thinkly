@@ -1,9 +1,33 @@
 /// <reference types="jest" />
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { jest } from '@jest/globals';
 import { AppSidebar } from "../src/components/layout/AppSidebar";
 import '@testing-library/jest-dom';
+
+const { TextEncoder, TextDecoder } = require('util');
+
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Mock the Auth API
+const mockUser = {
+  id: "1",
+  firstName: "shadcn",
+  lastName: "example",
+  email: "shadcn@example.com",
+  accountType: "admin"
+};
+
+jest.mock("@/api/AuthAPI", () => ({
+  getProfile: jest.fn(() => Promise.resolve({
+    id: "1",
+    firstName: "shadcn",
+    lastName: "example",
+    email: "shadcn@example.com",
+    accountType: "admin"
+  })),
+}));
 
 // Mock the child components
 jest.mock("@/components/layout/NavSection", () => ({
@@ -22,14 +46,14 @@ jest.mock("@/components/layout/NavSection", () => ({
 jest.mock("@/components/layout/NavUser", () => ({
   NavUser: ({ user }: any) => (
     <div data-testid="nav-user">
-      {user.firstName} {user.lastName}
+      {user ? `${user.firstName} ${user.lastName}` : "Loading..."}
     </div>
   ),
 }));
 
 jest.mock("@/components/ui/sidebar", () => ({
-  Sidebar: ({ children, ...props }: any) => (
-    <aside data-testid="sidebar" {...props}>
+  Sidebar: ({ children, collapsible, ...props }: any) => (
+    <aside data-testid="sidebar" data-collapsible={collapsible} {...props}>
       {children}
     </aside>
   ),
@@ -45,17 +69,17 @@ jest.mock("@/components/ui/sidebar", () => ({
   SidebarMenu: ({ children }: any) => (
     <ul data-testid="sidebar-menu">{children}</ul>
   ),
-  SidebarMenuButton: ({ children, asChild, ...props }: any) => (
-    <button data-testid="sidebar-menu-button" {...props}>
+  SidebarMenuButton: ({ children, asChild, size, ...props }: any) => (
+    <div data-testid="sidebar-menu-button" data-size={size} {...props}>
       {children}
-    </button>
+    </div>
   ),
   SidebarMenuItem: ({ children }: any) => (
     <li data-testid="sidebar-menu-item">{children}</li>
   ),
   SidebarRail: () => <div data-testid="sidebar-rail" />,
-  SidebarTrigger: (props: any) => (
-    <button data-testid="sidebar-trigger" {...props}>
+  SidebarTrigger: ({ className, style }: any) => (
+    <button data-testid="sidebar-trigger" className={className} style={style}>
       Toggle
     </button>
   ),
@@ -77,7 +101,7 @@ describe("AppSidebar", () => {
   test("renders sidebar with collapsible icon prop", () => {
     render(<AppSidebar />);
     const sidebar = screen.getByTestId("sidebar");
-    expect(sidebar).toHaveAttribute("collapsible", "icon");
+    expect(sidebar).toHaveAttribute("data-collapsible", "icon");
   });
 
   test("renders header with Thinkly branding", () => {
@@ -85,7 +109,7 @@ describe("AppSidebar", () => {
     expect(screen.getByText("Thinkly")).toBeInTheDocument();
   });
 
-  test("renders logo link pointing to /home", () => {
+  test("renders logo link pointing to /app/home", () => {
     render(<AppSidebar />);
     const link = screen.getByRole("link", { name: /thinkly/i });
     expect(link).toHaveAttribute("href", "/app/home");
@@ -147,10 +171,13 @@ describe("AppSidebar", () => {
     );
   });
 
-  test("renders NavUser component with user data", () => {
+  test("renders NavUser component with user data", async () => {
     render(<AppSidebar />);
-    const navUser = screen.getByTestId("nav-user");
-    expect(navUser).toHaveTextContent("shadcn example");
+    // Initial state is null, so wait for the mock fetch to complete
+    await waitFor(() => {
+      const navUser = screen.getByTestId("nav-user");
+      expect(navUser).toHaveTextContent("shadcn example");
+    });
   });
 
   test("renders sidebar rail", () => {
