@@ -364,3 +364,19 @@ async def change_password(
 
     logger.info(f"Password changed successfully for user: {user_email}")
     return {"message": "Password changed successfully."}
+
+@auth_router.get("/is-google-account")
+async def is_google_account(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user_email = current_user.get("sub")
+    user = get_user_by_email(db, user_email)
+    
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    # As per your requirement: Google users have an empty string as password in the DB
+    is_google = user.hashed_password == ""
+    
+    return {"isGoogleUser": is_google}

@@ -1,20 +1,25 @@
 import React from "react";
-import { getProfile } from "../api/AuthAPI";
-import { updateAccount } from "../api/AccountsAPI";
-import type { Account } from "../types/account/Account.type";
-import { Card, CardContent } from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
-import { Badge } from "../components/ui/badge";
+import { getProfile, isGoogleAccount } from "@/api/AuthAPI";
+import { updateAccount } from "@/api/AccountsAPI";
+import type { Account } from "@/types/account/Account.type";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { IdCardLanyard, Mail, User, IdCard, Pencil, KeyRound, Check, X } from "lucide-react";
-import { AvatarInitials } from "../components/helpers/AvatarInitials";
-import { Button } from "../components/ui/button";
+import { AvatarInitials } from "@/components/helpers/AvatarInitials";
+import { Button } from "@/components/ui/button";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 
+// Extending the local Account type to include the Google provider check
+interface ProfileAccount extends Account {
+    isGoogleUser?: boolean;
+}
+
 function ProfilePage() {
-    const [user, setUser] = React.useState<Account | null>(null);
+    const [user, setUser] = React.useState<ProfileAccount | null>(null);
     const [loading, setLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
     const navigate = useNavigate(); 
@@ -28,13 +33,17 @@ function ProfilePage() {
     React.useEffect(() => {
         const fetchUser = async () => {
             try {
-                const currentAccount = await getProfile();
+                const [currentAccount, googleStatus] = await Promise.all([
+                    getProfile(),
+                    isGoogleAccount()
+                ]);
                 setUser({
                     id: currentAccount.id,
                     firstName: currentAccount.firstName,
                     lastName: currentAccount.lastName,
                     email: currentAccount.email,
                     accountType: currentAccount.accountType,
+                    isGoogleUser: googleStatus.isGoogleUser
                 });
             } catch (error) {
                 console.error("Failed to load user profile:", error);
@@ -62,7 +71,6 @@ function ProfilePage() {
 
         setIsSaving(true);
         
-        // Map frontend field name to backend database keys
         const fieldMapping: Record<string, string> = {
             firstName: "first_name",
             lastName: "last_name",
@@ -76,7 +84,6 @@ function ProfilePage() {
                 [backendKey]: tempValue
             });
 
-            // Update local state with the formatted response from API
             setUser(updatedAccount);
             
             const fieldLabel = editingField.charAt(0).toUpperCase() + 
@@ -85,6 +92,7 @@ function ProfilePage() {
             toast.success(`${fieldLabel} updated successfully.`);
             setEditingField(null);
             setTempValue("");
+            // Refresh to sync global UI components like the navbar name
             window.location.reload();
         } catch (error) {
             console.error(`Error updating ${editingField}:`, error);
@@ -144,10 +152,13 @@ function ProfilePage() {
 
             {/* Content */}
             <div className="lg:col-span-2 space-y-6">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
-                    <IdCard className="h-5 w-5 text-[#8065CD]" />
-                    Personal Information
-                </h2>
+                <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <IdCard className="h-5 w-5 text-[#8065CD]" />
+                        Personal Information
+                    </h2>
+                </div>
+                
                 <Card className="rounded-3xl border-muted/20 shadow-md overflow-hidden">
                     <CardContent className="p-8 space-y-8">
                         {/* First Name Field */}
@@ -165,22 +176,10 @@ function ProfilePage() {
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            onClick={saveField} 
-                                            disabled={isSaving}
-                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                        >
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            onClick={cancelEditing} 
-                                            disabled={isSaving}
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -273,14 +272,20 @@ function ProfilePage() {
                                         <Label className="text-muted-foreground text-base font-normal">
                                             {user?.email ?? ""}
                                         </Label>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
-                                            onClick={() => startEditing("email", user?.email ?? "")}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
+                                        {!user?.isGoogleUser ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                                onClick={() => startEditing("email", user?.email ?? "")}
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        ) : (
+                                            <span className="text-[10px] uppercase font-bold text-[#8065CD]/60 tracking-wider">
+                                                Managed by Google
+                                            </span>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -297,17 +302,34 @@ function ProfilePage() {
                                 <Label className="text-muted-foreground text-base font-normal tracking-widest">
                                     ••••••••••••
                                 </Label>
-                                <Button
-                                    variant="ghost"
-                                    className="h-9 px-4 text-sm font-medium text-[#8065CD] hover:bg-[#8065CD]/10 rounded-xl transition-all"
-                                    onClick={handleChangePasswordNavigation}
-                                >
-                                    Change Password
-                                </Button>
+                                {!user?.isGoogleUser ? (
+                                    <Button
+                                        variant="ghost"
+                                        className="h-9 px-4 text-sm font-medium text-[#8065CD] hover:bg-[#8065CD]/10 rounded-xl transition-all"
+                                        onClick={handleChangePasswordNavigation}
+                                    >
+                                        Change Password
+                                    </Button>
+                                ) : (
+                                    <span className="text-[10px] uppercase font-bold text-[#8065CD]/60 tracking-wider">
+                                        Managed by Google
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </CardContent>
                 </Card>
+
+                {user?.isGoogleUser && (
+                    <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl">
+                        <p className="text-xs text-blue-600/80 leading-relaxed text-center">
+                            You signed in with Google. To change your password, please manage your settings through your 
+                            <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="ml-1 underline font-semibold">
+                                Google Account
+                            </a>.
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

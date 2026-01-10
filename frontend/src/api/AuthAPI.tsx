@@ -23,6 +23,10 @@ export interface ChangePasswordResponse {
     message: string;
 }
 
+export interface IsGoogleAccountResponse {
+    isGoogleUser: boolean;
+}
+
 export async function login(data: LoginRequest): Promise<LoginResponse> {
     const response = await axiosClient.post<LoginResponse>("/auth/login", data);
     return response.data;
@@ -95,6 +99,21 @@ export async function changePassword(data: ChangePasswordRequest): Promise<Chang
             },
         }
     );
+
+    return response.data;
+}
+
+export async function isGoogleAccount(): Promise<IsGoogleAccountResponse> {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        throw new Error("No token found.");
+    }
+
+    const response = await axiosClient.get<IsGoogleAccountResponse>("/auth/is-google-account", {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
 
     return response.data;
 }
