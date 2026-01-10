@@ -187,14 +187,26 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo["email"]
-        name = idinfo.get("name", "Unknown User")
+        first_name = idinfo.get("given_name", "Google")
+        last_name = idinfo.get("family_name", "User")
+        
         user = get_user_by_email(db, email)
         
         if not user:
-            logger.info(f"New user registration via Google OAuth: {email}")
-            create_user(db, email=email, password_hash="", first_name=name, last_name="", type="participant")
+            logger.info(f"New user registration via Google OAuth: {email} {first_name} {last_name}")
+            create_user(
+                db, 
+                email=email, 
+                password_hash="", 
+                first_name=first_name, 
+                last_name=last_name, 
+                type="participant"
+            )
             user = get_user_by_email(db, email)
         
+        if not user:
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create or retrieve user")
+
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"token": token}
