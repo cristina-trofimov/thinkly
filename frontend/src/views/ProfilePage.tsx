@@ -1,19 +1,22 @@
 import React from "react";
-import { getProfile } from "@/api/AuthAPI";
-import type { Account } from "@/types/account/Account.type";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+import { getProfile } from "../api/AuthAPI";
+import { updateAccount } from "../api/AccountsAPI";
+import type { Account } from "../types/account/Account.type";
+import { Card, CardContent } from "../components/ui/card";
+import { Label } from "../components/ui/label";
+import { Input } from "../components/ui/input";
+import { Separator } from "../components/ui/separator";
+import { Badge } from "../components/ui/badge";
 import { IdCardLanyard, Mail, User, IdCard, Pencil, KeyRound, Check, X } from "lucide-react";
-import { AvatarInitials } from "@/components/helpers/AvatarInitials";
-import { Button } from "@/components/ui/button";
+import { AvatarInitials } from "../components/helpers/AvatarInitials";
+import { Button } from "../components/ui/button";
 import { useNavigate, useOutlet } from "react-router-dom";
+import { toast } from "sonner";
 
 function ProfilePage() {
     const [user, setUser] = React.useState<Account | null>(null);
     const [loading, setLoading] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
     const navigate = useNavigate(); 
     const outlet = useOutlet();
 
@@ -35,6 +38,7 @@ function ProfilePage() {
                 });
             } catch (error) {
                 console.error("Failed to load user profile:", error);
+                toast.error("Failed to load profile data.");
             } finally {
                 setLoading(false);
             }
@@ -53,21 +57,44 @@ function ProfilePage() {
         setTempValue("");
     };
 
-    const saveField = () => {
+    const saveField = async () => {
         if (!user || !editingField) return;
 
-        // Update local state (Backend logic will be added later)
-        setUser({
-            ...user,
-            [editingField]: tempValue
-        });
+        setIsSaving(true);
         
-        setEditingField(null);
-        setTempValue("");
+        // Map frontend field name to backend database keys
+        const fieldMapping: Record<string, string> = {
+            firstName: "first_name",
+            lastName: "last_name",
+            email: "email"
+        };
+
+        const backendKey = fieldMapping[editingField];
+
+        try {
+            const updatedAccount = await updateAccount(user.id, {
+                [backendKey]: tempValue
+            });
+
+            // Update local state with the formatted response from API
+            setUser(updatedAccount);
+            
+            const fieldLabel = editingField.charAt(0).toUpperCase() + 
+                               editingField.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase();
+            
+            toast.success(`${fieldLabel} updated successfully.`);
+            setEditingField(null);
+            setTempValue("");
+            window.location.reload();
+        } catch (error) {
+            console.error(`Error updating ${editingField}:`, error);
+            toast.error(`Failed to update ${editingField.toLowerCase()}.`);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleChangePasswordNavigation = () => {
-        // Navigates to /app/profile/changePassword
         navigate("changePassword");
     };
 
@@ -125,7 +152,7 @@ function ProfilePage() {
                     <CardContent className="p-8 space-y-8">
                         {/* First Name Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
                                 <User className="h-4 w-4 opacity-70" /> First Name
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
@@ -135,12 +162,25 @@ function ProfilePage() {
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
                                             className="h-9 focus-visible:ring-[#8065CD]"
+                                            disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            onClick={saveField} 
+                                            disabled={isSaving}
+                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        >
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button 
+                                            size="icon" 
+                                            variant="ghost" 
+                                            onClick={cancelEditing} 
+                                            disabled={isSaving}
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        >
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -162,9 +202,11 @@ function ProfilePage() {
                             </div>
                         </div>
 
+                        <Separator className="opacity-50" />
+
                         {/* Last Name Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
                                 <User className="h-4 w-4 opacity-70" /> Last Name
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
@@ -174,12 +216,13 @@ function ProfilePage() {
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
                                             className="h-9 focus-visible:ring-[#8065CD]"
+                                            disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -201,9 +244,11 @@ function ProfilePage() {
                             </div>
                         </div>
 
+                        <Separator className="opacity-50" />
+
                         {/* Email Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
                                 <Mail className="h-4 w-4 opacity-70" /> Email
                             </Label>
                             <div className="flex items-center justify-between group min-h-[40px]">
@@ -213,12 +258,13 @@ function ProfilePage() {
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
                                             className="h-9 focus-visible:ring-[#8065CD]"
+                                            disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -240,9 +286,11 @@ function ProfilePage() {
                             </div>
                         </div>
 
+                        <Separator className="opacity-50" />
+
                         {/* Password Field */}
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold flex items-center gap-2 text-foreground/70">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
                                 <KeyRound className="h-4 w-4 opacity-70" /> Password
                             </Label>
                             <div className="flex items-center justify-between group">
