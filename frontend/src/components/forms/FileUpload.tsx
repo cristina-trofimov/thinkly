@@ -19,7 +19,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnon);
 
-export default function CreateRiddleForm() {
+interface CreateRiddleFormProps {
+    onSuccess?: () => void;
+}
+
+export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
     // Form State
     const [question, setQuestion] = useState("");
     const [answer, setAnswer] = useState("");
@@ -133,6 +137,7 @@ export default function CreateRiddleForm() {
             });
 
             toast.success("Riddle created successfully!");
+            if (onSuccess) onSuccess();
             
             // 4. Reset Form
             setQuestion("");
