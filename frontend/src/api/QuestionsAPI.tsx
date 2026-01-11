@@ -28,6 +28,7 @@ export async function getQuestions(): Promise<Question[]> {
 export async function getRiddles(): Promise<Riddle[]> {
   try {
     const response = await axiosClient.get<{
+      riddle_file: string | null;
       riddle_id: number;
       riddle_question: string;
       riddle_answer: string;
@@ -37,6 +38,7 @@ export async function getRiddles(): Promise<Riddle[]> {
       id: q.riddle_id,
       question: q.riddle_question,
       answer: q.riddle_answer,
+      file: q.riddle_file || null,
     }));
 
     return formatted;

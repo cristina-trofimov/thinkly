@@ -105,7 +105,8 @@ def main():
         for question, answer in riddles_data:
             riddle = Riddle(
                 riddle_question=question,
-                riddle_answer=answer
+                riddle_answer=answer,
+                riddle_file= None
             )
             riddles.append(riddle)
 

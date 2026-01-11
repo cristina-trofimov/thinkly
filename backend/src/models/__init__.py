@@ -9,6 +9,7 @@ from .schema import (
     Question,
     TestCase,
     Tag,
+    Riddle,
     QuestionInstance,
     Participation,
     Submission,
@@ -27,9 +28,11 @@ __all__ = [
     "Question",
     "TestCase",
     "Tag",
+    "Riddle",
     "QuestionInstance",
     "Participation",
     "Submission",
     "CompetitionLeaderboardEntry",
     "AlgoTimeLeaderboardEntry",
+    
 ]
