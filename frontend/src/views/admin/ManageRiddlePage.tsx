@@ -28,7 +28,7 @@ export default function ManageRiddles() {
         try {
             const data = await getRiddles();
             setRiddles(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to load riddles");
         } finally {
