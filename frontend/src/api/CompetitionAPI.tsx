@@ -10,16 +10,18 @@ export async function getCompetitions(): Promise<Competition[]> {
       id: number;
       competition_title: string;
       competition_location: string;
-      date: Date;
+      start_date: Date;
+      end_date: Date;
     }[]>(`/competitions/`);
-
+    
     const formatted: Competition[] = response.data.map(c => ({
       id: c.id,
       competitionTitle: c.competition_title,
       competitionLocation: c.competition_location,
-      date: c.date,
+      startDate: new Date(c.start_date),
+      endDate: new Date(c.end_date),
     }));
-
+    
     return formatted;
   } catch (err) {
     console.error("Error fetching competitions:", err);

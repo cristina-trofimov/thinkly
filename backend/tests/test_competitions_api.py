@@ -64,6 +64,7 @@ def test_get_all_competitions_success(client, mock_db):
                 event_name="Winter Hackathon",
                 event_location="Montreal",
                 event_start_date=datetime(2025, 12, 1, 10, 0, 0),
+                event_end_date=datetime(2025, 12, 1, 18, 0, 0),
             )
         ),
         SimpleNamespace(
@@ -72,6 +73,7 @@ def test_get_all_competitions_success(client, mock_db):
                 event_name="Summer Code Fest",
                 event_location="Toronto",
                 event_start_date=datetime(2026, 6, 15, 9, 30, 0),
+                event_end_date=datetime(2026, 6, 15, 17, 0, 0),
             )
         ),
     ]
@@ -103,7 +105,7 @@ def test_get_all_competitions_success(client, mock_db):
     assert data[0]["id"] == 101
     assert data[0]["competition_title"] == "Winter Hackathon"
     assert data[0]["competition_location"] == "Montreal"
-    assert "2025-12-01" in data[0]["date"]
+    assert "2025-12-01" in data[0]["start_date"]
 
 def test_get_all_competitions_empty(client, mock_db):
     """Test when the database is empty."""

@@ -38,19 +38,22 @@ describe('ManageCompetitions', () => {
       id: 1,
       competitionTitle: 'Math Contest',
       competitionLocation: 'Toronto',
-      date: new Date(Date.now() + 86400000), // Tomorrow -> Upcoming
+      startDate: new Date(Date.now() + 86400000),
+      endDate: new Date(Date.now() + 2 * 86400000),
     },
     {
       id: 2,
       competitionTitle: 'Science Fair',
       competitionLocation: 'Montreal',
-      date: new Date(), // Today -> Active
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 86400000),
     },
     {
       id: 3,
       competitionTitle: 'History Quiz',
       competitionLocation: 'Vancouver',
-      date: new Date(Date.now() - 86400000), // Yesterday -> Completed
+      startDate: new Date(Date.now() - 86400000),
+      endDate: new Date(),
     },
   ];
 
