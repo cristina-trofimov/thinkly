@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Button } from "../components/ui/button";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item";
 import { columns } from "../components/questionsTable/questionsColumns";
 import type { Question } from "@/types/questions/Question.type";
 import { DataTable } from "../components/questionsTable/questionDataTable";
@@ -24,7 +22,7 @@ function HomePage() {
         setQuestions(data);
 
         logFrontend({
-          level: "DEBUG", // <--- Now using DEBUG level
+          level: "DEBUG",
           message: `Finished initial data fetch for questions successfully.`,
           component: "HomePage",
           url: window.location.href,
@@ -37,13 +35,12 @@ function HomePage() {
 
         console.error("Error fetching questions:", err);
 
-        // Log the error to the backend
         logFrontend({
           level: "ERROR",
           message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
           component: "HomePage",
           url: window.location.href,
-          stack: isError ? err.stack : undefined, // Safely access stack
+          stack: isError ? err.stack : undefined,
         });
       }
     };
@@ -57,7 +54,8 @@ function HomePage() {
         const data = await getCompetitions();
         const transformedData = data.map((c) => ({
           ...c,
-          date: new Date(c.date), // Convert string to Date
+          startDate: new Date(c.startDate),
+          endDate: new Date(c.endDate),
         }));
         setCompetitions(transformedData);
 
@@ -75,13 +73,12 @@ function HomePage() {
 
         console.error("Error fetching competitions:", err);
 
-        // Log the error to the backend
         logFrontend({
           level: "ERROR",
           message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
           component: "HomePage",
           url: window.location.href,
-          stack: isError ? err.stack : undefined, // Safely access stack
+          stack: isError ? err.stack : undefined,
         });
       }
     };
@@ -91,35 +88,21 @@ function HomePage() {
   const competitionsForSelectedDate = useMemo(() => {
     if (!date) return [];
     return competitions.filter((c) => {
-      // Create a new Date object from the string before calling toDateString
-      const compDate = new Date(c.date);
+      const compDate = new Date(c.startDate);
       return compDate.toDateString() === date.toDateString();
     });
   }, [date, competitions]);
 
-  const competitionDates = competitions.map((c) => c.date);
+  const competitionDates = competitions.map((c) => c.startDate);
 
   return (
     <>
       <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-4">
-        {/* <Button className="relative h-[20vh] w-full text-base bg-primary hover:bg-border hover:text-black">
-          <div className="absolute top-1 left-4">
-            <h1 className="text-[clamp(1rem,3vw,2rem)] text-left font-semibold leading-tight">
-              It's Competition Time!
-            </h1>
-            <p className="text-[clamp(0.5rem,2vw,1rem)] text-left mt-1">
-              Click here to join in on the competition
-            </p>
-          </div>
-        </Button> */}
-
-        {/* This section of div is for calendar and search bar and table */}
-        <div className="flex w-full  gap-4 items-start">
+        <div className="flex w-full gap-4 items-start">
           <div className="flex flex-col w-full gap-4">
-            <HomePageBanner date={date ?? new Date()} />
-            {/* This div is for search and table */}
+            <HomePageBanner competitions={competitions} />
             <div className="flex flex-col gap-4">
-              <div className="container mx-auto ">
+              <div className="container mx-auto">
                 <DataTable columns={columns} data={questions} />
               </div>
             </div>
@@ -130,7 +113,7 @@ function HomePage() {
               mode="single"
               selected={date}
               onSelect={setDate}
-              className=" rounded-md border shadow-sm self-end w-full"
+              className="rounded-md border shadow-sm self-end w-full"
               captionLayout="dropdown"
               modifiers={{ competition: competitionDates }}
               modifiersClassNames={{
@@ -139,35 +122,21 @@ function HomePage() {
               }}
             />
 
-            {/* <h2 className="text-left text-xl font-semibold mb-2">
-              Competitions on {date?.toLocaleDateString() ?? "—"}
-            </h2> */}
-
             <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
               <p className="text-left text-lg font-semibold mb-1">
-              Competitions on {date?.toLocaleDateString() ?? "—"}
-            </p>
+                Competitions on {date?.toLocaleDateString() ?? "—"}
+              </p>
               {competitionsForSelectedDate.length === 0 ? (
                 <p className="text-center text-gray-500 italic">
                   No competitions on this date
                 </p>
               ) : (
                 competitionsForSelectedDate.map((competition) => (
-                  // <Item
-                  //   key={competition.competitionTitle}
-                  //   variant="outline"
-                  //   className="w-[300px] h-[100px] flex items-center justify-between overflow-hidden"
-                  // >
-                  //   <ItemContent className="w-[70%] overflow-hidden justify-center items-center">
-                  //     <ItemTitle className="truncate font-semibold text-center">
-                  //       {competition.competitionTitle}-
-                  //       {competition.date.toLocaleDateString()}
-                  //     </ItemTitle>
-                  //   </ItemContent>
-                  // </Item>
-                  <CompetitionItem 
-                  title={competition.competitionTitle}
-                  date={competition.date.toLocaleDateString()}/>
+                  <CompetitionItem
+                    key={competition.id}
+                    title={competition.competitionTitle}
+                    date={competition.startDate.toLocaleDateString()}
+                  />
                 ))
               )}
             </div>
