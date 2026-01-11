@@ -3,7 +3,6 @@ import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

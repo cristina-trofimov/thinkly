@@ -12,9 +12,9 @@ import { Plus, Search, FileText, Image as ImageIcon, HelpCircle } from 'lucide-r
 import { useEffect, useState } from 'react';
 import { toast } from "sonner";
 
-// Import your Create Form and API service
-import CreateRiddleForm from "@/components/forms/FileUpload"; // Adjust path if needed
-import { getRiddles } from "@/api/RiddlesAPI"; // Adjust path if needed
+
+import CreateRiddleForm from "@/components/forms/FileUpload"; 
+import { getRiddles } from "@/api/RiddlesAPI"; 
 import type { Riddle } from '@/types/riddle/Riddle.type';
 
 export default function ManageRiddles() {
@@ -42,8 +42,8 @@ export default function ManageRiddles() {
 
     // Callback when a riddle is successfully created
     const handleRiddleCreated = () => {
-        setIsCreateOpen(false); // Close modal
-        loadRiddles(); // Refresh list
+        setIsCreateOpen(false); 
+        loadRiddles(); 
     };
 
     const filteredRiddles = riddles.filter((r) =>

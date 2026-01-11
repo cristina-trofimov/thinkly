@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import Riddle 
 from DB_Methods.database import get_db, _commit_or_rollback
-# from endpoints.authentification_api import get_current_user, role_required  <-- No longer needed
 import logging
 from pydantic import BaseModel, validator
 from typing import List, Optional
@@ -108,9 +107,9 @@ async def create_riddle(
 @riddles_router.delete("/{riddle_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_riddle(
         riddle_id: int,
-        db: Session = Depends(get_db)  # <--- MUST HAVE THIS
+        db: Session = Depends(get_db)
 ):
-    # WARNING: This endpoint is now public. Anyone can delete riddles.
+    
     logger.info(f"Anonymous user attempting to delete riddle ID: {riddle_id}")
 
     try:
@@ -121,8 +120,8 @@ async def delete_riddle(
         db.delete(riddle)
         _commit_or_rollback(db)
 
-        # Removed 'user_email' from this log because it doesn't exist anymore
-        logger.info(f"SUCCESSFUL DELETION: Riddle ID {riddle_id} deleted") 
+        
+        logger.info(f"SUCCESSFUL DELETION: Riddle ID {riddle_id} deleted")
 
     except HTTPException:
         raise

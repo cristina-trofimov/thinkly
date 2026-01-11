@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-# Adjust this import to match where your riddles router is located
-from endpoints.riddles_api import riddles_router 
+
+from endpoints.riddles_api import riddles_router
 from DB_Methods import database
 
 @pytest.fixture
@@ -20,8 +20,7 @@ def client(mock_db):
     def override_get_db():
         yield mock_db
 
-    # Note: Authentication overrides are NOT needed here 
-    # because the Riddles API is now public.
+
     
     test_app.dependency_overrides[database.get_db] = override_get_db
 
@@ -43,7 +42,7 @@ def test_create_riddle_success(client, mock_db):
         instance.riddle_id = 1
     mock_db.refresh.side_effect = refresh_side_effect
 
-    # Simulate that check_riddle_exists returns None (so we can create it)
+    # Simulate that check_riddle_exists returns None 
     mock_query = MagicMock()
     mock_query.filter.return_value = mock_query
     mock_query.first.return_value = None 
