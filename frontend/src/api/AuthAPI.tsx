@@ -47,13 +47,29 @@ export async function getProfile(): Promise<Account> {
         throw new Error("No token found — please log in first.");
     }
 
-    const response = await axiosClient.get<Account>("/auth/profile", {
+    const response = await axiosClient.get<{
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+        role: string;
+    }>("/auth/profile", {
         headers: {
             Authorization: `Bearer ${token}`,
         },
     });
 
-    return response.data;
+    const data = response.data;
+
+    const account: Account = {
+        id: data.id,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        accountType: (data.role.charAt(0).toUpperCase() + data.role.slice(1)) as Account["accountType"]
+    };
+
+    return account;
 }
 
 export async function logout(): Promise<void> {

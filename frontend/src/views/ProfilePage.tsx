@@ -12,6 +12,7 @@ import { AvatarInitials } from "@/components/helpers/AvatarInitials";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
+import { logFrontend } from "@/api/LoggerAPI";
 
 // Extending the local Account type to include the Google provider check
 interface ProfileAccount extends Account {
@@ -55,7 +56,12 @@ function ProfilePage() {
                     isGoogleUser: googleStatus.isGoogleUser
                 });
             } catch (error) {
-                console.error("Failed to load user profile:", error);
+                logFrontend({
+                    level: 'ERROR',
+                    message: `Failed to load user profile: ${error}`,
+                    component: 'ProfilePage',
+                    url: window.location.href,
+                });
                 toast.error("Failed to load profile data.");
             } finally {
                 setLoading(false);
