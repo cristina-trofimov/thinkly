@@ -10,28 +10,17 @@ import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Popover,PopoverContent,PopoverTrigger,} from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format, addDays, addWeeks, addMonths } from "date-fns"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
+import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
-
-
-
-
+import {createAlgotime} from "@/api/AlgotimeAPI"
+import { type CreateAlgotimeRequest, type CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type"
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -42,11 +31,9 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-
-
 export const AlgoTimeSessionForm = () => {
   const [formData, setFormData] = useState({
-    date: "",
+    date: format(new Date(), "yyyy-MM-dd"),
     startTime: "",
     endTime: "",
     questionCooldownTime: "",
@@ -75,6 +62,10 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
+ 
+  
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
 
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
@@ -211,13 +202,13 @@ export const AlgoTimeSessionForm = () => {
       return false;
     }
 
-    // Check that no session has more than 1 question
+    // Check that no session has more than 6 question
     const sessionsWithTooMany = repeatSessions.filter(
-      session => (sessionQuestions[session.sessionNumber]?.length || 0) > 2
+      session => (sessionQuestions[session.sessionNumber]?.length || 0) > 6
     );
 
     if (sessionsWithTooMany.length > 0) {
-      setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 2.`);
+      setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 6.`);
       return false;
     }
     setValidationError('');
@@ -247,6 +238,15 @@ export const AlgoTimeSessionForm = () => {
     setValidationError('');
   }
 
+  const getDateRangeString = () => {
+    if (repeatSessions.length === 1) {
+      return format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d, yyyy");
+    }
+    const firstDate = format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d");
+    const lastDate = format(new Date(repeatSessions[repeatSessions.length - 1].date + 'T00:00:00'), "MMM d, yyyy");
+    return `${firstDate} - ${lastDate}`;
+  };
+
   const handleSubmit = async () => {
 
     if (!validateForm()) {
@@ -259,14 +259,30 @@ export const AlgoTimeSessionForm = () => {
       return; // Stop submission if validation fails
     }
     try {
-      //saving sessions to send to BE later on commented for later usage
-      // const sessions = repeatSessions.map(session => ({
-      //   sessionNumber: session.sessionNumber,
-      //   date: session.date,
-      //   startTime: formData.startTime,
-      //   endTime: formData.endTime,
-      //   questions: sessionQuestions[session.sessionNumber] || []
-      // }));
+      const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
+        name: `${format (new Date (session.date + "T00:00:00"), "MMM d, yyyy")} - Session ${session.sessionNumber}`,
+        date: session.date,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        selectedQuestions: sessionQuestions[session.sessionNumber] || []
+      }));
+
+      const payload: CreateAlgotimeRequest = {
+        seriesName: `AlgoTime Session (${getDateRangeString()})`,
+        questionCooldown: Number(formData.questionCooldownTime) || 300,
+        sessions: sessions,
+      };
+
+      setIsSubmitting(true);
+
+      await createAlgotime(payload);
+
+      logFrontend({
+        level: "INFO",
+        message: "AlgoTime sessions created successfully",
+        component: "AlgoTimeSessionForm",
+        url: window.location.href,
+      });
 
       // Handle email notification if recipients are provided
       if (emailData.to.trim()) {
@@ -294,9 +310,25 @@ export const AlgoTimeSessionForm = () => {
 
       handleReset();
 
-    } catch (error) {
+    } catch (error: unknown) {
+      setIsSubmitting(false);
+
+      const isAxiosError = (err: unknown): err is { response?: { status?: number; data?: { detail?: string } } } => {
+        return typeof err === 'object' && err !== null && 'response' in err;
+      };
+
+      // 409 handling
+      if (isAxiosError(error) && error.response?.status === 409) {
+        setValidationError(
+          error.response?.data?.detail || 
+          'A series with this name already exists. Please try again.'
+        );
+
+      } else {
       console.error('Session creation failed:', error);
       setValidationError('Failed to create session. Please try again.');
+      toast.error("Failed to create session");
+      }
       setTimeout(() => {
         errorRef.current?.scrollIntoView({
           behavior: 'smooth',
@@ -351,7 +383,7 @@ export const AlgoTimeSessionForm = () => {
                       <Button
                         id="date-picker"
                         variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
                       >
                         <CalendarIcon className="size-3.5" />
                         <span className="sr-only">Select date</span>
@@ -369,17 +401,29 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthStart}
                         onMonthChange={setMonthStart}
+                        startMonth={new Date(2024, 0, 1)}
+                        endMonth={new Date(2050, 11, 31)}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
                           }
                           setOpenStart(false)
                         }}
+                        modifiers={{
+                          today: new Date()
+                        }}
+                        modifiersClassNames={{
+                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
+                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
+                            : ""
+                        }}
                         classNames={{
-                          day_button: "hover:bg-primary/50 hover:text-white",
-                          day_selected: "bg-primary/70 text-white",
-                          today: "ring-2 ring-primary  ring-offset-2 text-primary-foreground bg-primary rounded-md",
-                          month_caption: "text-primary"
+                          day_button: "hover:bg-primary/10",
+                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
+                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
+                          month_caption: "text-primary",
+                          day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
 
                       />
@@ -399,15 +443,15 @@ export const AlgoTimeSessionForm = () => {
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="cursor-pointer">
                     <SelectValue placeholder="Does not repeat" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Does not repeat</SelectItem>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem className="cursor-pointer" value="none">Does not repeat</SelectItem>
+                    <SelectItem className="cursor-pointer" value="daily">Daily</SelectItem>
+                    <SelectItem className="cursor-pointer" value="weekly">Weekly</SelectItem>
+                    <SelectItem className="cursor-pointer" value="biweekly">Every 2 weeks</SelectItem>
+                    <SelectItem className="cursor-pointer" value="monthly">Monthly</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -430,7 +474,7 @@ export const AlgoTimeSessionForm = () => {
                       <Button
                         id="date-picker"
                         variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
                       >
                         <CalendarIcon className="size-3.5" />
                         <span className="sr-only">Select date</span>
@@ -448,11 +492,29 @@ export const AlgoTimeSessionForm = () => {
                         captionLayout="dropdown"
                         month={monthEnd}
                         onMonthChange={setMonthEnd}
+                        startMonth={new Date(2024, 0, 1)}
+                        endMonth={new Date(2050, 11, 31)}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         onSelect={(selectedDate) => {
                           if (selectedDate) {
                             setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
                           }
                           setOpenEnd(false)
+                        }}
+                        modifiers={{
+                          today: new Date()
+                        }}
+                        modifiersClassNames={{
+                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
+                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
+                            : ""
+                        }}
+                        classNames={{
+                          day_button: "hover:bg-primary/10",
+                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
+                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
+                          month_caption: "text-primary",
+                          day_disabled: "text-muted-foreground/30 opacity-30"
                         }}
                       />
                     </PopoverContent>
@@ -462,10 +524,6 @@ export const AlgoTimeSessionForm = () => {
 
 
             )}
-
-
-
-
 
             <div className="flex gap-2 mt-8">
               <div className="w-25">
@@ -478,7 +536,7 @@ export const AlgoTimeSessionForm = () => {
                   step="60"
                   value={formData.startTime || "12:00:00"}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
                 />
               </div>
 
@@ -492,7 +550,7 @@ export const AlgoTimeSessionForm = () => {
                   step="60"
                   value={formData.endTime || "12:00:00"}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
                 />
               </div>
             </div>
@@ -635,8 +693,9 @@ export const AlgoTimeSessionForm = () => {
             <Button
               type="submit"
               className="cursor-pointer"
+              disabled={isSubmitting}
             >
-              Create
+              {isSubmitting ? "Creating..." : "Create"}
             </Button>
 
           </div>
