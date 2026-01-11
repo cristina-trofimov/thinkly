@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Circle, Hourglass } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -33,7 +33,7 @@ export default function HomePageBanner({ competitions }: HomePageBannerProps) {
     return () => clearInterval(timer);
   }, []);
 
-  const getRelevantCompetition = () => {
+  const competitionData = useMemo(() => {
     const now = currentTime;
     
     const activeCompetition = competitions.find(
@@ -53,9 +53,7 @@ export default function HomePageBanner({ competitions }: HomePageBannerProps) {
     }
     
     return null;
-  };
-
-  const competitionData = getRelevantCompetition();
+  }, [competitions, currentTime]);
 
   useEffect(() => {
     if (competitionData?.status === "upcoming") {
