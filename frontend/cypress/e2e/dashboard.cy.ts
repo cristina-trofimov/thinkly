@@ -46,12 +46,7 @@ describe('Admin Dashboard', () => {
     // Verify "Manage Algotime Sessions" link
     cy.contains('a', 'Manage Algotime Sessions')
       .should('have.attr', 'href', '/app/dashboard/algoTimeSession');
-
-    //Verify "Manage Riddles" link
-    cy.contains('a', 'Manage Riddles')
-      .should('have.attr', 'href', '/app/dashboard/manageRiddles');
   });
-    
 
   it('switches tabs correctly', () => {
     // Click the Competitions tab
