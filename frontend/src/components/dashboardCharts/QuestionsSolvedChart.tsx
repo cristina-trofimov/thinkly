@@ -1,28 +1,59 @@
 import { PieChart, Pie, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
-type TimeRange = "3months" | "30days" | "7days";
+interface QuestionsSolvedData {
+  name: string;
+  value: number;
+  color: string;
+  [key: string]: string | number; // Index signature for recharts compatibility
+}
 
-export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  const dataMap = {
-    "3months": [
-      { name: "Easy", value: 300, color: "var(--chart-1)" },
-      { name: "Medium", value: 200, color: "var(--chart-2)" },
-      { name: "Hard", value: 100, color: "var(--chart-3)" },
-    ],
-    "30days": [
-      { name: "Easy", value: 120, color: "var(--chart-1)" },
-      { name: "Medium", value: 80, color: "var(--chart-2)" },
-      { name: "Hard", value: 40, color: "var(--chart-3)" },
-    ],
-    "7days": [
-      { name: "Easy", value: 25, color: "var(--chart-1)" },
-      { name: "Medium", value: 18, color: "var(--chart-2)" },
-      { name: "Hard", value: 10, color: "var(--chart-3)" },
-    ],
-  };
+interface QuestionsSolvedChartProps {
+  data: QuestionsSolvedData[];
+  loading?: boolean;
+}
 
-  const data = dataMap[timeRange];
+export const QuestionsSolvedChart = ({ data, loading = false }: QuestionsSolvedChartProps) => {
+  // Show empty state if loading or no data
+  if (loading || data.length === 0) {
+    const placeholderData: QuestionsSolvedData[] = [
+      { name: "Easy", value: 1, color: "var(--chart-1)" },
+      { name: "Medium", value: 1, color: "var(--chart-2)" },
+      { name: "Hard", value: 1, color: "var(--chart-3)" },
+    ];
+
+    return (
+      <ChartContainer
+        config={{
+          Easy: { color: "var(--chart-1)" },
+          Medium: { color: "var(--chart-2)" },
+          Hard: { color: "var(--chart-3)" },
+        }}
+        style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+      >
+        <PieChart>
+          <Pie
+            data={placeholderData}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={90}
+            paddingAngle={0}
+            dataKey="value"
+          >
+            {placeholderData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ChartContainer>
+    );
+  }
+
+  // Add index signature to data for recharts compatibility
+  const chartData: QuestionsSolvedData[] = data.map(item => ({
+    ...item,
+  }));
 
   return (
     <ChartContainer
@@ -35,7 +66,7 @@ export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) =>
     >
       <PieChart>
         <Pie
-          data={data}
+          data={chartData}
           cx="50%"
           cy="50%"
           innerRadius={60}
@@ -43,7 +74,7 @@ export const QuestionsSolvedChart = ({ timeRange }: { timeRange: TimeRange }) =>
           paddingAngle={0}
           dataKey="value"
         >
-          {data.map((entry, index) => (
+          {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
           ))}
         </Pie>
