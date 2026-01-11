@@ -162,6 +162,7 @@ class Riddle(Base):
     riddle_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     riddle_question: Mapped[str] = mapped_column()
     riddle_answer: Mapped[str] = mapped_column()
+    riddle_file: Mapped[Optional[str]] = mapped_column()
 
 class QuestionInstance(Base):
     __tablename__ = 'question_instance'
