@@ -72,12 +72,12 @@ const ManageCompetitions = () => {
       const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         comp.competitionLocation.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const status = getCompetitionStatus(comp.date);
+      const status = getCompetitionStatus(comp.startDate);
       const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
 
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
 
 
@@ -133,7 +133,7 @@ const ManageCompetitions = () => {
           className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-105 border-2 border-dashed border-primary/50 hover:border-primary"
           onClick={() => setCreateDialogOpen(true)}
         >
-          <div className="aspect-[4/3] bg-muted/30 flex items-center justify-center">
+          <div className="aspect-4/3 bg-muted/30 flex items-center justify-center">
             <Plus className="w-16 h-16 text-primary" strokeWidth={1.5} />
           </div>
           <CardContent className="p-4">
@@ -148,14 +148,14 @@ const ManageCompetitions = () => {
 
         {/* Existing Competitions */}
         {filteredCompetitions.map((comp) => {
-          const status = getCompetitionStatus(comp.date);
+          const status = getCompetitionStatus(comp.startDate);
 
           return (
             <Card
               key={comp.id}
               className="overflow-hidden hover:shadow-lg transition-shadow"
             >
-              <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
                 <div className="relative z-10 text-center">
                   <div className="text-5xl font-bold text-primary/80 mb-2">
@@ -172,10 +172,10 @@ const ManageCompetitions = () => {
                     {comp.competitionTitle}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-1">
-                    📍 {comp.competitionLocation}
+                    Location: {comp.competitionLocation}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    📅 {new Date(comp.date).toLocaleDateString()}
+                    Date: {new Date(comp.startDate).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
