@@ -27,6 +27,8 @@ import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
 import ForgotPasswordForm from "./components/forms/ForgotPasswordForm.tsx";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
+import ProfilePage from "./views/ProfilePage.tsx";
+import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -156,6 +158,22 @@ const router = createBrowserRouter([
         handle: {
           crumb: { title: "Coding" },
         },
+      },
+      {
+        path: "profile",
+        element: <ProfilePage />,
+        handle: {
+          crumb: { title: "Profile" },
+        },
+        children: [
+          {
+            path: "changePassword",
+            element: <ChangePasswordPage />,
+            handle: {
+              crumb: { title: "Change Password" },
+            },
+          },
+        ],
       },
     ],
   },

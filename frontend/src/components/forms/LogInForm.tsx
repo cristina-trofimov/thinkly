@@ -112,18 +112,6 @@ export function LoginForm({
     }
   };
 
-  /*    const handleGetProfile = async () => {
-            try {
-                const data = await getProfile();
-                console.log("Profile:", data);
-                setProfile(data);
-                alert(`Email: ${data.email}\nRole: ${data.role}`);
-            } catch (err: any) {
-                console.error("Error fetching profile:", err);
-                alert(err.response?.data?.error || err.message);
-            }
-        }; Throwing lint error: unused*/
-
   const handleGoogleError = (): void => {
     toast.error("Google Sign-In was unsuccessful. Try again later.");
   };
