@@ -3,11 +3,12 @@ import '@testing-library/jest-dom';
 import ManageRiddles from '../src/views/admin/ManageRiddlePage'; // Adjust path
 import { getRiddles } from '../src/api/RiddlesAPI';
 import { toast } from 'sonner';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // --- MOCK SETUP ---
 
 // 1. Mock API and Toast
-vi.mock('@/services/riddle.service', () => ({
+vi.mock('../src/api/RiddlesAPI', () => ({
     getRiddles: vi.fn(),
 }));
 
