@@ -135,7 +135,7 @@ function ProfilePage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
                 <div className="relative group">
-                    <div className="size-35 rounded-full border-4 border-white shadow-xl overflow-hidden ring-2 ring-[#8065CD]/20 flex items-center justify-center bg-background">
+                    <div className="size-35 rounded-full border-4 border-white shadow-xl overflow-hidden ring-2 ring-primary/20 flex items-center justify-center bg-background">
                         <AvatarInitials
                             firstName={user?.firstName ?? ""}
                             lastName={user?.lastName ?? ""}
@@ -166,7 +166,7 @@ function ProfilePage() {
             <div className="lg:col-span-2 space-y-6">
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <IdCard className="h-5 w-5 text-[#8065CD]" />
+                        <IdCard className="h-5 w-5 text-primary" />
                         Personal Information
                     </h2>
                 </div>
@@ -203,7 +203,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
                                             onClick={() => startEditing("firstName", user?.firstName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -245,7 +245,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
                                             onClick={() => startEditing("lastName", user?.lastName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -288,13 +288,13 @@ function ProfilePage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-[#8065CD] hover:bg-[#8065CD]/10 rounded-full transition-all"
+                                                className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
                                                 onClick={() => startEditing("email", user?.email ?? "")}
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
                                         ) : (
-                                            <span className="text-[10px] uppercase font-bold text-[#8065CD]/60 tracking-wider">
+                                            <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
                                                 Managed by Google
                                             </span>
                                         )}
