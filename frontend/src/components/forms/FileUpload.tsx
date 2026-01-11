@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { logFrontend } from "../../api/LoggerAPI";
 
 // Services
 import { createRiddle } from "@/api/RiddlesAPI";
@@ -59,6 +60,12 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
     function handleFileSelect(selectedFile: File) {
         const error = validateFile(selectedFile);
         if (error) {
+            logFrontend({
+                level: 'ERROR',
+                message: `Failed to load riddles: ${(err as Error).message}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });
             toast.error(error);
             return;
         }
@@ -123,9 +130,11 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                     });
 
                 if (uploadError) throw uploadError;
+                
 
                 const { data } = supabase.storage.from(bucket).getPublicUrl(path);
                 uploadedPublicUrl = data.publicUrl;
+                
             }
 
             // 3. Create Riddle in Backend
@@ -144,6 +153,12 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
             removeFile();
 
         } catch (err: unknown) {
+            logFrontend({
+                    level: 'ERROR',
+                    message: `Failed to load riddles: ${(err as Error).message}`,
+                    component: 'ManageRiddlesPage.tsx',
+                    url: window.location.href,
+                    });
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
             toast.error(errorMessage);

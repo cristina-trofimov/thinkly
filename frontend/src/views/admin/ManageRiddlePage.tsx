@@ -11,6 +11,7 @@ import {
 import { Plus, Search, FileText, Image as ImageIcon, HelpCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from "sonner";
+import { logFrontend } from "../../api/LoggerAPI";
 
 
 import CreateRiddleForm from "@/components/forms/FileUpload"; 
@@ -29,7 +30,12 @@ export default function ManageRiddles() {
             const data = await getRiddles();
             setRiddles(data);
         } catch (err: unknown) {
-            console.error(err);
+            logFrontend({
+                level: 'ERROR',
+                message: `Failed to load riddles: ${(err as Error).message}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });
             toast.error("Failed to load riddles");
         } finally {
             setLoading(false);
