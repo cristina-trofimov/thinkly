@@ -21,11 +21,18 @@ const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const compDate = new Date(competitionDate);
+  if (Number.isNaN(compDate.getTime())) return "Upcoming";
   compDate.setHours(0, 0, 0, 0);
 
   if (today.getTime() > compDate.getTime()) return "Completed";
   if (today.getTime() === compDate.getTime()) return "Active";
   return "Upcoming";
+};
+
+const formatCompetitionDate = (competitionDate: Date) => {
+  const date = new Date(competitionDate);
+  if (Number.isNaN(date.getTime())) return "TBD";
+  return date.toLocaleDateString();
 };
 
 const ManageCompetitions = () => {
@@ -90,7 +97,13 @@ const ManageCompetitions = () => {
       const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => {
+      const aDate = new Date(a.startDate);
+      const bDate = new Date(b.startDate);
+      const aTime = Number.isNaN(aDate.getTime()) ? 0 : aDate.getTime();
+      const bTime = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
+      return bTime - aTime;
+    });
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -133,7 +146,7 @@ const ManageCompetitions = () => {
           className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
           onClick={handleCreateNavigation}
         >
-          <div className="aspect-[4/3] bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+          <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
             <Plus className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
           </div>
           <CardContent className="p-4 bg-white text-center">
@@ -151,10 +164,10 @@ const ManageCompetitions = () => {
 
         {/* Competition Cards */}
         {filteredCompetitions.map((comp) => {
-          const status = getCompetitionStatus(comp.date);
+          const status = getCompetitionStatus(comp.startDate);
           return (
             <Card key={comp.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white">
-              <div className="aspect-[4/3] bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
                 <div className="relative z-10 text-center">
                   <div className="text-5xl font-bold text-primary/80 mb-2">{comp.competitionTitle.charAt(0).toUpperCase()}</div>
@@ -164,8 +177,8 @@ const ManageCompetitions = () => {
               <CardContent className="p-4 space-y-3">
                 <div>
                   <h3 className="font-semibold text-base mb-1 line-clamp-1">{comp.competitionTitle}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-1">📍 {comp.competitionLocation}</p>
-                  <p className="text-xs text-muted-foreground mt-1">📅 {new Date(comp.date).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
@@ -185,3 +198,4 @@ const ManageCompetitions = () => {
 };
 
 export default ManageCompetitions;
+
