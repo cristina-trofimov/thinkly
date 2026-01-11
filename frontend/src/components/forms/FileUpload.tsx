@@ -1,5 +1,5 @@
 import { Trash2, UploadCloud, FileText } from "lucide-react";
-import { useMemo, useRef, useState, type DragEvent, type ChangeEvent } from "react";
+import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
@@ -144,9 +144,10 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
             setAnswer("");
             removeFile();
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(err.message || "Failed to create riddle");
+            const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
+            toast.error(errorMessage);
         } finally {
             setIsSubmitting(false);
         }

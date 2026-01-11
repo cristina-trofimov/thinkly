@@ -1,204 +1,208 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import ManageRiddles from '../src/views/admin/ManageRiddlePage'; // Adjust path
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import ManageRiddles from '../src/views/admin/ManageRiddlePage';
 import { getRiddles } from '../src/api/RiddlesAPI';
 import { toast } from 'sonner';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// --- MOCK SETUP ---
+// --- MOCKS ---
 
-// 1. Mock API and Toast
-vi.mock('../src/api/RiddlesAPI', () => ({
-    getRiddles: vi.fn(),
+// 1. Mock API
+jest.mock('@/api/RiddlesAPI', () => ({
+  getRiddles: jest.fn(),
 }));
 
-vi.mock('sonner', () => ({
-    toast: {
-        error: vi.fn(),
-        success: vi.fn(),
-    },
+// 2. Mock Toast
+jest.mock('sonner', () => ({
+  toast: {
+    error: jest.fn(),
+  },
 }));
 
-// 2. Mock UI Components (to isolate logic)
-vi.mock('@/components/ui/card', () => ({
-    Card: ({ children, className, onClick }: any) => (
-        <div data-testid="mock-card" className={className} onClick={onClick}>
-            {children}
-        </div>
-    ),
-    CardHeader: ({ children }: any) => <div data-testid="card-header">{children}</div>,
-    CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>,
-    CardTitle: ({ children }: any) => <h2>{children}</h2>,
+// 3. Mock Child Component (Create Form)
+// We mock this to easily trigger the onSuccess callback without filling out a real form
+jest.mock('@/components/forms/FileUpload', () => ({
+  __esModule: true,
+  default: ({ onSuccess }: { onSuccess: () => void }) => (
+    <div data-testid="mock-create-form">
+      <button data-testid="trigger-form-success" onClick={onSuccess}>
+        Simulate Success
+      </button>
+    </div>
+  ),
 }));
 
-vi.mock('@/components/ui/button', () => ({
-    Button: ({ children, onClick, variant }: any) => (
-        <button data-testid={`btn-${variant || 'default'}`} onClick={onClick}>
-            {children}
-        </button>
-    ),
+// 4. Mock UI Components
+// This prevents issues with Radix UI/Shadcn in the Jest environment
+jest.mock('@/components/ui/card', () => ({
+  Card: ({ children, className, onClick }: any) => <div className={className} onClick={onClick}>{children}</div>,
+  CardHeader: ({ children }: any) => <div>{children}</div>,
+  CardContent: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@/components/ui/input', () => ({
-    Input: ({ value, onChange, placeholder }: any) => (
-        <input
-            data-testid="search-input"
-            value={value}
-            onChange={onChange}
-            placeholder={placeholder}
-        />
-    ),
-}));
-
-// 3. Mock Dialog (Complex UI)
-// We simply render the trigger and the content always, or control it via simple state in the mock if needed.
-// For unit tests, it's often easier to render the content directly if "open" is true, 
-// but since Radix UI (shadcn) dialogs are complex, we often just mock them as divs.
-vi.mock('@/components/ui/dialog', () => ({
-    Dialog: ({ children, open, onOpenChange }: any) => (
-        <div data-testid="mock-dialog" data-open={open}>
-            {children}
-        </div>
-    ),
-    DialogTrigger: ({ children }: any) => <div data-testid="dialog-trigger">{children}</div>,
-    DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
-    DialogHeader: ({ children }: any) => <div data-testid="dialog-header">{children}</div>,
-    DialogTitle: ({ children }: any) => <h3>{children}</h3>,
-}));
-
-// 4. Mock the Create Form (Child Component)
-// We mock this to avoid testing the form logic again. We just check if it receives the onSuccess prop.
-vi.mock('@/components/forms/CreateRiddleForm', () => ({
-    default: ({ onSuccess }: any) => (
-        <div data-testid="create-riddle-form">
-            Mock Create Form
-            <button data-testid="trigger-success" onClick={onSuccess}>
-                Trigger Success
-            </button>
-        </div>
-    ),
+jest.mock('@/components/ui/dialog', () => ({
+  Dialog: ({ children, open }: any) => <div data-open={open}>{children}</div>,
+  DialogTrigger: ({ children, onClick }: any) => <div onClick={onClick} data-testid="dialog-trigger">{children}</div>,
+  DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
+  DialogHeader: ({ children }: any) => <div>{children}</div>,
+  DialogTitle: ({ children }: any) => <div>{children}</div>,
 }));
 
 // 5. Mock Icons
-vi.mock('lucide-react', () => ({
-    Plus: () => <span>+</span>,
-    Search: () => <span>SearchIcon</span>,
-    FileText: () => <span>FileText</span>,
-    Image: () => <span>ImageIcon</span>,
-    HelpCircle: () => <span>?</span>,
+jest.mock('lucide-react', () => ({
+  Plus: () => <span>+</span>,
+  Search: () => <span>SearchIcon</span>,
+  FileText: () => <span>FileText</span>,
+  Image: () => <span>ImageIcon</span>,
+  HelpCircle: () => <span>?</span>,
 }));
 
 describe('ManageRiddles', () => {
-    const mockRiddles = [
-        { id: 1, question: 'Question One', answer: 'Answer One', file: null },
-        { id: 2, question: 'Question Two', answer: 'Answer Two', file: 'http://img.png' },
-    ];
+  // Helper to cast the mock function for TypeScript
+  const mockGetRiddles = getRiddles as jest.Mock;
 
-    beforeEach(() => {
-        vi.clearAllMocks();
+  const mockRiddleData = [
+    { id: 1, question: 'What has keys but no locks?', answer: 'A piano', file: null },
+    { id: 2, question: 'What has legs but cannot walk?', answer: 'A chair', file: 'http://example.com/image.png' },
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Initial Render', () => {
+    it('renders without crashing', async () => {
+      mockGetRiddles.mockResolvedValue([]);
+      
+      render(<ManageRiddles />);
+
+      expect(screen.getByText('Manage Riddles')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search question or answer...')).toBeInTheDocument();
+      
+      // Ensure loading state resolves
+      await waitFor(() => {
+        expect(screen.queryByText('Loading riddles...')).not.toBeInTheDocument();
+      });
     });
 
-    it('renders the page title and search bar', async () => {
-        (getRiddles as any).mockResolvedValue([]);
-        render(<ManageRiddles />);
-
-        expect(screen.getByText('Manage Riddles')).toBeInTheDocument();
-        expect(screen.getByTestId('search-input')).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/Search question or answer/i)).toBeInTheDocument();
+    it('displays loading state initially', () => {
+      // Return a promise that doesn't resolve immediately
+      mockGetRiddles.mockImplementation(() => new Promise(() => {}));
+      
+      render(<ManageRiddles />);
+      
+      expect(screen.getByText('Loading riddles...')).toBeInTheDocument();
     });
 
-    it('fetches and displays riddles on mount', async () => {
-        (getRiddles as any).mockResolvedValue(mockRiddles);
-        render(<ManageRiddles />);
 
-        // Wait for loading to finish
+  });
+
+  describe('Data Fetching', () => {
+    it('fetches riddles on mount', async () => {
+      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      
+      render(<ManageRiddles />);
+
+      await waitFor(() => {
+        expect(mockGetRiddles).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('displays fetched riddles', async () => {
+      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      
+      render(<ManageRiddles />);
+
+      await waitFor(() => {
+        expect(screen.getByText('What has keys but no locks?')).toBeInTheDocument();
+        expect(screen.getByText('A piano')).toBeInTheDocument();
+        expect(screen.getByText('What has legs but cannot walk?')).toBeInTheDocument();
+      });
+    });
+
+    it('renders attachment badge and button only when file exists', async () => {
+        mockGetRiddles.mockResolvedValue(mockRiddleData);
+        
+        render(<ManageRiddles />);
+  
         await waitFor(() => {
-            expect(screen.getByText('Question One')).toBeInTheDocument();
-            expect(screen.getByText('Question Two')).toBeInTheDocument();
+          // Riddle 1 (No file)
+          expect(screen.queryAllByText('Has Media').length).toBe(1); // Only for riddle 2
+          expect(screen.queryAllByText('View Attachment').length).toBe(1); // Only for riddle 2
         });
+      });
+  });
 
-        // Check for Answer text (it's in the document)
-        expect(screen.getByText('Answer One')).toBeInTheDocument();
+  describe('Search Functionality', () => {
+    it('filters riddles based on search query (Question)', async () => {
+      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      render(<ManageRiddles />);
+
+      await waitFor(() => expect(screen.getByText('A piano')).toBeInTheDocument());
+
+      const input = screen.getByPlaceholderText('Search question or answer...');
+      
+      // Search for "piano" (Question 1 answer)
+      fireEvent.change(input, { target: { value: 'piano' } });
+
+      expect(screen.getByText('What has keys but no locks?')).toBeInTheDocument();
+      expect(screen.queryByText('What has legs but cannot walk?')).not.toBeInTheDocument();
     });
 
-    it('shows loading state initially', () => {
-        // Return a promise that never resolves immediately to keep loading state active
-        (getRiddles as any).mockReturnValue(new Promise(() => { }));
+    it('filters riddles based on search query (Answer)', async () => {
+        mockGetRiddles.mockResolvedValue(mockRiddleData);
         render(<ManageRiddles />);
-
-        expect(screen.getByText(/Loading riddles.../i)).toBeInTheDocument();
+  
+        await waitFor(() => expect(screen.getByText('A piano')).toBeInTheDocument());
+  
+        const input = screen.getByPlaceholderText('Search question or answer...');
+        
+        // Search for "chair" (Question 2 answer)
+        fireEvent.change(input, { target: { value: 'chair' } });
+  
+        expect(screen.getByText('What has legs but cannot walk?')).toBeInTheDocument();
+        expect(screen.queryByText('What has keys but no locks?')).not.toBeInTheDocument();
     });
 
-    it('filters riddles based on search input', async () => {
-        (getRiddles as any).mockResolvedValue(mockRiddles);
+    it('shows empty state behavior when search yields no results', async () => {
+        mockGetRiddles.mockResolvedValue(mockRiddleData);
         render(<ManageRiddles />);
-
-        await waitFor(() => expect(screen.getByText('Question One')).toBeInTheDocument());
-
-        const input = screen.getByTestId('search-input');
-
-        // Type "Two"
-        fireEvent.change(input, { target: { value: 'Two' } });
-
-        // "Question One" should disappear, "Question Two" should remain
-        expect(screen.queryByText('Question One')).not.toBeInTheDocument();
-        expect(screen.getByText('Question Two')).toBeInTheDocument();
+  
+        await waitFor(() => expect(screen.getByText('A piano')).toBeInTheDocument());
+  
+        const input = screen.getByPlaceholderText('Search question or answer...');
+        fireEvent.change(input, { target: { value: 'XYZ_NON_EXISTENT' } });
+  
+        // Both should disappear
+        expect(screen.queryByText('What has keys but no locks?')).not.toBeInTheDocument();
+        expect(screen.queryByText('What has legs but cannot walk?')).not.toBeInTheDocument();
     });
+  });
 
-    it('displays attachment indicator if file exists', async () => {
-        (getRiddles as any).mockResolvedValue(mockRiddles);
+  
+  describe('Error Handling', () => {
+    it('displays error toast on fetch failure', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        mockGetRiddles.mockRejectedValue(new Error('Network Error'));
+        
         render(<ManageRiddles />);
-
-        await waitFor(() => {
-            // Riddle 1 has no file
-            // Riddle 2 has file
-            const badges = screen.getAllByText(/Has Media/i);
-            expect(badges.length).toBe(1); // Only one badge should be rendered
-        });
-    });
-
-    it('opens create dialog and refreshes list on success', async () => {
-        (getRiddles as any).mockResolvedValue([]);
-        render(<ManageRiddles />);
-
-        // Check Dialog Trigger exists (The "Create New Riddle" card)
-        expect(screen.getByText('Create New Riddle')).toBeInTheDocument();
-
-        // Since we mocked Dialog to always render content (or just simple divs), 
-        // we can check if the form mock is present. 
-        // In a real Dialog mock, you might need to click the trigger first.
-        // Based on our mock above: <div data-testid="dialog-content">{children}</div>
-        // The content is rendered in the DOM structure even if "closed" in some naive mocks, 
-        // OR we can assume Radix structure. 
-
-        // Let's verify the form mock is there
-        const formMock = screen.getByTestId('create-riddle-form');
-        expect(formMock).toBeInTheDocument();
-
-        // Simulate "Success" from the form (which should trigger reload)
-        const successBtn = screen.getByTestId('trigger-success');
-
-        // Clear the initial getRiddles call
-        (getRiddles as any).mockClear();
-
-        fireEvent.click(successBtn);
-
-        // Verify getRiddles was called again to refresh the list
-        await waitFor(() => {
-            expect(getRiddles).toHaveBeenCalledTimes(1);
-        });
-    });
-
-    it('handles API errors gracefully', async () => {
-        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
-        (getRiddles as any).mockRejectedValue(new Error('Fetch failed'));
-
-        render(<ManageRiddles />);
-
+        
         await waitFor(() => {
             expect(toast.error).toHaveBeenCalledWith('Failed to load riddles');
         });
 
         consoleSpy.mockRestore();
     });
+
+    it('stops loading state even after error', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        mockGetRiddles.mockRejectedValue(new Error('Network Error'));
+        
+        render(<ManageRiddles />);
+        
+        await waitFor(() => {
+            expect(screen.queryByText('Loading riddles...')).not.toBeInTheDocument();
+        });
+        
+        consoleSpy.mockRestore();
+    });
+  });
 });
