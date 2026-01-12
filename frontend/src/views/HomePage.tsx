@@ -71,8 +71,6 @@ function HomePage() {
           ? err.message
           : "Unknown error during competition fetch.";
 
-        console.error("Error fetching competitions:", err);
-
         logFrontend({
           level: "ERROR",
           message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
