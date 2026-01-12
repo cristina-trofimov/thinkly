@@ -138,7 +138,7 @@ function ChangePasswordPage() {
               {/* Confirm New Password */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 opacity-70 text-[#8065CD]" /> Confirm New Password
+                  <KeyRound className="h-4 w-4 opacity-70 text-primary" /> Confirm New Password
                 </Label>
                 <Input
                   type="password"
