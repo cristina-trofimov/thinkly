@@ -145,7 +145,7 @@ function ChangePasswordPage() {
                   placeholder="Repeat your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`h-10 focus-visible:ring-[#8065CD] rounded-xl ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
+                  className={`h-10 focus-visible:ring-primary ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
                     }`}
                   disabled={isSubmitting}
                 />
