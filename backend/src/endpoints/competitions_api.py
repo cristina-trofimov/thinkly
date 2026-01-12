@@ -205,14 +205,13 @@ def get_all_competitions(db: Session = Depends(get_db)):
     try:
         competitions = db.query(Competition).join(BaseEvent).all()
         logger.info(f"Fetched {len(competitions)} competitions from the database.")
-
-        # Manually construct the response with base_event data
         return [
             {
                 "id": comp.event_id,
                 "competition_title": comp.base_event.event_name,
                 "competition_location": comp.base_event.event_location,
-                "date": comp.base_event.event_start_date,
+                "start_date": comp.base_event.event_start_date,
+                "end_date": comp.base_event.event_end_date,
             }
             for comp in competitions
         ]
