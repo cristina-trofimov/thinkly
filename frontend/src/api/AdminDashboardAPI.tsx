@@ -1,13 +1,13 @@
 import axiosClient from "@/lib/axiosClient";
+import type { DashboardOverviewResponse } from "@/types/adminDashboard/ManageCards.type";
 import type {
   TimeRange,
-  DashboardOverviewResponse,
   NewAccountsStats,
   QuestionsSolvedItem,
   TimeToSolveItem,
   LoginsDataPoint,
   ParticipationDataPoint,
-} from "@/types/adminDashboard/AdminDashboard.type";
+} from "@/types/adminDashboard/Analytics.type";
 
 /**
  * Get dashboard overview with 2 most recent items for each category

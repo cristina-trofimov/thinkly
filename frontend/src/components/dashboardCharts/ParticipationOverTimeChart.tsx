@@ -1,6 +1,6 @@
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import type { TimeRange } from "@/types/adminDashboard/AdminDashboard.type";
+import type { TimeRange } from "@/types/adminDashboard/Analytics.type";
 
 interface ParticipationData {
   date: string;

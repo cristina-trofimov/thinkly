@@ -9,7 +9,7 @@ import { ParticipationOverTimeChart } from "@/components/dashboardCharts/Partici
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { ManageItem } from "../../components/dashboardCards/ManageCard";
-import type { TimeRange } from "@/types/adminDashboard/AdminDashboard.type";
+import type { TimeRange } from "@/types/adminDashboard/Analytics.type";
 import {
   getDashboardOverview,
   getNewAccountsStats,
