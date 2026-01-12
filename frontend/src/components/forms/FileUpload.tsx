@@ -1,75 +1,52 @@
-
-//Uncomment SignupPage.tsx to see this component in action
-import { Trash2 } from "lucide-react";
-import { useMemo, useRef, useState, type DragEvent, type ChangeEvent } from "react";
+import { Trash2, UploadCloud, FileText } from "lucide-react";
+import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
-import {toast} from "sonner";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import type { UploadFile } from "@/types/riddle/UploadFile";
+import { logFrontend } from "../../api/LoggerAPI";
 
-// Supabase setup ADD .env file in cd/frontend with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+// Services
+import { createRiddle } from "@/api/RiddlesAPI";
+
+// Supabase setup
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnon);
 
-
-//Function to preview different file types FOR VALIDATION & can be used when displaying riddles in competitions no need when uploading riddle files
-function FilePreview({ url, mimeType }: { url: string; mimeType: string }) {
-    if (mimeType.startsWith("image/")) return <img src={url} alt="preview" className="w-full rounded-xl" />;
-
-    if (mimeType.startsWith("audio/"))
-        return (
-            <audio controls className="w-full">
-                <source src={url} type={mimeType} />
-            </audio>
-        );
-
-    if (mimeType.startsWith("video/"))
-        return (
-            <video controls className="w-full rounded-xl">
-                <source src={url} type={mimeType} />
-            </video>
-        );
-
-    if (mimeType === "application/pdf")
-        return <iframe src={url} className="w-full h-[650px] rounded-xl border" />;
-
-    return (
-        <a className="underline" href={url} target="_blank" rel="noreferrer">
-            Open / Download
-        </a>
-    );
+interface CreateRiddleFormProps {
+    onSuccess?: () => void;
 }
 
-export default function FileUploadDropzone() {
+export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
+    // Form State
+    const [question, setQuestion] = useState("");
+    const [answer, setAnswer] = useState("");
+    
+    // File State (Single file only)
+    const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    
+    // UI State
+    const [isOver, setIsOver] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
 
-    const [isOver, setIsOver] = useState(false);
-    const [items, setItems] = useState<UploadFile[]>([]);
-    const [error, setError] = useState<string>("");
-    const [overallProgress, setOverallProgress] = useState<number>(0);
-
-    //In my supabase storage settings, my bucket is called "uploads" with "public" folder with public access
+    // Config
     const bucket = "uploads";
     const folder = "public";
 
-    const hasQueued = useMemo(() => items.some((i) => i.status === "queued"), [items]);
-    const isUploading = useMemo(() => items.some((i) => i.status === "uploading"), [items]);
-
-    function openPicker() {
-        inputRef.current?.click();
-    }
+    // --- File Handling ---
 
     function validateFile(file: File) {
-
-        //I set max file size to 100MB and only allow image/audio/video/pdf files
         const maxMB = 100;
         if (file.size > maxMB * 1024 * 1024) return `File too large. Max ${maxMB}MB.`;
-
+        
         const ok =
             file.type.startsWith("image/") ||
             file.type.startsWith("audio/") ||
@@ -80,249 +57,223 @@ export default function FileUploadDropzone() {
         return "";
     }
 
-    function addFiles(fileList: FileList | File[]) {
-        setError("");
-
-        const next: UploadFile[] = [];
-        for (const file of Array.from(fileList)) {
-            const v = validateFile(file);
-            if (v) {
-                setError(v);
-                continue;
-            }
-
-            const id =
-                typeof crypto?.randomUUID === "function"
-                    ? crypto.randomUUID()
-                    : `${Math.random().toString(16).slice(2)}${Date.now()}`;
-
-            next.push({ id, file, status: "queued" });
+    function handleFileSelect(selectedFile: File) {
+        const error = validateFile(selectedFile);
+        if (error) {
+            logFrontend({
+                level: 'ERROR',
+                message: `Failed to load riddles: ${error}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });
+            toast.error(error);
+            return;
         }
 
-        // append
-        setItems((prev) => [...prev, ...next]);
+        // Create a local preview URL
+        const objectUrl = URL.createObjectURL(selectedFile);
+        
+        setFile(selectedFile);
+        setPreviewUrl(objectUrl);
     }
 
     function onPick(e: ChangeEvent<HTMLInputElement>) {
-        if (e.target.files?.length) addFiles(e.target.files);
-        e.target.value = "";
+        if (e.target.files?.[0]) {
+            handleFileSelect(e.target.files[0]);
+        }
+        e.target.value = ""; // reset input
     }
 
     function onDrop(e: DragEvent<HTMLDivElement>) {
         e.preventDefault();
         e.stopPropagation();
         setIsOver(false);
-        if (e.dataTransfer.files?.length) addFiles(e.dataTransfer.files);
+        if (e.dataTransfer.files?.[0]) {
+            handleFileSelect(e.dataTransfer.files[0]);
+        }
     }
 
-    function onDragOver(e: DragEvent<HTMLDivElement>) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsOver(true);
+    function removeFile() {
+        setFile(null);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
     }
 
-    function onDragLeave(e: DragEvent<HTMLDivElement>) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsOver(false);
-    }
+    // --- Drag Visuals ---
+    function onDragOver(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setIsOver(true); }
+    function onDragLeave(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setIsOver(false); }
 
-    function removeQueued(id: string) {
-        setItems((prev) => prev.filter((i) => i.id !== id));
-    }
+    // --- Submission Logic ---
 
-    function clearQueued() {
-        if (isUploading) return;
-        setItems([]);
-        setOverallProgress(0);
-        setError("");
-    }
+    async function handleSubmit() {
+        // 1. Basic Validation
+        if (!question.trim() || !answer.trim()) {
+            toast.error("Question and Answer are required.");
+            return;
+        }
 
-    async function uploadAll() {
-        setError("");
-        setOverallProgress(0);
+        setIsSubmitting(true);
+        let uploadedPublicUrl: string | null = null;
 
-        let success = 0;
-        let fail=0;
-        const queued = items.filter((i) => i.status === "queued");
-        if (queued.length === 0) return;
+        try {
+            // 2. Upload File (if exists)
+            if (file) {
+                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+                const path = `${folder}/${Date.now()}_${safeName}`;
 
-        const completed = 0;
-
-        setItems((prev) =>
-            prev.map((i) => (i.status === "queued" ? { ...i, status: "uploading", error: undefined } : i))
-        );
-
-        //Upload one by one & fills attribute publicURL and uploadedPath *see frontend/src/types/riddle/UploadFile.tsx
-        for (const it of queued) {
-            try {
-                const safeName = it.file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-                const path = `${folder}/${Date.now()}_${it.id}_${safeName}`;
-
-                const { error: uploadError } = await supabase.storage.from(bucket).upload(path, it.file, {
-                    upsert: false,
-                    contentType: it.file.type,
-                    cacheControl: "3600",
-                });
+                const { error: uploadError } = await supabase.storage
+                    .from(bucket)
+                    .upload(path, file, {
+                        upsert: false,
+                        contentType: file.type,
+                        cacheControl: "3600",
+                    });
 
                 if (uploadError) throw uploadError;
+                
 
                 const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-
-                success += 1;
-
-                setItems((prev) =>
-                    prev.map((x) =>
-                        x.id === it.id
-                            ? { ...x, status: "uploaded", uploadedUrl: data.publicUrl, uploadedPath: path }
-                            : x
-                    )
-                );
-            } catch (err: unknown) {
-                fail += 1;
-                setItems((prev) =>
-                    prev.map((x) => (x.id === it.id ? { ...x, status: "error", error: (err as Error)?.message ?? "Upload failed" } : x))
-                );
-            } finally {
-                setOverallProgress(Math.round((completed / queued.length) * 100));
+                uploadedPublicUrl = data.publicUrl;
+                
             }
-        }
 
-        
-        const total = queued.length;
+            // 3. Create Riddle in Backend
+            await createRiddle({
+                question: question,
+                answer: answer,
+                file: uploadedPublicUrl
+            });
 
-        if (success === total) {
-            toast.success(`${success} file${success === 1 ? "" : "s"} uploaded successfully.`);
-        } else if (success === 0) {
-            toast.error(`0/${total} files uploaded.`);
-        } else {
-            toast.success(`${success}/${total} uploaded • ${fail} failed.`);
+            toast.success("Riddle created successfully!");
+            if (onSuccess) onSuccess();
+            
+            // 4. Reset Form
+            setQuestion("");
+            setAnswer("");
+            removeFile();
+
+        } catch (err: unknown) {
+            logFrontend({
+                    level: 'ERROR',
+                    message: `Failed to load riddles: ${(err as Error).message}`,
+                    component: 'ManageRiddlesPage.tsx',
+                    url: window.location.href,
+                    });
+            
+            const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
+            toast.error(errorMessage);
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
-
-    
     return (
-        <div className="max-w-3xl">
-            <Card className="rounded-2xl">
+        <div className="max-w-2xl mx-auto py-10">
+            <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-xl">Upload files</CardTitle>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Create New Riddle
+                    </CardTitle>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                    <div
-                        onClick={openPicker}
-                        onDrop={onDrop}
-                        onDragOver={onDragOver}
-                        onDragLeave={onDragLeave}
-                        className={[
-                            "rounded-lg border-2 border-dashed p-6 cursor-pointer select-none transition",
-                            isOver ? "border-foreground bg-muted/50" : "border-muted-foreground/30",
-                        ].join(" ")}
-                        role="button"
-                        tabIndex={0}
-                    >
-                        <input
-                            ref={inputRef}
-                            type="file"
-                            multiple
-                            onChange={onPick}
-                            className="hidden"
-                            accept="image/*,audio/*,video/*,application/pdf"
-                        />
-
-                        <div className="space-y-1">
-                            <div className="font-semibold">Drag & drop files here</div>
-                            <div className="text-sm text-muted-foreground">or click to browse (image / audio / video / PDF)</div>
-                        </div>
-                    </div>
-
-
-                    <div className="flex flex-wrap gap-2">
-                        <Button className="cursor-pointer" onClick={uploadAll} disabled={!hasQueued || isUploading}>
-                            Upload
-                        </Button>
-
-                        <Button variant="secondary" className="cursor-pointer" onClick={openPicker} disabled={isUploading}>
-                            Add more
-                        </Button>
-
-                        <Button variant="ghost" className="cursor-pointer" onClick={clearQueued} disabled={isUploading || items.length === 0}>
-                            Clear
-                        </Button>
-                    </div>
-
-
-                    {isUploading && (
+                <CardContent className="space-y-6">
+                    {/* Inputs */}
+                    <div className="space-y-4">
                         <div className="space-y-2">
-                            <div className="text-sm text-muted-foreground">Uploading…</div>
-                            <Progress value={overallProgress} />
+                            <Label htmlFor="question">Riddle Question <span className="text-red-500">*</span></Label>
+                            <Input 
+                                id="question" 
+                                placeholder="e.g., What has keys but can't open locks?" 
+                                value={question}
+                                onChange={(e) => setQuestion(e.target.value)}
+                                disabled={isSubmitting}
+                            />
                         </div>
-                    )}
 
+                        <div className="space-y-2">
+                            <Label htmlFor="answer">Answer <span className="text-red-500">*</span></Label>
+                            <Input 
+                                id="answer" 
+                                placeholder="e.g., A piano" 
+                                value={answer}
+                                onChange={(e) => setAnswer(e.target.value)}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
 
-                    {error && <div className="text-sm text-red-600">{error}</div>}
+                    <Separator />
 
-
-                    {items.length > 0 && (
-                        <>
-                            <Separator />
-                            <div className="space-y-3">
-                                {items.map((it) => {
-                                    const badge = it.file.type;
-                                    return (
-                                        <div key={it.id} className="flex items-center justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="truncate font-medium">{it.file.name}</div>
-                                                    <Badge variant="secondary" className="rounded-lg text-gray-500">
-                                                        {badge}
-                                                    </Badge>
-                                                </div>
-
-                                                <div className="text-xs text-muted-foreground">
-                                                    {it.status === "queued" && "Ready to upload"}
-                                                    {it.status === "uploading" && "Uploading…"}
-                                                    {it.status === "uploaded" && "Uploaded"}
-                                                    {it.status === "error" && `error: ${it.error ?? "Upload failed"}`}
-                                                </div>
-                                            </div>
-
-
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => removeQueued(it.id)}
-                                                disabled={it.status === "uploading"}
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                                <span className="sr-only">Remove file</span>
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
+                    {/* File Dropzone */}
+                    <div className="space-y-2">
+                        <Label>Attachment (Optional)</Label>
+                        
+                        {!file ? (
+                            <div
+                                onClick={() => inputRef.current?.click()}
+                                onDrop={onDrop}
+                                onDragOver={onDragOver}
+                                onDragLeave={onDragLeave}
+                                className={[
+                                    "rounded-lg border-2 border-dashed p-8 cursor-pointer transition flex flex-col items-center justify-center text-center gap-2",
+                                    isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-muted/30",
+                                    isSubmitting ? "opacity-50 pointer-events-none" : ""
+                                ].join(" ")}
+                            >
+                                <input
+                                    ref={inputRef}
+                                    type="file"
+                                    onChange={onPick}
+                                    className="hidden"
+                                    accept="image/*,audio/*,video/*,application/pdf"
+                                />
+                                <UploadCloud className="w-10 h-10 text-muted-foreground" />
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-sm">Click to upload or drag and drop</div>
+                                    <div className="text-xs text-muted-foreground">Image, Audio, Video, or PDF (Max 100MB)</div>
+                                </div>
                             </div>
-                        </>
-                    )}
+                        ) : (
+                            // Selected File View
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Mini Preview Thumbnail */}
+                                    {file.type.startsWith("image/") && previewUrl && (
+                                        <img src={previewUrl} alt="preview" className="h-10 w-10 object-cover rounded-md" />
+                                    )}
+                                    <div className="min-w-0">
+                                        <div className="font-medium text-sm truncate max-w-[200px]">{file.name}</div>
+                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                                            {file.type}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={removeFile}
+                                    disabled={isSubmitting}
+                                    className="text-muted-foreground hover:text-destructive"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Submit Button */}
+                    <Button 
+                        onClick={handleSubmit} 
+                        className="w-full" 
+                        size="lg"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? "Uploading & Creating..." : "Create Riddle"}
+                    </Button>
                 </CardContent>
             </Card>
-
-            {/*  Preview last uploaded file for VALIDATION purposes */}
-            {items.some((i) => i.status === "uploaded" && i.uploadedUrl) && (
-                <Card className="mt-4 rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Preview (last uploaded)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {(() => {
-                            const last = [...items].reverse().find((i) => i.status === "uploaded" && i.uploadedUrl);
-                            if (!last?.uploadedUrl) return null;
-                            return <FilePreview url={last.uploadedUrl} mimeType={last.file.type} />;
-                        })()}
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 }

@@ -27,6 +27,7 @@ import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
 import ForgotPasswordForm from "./components/forms/ForgotPasswordForm.tsx";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
+import ManageRiddles from "./views/admin/ManageRiddlePage.tsx";
 import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 
@@ -141,6 +142,13 @@ const router = createBrowserRouter([
             element: <ManageAccountsPage />,
             handle: {
               crumb: { title: "Manage Accounts" }
+            }
+          },
+          {
+            path: "manageRiddles",
+            element: <ManageRiddles />,
+            handle: {
+              crumb: { title: "Manage Riddles" }
             }
           },
           {
