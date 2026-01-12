@@ -184,7 +184,7 @@ function ProfilePage() {
                             <Label className="text-sm font-semibold flex items-center gap-2">
                                 <User className="h-4 w-4 opacity-70" /> First Name
                             </Label>
-                            <div className="flex items-center justify-between group min-h-[40px]">
+                            <div className="flex items-center justify-between group min-h-10">
                                 {editingField === "firstName" ? (
                                     <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
