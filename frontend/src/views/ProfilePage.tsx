@@ -141,7 +141,7 @@ function ProfilePage() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
                 <div className="relative group">
-                    <div className="size-35 rounded-full border-4 border-white shadow-xl overflow-hidden ring-2 ring-primary/20 flex items-center justify-center bg-background">
+                    <div className="size-35 rounded-full border-4 border-white overflow-hidden ring-2 ring-primary/20 flex items-center justify-center">
                         <AvatarInitials
                             firstName={user?.firstName ?? ""}
                             lastName={user?.lastName ?? ""}
