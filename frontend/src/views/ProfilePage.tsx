@@ -177,7 +177,7 @@ function ProfilePage() {
                     </h2>
                 </div>
                 
-                <Card className="rounded-3xl border-muted/20 shadow-md overflow-hidden">
+                <Card className="rounded-3xl overflow-hidden">
                     <CardContent className="p-8 space-y-8">
                         {/* First Name Field */}
                         <div className="space-y-3">
