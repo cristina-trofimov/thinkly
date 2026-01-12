@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Riddle } from "../types/riddle/Riddle.type";
+import { logFrontend } from "./LoggerAPI";
 
 
 
@@ -34,7 +35,12 @@ export async function getRiddles(): Promise<Riddle[]> {
 
         return formattedRiddles;
     } catch (err) {
-        console.error("Error fetching riddles:", err);
+        logFrontend({
+                        level: 'ERROR',
+                        message: `Failed fetch riddles: ${err}`,
+                        component: 'ManageRiddlesPage.tsx',
+                        url: window.location.href,
+                });
         throw err;
     }
 }
@@ -60,7 +66,12 @@ export async function createRiddle(params: CreateRiddleParams): Promise<Riddle> 
 
         return newRiddle;
     } catch (err) {
-        console.error("Error creating riddle:", err);
+        logFrontend({
+                level: 'ERROR',
+                message: `Failed to create riddles: ${err}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });
         throw err;
     }
 }
@@ -72,7 +83,12 @@ export async function deleteRiddle(riddleId: number): Promise<void> {
     try {
         await axiosClient.delete(`/riddles/${riddleId}`);
     } catch (err) {
-        console.error(`Error deleting riddle ${riddleId}:`, err);
+        logFrontend({
+                level: 'ERROR',
+                message: `Failed to delete riddles: ${err}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });
         throw err;
     }
 }
@@ -98,7 +114,12 @@ export async function getRiddleById(riddleId: number): Promise<Riddle> {
 
         return riddle;
     } catch (err) {
-        console.error(`Error fetching riddle ${riddleId}:`, err);
+        logFrontend({
+                level: 'ERROR',
+                message: `Failed to fetch single riddle: ${err}`,
+                component: 'ManageRiddlesPage.tsx',
+                url: window.location.href,
+        });;
         throw err;
     }
 }

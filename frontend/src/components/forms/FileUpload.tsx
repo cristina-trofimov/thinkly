@@ -62,7 +62,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
         if (error) {
             logFrontend({
                 level: 'ERROR',
-                message: `Failed to load riddles: ${(err as Error).message}`,
+                message: `Failed to load riddles: ${error}`,
                 component: 'ManageRiddlesPage.tsx',
                 url: window.location.href,
         });
@@ -159,7 +159,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                     component: 'ManageRiddlesPage.tsx',
                     url: window.location.href,
                     });
-            console.error(err);
+            
             const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
             toast.error(errorMessage);
         } finally {
