@@ -155,7 +155,7 @@ function ProfilePage() {
                         <h1 className="text-3xl font-bold tracking-tight text-primary">
                             {user?.firstName} {user?.lastName}
                         </h1>
-                        <Badge className="bg-[#8065CD] hover:bg-[#6d54b5] text-white capitalize rounded-full px-4 py-0.5">
+                        <Badge className="bg-secondary text-primary capitalize rounded-full px-4 py-0.5">
                             {user?.accountType ?? "Participant"}
                         </Badge>
                     </div>
