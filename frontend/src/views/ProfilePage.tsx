@@ -190,7 +190,7 @@ function ProfilePage() {
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-primary"
+                                            className="h-9 focus-visible:ring-primary focus-visible:ring-1"
                                             disabled={isSaving}
                                             autoFocus
                                         />
@@ -232,7 +232,7 @@ function ProfilePage() {
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-primary"
+                                            className="h-9 focus-visible:ring-primary focus-visible:ring-1"
                                             disabled={isSaving}
                                             autoFocus
                                         />
@@ -274,7 +274,7 @@ function ProfilePage() {
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-primary"
+                                            className="h-9 focus-visible:ring-primary focus-visible:ring-1"
                                             disabled={isSaving}
                                             autoFocus
                                         />

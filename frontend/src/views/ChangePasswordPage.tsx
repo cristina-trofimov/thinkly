@@ -114,7 +114,7 @@ function ChangePasswordPage() {
                 placeholder="Enter your current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-10 focus-visible:ring-primary"
+                className="h-10 focus-visible:ring-primary focus-visible:ring-1"
                 disabled={isSubmitting}
               />
             </div>
@@ -130,7 +130,7 @@ function ChangePasswordPage() {
                   placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="h-10 focus-visible:ring-primaryl"
+                  className="h-10 focus-visible:ring-primary focus-visible:ring-1"
                   disabled={isSubmitting}
                 />
               </div>
@@ -145,7 +145,7 @@ function ChangePasswordPage() {
                   placeholder="Repeat your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`h-10 focus-visible:ring-primary ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
+                  className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
                     }`}
                   disabled={isSubmitting}
                 />
