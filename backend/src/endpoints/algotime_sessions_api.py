@@ -190,3 +190,34 @@ def create_algotime(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create AlgoTime"
         )
+
+@algotime_router.get("/")
+def get_all_algotime(db: Session = Depends(get_db)):
+    try:
+        series_list = db.query(AlgoTimeSeries).all()
+        logger.info(f"Fetched {len(series_list)} AlgoTime series.")
+
+        return [
+            {
+                "series_id": series.algotime_series_id,
+                "series_name": series.algotime_series_name,
+                "sessions": [
+                    {
+                        "id": session.event_id,  # ✅ correct PK
+                        "event_name": session.base_event.event_name,
+                        "start_date": session.base_event.event_start_date,
+                        "end_date": session.base_event.event_end_date,
+                        "question_cooldown": session.base_event.question_cooldown,
+                    }
+                    for session in series.algotime_sessions
+                ]
+            }
+            for series in series_list
+        ]
+
+    except Exception as e:
+        logger.error(f"Error fetching AlgoTime sessions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve AlgoTime sessions. Exception: {str(e)}"
+        )
