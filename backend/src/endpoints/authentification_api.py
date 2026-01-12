@@ -46,6 +46,11 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: constr(min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: constr(min_length=8)
+
 # ---------------- DB helpers ----------------
 def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
     return db.query(UserAccount).filter(UserAccount.email == email).first()
@@ -187,14 +192,26 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
         email = idinfo["email"]
-        name = idinfo.get("name", "Unknown User")
+        first_name = idinfo.get("given_name", "Google")
+        last_name = idinfo.get("family_name", "User")
+        
         user = get_user_by_email(db, email)
         
         if not user:
-            logger.info(f"New user registration via Google OAuth: {email}")
-            create_user(db, email=email, password_hash="", first_name=name, last_name="", type="participant")
+            logger.info(f"New user registration via Google OAuth: {email} {first_name} {last_name}")
+            create_user(
+                db, 
+                email=email, 
+                password_hash="", 
+                first_name=first_name, 
+                last_name=last_name, 
+                type="participant"
+            )
             user = get_user_by_email(db, email)
         
+        if not user:
+             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create or retrieve user")
+
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"token": token}
@@ -214,7 +231,7 @@ async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
     logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
-    return {"id": user.user_id, "email": user.email, "role": user.user_type}
+    return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email, "role": user.user_type}
 
 
 @auth_router.post("/logout")
@@ -323,3 +340,43 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     except jwt.JWTError as e:
         logger.error(f"Invalid reset token: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid reset token")
+
+@auth_router.post("/change-password")
+async def change_password(
+    request: ChangePasswordRequest, 
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
+    user_email = current_user.get("sub")
+    user = get_user_by_email(db, user_email)
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Check if old password matches
+    if not verify_password(request.old_password, user.hashed_password):
+        logger.warning(f"Failed password change attempt: Incorrect old password for user {user_email}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password")
+
+    # Hash new password and update
+    new_hashed_password = hash_password(request.new_password)
+    update_user_password(db, user_email, new_hashed_password)
+
+    logger.info(f"Password changed successfully for user: {user_email}")
+    return {"message": "Password changed successfully."}
+
+@auth_router.get("/is-google-account")
+async def is_google_account(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user_email = current_user.get("sub")
+    user = get_user_by_email(db, user_email)
+    
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        
+    # As per your requirement: Google users have an empty string as password in the DB
+    is_google = user.hashed_password == ""
+    
+    return {"isGoogleUser": is_google}
