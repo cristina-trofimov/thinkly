@@ -130,7 +130,7 @@ function ChangePasswordPage() {
                   placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="h-10 focus-visible:ring-[#8065CD] rounded-xl"
+                  className="h-10 focus-visible:ring-primaryl"
                   disabled={isSubmitting}
                 />
               </div>
