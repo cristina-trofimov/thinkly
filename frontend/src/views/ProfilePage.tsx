@@ -194,10 +194,10 @@ function ProfilePage() {
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -209,7 +209,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
                                             onClick={() => startEditing("firstName", user?.firstName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -236,10 +236,10 @@ function ProfilePage() {
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -251,7 +251,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
                                             onClick={() => startEditing("lastName", user?.lastName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -278,10 +278,10 @@ function ProfilePage() {
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer">
                                             <Check className="h-4 w-4" />
                                         </Button>
-                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                        <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -294,7 +294,7 @@ function ProfilePage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
+                                                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
                                                 onClick={() => startEditing("email", user?.email ?? "")}
                                             >
                                                 <Pencil className="h-4 w-4" />
@@ -323,7 +323,7 @@ function ProfilePage() {
                                 {!user?.isGoogleUser ? (
                                     <Button
                                         variant="ghost"
-                                        className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all"
+                                        className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
                                         onClick={handleChangePasswordNavigation}
                                     >
                                         Change Password
