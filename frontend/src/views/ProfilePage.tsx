@@ -150,7 +150,7 @@ function ProfilePage() {
                     </div>
                 </div>
 
-                <div className="flex-1 text-center md:text-left space-y-2 py-2">
+                <div className="flex-1 text-center md:text-left">
                     <div className="flex flex-col md:flex-row items-center gap-3">
                         <h1 className="text-3xl font-bold tracking-tight text-primary">
                             {user?.firstName} {user?.lastName}
