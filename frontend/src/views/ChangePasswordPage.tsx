@@ -82,7 +82,7 @@ function ChangePasswordPage() {
   return (
     <div className="container mx-auto p-6 max-w-7xl animate-in fade-in duration-500">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
             <Button
@@ -101,7 +101,7 @@ function ChangePasswordPage() {
       </div>
 
       <div className="max-w-2xl mx-auto space-y-6">
-        <Card className="rounded-3xl border-muted/20 shadow-md overflow-hidden">
+        <Card className="rounded-3xl overflow-hidden">
           <CardContent className="p-8 space-y-8">
 
             {/* Current Password */}
@@ -114,16 +114,16 @@ function ChangePasswordPage() {
                 placeholder="Enter your current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-10 focus-visible:ring-[#8065CD] rounded-xl"
+                className="h-10 focus-visible:ring-primary"
                 disabled={isSubmitting}
               />
             </div>
 
-            <div className="space-y-6 pt-4 border-t border-muted/20">
+            <div className="space-y-6 border-t border-muted/20">
               {/* New Password */}
               <div className="space-y-3">
                 <Label className="text-sm font-semibold flex items-center gap-2">
-                  <KeyRound className="h-4 w-4 opacity-70 text-[#8065CD]" /> New Password
+                  <KeyRound className="h-4 w-4 opacity-70 text-primary" /> New Password
                 </Label>
                 <Input
                   type="password"
@@ -156,7 +156,7 @@ function ChangePasswordPage() {
             </div>
 
             {/* Action Button */}
-            <div className="pt-6">
+            <div>
               <Button
                 onClick={handleUpdatePassword}
                 className="bg-primary text-white transition-all"

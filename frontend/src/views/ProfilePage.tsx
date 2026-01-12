@@ -131,7 +131,7 @@ function ProfilePage() {
     if (loading) {
         return (
             <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#8065CD] border-t-transparent" />
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
         );
     }
@@ -182,7 +182,7 @@ function ProfilePage() {
                         {/* First Name Field */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold flex items-center gap-2">
-                                <User className="h-4 w-4 opacity-70" /> First Name
+                                <User className="h-4 w-4 opacity-70 text-primary" /> First Name
                             </Label>
                             <div className="flex items-center justify-between group min-h-10">
                                 {editingField === "firstName" ? (
@@ -190,11 +190,11 @@ function ProfilePage() {
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            className="h-9 focus-visible:ring-primary"
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
                                         <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -209,7 +209,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
                                             onClick={() => startEditing("firstName", user?.firstName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -219,24 +219,24 @@ function ProfilePage() {
                             </div>
                         </div>
 
-                        <Separator className="opacity-50" />
+                        <Separator className="opacity-60" />
 
                         {/* Last Name Field */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold flex items-center gap-2">
-                                <User className="h-4 w-4 opacity-70" /> Last Name
+                                <User className="h-4 w-4 opacity-70 text-primary" /> Last Name
                             </Label>
-                            <div className="flex items-center justify-between group min-h-[40px]">
+                            <div className="flex items-center justify-between group min-h-10">
                                 {editingField === "lastName" ? (
                                     <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            className="h-9 focus-visible:ring-primary"
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
                                         <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -251,7 +251,7 @@ function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
+                                            className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
                                             onClick={() => startEditing("lastName", user?.lastName ?? "")}
                                         >
                                             <Pencil className="h-4 w-4" />
@@ -261,24 +261,24 @@ function ProfilePage() {
                             </div>
                         </div>
 
-                        <Separator className="opacity-50" />
+                        <Separator className="opacity-60" />
 
                         {/* Email Field */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold flex items-center gap-2">
-                                <Mail className="h-4 w-4 opacity-70" /> Email
+                                <Mail className="h-4 w-4 opacity-70 text-primary" /> Email
                             </Label>
-                            <div className="flex items-center justify-between group min-h-[40px]">
+                            <div className="flex items-center justify-between group min-h-10">
                                 {editingField === "email" ? (
                                     <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
                                         <Input 
                                             value={tempValue} 
                                             onChange={(e) => setTempValue(e.target.value)}
-                                            className="h-9 focus-visible:ring-[#8065CD]"
+                                            className="h-9 focus-visible:ring-primary"
                                             disabled={isSaving}
                                             autoFocus
                                         />
-                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+                                        <Button size="icon" variant="ghost" onClick={saveField} disabled={isSaving} className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
                                             <Check className="h-4 w-4" />
                                         </Button>
                                         <Button size="icon" variant="ghost" onClick={cancelEditing} disabled={isSaving} className="text-red-600 hover:text-red-700 hover:bg-red-50">
@@ -294,7 +294,7 @@ function ProfilePage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full transition-all"
+                                                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
                                                 onClick={() => startEditing("email", user?.email ?? "")}
                                             >
                                                 <Pencil className="h-4 w-4" />
@@ -314,7 +314,7 @@ function ProfilePage() {
                         {/* Password Field */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold flex items-center gap-2">
-                                <KeyRound className="h-4 w-4 opacity-70" /> Password
+                                <KeyRound className="h-4 w-4 opacity-70 text-primary" /> Password
                             </Label>
                             <div className="flex items-center justify-between group">
                                 <Label className="text-muted-foreground text-base font-normal tracking-widest">
@@ -323,13 +323,13 @@ function ProfilePage() {
                                 {!user?.isGoogleUser ? (
                                     <Button
                                         variant="ghost"
-                                        className="h-9 px-4 text-sm font-medium text-[#8065CD] hover:bg-[#8065CD]/10 rounded-xl transition-all"
+                                        className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all"
                                         onClick={handleChangePasswordNavigation}
                                     >
                                         Change Password
                                     </Button>
                                 ) : (
-                                    <span className="text-[10px] uppercase font-bold text-[#8065CD]/60 tracking-wider">
+                                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
                                         Managed by Google
                                     </span>
                                 )}
