@@ -159,7 +159,7 @@ function ChangePasswordPage() {
             <div className="pt-6">
               <Button
                 onClick={handleUpdatePassword}
-                className="w-full h-11 text-base font-semibold bg-[#8065CD] hover:bg-[#6d54b5] text-white rounded-xl transition-all shadow-lg shadow-[#8065CD]/20"
+                className="bg-primary text-white transition-all"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
