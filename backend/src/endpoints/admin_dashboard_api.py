@@ -228,31 +228,53 @@ async def get_new_accounts_stats(
         now = datetime.now(timezone.utc)
         range_start = get_time_range_start(time_range)
 
-        # Current period count
-        # Note: UserAccount doesn't have created_at, so we use user_id as proxy
-        # In production, you should add a created_at field to UserAccount
-        current_count = db.query(UserAccount).count()
+        # Get new accounts in current period
+        current_period_count = (
+            db.query(func.count(UserAccount.user_id))
+            .filter(UserAccount.created_at >= range_start)
+            .scalar() or 0
+        )
 
-        # For demo purposes, calculate approximate new users
-        # In production, query based on actual created_at timestamps
+        # Get previous period for comparison
         if time_range == "7days":
-            value = max(1, current_count // 10)
-            trend = "+12%"
-            subtitle = f"Up 12% in the last 7 days"
-            description = "More users are joining Thinkly"
+            previous_start = range_start - timedelta(days=7)
+            period_label = "7 days"
         elif time_range == "30days":
-            value = max(1, current_count // 4)
-            trend = "-5%"
-            subtitle = f"Down 5% in the last 30 days"
-            description = "Less users are joining Thinkly"
+            previous_start = range_start - timedelta(days=30)
+            period_label = "30 days"
         else:  # 3months
-            value = max(1, current_count // 2)
-            trend = "+10%"
-            subtitle = f"Up 10% in the last 3 months"
+            previous_start = range_start - timedelta(days=90)
+            period_label = "3 months"
+
+        previous_period_count = (
+            db.query(func.count(UserAccount.user_id))
+            .filter(
+                UserAccount.created_at >= previous_start,
+                UserAccount.created_at < range_start
+            )
+            .scalar() or 0
+        )
+
+        # Calculate trend percentage
+        if previous_period_count > 0:
+            trend_value = ((current_period_count - previous_period_count) / previous_period_count) * 100
+            trend = f"+{trend_value:.0f}%" if trend_value >= 0 else f"{trend_value:.0f}%"
+            trend_direction = "Up" if trend_value >= 0 else "Down"
+        else:
+            trend = "+100%" if current_period_count > 0 else "0%"
+            trend_direction = "Up" if current_period_count > 0 else "No change"
+
+        subtitle = f"{trend_direction} {abs(int(trend.replace('%', '').replace('+', '')))}% in the last {period_label}"
+
+        if trend_direction == "Up":
             description = "More users are joining Thinkly"
+        elif trend_direction == "Down":
+            description = "Fewer users are joining Thinkly"
+        else:
+            description = "User signups are stable"
 
         return NewAccountsStatsResponse(
-            value=value,
+            value=current_period_count,
             subtitle=subtitle,
             trend=trend,
             description=description

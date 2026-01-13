@@ -14,6 +14,7 @@ class UserAccount(Base):
     first_name: Mapped[str] = mapped_column()
     last_name: Mapped[str] = mapped_column()
     user_type: Mapped[str] = mapped_column(Enum('owner', 'admin', 'participant', name='user_type'), default='participant')
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
 
     user_preferences: Mapped[UserPreferences] = relationship('UserPreferences', back_populates='user_account', uselist=False)
     sessions: Mapped[List[UserSession]] = relationship('UserSession', back_populates='user_account', uselist=True)
