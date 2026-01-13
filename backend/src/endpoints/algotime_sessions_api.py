@@ -203,7 +203,7 @@ def get_all_algotime(db: Session = Depends(get_db)):
                 "series_name": series.algotime_series_name,
                 "sessions": [
                     {
-                        "id": session.event_id,  # ✅ correct PK
+                        "id": session.event_id, 
                         "event_name": session.base_event.event_name,
                         "start_date": session.base_event.event_start_date,
                         "end_date": session.base_event.event_end_date,
