@@ -110,12 +110,13 @@ export async function getLoginsStats(
  * Requires admin authentication
  */
 export async function getParticipationStats(
-  timeRange: TimeRange = "3months"
+  timeRange: TimeRange = "3months",
+  eventType: "algotime" | "competitions" = "algotime"
 ): Promise<ParticipationDataPoint[]> {
   try {
     const response = await axiosClient.get<ParticipationDataPoint[]>(
       `/admin/dashboard/stats/participation`,
-      { params: { time_range: timeRange } }
+      { params: { time_range: timeRange, event_type: eventType } }
     );
     return response.data;
   } catch (err) {

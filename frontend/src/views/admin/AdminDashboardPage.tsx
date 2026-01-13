@@ -85,7 +85,7 @@ export function AdminDashboard() {
     }
   }, [isRootDashboard]);
 
-  // Fetch stats data when timeRange changes
+  // Fetch stats data when timeRange or activeTab changes
   useEffect(() => {
     async function fetchStats() {
       setLoading(true);
@@ -95,7 +95,7 @@ export function AdminDashboard() {
           getQuestionsSolvedStats(timeRange),
           getTimeToSolveStats(timeRange),
           getLoginsStats(timeRange),
-          getParticipationStats(timeRange),
+          getParticipationStats(timeRange, activeTab),
         ]);
 
         setNewAccountStats(accounts);
@@ -113,7 +113,7 @@ export function AdminDashboard() {
     if (isRootDashboard) {
       fetchStats();
     }
-  }, [timeRange, isRootDashboard]);
+  }, [timeRange, activeTab, isRootDashboard]);
 
   return (
     <div className="flex flex-col w-full">

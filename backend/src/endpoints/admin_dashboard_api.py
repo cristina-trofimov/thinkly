@@ -459,35 +459,52 @@ async def get_logins_stats(
 @admin_dashboard_router.get("/stats/participation", response_model=List[ParticipationDataPoint])
 async def get_participation_stats(
     time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
+    event_type: Literal["algotime", "competitions"] = Query(default="algotime"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(role_required("admin"))
 ):
     """
-    Get participation over time.
+    Get participation over time filtered by event type.
     Returns data for bar chart.
     """
-    logger.info(f"Fetching participation stats for range: {time_range}")
+    logger.info(f"Fetching participation stats for range: {time_range}, type: {event_type}")
 
     try:
         now = datetime.now(timezone.utc)
 
+        # Build base query with event type filter
+        def get_submission_count(day_start, day_end):
+            query = (
+                db.query(func.count(Submission.submission_id))
+                .join(Participation, Submission.participation_id == Participation.participation_id)
+            )
+
+            # Filter by event type
+            if event_type == "competitions":
+                query = query.filter(
+                    Participation.event_id.in_(
+                        db.query(Competition.event_id)
+                    )
+                )
+            else:  # algotime
+                query = query.filter(
+                    Participation.event_id.in_(
+                        db.query(AlgoTimeSession.event_id)
+                    )
+                )
+
+            return query.filter(
+                Submission.submission_time >= day_start,
+                Submission.submission_time < day_end
+            ).scalar() or 0
+
         if time_range == "7days":
             days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            # Query participation by day of week
             data = []
             for i, day in enumerate(days):
                 day_start = now - timedelta(days=(6-i))
                 day_end = day_start + timedelta(days=1)
-
-                # Count participations and submissions for this day
-                count = (
-                    db.query(func.count(Submission.submission_id))
-                    .filter(
-                        Submission.submission_time >= day_start,
-                        Submission.submission_time < day_end
-                    )
-                    .scalar() or 0
-                )
+                count = get_submission_count(day_start, day_end)
                 data.append(ParticipationDataPoint(date=day, participation=count))
             return data
 
@@ -496,14 +513,7 @@ async def get_participation_stats(
             for day in range(30, 0, -1):
                 day_start = now - timedelta(days=day)
                 day_end = day_start + timedelta(days=1)
-                count = (
-                    db.query(func.count(Submission.submission_id))
-                    .filter(
-                        Submission.submission_time >= day_start,
-                        Submission.submission_time < day_end
-                    )
-                    .scalar() or 0
-                )
+                count = get_submission_count(day_start, day_end)
                 data.append(ParticipationDataPoint(
                     date=f"Day {31 - day}",
                     participation=count
@@ -515,14 +525,7 @@ async def get_participation_stats(
             for day in range(90, 0, -1):
                 day_start = now - timedelta(days=day)
                 day_end = day_start + timedelta(days=1)
-                count = (
-                    db.query(func.count(Submission.submission_id))
-                    .filter(
-                        Submission.submission_time >= day_start,
-                        Submission.submission_time < day_end
-                    )
-                    .scalar() or 0
-                )
+                count = get_submission_count(day_start, day_end)
                 date_str = day_start.strftime("%b %d")
                 data.append(ParticipationDataPoint(date=date_str, participation=count))
             return data
