@@ -348,24 +348,43 @@ async def get_time_to_solve_stats(
     """
     Get average time to solve questions by difficulty.
     Returns data for horizontal bar chart.
+    Time is calculated as minutes from event start to successful submission.
     """
     logger.info(f"Fetching time to solve stats for range: {time_range}")
     colors = get_chart_colors()
 
     try:
-        # For demo, return reasonable average times
-        # In production, calculate from actual submission timestamps
-        if time_range == "7days":
-            times = {"easy": 40, "medium": 25, "hard": 80}
-        elif time_range == "30days":
-            times = {"easy": 42, "medium": 28, "hard": 85}
-        else:
-            times = {"easy": 45, "medium": 30, "hard": 90}
+        range_start = get_time_range_start(time_range)
+        from models.schema import QuestionInstance
+
+        # Calculate average time to solve by difficulty
+        # Time = submission_time - event_start_date (in minutes)
+        results = (
+            db.query(
+                Question.difficulty,
+                func.avg(
+                    func.extract('epoch', Submission.submission_time - BaseEvent.event_start_date) / 60
+                ).label('avg_minutes')
+            )
+            .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
+            .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
+            .join(Participation, Submission.participation_id == Participation.participation_id)
+            .join(BaseEvent, Participation.event_id == BaseEvent.event_id)
+            .filter(
+                Submission.successful == True,
+                Submission.submission_time >= range_start
+            )
+            .group_by(Question.difficulty)
+            .all()
+        )
+
+        # Convert to dict for easy lookup
+        times = {r.difficulty: round(r.avg_minutes, 1) if r.avg_minutes else 0 for r in results}
 
         return [
-            TimeToSolveItem(type="Easy", time=times["easy"], color=colors["easy"]),
-            TimeToSolveItem(type="Medium", time=times["medium"], color=colors["medium"]),
-            TimeToSolveItem(type="Hard", time=times["hard"], color=colors["hard"]),
+            TimeToSolveItem(type="Easy", time=times.get("easy", 0), color=colors["easy"]),
+            TimeToSolveItem(type="Medium", time=times.get("medium", 0), color=colors["medium"]),
+            TimeToSolveItem(type="Hard", time=times.get("hard", 0), color=colors["hard"]),
         ]
 
     except Exception as e:
@@ -430,8 +449,12 @@ async def get_logins_stats(
             return data
 
         else:  # 3months
-            # Group by month
-            months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+            # Generate dynamic months for last 3 months
+            months = []
+            for i in range(2, -1, -1):
+                month_date = now - timedelta(days=i * 30)
+                months.append(month_date.strftime('%b'))
+
             sessions = (
                 db.query(
                     func.to_char(UserSession.created_at, 'Mon').label('month'),

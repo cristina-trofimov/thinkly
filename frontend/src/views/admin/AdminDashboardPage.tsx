@@ -216,7 +216,7 @@ export function AdminDashboard() {
                 title="Questions solved"
                 dateSubtitle={
                   timeRange === "3months"
-                    ? "January - June 2025"
+                    ? "Last 3 months"
                     : timeRange === "30days"
                       ? "Last 30 days"
                       : "Last 7 days"
