@@ -170,6 +170,18 @@ export function AdminDashboard() {
                 ]}
               />
             </Link>
+            <Link
+              to="/app/dashboard/manageRiddles"
+              className="cursor-pointer block flex-1 min-w-0"
+            >
+              <ManageCard
+                title="Manage Riddles"
+                items={[
+                  { name: "Riddle 1", info: "Date added: 08/11/25" },
+                  { name: "Riddle 2", info: "Date added: 06/12/25" },
+                ]}
+              />
+            </Link>
           </div>
 
           <div className="my-6 mx-6 rounded-2xl shadow-md border">
