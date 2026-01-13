@@ -48,6 +48,9 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      VITE_SUPABASE_URL: "https://placeholder.supabase.co"
+      VITE_SUPABASE_ANON_KEY: "placeholder-key"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
