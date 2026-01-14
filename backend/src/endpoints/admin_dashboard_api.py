@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
-    AlgoTimeSession, AlgoTimeSeries, Participation, Submission, UserSession
+    AlgoTimeSession, Participation, Submission, UserSession
 )
 from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
@@ -130,7 +130,6 @@ async def get_dashboard_overview(
     user_email = current_user.get("sub")
     logger.info(f"Admin '{user_email}' requesting dashboard overview")
 
-    colors = get_chart_colors()
     competition_colors = ["var(--color-chart-1)", "var(--color-chart-4)"]
 
     try:
@@ -225,7 +224,6 @@ async def get_new_accounts_stats(
     logger.info(f"Fetching new accounts stats for range: {time_range}")
 
     try:
-        now = datetime.now(timezone.utc)
         range_start = get_time_range_start(time_range)
 
         # Get new accounts in current period
@@ -315,7 +313,7 @@ async def get_questions_solved_stats(
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
             .filter(
-                Submission.successful == True,
+                Submission.successful.is_(True),
                 Submission.submission_time >= range_start
             )
             .group_by(Question.difficulty)
@@ -371,7 +369,7 @@ async def get_time_to_solve_stats(
             .join(Participation, Submission.participation_id == Participation.participation_id)
             .join(BaseEvent, Participation.event_id == BaseEvent.event_id)
             .filter(
-                Submission.successful == True,
+                Submission.successful.is_(True),
                 Submission.submission_time >= range_start
             )
             .group_by(Question.difficulty)

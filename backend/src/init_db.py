@@ -1,7 +1,6 @@
 import logging
 from sqlalchemy import text
 from db import engine, Base
-from models import schema   
 
 # Initialize the logger for the current module 
 logger = logging.getLogger(__name__)
