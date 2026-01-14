@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState, } from 'react'
+import React, { useEffect, useLayoutEffect, useState, } from 'react'
 import CodeDescArea from "./CodeDescArea";
 import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
 import { Button } from "../ui/button";
@@ -8,11 +8,13 @@ import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle }
 import type { SubmissionType } from '../../types/SubmissionType.type';
 import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
-import MonacoEditor, * as monaco from "@monaco-editor/react";
+import MonacoEditor from "@monaco-editor/react";
 import Console from "@code-editor/console-feed";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
+import axiosClient from '@/lib/axiosClient';
+import { getCodeResponse, postCode } from '@/api/Judge0API';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -54,19 +56,36 @@ const CodingView = () => {
     console.log("submitting code")
   }
 
-  const runCode = () => {
-    console.log("running code")
-  }
+  const runCode = async () => {
 
-  const resetEditor = () => {
-    console.log("resetting editor")
-    setCode(templateCode)
-    // monaco.Editor.d
+    await postCode(code, judgeID, "Judge0", null)
+      .then((response) => {
+        let responseDetails = getCodeResponse(response)
+        console.log(responseDetails)
+        setLogs(logs + "</br></br>" + responseDetails )
+      })
+
+    // let response = await postCode(code, judgeID, "Judge0", null)
+
+    // console.log("responseDetails")
+    // let responseDetails = await getCodeResponse(response)
+    // console.log(responseDetails)
+    // setLogs(logs + "</br></br>" + responseDetails )
+    
+
+
+    // let token = postCode(
+    //   "#include <stdio.h>\n\nint main(void) {\n  char name[10];\n  scanf(\"%s\", name);\n  printf(\"hello, %s\\n\", name);\n  return 0\n}",
+    //   "50", "Judge0", null
+    // )
+    // console.log(token)
+    // let response = getCodeResponse("d42360ba-0746-4049-863f-a496295233ca")
+    // console.log(response)
   }
 
   const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
 
-  const { templateCode, language } = buildMonacoCode({
+  const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
     problemName: "twoSum",
     inputVars: [
@@ -77,13 +96,16 @@ const CodingView = () => {
   });
 
   const [ code, setCode ] = useStateCallback<string>(templateCode)
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState("");
+  // const [logs, setLogs] = useState([]);
+
+  useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
 
   const outputTabs = [
     { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },
     { id: 'console', text: 'Console', icon: <Terminal size={16} /> },
   ]
-  
+
   const [fullCode, setFullCode] = useState(false)
   const [fullOutput, setFullOutput] = useState(false)
   const [closeCode, setCloseCode] = useState(false)
@@ -106,10 +128,10 @@ const CodingView = () => {
       codePanelSize = [65, 35]
     } else if (closeCode) {
       mainPanelSize = [50, 50]
-      codePanelSize = [4, 96]
+      codePanelSize = [4.75, 95.25]
     } else if (closeOutput) {
       mainPanelSize = [50, 50]
-      codePanelSize = [96, 4]
+      codePanelSize = [95.25, 4.75]
     } else {
       mainPanelSize = [50, 50]
       codePanelSize = [75, 25]
@@ -123,7 +145,7 @@ const CodingView = () => {
     <div data-testid="sandbox-provider" key="sandbox-provider"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
-      <div className='flex items-center justify-center mb-2 w-full' >
+      <div className='flex items-center justify-center my-2 w-full' >
         <Button onClick={submitCode} >
           <CloudUpload size={16} />Submit
         </Button>
@@ -132,8 +154,8 @@ const CodingView = () => {
         className='h-full w-full' 
       >
         {/* Description panel */}
-        <Panel data-testid="desc-area" collapsible collapsedSize={5}
-          defaultSize={50} minSize={0} maxSize={100}
+        <Panel data-testid="desc-area" //collapsible collapsedSize={5}
+          defaultSize={50} minSize={5} //maxSize={100}
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea problemInfo={problemInfo}
@@ -145,14 +167,13 @@ const CodingView = () => {
         />
 
         {/* Second panel */}
-        <Panel data-testid="second-panel" defaultSize={50} minSize={0} maxSize={100} >
+        <Panel data-testid="second-panel" defaultSize={50} >
           <PanelGroup direction="vertical" ref={codePanelGroup} >
             {/* Coding area panel */}
             <Panel defaultSize={65}
               className="ml-0.75 mb-1 rounded-md border"
             >
               <div data-testid="coding-area" >
-
                 <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
@@ -165,8 +186,7 @@ const CodingView = () => {
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
-                      onClick={resetEditor}
-                    >
+                      onClick={() => { setCode(templateCode) } } >
                       <RotateCcw size={22} color="black" />
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
@@ -209,12 +229,11 @@ const CodingView = () => {
                 </div>
               </div>
               <MonacoEditor
-                key="code-editor"
+                key={language}
                 language={language}
-                value={templateCode}
-                // value={code}
+                value={code}
                 theme="vs-dark"
-                onChange={(value) => setCode(value ?? templateCode)}
+                onChange={(value) => { setCode(value ?? templateCode) } }
                 options={{
                   fontSize: 14,
                   automaticLayout: true,
@@ -225,7 +244,6 @@ const CodingView = () => {
             <PanelResizeHandle className='my-[0.5px] border-none h-[0.5px]'
               style={{ background: "transparent" }} 
             />
-
             {/* Output panel */}
             <Panel data-testid="output-area" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
@@ -277,6 +295,7 @@ const CodingView = () => {
                     }}
                   >
                     {/* <Console logs={logs} variant="dark" /> */}
+                    {/* <SandpackConsole /> */}
                   </div>
                 </TabsContent>
                 <TabsContent data-testid="output-tab" value="console">
@@ -286,7 +305,7 @@ const CodingView = () => {
                       overflowY: "auto"
                     }}
                   >
-                    {/* <Console logs={logs} variant="dark" /> */}
+                    <samp>{logs}</samp>
                   </div>
                 </TabsContent>
               </Tabs>

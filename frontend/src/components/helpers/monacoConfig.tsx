@@ -18,6 +18,7 @@ export function buildMonacoCode({
   
     return {
       language: template.monacoID,
+      judgeID: template.judgeID,
       templateCode: template.codeBuilder(problemName, inputVars, outputType),
     };
 }
