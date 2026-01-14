@@ -1,4 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
+import { logFrontend } from "@/api/LoggerAPI";
 import type { DashboardOverviewResponse } from "@/types/adminDashboard/ManageCards.type";
 import type {
   TimeRange,
@@ -20,7 +21,13 @@ export async function getDashboardOverview(): Promise<DashboardOverviewResponse>
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching dashboard overview:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching dashboard overview: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
@@ -39,7 +46,13 @@ export async function getNewAccountsStats(
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching new accounts stats:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching new accounts stats: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
@@ -59,7 +72,13 @@ export async function getQuestionsSolvedStats(
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching questions solved stats:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching questions solved stats: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
@@ -79,7 +98,13 @@ export async function getTimeToSolveStats(
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching time to solve stats:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching time to solve stats: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
@@ -99,7 +124,13 @@ export async function getLoginsStats(
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching logins stats:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching logins stats: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
@@ -120,7 +151,13 @@ export async function getParticipationStats(
     );
     return response.data;
   } catch (err) {
-    console.error("Error fetching participation stats:", err);
+    logFrontend({
+      level: 'ERROR',
+      message: `Error fetching participation stats: ${(err as Error).message}`,
+      component: 'AdminDashboardAPI',
+      url: window.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }
