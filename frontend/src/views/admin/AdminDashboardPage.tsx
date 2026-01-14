@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { StatsCard } from "../../components/dashboardCards/StatsCard";
 import { ManageCard } from "../../components/dashboardCards/ManageCard";
@@ -8,45 +8,112 @@ import { NumberOfLoginsChart } from "@/components/dashboardCharts/NumberOfLogins
 import { ParticipationOverTimeChart } from "@/components/dashboardCharts/ParticipationOverTimeChart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { ManageItem } from "../../components/dashboardCards/ManageCard";
+import type { TimeRange } from "@/types/adminDashboard/Analytics.type";
+import {
+  getDashboardOverview,
+  getNewAccountsStats,
+  getQuestionsSolvedStats,
+  getTimeToSolveStats,
+  getLoginsStats,
+  getParticipationStats,
+} from "@/api/AdminDashboardAPI";
 
 export function AdminDashboard() {
   const location = useLocation();
-  const [timeRange, setTimeRange] = useState<"3months" | "30days" | "7days">("3months");
+  const [timeRange, setTimeRange] = useState<TimeRange>("3months");
   const [activeTab, setActiveTab] = useState<"algotime" | "competitions">("algotime");
+
+  // State for API data
+  const [recentAccounts, setRecentAccounts] = useState<ManageItem[]>([]);
+  const [recentCompetitions, setRecentCompetitions] = useState<ManageItem[]>([]);
+  const [recentQuestions, setRecentQuestions] = useState<ManageItem[]>([]);
+  const [recentAlgoTimeSessions, setRecentAlgoTimeSessions] = useState<ManageItem[]>([]);
+  const [newAccountStats, setNewAccountStats] = useState({ value: 0, subtitle: "", trend: "", description: "" });
+  const [questionsSolvedData, setQuestionsSolvedData] = useState<{ name: string; value: number; color: string }[]>([]);
+  const [timeToSolveData, setTimeToSolveData] = useState<{ type: string; time: number; color: string }[]>([]);
+  const [loginsData, setLoginsData] = useState<{ month: string; logins: number }[]>([]);
+  const [participationData, setParticipationData] = useState<{ date: string; participation: number }[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
     location.pathname === "/app/dashboard/";
 
-  // HARDCODED STATS DATA - to be replaced with real data fetching logic    
-  const getNewAccountsStats = (range: string) => {
-    switch (range) {
-      case "7days":
-        return {
-          value: 8,
-          subtitle: "Up 12% in the last 7 days",
-          trend: "+12%",
-          description: "More users are joining Thinkly",
-        };
-      case "30days":
-        return {
-          value: 20,
-          subtitle: "Down 5% in the last 30 days",
-          trend: "-5%",
-          description: "Less users are joining Thinkly",
-        };
-      case "3months":
-      default:
-        return {
-          value: 25,
-          subtitle: "Up 10% in the last 3 months",
-          trend: "+10%",
-          description: "More users are joining Thinkly",
-        };
-    }
-  };
+  // Fetch overview data on mount
+  useEffect(() => {
+    async function fetchOverview() {
+      try {
+        const overview = await getDashboardOverview();
 
-  const newAccountStats = getNewAccountsStats(timeRange);
+        setRecentAccounts(
+          overview.recent_accounts.map((acc) => ({
+            name: acc.name,
+            info: acc.info,
+            avatarUrl: acc.avatarUrl || undefined,
+          }))
+        );
+
+        setRecentCompetitions(
+          overview.recent_competitions.map((comp) => ({
+            name: comp.name,
+            info: comp.info,
+            color: comp.color,
+          }))
+        );
+
+        setRecentQuestions(
+          overview.recent_questions.map((q) => ({
+            name: q.name,
+            info: q.info,
+          }))
+        );
+
+        setRecentAlgoTimeSessions(
+          overview.recent_algotime_sessions.map((session) => ({
+            name: session.name,
+            info: session.info,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching dashboard overview:", error);
+      }
+    }
+
+    if (isRootDashboard) {
+      fetchOverview();
+    }
+  }, [isRootDashboard]);
+
+  // Fetch stats data when timeRange or activeTab changes
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const [accounts, questionsSolved, timeToSolve, logins, participation] = await Promise.all([
+          getNewAccountsStats(timeRange),
+          getQuestionsSolvedStats(timeRange),
+          getTimeToSolveStats(timeRange),
+          getLoginsStats(timeRange),
+          getParticipationStats(timeRange, activeTab),
+        ]);
+
+        setNewAccountStats(accounts);
+        setQuestionsSolvedData(questionsSolved);
+        setTimeToSolveData(timeToSolve);
+        setLoginsData(logins);
+        setParticipationData(participation);
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (isRootDashboard) {
+      fetchStats();
+    }
+  }, [timeRange, activeTab, isRootDashboard]);
 
   return (
     <div className="flex flex-col w-full">
@@ -68,17 +135,8 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Accounts"
-                items={[
-                  {
-                    avatarUrl: "../public/assets/user_avatar.jpg",
-                    name: "shadcn",
-                    info: "shadcn@vercel.com",
-                  },
-                  {
-                    avatarUrl: "../public/assets/user_avatar.jpg",
-                    name: "maxleiter",
-                    info: "maxleiter@vercel.com",
-                  },
+                items={recentAccounts.length > 0 ? recentAccounts : [
+                  { avatarUrl: undefined, name: "Loading...", info: "" },
                 ]}
               />
             </Link>
@@ -88,18 +146,16 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Competitions"
-                items={[
-                  { color: "var(--color-chart-1)", name: "Comp1", info: "08/11/25" },
-                  { color: "var(--color-chart-4)", name: "Comp2", info: "06/12/25" },
+                items={recentCompetitions.length > 0 ? recentCompetitions : [
+                  { color: "var(--color-chart-1)", name: "Loading...", info: "" },
                 ]}
               />
             </Link>
             <div className="flex-1 min-w-0">
               <ManageCard
                 title="Manage Questions"
-                items={[
-                  { name: "Q1", info: "Date added: 08/11/25" },
-                  { name: "Q2", info: "Date added: 06/12/25" },
+                items={recentQuestions.length > 0 ? recentQuestions : [
+                  { name: "Loading...", info: "" },
                 ]}
               />
             </div>
@@ -109,9 +165,8 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Algotime Sessions"
-                items={[
-                  { name: "First Session", info: "Date added: 08/11/25" },
-                  { name: "Second Session", info: "Date added: 08/11/25" },
+                items={recentAlgoTimeSessions.length > 0 ? recentAlgoTimeSessions : [
+                  { name: "Loading...", info: "" },
                 ]}
               />
             </Link>
@@ -143,7 +198,7 @@ export function AdminDashboard() {
               </div>
 
               <div>
-                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as "3months" | "30days" | "7days")}>
+                <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
                   <SelectTrigger className="text-primary rounded-lg">
                     <SelectValue className="text-primary" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
                   </SelectTrigger>
@@ -173,29 +228,29 @@ export function AdminDashboard() {
                 title="Questions solved"
                 dateSubtitle={
                   timeRange === "3months"
-                    ? "January - June 2025"
+                    ? "Last 3 months"
                     : timeRange === "30days"
                       ? "Last 30 days"
                       : "Last 7 days"
                 }
               >
-                <QuestionsSolvedChart timeRange={timeRange} />
+                <QuestionsSolvedChart data={questionsSolvedData} loading={loading} />
               </StatsCard>
 
               <StatsCard
                 title="Time to solve per type of question"
               >
-                <TimeToSolveChart timeRange={timeRange} />
+                <TimeToSolveChart data={timeToSolveData} loading={loading} />
               </StatsCard>
 
               <StatsCard
                 title="Number of logins"
               >
-                <NumberOfLoginsChart timeRange={timeRange} />
+                <NumberOfLoginsChart data={loginsData} loading={loading} />
               </StatsCard>
             </div>
 
-            <ParticipationOverTimeChart timeRange={timeRange} />
+            <ParticipationOverTimeChart data={participationData} timeRange={timeRange} loading={loading} />
           </div>
 
         </>

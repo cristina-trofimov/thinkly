@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr, constr
 from sqlalchemy.orm import Session
 from typing import Optional
-from models.schema import UserAccount, UserPreferences
+from models.schema import UserAccount, UserPreferences, UserSession
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 from jose import jwt, JWTError
@@ -175,12 +175,24 @@ async def signup(request: SignupRequest, db: Session = Depends(get_db)):
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     logger.info(f"Attempting password login for email: {request.email}")
     user = get_user_by_email(db, request.email)
-    
+
     if not user or not bcrypt.checkpw(request.password.encode(), user.hashed_password.encode()):
         logger.warning(f"Login failed: Invalid credentials for email: {request.email}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    
+
     token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+
+    # Create a session record for tracking logins
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    session = UserSession(
+        user_id=user.user_id,
+        jwt_token=token,
+        expires_at=expires_at,
+        is_active=True
+    )
+    db.add(session)
+    _commit_or_rollback(db)
+
     logger.info(f"SUCCESSFUL LOGIN: User '{user.email}' logged in. Role: {user.user_type}")
     return {"token": token}
 
@@ -196,7 +208,7 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
         last_name = idinfo.get("family_name", "User")
         
         user = get_user_by_email(db, email)
-        
+
         if not user:
             logger.info(f"New user registration via Google OAuth: {email} {first_name} {last_name}")
             create_user(
@@ -213,6 +225,18 @@ async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)
              raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create or retrieve user")
 
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+
+        # Create a session record for tracking logins
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        session = UserSession(
+            user_id=user.user_id,
+            jwt_token=token,
+            expires_at=expires_at,
+            is_active=True
+        )
+        db.add(session)
+        _commit_or_rollback(db)
+
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"token": token}
     except ValueError as e:
