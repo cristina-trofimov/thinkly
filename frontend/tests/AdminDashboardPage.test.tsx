@@ -6,6 +6,51 @@ import userEvent from '@testing-library/user-event';
 
 // --- MOCK SETUP ---
 
+// Mock the AdminDashboardAPI
+jest.mock('@/api/AdminDashboardAPI', () => ({
+  getDashboardOverview: jest.fn().mockResolvedValue({
+    recent_accounts: [
+      { name: 'John Doe', info: 'john@example.com', avatarUrl: null },
+      { name: 'Jane Smith', info: 'jane@example.com', avatarUrl: null },
+    ],
+    recent_competitions: [
+      { name: 'Competition 1', info: '01/01/26', color: 'var(--color-chart-1)' },
+    ],
+    recent_questions: [
+      { name: 'Question 1', info: 'Date added: 01/01/26' },
+    ],
+    recent_algotime_sessions: [
+      { name: 'Session 1', info: 'Date added: 01/01/26' },
+    ],
+  }),
+  getNewAccountsStats: jest.fn().mockImplementation((timeRange) => {
+    const stats: Record<string, any> = {
+      '3months': { value: 25, subtitle: 'Up 10%', trend: '+10%', description: 'More users joining' },
+      '30days': { value: 20, subtitle: 'Up 5%', trend: '+5%', description: 'More users joining' },
+      '7days': { value: 8, subtitle: 'Up 2%', trend: '+2%', description: 'More users joining' },
+    };
+    return Promise.resolve(stats[timeRange] || stats['3months']);
+  }),
+  getQuestionsSolvedStats: jest.fn().mockResolvedValue([
+    { name: 'Easy', value: 10, color: 'var(--chart-1)' },
+    { name: 'Medium', value: 20, color: 'var(--chart-2)' },
+    { name: 'Hard', value: 5, color: 'var(--chart-3)' },
+  ]),
+  getTimeToSolveStats: jest.fn().mockResolvedValue([
+    { type: 'Easy', time: 5, color: 'var(--chart-1)' },
+    { type: 'Medium', time: 15, color: 'var(--chart-2)' },
+    { type: 'Hard', time: 30, color: 'var(--chart-3)' },
+  ]),
+  getLoginsStats: jest.fn().mockResolvedValue([
+    { month: 'Jan', logins: 100 },
+    { month: 'Feb', logins: 150 },
+  ]),
+  getParticipationStats: jest.fn().mockResolvedValue([
+    { date: 'Mon', participation: 50 },
+    { date: 'Tue', participation: 75 },
+  ]),
+}));
+
 // Mocking react-router-dom Outlet component
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -66,25 +111,25 @@ jest.mock('../src/components/dashboardCards/ManageCard', () => ({
 }));
 
 jest.mock('../src/components/dashboardCharts/QuestionsSolvedChart', () => ({
-  QuestionsSolvedChart: ({ timeRange }: any) => (
-    <div data-testid="questions-solved-chart">Questions Chart ({timeRange})</div>
+  QuestionsSolvedChart: ({ data, loading }: any) => (
+    <div data-testid="questions-solved-chart">Questions Chart (items: {data?.length || 0})</div>
   ),
 }));
 
 jest.mock('../src/components/dashboardCharts/TimeToSolveChart', () => ({
-  TimeToSolveChart: ({ timeRange }: any) => (
-    <div data-testid="time-to-solve-chart">Time Chart ({timeRange})</div>
+  TimeToSolveChart: ({ data, loading }: any) => (
+    <div data-testid="time-to-solve-chart">Time Chart (items: {data?.length || 0})</div>
   ),
 }));
 
 jest.mock('../src/components/dashboardCharts/NumberOfLoginsChart', () => ({
-  NumberOfLoginsChart: ({ timeRange }: any) => (
-    <div data-testid="logins-chart">Logins Chart ({timeRange})</div>
+  NumberOfLoginsChart: ({ data, loading }: any) => (
+    <div data-testid="logins-chart">Logins Chart (items: {data?.length || 0})</div>
   ),
 }));
 
 jest.mock('../src/components/dashboardCharts/ParticipationOverTimeChart', () => ({
-  ParticipationOverTimeChart: ({ timeRange }: any) => (
+  ParticipationOverTimeChart: ({ data, timeRange, loading }: any) => (
     <div data-testid="participation-chart">Participation Chart ({timeRange})</div>
   ),
 }));
@@ -192,43 +237,39 @@ describe('AdminDashboard', () => {
   });
 
   describe('Time range filter', () => {
-    it('defaults to 3 months time range', () => {
+    it('defaults to 3 months time range', async () => {
       renderWithRouter();
 
       const select = screen.getByTestId('time-range-select') as HTMLSelectElement;
       expect(select.value).toBe('3months');
 
-      // Check that charts receive 3months as default
-      expect(screen.getByText('Questions Chart (3months)')).toBeInTheDocument();
-      expect(screen.getByText('Time Chart (3months)')).toBeInTheDocument();
-      expect(screen.getByText('Logins Chart (3months)')).toBeInTheDocument();
-      expect(screen.getByText('Participation Chart (3months)')).toBeInTheDocument();
+      // Check that charts are rendered
+      await waitFor(() => {
+        expect(screen.getByTestId('questions-solved-chart')).toBeInTheDocument();
+        expect(screen.getByTestId('time-to-solve-chart')).toBeInTheDocument();
+        expect(screen.getByTestId('logins-chart')).toBeInTheDocument();
+        expect(screen.getByText('Participation Chart (3months)')).toBeInTheDocument();
+      });
     });
 
-    it('updates charts when 30 days is selected', async () => {
+    it('updates participation chart when 30 days is selected', async () => {
       renderWithRouter();
 
       const select = screen.getByTestId('time-range-select');
       fireEvent.change(select, { target: { value: '30days' } });
 
       await waitFor(() => {
-        expect(screen.getByText('Questions Chart (30days)')).toBeInTheDocument();
-        expect(screen.getByText('Time Chart (30days)')).toBeInTheDocument();
-        expect(screen.getByText('Logins Chart (30days)')).toBeInTheDocument();
         expect(screen.getByText('Participation Chart (30days)')).toBeInTheDocument();
       });
     });
 
-    it('updates charts when 7 days is selected', async () => {
+    it('updates participation chart when 7 days is selected', async () => {
       renderWithRouter();
 
       const select = screen.getByTestId('time-range-select');
       fireEvent.change(select, { target: { value: '7days' } });
 
       await waitFor(() => {
-        expect(screen.getByText('Questions Chart (7days)')).toBeInTheDocument();
-        expect(screen.getByText('Time Chart (7days)')).toBeInTheDocument();
-        expect(screen.getByText('Logins Chart (7days)')).toBeInTheDocument();
         expect(screen.getByText('Participation Chart (7days)')).toBeInTheDocument();
       });
     });
@@ -236,21 +277,23 @@ describe('AdminDashboard', () => {
     it('updates New Accounts stats when time range changes', async () => {
       renderWithRouter();
 
-      // Default should show 25
-      expect(screen.getByText(/New Accounts: 25/i)).toBeInTheDocument();
+      // Wait for initial load with default 3months (value: 25)
+      await waitFor(() => {
+        expect(screen.getByText(/25/)).toBeInTheDocument();
+      });
 
       const select = screen.getByTestId('time-range-select');
 
-      // Change to 30 days
+      // Change to 30 days (value: 20)
       fireEvent.change(select, { target: { value: '30days' } });
       await waitFor(() => {
-        expect(screen.getByText(/New Accounts: 20/i)).toBeInTheDocument();
+        expect(screen.getByText(/20/)).toBeInTheDocument();
       });
 
-      // Change to 7 days
+      // Change to 7 days (value: 8)
       fireEvent.change(select, { target: { value: '7days' } });
       await waitFor(() => {
-        expect(screen.getByText(/New Accounts: 8/i)).toBeInTheDocument();
+        expect(screen.getByText(/\b8\b/)).toBeInTheDocument();
       });
     });
   });

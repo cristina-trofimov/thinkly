@@ -87,7 +87,8 @@ def test_signup_existing_user(client):
 
 def test_login_success(client, mock_user):
     payload = {"email": "test@example.com", "password": "password123"}
-    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user), \
+         patch("src.endpoints.authentification_api._commit_or_rollback"):
         response = client.post("/login", json=payload)
         assert response.status_code == 200
         assert "token" in response.json()
@@ -112,7 +113,8 @@ def test_google_auth_success(client):
 
     with patch("google.oauth2.id_token.verify_oauth2_token", return_value=mock_google_data), \
          patch("src.endpoints.authentification_api.get_user_by_email", side_effect=[None, new_google_user]), \
-         patch("src.endpoints.authentification_api.create_user"):
+         patch("src.endpoints.authentification_api.create_user"), \
+         patch("src.endpoints.authentification_api._commit_or_rollback"):
         response = client.post("/google-auth", json={"credential": "fake-jwt-token"})
         assert response.status_code == 200
         assert "token" in response.json()
