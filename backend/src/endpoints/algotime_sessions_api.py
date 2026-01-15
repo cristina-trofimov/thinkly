@@ -192,29 +192,48 @@ def create_algotime(
         )
 
 @algotime_router.get("/")
-def get_all_algotime(db: Session = Depends(get_db)):
+def get_all_algotime_sessions(db: Session = Depends(get_db)):
     try:
-        series_list = db.query(AlgoTimeSeries).all()
-        logger.info(f"Fetched {len(series_list)} AlgoTime series.")
+        sessions = db.query(AlgoTimeSession).all()
+        logger.info(f"Fetched {len(sessions)} AlgoTime sessions.")
 
-        return [
-            {
-                "series_id": series.algotime_series_id,
-                "series_name": series.algotime_series_name,
-                "sessions": [
-                    {
-                        "id": session.event_id, 
-                        "event_name": session.base_event.event_name,
-                        "start_date": session.base_event.event_start_date,
-                        "end_date": session.base_event.event_end_date,
-                        "question_cooldown": session.base_event.question_cooldown,
-                    }
-                    for session in series.algotime_sessions
-                ]
-            }
-            for series in series_list
-        ]
+        response = []
 
+        for s in sessions:
+            event = s.base_event
+
+            question_instances = (
+                db.query(QuestionInstance)
+                .filter(QuestionInstance.event_id == event.event_id)
+                .all()
+            )
+
+            questions = [
+                {
+                    "question_id": qi.question.question_id,
+                    "question_name": qi.question.question_name,
+                    "question_description": qi.question.question_description,
+                    "difficulty": qi.question.difficulty,
+                    "tags": [tag.tag_name for tag in qi.question.tags],
+                    "points": qi.points,
+                }
+                for qi in question_instances
+            ]
+
+            response.append({
+                "id": s.event_id,
+                "event_name": event.event_name,
+                "start_date": event.event_start_date,
+                "end_date": event.event_end_date,
+                "question_cooldown": event.question_cooldown,
+                "series_id": s.algotime_series.algotime_series_id
+                    if s.algotime_series else None,
+                "series_name": s.algotime_series.algotime_series_name
+                    if s.algotime_series else None,
+                "questions": questions,
+            })
+        return response
+        
     except Exception as e:
         logger.error(f"Error fetching AlgoTime sessions: {e}")
         raise HTTPException(

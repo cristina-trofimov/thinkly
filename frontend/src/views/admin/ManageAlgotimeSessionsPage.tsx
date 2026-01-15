@@ -1,16 +1,18 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useOutlet, useNavigate } from "react-router-dom";
-import { getAlgotimeSeries } from "@/api/AlgotimeAPI";
-import type { AlgoTimeSeries } from '@/types/algoTime/AlgoTime.type';
+import { getAllAlgotimeSessions} from "@/api/AlgotimeAPI";
+import { Button } from '@/components/ui/button';
+import type { AlgoTimeSeries,AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [algotimesSessions, setAlgotimeSessions] = useState<AlgoTimeSeries[]>([]);
+  // const [algotimesSessions, setAlgotimeSessions] = useState<AlgoTimeSeries[]>([]);
+  const [algotimesSessions, setAlgotimesSessions] = useState<AlgoTimeSession[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const outlet = useOutlet();
@@ -18,8 +20,8 @@ export default function ManageAlgotimeSessionsPage() {
   const loadATsessions = async () => {
     setLoading(true);
     try {
-      const data = await getAlgotimeSeries();
-      setAlgotimeSessions(data);
+      const data = await getAllAlgotimeSessions();
+      setAlgotimesSessions(data);
     } catch (err: unknown) {
       logFrontend({
         level: 'ERROR',
@@ -38,8 +40,8 @@ export default function ManageAlgotimeSessionsPage() {
   }, []);
 
 
-  const filteredSessions = algotimesSessions.filter((q) =>
-    q.seriesName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSessions = algotimesSessions.filter((session) =>
+    session.eventName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (outlet) return outlet;
@@ -74,9 +76,9 @@ export default function ManageAlgotimeSessionsPage() {
           onClick={handleCreateNavigation}
         >
           <CardHeader className=" pb-0 flex items-center justify-center">
-            <div className="bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-              <Plus className="w-10 h-10 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
-            </div>
+          <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+            <Plus className="w-8 h-8 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
+          </div>
           </CardHeader>
           <CardContent className=" p-0 bg-white  text-center">
             <div className="px-4 py-1.5">
@@ -95,11 +97,11 @@ export default function ManageAlgotimeSessionsPage() {
 
         {/*Algotime Cards */}
         {filteredSessions.map((ATsession) => (
-          <Card key={ATsession.seriesId} className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full">
+          <Card key={ATsession.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full">
             <CardHeader className="pb-0">
               <div className="bg-primary/10 rounded-lg h-[72px] flex items-center px-3">
                 <p className="font-medium text-sm line-clamp-3 leading-relaxed text-gray-900">
-                  {ATsession.seriesName}
+                  {ATsession.eventName || "no event"}
                 </p>
               </div>
             </CardHeader>
@@ -107,7 +109,7 @@ export default function ManageAlgotimeSessionsPage() {
               <div className="px-4 py-1.0">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Date</h4>
                 <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                  {ATsession.seriesId}
+                {ATsession.startTime.toLocaleDateString()} 
                 </p>
               </div>
             </CardContent>

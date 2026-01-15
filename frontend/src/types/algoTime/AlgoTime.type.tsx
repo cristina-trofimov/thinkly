@@ -24,16 +24,28 @@ export type CreateAlgotimeSession = {
     session_count: number
   }
 
-  export type AlgoTimeSession = {
-    id: number;
-    eventName: string;
-    startTime: string;
-    endTime: string;
-    questionCooldown: number;
-    questions: number[];
-  }
-  export type AlgoTimeSeries = {
-    seriesId: number;
-    seriesName: string;
-    sessions: AlgoTimeSession[];
-  }
+export interface AlgoTimeQuestion {
+  questionId: number;
+  questionName: string;
+  questionDescription: string;
+  difficulty: "easy" | "medium" | "hard";
+  tags: string[];
+  points: number;
+}
+
+export interface AlgoTimeSession {
+  id: number;
+  eventName: string;
+  startTime: Date;
+  endTime: Date;
+  questionCooldown: number;
+  seriesId?: number | null;
+  seriesName?: string | null;
+  questions: AlgoTimeQuestion[];
+}
+
+export interface AlgoTimeSeries {
+  seriesId: number;
+  seriesName: string;
+  sessions: AlgoTimeSession[];
+}

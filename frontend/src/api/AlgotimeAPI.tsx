@@ -2,8 +2,9 @@ import axiosClient from "@/lib/axiosClient"
 import {
   type CreateAlgotimeRequest,
   type CreateAlgotimeResponse,
-  type AlgoTimeSession,
-  type AlgoTimeSeries 
+  type AlgoTimeQuestion,
+  type AlgoTimeSeries,
+  type AlgoTimeSession
 } from "../types/algoTime/AlgoTime.type"
 import { logFrontend } from "./LoggerAPI";
 
@@ -27,31 +28,25 @@ export async function createAlgotime(
     }
 }
 
-export async function getAlgotimeSeries(): Promise<AlgoTimeSeries[]> {
+export async function getAllAlgotimeSessions(): Promise<AlgoTimeSession[]> {
   try {
-    const response = await axiosClient.get<{
-      series_id: number;
-      series_name: string;
-      sessions: {
-        id: number;
-        event_name: string;
-        start_date: string;
-        end_date: string;
-        question_cooldown: number;
-        questions: number[];
-      }[];
-    }[]>(`/algotime/`);
+    const response = await axiosClient.get(`/algotime/`);
 
-    const formatted: AlgoTimeSeries[] = response.data.map(series => ({
-      seriesId: series.series_id,
-      seriesName: series.series_name,
-      sessions: series.sessions.map(session => ({
-        id: session.id,
-        eventName: session.event_name,
-        startTime: session.start_date,
-        endTime: session.end_date,
-        questionCooldown: session.question_cooldown,
-        questions: session.questions,
+    const formatted: AlgoTimeSession[] = (response.data ?? []).map((session: any) => ({
+      id: session.id,
+      eventName: session.event_name,
+      startTime: new Date(session.start_date),
+      endTime: new Date(session.end_date),
+      questionCooldown: session.question_cooldown,
+      seriesId: session.series_id ?? null,
+      seriesName: session.series_name ?? null,
+      questions: (session.questions ?? []).map((q: any): AlgoTimeQuestion => ({
+        questionId: q.question_id,
+        questionName: q.question_name,
+        questionDescription: q.question_description,
+        difficulty: q.difficulty,
+        tags: q.tags ?? [],
+        points: q.points ?? 0,
       })),
     }));
 
