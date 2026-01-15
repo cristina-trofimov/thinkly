@@ -3,8 +3,8 @@ import {
   type CreateAlgotimeRequest,
   type CreateAlgotimeResponse,
   type AlgoTimeQuestion,
-  type AlgoTimeSeries,
-  type AlgoTimeSession
+  type AlgoTimeSession,
+  type AlgoTimeSessionResponse
 } from "../types/algoTime/AlgoTime.type"
 import { logFrontend } from "./LoggerAPI";
 
@@ -30,9 +30,9 @@ export async function createAlgotime(
 
 export async function getAllAlgotimeSessions(): Promise<AlgoTimeSession[]> {
   try {
-    const response = await axiosClient.get(`/algotime/`);
+    const response = await axiosClient.get<AlgoTimeSessionResponse[]>(`/algotime/`);
 
-    const formatted: AlgoTimeSession[] = (response.data ?? []).map((session: any) => ({
+    const formatted: AlgoTimeSession[] = (response.data ?? []).map((session) => ({
       id: session.id,
       eventName: session.event_name,
       startTime: new Date(session.start_date),
@@ -40,7 +40,7 @@ export async function getAllAlgotimeSessions(): Promise<AlgoTimeSession[]> {
       questionCooldown: session.question_cooldown,
       seriesId: session.series_id ?? null,
       seriesName: session.series_name ?? null,
-      questions: (session.questions ?? []).map((q: any): AlgoTimeQuestion => ({
+      questions: (session.questions ?? []).map((q): AlgoTimeQuestion => ({
         questionId: q.question_id,
         questionName: q.question_name,
         questionDescription: q.question_description,

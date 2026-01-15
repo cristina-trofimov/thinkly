@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -6,8 +6,7 @@ import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useOutlet, useNavigate } from "react-router-dom";
 import { getAllAlgotimeSessions} from "@/api/AlgotimeAPI";
-import { Button } from '@/components/ui/button';
-import type { AlgoTimeSeries,AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');

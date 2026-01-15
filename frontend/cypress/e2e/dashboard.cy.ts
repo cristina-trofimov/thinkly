@@ -119,7 +119,7 @@ describe('Admin Dashboard', () => {
 
     // Verify "Manage Algotime Sessions" link
     cy.contains('a', 'Manage Algotime Sessions')
-      .should('have.attr', 'href', '/app/dashboard/algoTimeSession');
+      .should('have.attr', 'href', '/app/dashboard/algoTimeSessions');
   });
 
   it('switches tabs correctly', () => {
