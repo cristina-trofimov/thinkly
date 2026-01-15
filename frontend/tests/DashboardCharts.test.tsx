@@ -35,20 +35,45 @@ import { NumberOfLoginsChart } from "../src/components/dashboardCharts/NumberOfL
 import { ParticipationOverTimeChart } from "../src/components/dashboardCharts/ParticipationOverTimeChart";  
 
 describe("DashboardCharts", () => {
+  // Sample data for tests
+  const questionsSolvedData = [
+    { name: "Easy", value: 10, color: "var(--chart-1)" },
+    { name: "Medium", value: 20, color: "var(--chart-2)" },
+    { name: "Hard", value: 5, color: "var(--chart-3)" },
+  ];
+
+  const timeToSolveData = [
+    { type: "Easy", time: 5, color: "var(--chart-1)" },
+    { type: "Medium", time: 15, color: "var(--chart-2)" },
+    { type: "Hard", time: 30, color: "var(--chart-3)" },
+  ];
+
+  const loginsData = [
+    { month: "Mon", logins: 100 },
+    { month: "Tue", logins: 150 },
+    { month: "Wed", logins: 120 },
+  ];
+
+  const participationData = [
+    { date: "Mon", participation: 50 },
+    { date: "Tue", participation: 75 },
+    { date: "Wed", participation: 60 },
+  ];
+
   it("renders pie chart with cells for QuestionsSolvedChart", () => {
-    render(<QuestionsSolvedChart timeRange="3months" />);
+    render(<QuestionsSolvedChart data={questionsSolvedData} />);
 
     // Expect chart container and pie to be rendered
     expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("piechart")).toBeInTheDocument();
 
-    // There are three entries in the 3months dataset => 3 cells
+    // There are three entries in the dataset => 3 cells
     const cells = screen.getAllByTestId("pie-cell");
     expect(cells.length).toBe(3);
   });
 
   it("renders vertical bar chart for TimeToSolveChart with bar cells", () => {
-    render(<TimeToSolveChart timeRange="3months" />);
+    render(<TimeToSolveChart data={timeToSolveData} />);
 
     expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("barchart")).toBeInTheDocument();
@@ -58,7 +83,7 @@ describe("DashboardCharts", () => {
   });
 
   it("renders line chart for NumberOfLoginsChart and shows tooltip content", () => {
-    render(<NumberOfLoginsChart timeRange="3months" />);
+    render(<NumberOfLoginsChart data={loginsData} />);
 
     expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("linechart")).toBeInTheDocument();
@@ -69,7 +94,7 @@ describe("DashboardCharts", () => {
   });
 
   it("renders participation over time bar chart", () => {
-    render(<ParticipationOverTimeChart timeRange="7days" />);
+    render(<ParticipationOverTimeChart data={participationData} timeRange="7days" />);
 
     expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("barchart")).toBeInTheDocument();

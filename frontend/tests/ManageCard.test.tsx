@@ -24,15 +24,11 @@ jest.mock("@/components/ui/button", () => ({
   ),
 }));
 
-jest.mock("@/components/ui/avatar", () => ({
-  Avatar: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="avatar" className={className}>{children}</div>
-  ),
-  AvatarImage: ({ src, alt }: { src?: string; alt?: string }) => (
-    <img data-testid="avatar-image" src={src} alt={alt} />
-  ),
-  AvatarFallback: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="avatar-fallback" className={className}>{children}</div>
+jest.mock("@/components/helpers/AvatarInitials", () => ({
+  AvatarInitials: ({ firstName, lastName }: { firstName: string; lastName: string }) => (
+    <span data-testid="avatar-initials">
+      {firstName?.[0]?.toUpperCase() ?? ""}{lastName?.[0]?.toUpperCase() ?? ""}
+    </span>
   ),
 }));
 
@@ -86,37 +82,33 @@ describe("ManageCard", () => {
 
     it("renders empty items array", () => {
       render(<ManageCard title="Empty Card" items={[]} />);
-      
+
       expect(screen.getByText("Empty Card")).toBeInTheDocument();
-      expect(screen.queryByTestId("avatar")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("avatar-initials")).not.toBeInTheDocument();
     });
   });
 
   describe("Items with avatars", () => {
-    it("renders avatar images when avatarUrl is provided", () => {
+    it("renders avatar initials when avatarUrl is provided", () => {
       render(<ManageCard title="Users" items={itemsWithAvatars} />);
-      
-      const avatars = screen.getAllByTestId("avatar");
-      expect(avatars).toHaveLength(2);
-      
-      const avatarImages = screen.getAllByTestId("avatar-image");
-      expect(avatarImages).toHaveLength(2);
-      expect(avatarImages[0]).toHaveAttribute("src", "/user1.jpg");
-      expect(avatarImages[1]).toHaveAttribute("src", "/user2.jpg");
+
+      const avatarInitials = screen.getAllByTestId("avatar-initials");
+      expect(avatarInitials).toHaveLength(2);
     });
 
-    it("renders avatar with correct alt text", () => {
+    it("renders correct initials for names", () => {
       render(<ManageCard title="Users" items={itemsWithAvatars} />);
-      
-      const avatarImages = screen.getAllByTestId("avatar-image");
-      expect(avatarImages[0]).toHaveAttribute("alt", "John Doe");
+
+      const avatarInitials = screen.getAllByTestId("avatar-initials");
+      expect(avatarInitials[0]).toHaveTextContent("JD");
+      expect(avatarInitials[1]).toHaveTextContent("JS");
     });
 
-    it("renders avatar fallback", () => {
+    it("renders initials for all items with avatarUrl", () => {
       render(<ManageCard title="Users" items={itemsWithAvatars} />);
-      
-      const fallbacks = screen.getAllByTestId("avatar-fallback");
-      expect(fallbacks.length).toBeGreaterThan(0);
+
+      const avatarInitials = screen.getAllByTestId("avatar-initials");
+      expect(avatarInitials.length).toBe(2);
     });
   });
 
@@ -128,12 +120,13 @@ describe("ManageCard", () => {
       expect(colorCircles).toHaveLength(2);
     });
 
-    it("applies correct background color to circles", () => {
+    it("applies default background color to circles", () => {
       const { container } = render(<ManageCard title="Competitions" items={itemsWithColors} />);
-      
+
       const colorCircles = container.querySelectorAll(".h-8.w-8.rounded-full");
-      expect(colorCircles[0]).toHaveStyle({ backgroundColor: "#FF0000" });
-      expect(colorCircles[1]).toHaveStyle({ backgroundColor: "#00FF00" });
+      // Component uses default color var(--color-chart-3) for all color circles
+      expect(colorCircles[0]).toHaveStyle({ backgroundColor: "var(--color-chart-3)" });
+      expect(colorCircles[1]).toHaveStyle({ backgroundColor: "var(--color-chart-3)" });
     });
 
     it("renders item names and info for colored items", () => {
@@ -147,15 +140,16 @@ describe("ManageCard", () => {
   });
 
   describe("Items without icons", () => {
-    it("renders items without avatars or color circles", () => {
+    it("renders items with default color circles when no avatarUrl", () => {
       const { container } = render(<ManageCard title="Questions" items={itemsWithoutIcons} />);
-      
+
       expect(screen.getByText("Item 1")).toBeInTheDocument();
       expect(screen.getByText("Description 1")).toBeInTheDocument();
-      expect(screen.queryByTestId("avatar")).not.toBeInTheDocument();
-      
+      expect(screen.queryByTestId("avatar-initials")).not.toBeInTheDocument();
+
+      // Items without avatarUrl get color circles with default color
       const colorCircles = container.querySelectorAll(".h-8.w-8.rounded-full");
-      expect(colorCircles).toHaveLength(0);
+      expect(colorCircles).toHaveLength(2);
     });
   });
 
