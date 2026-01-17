@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import type { DecodedToken } from "@/types/Auth.type";
+import { logFrontend } from "@/api/LoggerAPI";
 
 interface ProtectedRouteProps {
     allowedRoles: string[]; // e.g. ['admin', 'owner']
@@ -38,6 +39,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     } catch (error) {
         // 5. Corrupt token? Clear it and redirect.
         localStorage.removeItem("token");
+        logFrontend({
+            level: 'ERROR',
+            message: `Failed to load riddles: ${(error as Error).message}`,
+            component: 'ProtectedRoute.tsx',
+            url: window.location.href,
+        })
         return <Navigate to="/login" replace />;
     }
 };
