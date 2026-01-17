@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, } from 'react'
 import CodeDescArea from "./CodeDescArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload, Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -13,8 +13,8 @@ import Console from "@code-editor/console-feed";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
-import axiosClient from '@/lib/axiosClient';
 import { getCodeResponse, postCode } from '@/api/Judge0API';
+import Testcase from './Testcase';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -57,12 +57,11 @@ const CodingView = () => {
   }
 
   const runCode = async () => {
-
     await postCode(code, judgeID, "Judge0", null)
       .then((response) => {
         let responseDetails = getCodeResponse(response)
         console.log(responseDetails)
-        setLogs(logs + "</br></br>" + responseDetails )
+        setLogs((prev) => [...prev, responseDetails])
       })
 
     // let response = await postCode(code, judgeID, "Judge0", null)
@@ -96,14 +95,55 @@ const CodingView = () => {
   });
 
   const [ code, setCode ] = useStateCallback<string>(templateCode)
-  const [logs, setLogs] = useState("");
-  // const [logs, setLogs] = useState([]);
 
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
 
+  // const [logs, setLogs] = useState("");
+  const [logs, setLogs] = useState<Testcase[]>([]);
+
+  const [testcases, setTestcases] = useState(['Case 1']);
+  const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].id);
+
+  const addTestcase = () => {
+    console.log("active")
+    console.log(activeTestcase)
+    const nextIdx = `Case ${testcases.length + 1}`
+    // const newCase: Testcase = {
+    //   id: nextIdx,
+    //   smt: "",
+    //   smt: "",
+    // }
+    setTestcases((prev) => [...prev, nextIdx])
+    // setActiveTestcase(nextIdx)
+    console.log("active test case")
+    console.log(activeTestcase)
+  }
+
+  const updateTestcase = (
+    id: string,
+    field: "input" | "output",
+    value: string
+  ) => {
+    // setTestcases((prev) =>
+    //   prev.map((c) =>
+    //     c.id === id ? { ...c, [field]: value } : c
+    //   )
+    // )
+  }
+
+  const removeTestcase = (caseID: string) => {
+    // testcases.
+    const nextIdx = `Case ${testcases.length + 1}`
+    setTestcases((prev) => [...prev, nextIdx])
+    setActiveTestcase(nextIdx)
+  }
+
+  useEffect(() => { setActiveTestcase(testcases[testcases.length - 1])
+  }, [testcases])
+
   const outputTabs = [
-    { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },
-    { id: 'console', text: 'Console', icon: <Terminal size={16} /> },
+    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
+    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
   ]
 
   const [fullCode, setFullCode] = useState(false)
@@ -134,7 +174,7 @@ const CodingView = () => {
       codePanelSize = [95.25, 4.75]
     } else {
       mainPanelSize = [50, 50]
-      codePanelSize = [75, 25]
+      codePanelSize = [65, 35]
     }
 
     mainPanelGroup.current?.setLayout(mainPanelSize)
@@ -248,7 +288,7 @@ const CodingView = () => {
             <Panel data-testid="output-area" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='preview' >
+              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"
@@ -259,6 +299,7 @@ const CodingView = () => {
                     {outputTabs.map(tab => {
                       return <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
                         className='bg-muted rounded-none
+                        hover:border-t-2 hover:border-primary/40
                         data-[state=active]:border-primary
                         data-[state=active]:text-primary
                         data-[state=active]:bg-muted
@@ -287,26 +328,69 @@ const CodingView = () => {
                     </Button>
                   </div>
                 </TabsList>
-                <TabsContent data-testid="preview-tab" value="preview" >
-                  <div data-testid="preview" className='h-full'
-                    style={{
-                      background: "#e0ffff", color: "white", padding: "10px",
-                      overflowY: "auto"
-                    }}
-                  >
-                    {/* <Console logs={logs} variant="dark" /> */}
-                    {/* <SandpackConsole /> */}
-                  </div>
+                <TabsContent data-testid="testcases-tab" value="testcases" 
+                  className='max-h-full p-2.5' >
+                  <Tabs data-testid="testcases-tab" value={activeTestcase} >
+                    <div className='flex '
+                    >
+                      <TabsList
+                        className='pb-2 flex gap-2 w-full'
+                      >
+                        {testcases && testcases.map((c) => (
+                          // let caseNum = idx + 1
+                          // <div 
+                          // className='flex auto-rows-auto rounded-sm p-1
+                          //   hover:border-t-2 hover:border-primary/40 hover:bg-muted
+                          //   data-[state=active]:border-primary
+                          // '
+                          // >
+                            <TabsTrigger value={c} key={c} data-testid={c}
+                              className='rounded-sm p-1.5
+                                hover:border-t-2 hover:border-primary/40 hover:bg-muted
+                                data-[state=active]:border-primary
+                                data-[state=active]:text-primary
+                                data-[state=active]:shadow-none
+                                data-[state=active]:border-b-[2.5px]
+                                data-[state=active]:border-x-0
+                                data-[state=active]:border-t-0
+                                dark:data-[state=active]:border-primary
+                                flex items-center gap-2 transition-all'
+                            >
+                            {c}
+                            <X size={14} onClick={() => removeTestcase(c)}
+                              className='rounded-full top-0 right-0
+                                hover:bg-muted hover:text-red-700 '
+                            />
+                          </TabsTrigger>
+                          // <X size={14} className='hover:bg-muted hover:text-red-700 rounded-full'
+                          // />
+                          // </div>
+                        ))}
+                      </TabsList>
+                      <Button size={"icon"} variant={'ghost'} onClick={addTestcase}
+                        className=" hover:text-primary"
+                      >
+                        <Plus size={4} />
+                      </Button>
+                    </div>
+                    {testcases && testcases.map((c) => (
+                      <TabsContent value={c} key={c} data-testid={c} >
+                        <Testcase />
+                      </TabsContent>
+                    ))}
+                  </Tabs>
                 </TabsContent>
-                <TabsContent data-testid="output-tab" value="console">
-                  <div data-testid="console" className='h-full'
-                    style={{
-                      background: "#1e1e1e", color: "white", padding: "10px",
-                      overflowY: "auto"
-                    }}
-                  >
-                    <samp>{logs}</samp>
-                  </div>
+                <TabsContent data-testid="results-tab" value="results"
+                  className='h-full'
+                  style={{
+                    background: "#1e1e1e", color: "white", padding: "10px",
+                    overflowY: "auto"
+                  }}
+                >
+                  {logs.map((log) => (
+                    <samp>{log}</samp>
+                  ))}
+                  {/* <samp>{logs}</samp> */}
                 </TabsContent>
               </Tabs>
             </Panel>

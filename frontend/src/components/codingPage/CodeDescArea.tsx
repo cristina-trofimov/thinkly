@@ -117,15 +117,16 @@ const CodeDescArea = (
 
                     return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
                         className={`bg-muted rounded-none
-                            data-[state=active]:border-primary
-                            data-[state=active]:text-primary
-                            data-[state=active]:bg-muted
-                            data-[state=active]:shadow-none
-                            data-[state=active]:border-b-[2.5px]
-                            data-[state=active]:border-x-0
-                            data-[state=active]:border-t-0
-                            dark:data-[state=active]:border-primary
-                            flex items-center gap-2 transition-all
+                        hover:border-t-2 hover:border-primary/40
+                        data-[state=active]:border-primary
+                        data-[state=active]:text-primary
+                        data-[state=active]:bg-muted
+                        data-[state=active]:shadow-none
+                        data-[state=active]:border-b-[2.5px]
+                        data-[state=active]:border-x-0
+                        data-[state=active]:border-t-0
+                        dark:data-[state=active]:border-primary
+                        flex items-center gap-2 transition-all
                             ${showText ? 'px-4' : 'px-2'}
                         `}
                     >

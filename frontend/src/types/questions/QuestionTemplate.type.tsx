@@ -1,4 +1,4 @@
-import type { variableTemplate } from "../VariableTemplate.type"
+import type { variableTemplate } from "./VariableTemplate.type"
 
 export type QuestionTemplate = {
     monacoID: string,

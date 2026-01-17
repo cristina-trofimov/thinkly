@@ -7,7 +7,6 @@ export async function postCode(
     expected_output: string | null,
 ): Promise<string> {
 // ): Promise<Response> {
-
     try{
         const response = await axiosClient.post(
             "http://172.93.30.200:2358/submissions",
@@ -40,7 +39,6 @@ export async function postCode(
 }
 
 export async function getCodeResponse( token: string ): Promise<Response> {
-
     try{
         const response = await axiosClient.get("http://172.93.30.200:2358/submissions/" + token);
         return response.data
