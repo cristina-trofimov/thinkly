@@ -3,8 +3,6 @@ describe('Basic E2E Test', () => {
     cy.visit('http://localhost:5173/app/home');
     cy.contains('Leaderboards').click();
     cy.wait(2000)
-    cy.contains('Dashboard').click();
-    cy.wait(2000)
     cy.contains('Settings').click();
     cy.wait(2000)
     cy.contains('Competition').click();
