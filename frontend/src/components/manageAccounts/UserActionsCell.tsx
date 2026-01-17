@@ -37,7 +37,10 @@ interface ActionsCellProps {
   onUserUpdate?: (updatedUser: Account) => void;
 }
 
-export function ActionsCell({ user, onUserUpdate }: Readonly<ActionsCellProps>) {
+export function ActionsCell({
+  user,
+  onUserUpdate,
+}: Readonly<ActionsCellProps>) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [firstName, setFirstName] = React.useState(user.firstName);
   const [lastName, setLastName] = React.useState(user.lastName);
@@ -74,7 +77,7 @@ export function ActionsCell({ user, onUserUpdate }: Readonly<ActionsCellProps>) 
       updatedFields["email"] = email;
     }
     if (accountType.toLowerCase() !== user.accountType.toLowerCase()) {
-      updatedFields["type"] = accountType;
+      updatedFields["user_type"] = accountType;
     }
 
     if (Object.keys(updatedFields).length === 0) {
@@ -123,9 +126,7 @@ export function ActionsCell({ user, onUserUpdate }: Readonly<ActionsCellProps>) 
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
-            onClick={() =>
-              navigator.clipboard.writeText(user.id.toString())
-            }
+            onClick={() => navigator.clipboard.writeText(user.id.toString())}
           >
             Copy user ID
           </DropdownMenuItem>
@@ -189,11 +190,7 @@ export function ActionsCell({ user, onUserUpdate }: Readonly<ActionsCellProps>) 
                 </Select>
               </Field>
               <Field orientation="horizontal" className="justify-end">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={handleCancel}
-                >
+                <Button variant="outline" type="button" onClick={handleCancel}>
                   Cancel
                 </Button>
                 <Button type="submit" onClick={handleSaveChanges}>
