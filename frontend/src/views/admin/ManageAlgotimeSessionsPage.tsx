@@ -10,7 +10,6 @@ import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  // const [algotimesSessions, setAlgotimeSessions] = useState<AlgoTimeSeries[]>([]);
   const [algotimesSessions, setAlgotimesSessions] = useState<AlgoTimeSession[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

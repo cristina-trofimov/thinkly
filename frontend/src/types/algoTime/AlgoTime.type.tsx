@@ -49,22 +49,3 @@ export interface AlgoTimeSeries {
   seriesName: string;
   sessions: AlgoTimeSession[];
 }
-export interface AlgoTimeQuestionResponse {
-    question_id: number;
-    question_name: string;
-    question_description: string;
-    difficulty: "easy" | "medium" | "hard";
-    tags: string[];
-    points: number;
-  }
-  
-export interface AlgoTimeSessionResponse {
-    id: number;
-    event_name: string;
-    start_date: string;
-    end_date: string;
-    question_cooldown: number;
-    series_id?: number | null;
-    series_name?: string | null;
-    questions: AlgoTimeQuestionResponse[];
-  }
