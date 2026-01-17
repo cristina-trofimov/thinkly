@@ -24,6 +24,7 @@ import ManageCompetitions from "./views/admin/ManageCompetitionsPage.tsx";
 import CreateCompetition from "./views/admin/CreateCompetitionPage.tsx";
 import ErrorPage from "./components/ErrorPage.tsx";
 import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
+import ManageAlgotimeSessionsPage from "./views/admin/ManageAlgotimeSessionsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
 import ForgotPasswordForm from "./components/forms/ForgotPasswordForm.tsx";
 import ResetPasswordForm from "./components/forms/ResetPasswordForm";
@@ -109,10 +110,37 @@ const router = createBrowserRouter([
               },
             ],
           },
-          { path: "algotime", element: <div>AlgoTime</div> },
-          { path: "competition", element: <div>Competition</div> },
-          { path: "settings", element: <div>Settings</div> },
-        ],
+          {
+            path: "manageAccounts",
+            element: <ManageAccountsPage />,
+            handle: {
+              crumb: { title: "Manage Accounts" }
+            }
+          },
+          {
+            path: "manageRiddles",
+            element: <ManageRiddles />,
+            handle: {
+              crumb: { title: "Manage Riddles" }
+            }
+          },
+          {
+            path: "algoTimeSessions",
+            element: <ManageAlgotimeSessionsPage />,
+            handle: {
+              crumb: { title: "Manage Algotime Sessions" }
+            },
+            children: [
+              {
+                path: "algoTimeSessionsManagement",
+                element: <ManageAlgoTimePage />,
+                handle: {
+                  crumb: { title: "Create AlgoTime Session" }
+                }
+              },
+            ]
+          },
+        ]
       },
 
       // 2. ADMIN ACCESS ONLY (Owner, Admin)
