@@ -160,7 +160,7 @@ export function AdminDashboard() {
               />
             </div>
             <Link
-              to="/app/dashboard/algoTimeSession"
+              to="/app/dashboard/algoTimeSessions"
               className="cursor-pointer block flex-1 min-w-0"
             >
               <ManageCard
