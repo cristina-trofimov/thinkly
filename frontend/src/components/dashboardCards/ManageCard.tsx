@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { IconChevronRight } from "@tabler/icons-react";
+import { AvatarInitials } from "@/components/helpers/AvatarInitials";
+
+const DEFAULT_COLOR = "var(--color-chart-3)";
 
 export type ManageItem = {
   name: string;
@@ -33,15 +35,14 @@ export const ManageCard = ({ title, items, className }: ManageCardProps) => (
         {items.map((item) => (
           <div key={item.name} className="px-6">
             <div className="flex items-center gap-4 py-3">
-              {item.avatarUrl ? (
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={item.avatarUrl} alt={item.name} className="object-cover" />
-                  <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
-                    {item.name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              ) : item.color && (
-                <div className="h-8 w-8 rounded-full" style={{ backgroundColor: item.color }} />
+              {"avatarUrl" in item ? (
+                <AvatarInitials
+                  firstName={item.name.split(" ")[0] || ""}
+                  lastName={item.name.split(" ")[1] || ""}
+                  size="md"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full" style={{ backgroundColor: DEFAULT_COLOR }} />
               )}
 
               <div className="min-w-0">

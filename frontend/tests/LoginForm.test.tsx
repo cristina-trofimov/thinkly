@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { LoginForm } from '../src/components/forms/LogInForm';
 import * as authApi from '../src/api/AuthAPI';
 import { jwtDecode } from 'jwt-decode';
+import { toast } from 'sonner';
 
 // Polyfill for TextEncoder/TextDecoder
 import { TextEncoder, TextDecoder } from 'util';
@@ -13,12 +14,35 @@ global.TextDecoder = TextDecoder as any;
 
 // Mock dependencies
 jest.mock('../src/api/AuthAPI');
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn(),
+}));
 jest.mock('jwt-decode');
+jest.mock('sonner', () => ({
+    toast: {
+        success: jest.fn(),
+        error: jest.fn(),
+    },
+}));
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
     BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     useNavigate: () => mockNavigate,
+}));
+
+// Mock GoogleLogin component
+jest.mock('@react-oauth/google', () => ({
+    GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    GoogleLogin: ({ onSuccess, onError }: any) => (
+        <button
+            type="button"
+            onClick={() => onSuccess({ credential: 'mock-google-credential' })}
+            data-testid="google-login-button"
+        >
+            Sign in with Google
+        </button>
+    ),
 }));
 
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
@@ -48,7 +72,7 @@ describe('LoginForm', () => {
             expect(screen.getByText('Login to your account')).toBeInTheDocument();
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
             expect(screen.getByLabelText('Password')).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /Login/i })).toBeInTheDocument();
         });
 
         it('renders email and password inputs with correct types', () => {
@@ -64,8 +88,7 @@ describe('LoginForm', () => {
         it('renders Google Login button', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
-            // GoogleLogin component should be present
-            expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+            expect(screen.getByTestId('google-login-button')).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -121,7 +144,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -146,7 +169,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -167,14 +190,14 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith('Invalid email or password.');
             });
 
             expect(localStorage.getItem('token')).toBeNull();
@@ -190,7 +213,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             // First submission - should fail
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
@@ -198,16 +221,22 @@ describe('LoginForm', () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith('Invalid email or password.');
             });
 
-            // Second submission - should succeed and clear error
+            // Clear the mock to verify it's not called with error on second attempt
+            (toast.error as jest.Mock).mockClear();
+
+            // Second submission - should succeed
             fireEvent.change(passwordInput, { target: { value: 'correct' } });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.queryByText('Invalid email or password')).not.toBeInTheDocument();
+                expect(mockNavigate).toHaveBeenCalledWith('/app/home');
             });
+
+            // Verify error toast was not called on successful login
+            expect(toast.error).not.toHaveBeenCalled();
         });
     });
 
@@ -215,37 +244,40 @@ describe('LoginForm', () => {
         it('successfully logs in with Google', async () => {
             const mockToken = 'mock-google-jwt-token';
             const mockDecodedToken = { sub: { role: 'student' } };
-            const mockCredentialResponse = { credential: 'google-credential' };
 
             mockGoogleLogin.mockResolvedValue({ token: mockToken });
             mockJwtDecode.mockReturnValue(mockDecodedToken as any);
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            // Simulate Google login success by calling the handler directly
-            const loginForm = screen.getByRole('button', { name: /sign in/i }).closest('form');
+            const googleButton = screen.getByTestId('google-login-button');
+            fireEvent.click(googleButton);
 
-            // We need to test the handleGoogleSuccess function
-            // Since GoogleLogin is a third-party component, we'll verify the API call
             await waitFor(() => {
-                // This would be triggered by GoogleLogin component
-                // In actual test, you'd mock the GoogleLogin component itself
+                expect(mockGoogleLogin).toHaveBeenCalledWith('mock-google-credential');
             });
+
+            expect(localStorage.getItem('token')).toBe(mockToken);
+            expect(mockJwtDecode).toHaveBeenCalledWith(mockToken);
+            expect(mockNavigate).toHaveBeenCalledWith('/app/home');
         });
 
-        it('handles Google login failure', () => {
-            const alertMock = jest.spyOn(window, 'alert').mockImplementation();
+        it('handles Google login failure', async () => {
+            mockGoogleLogin.mockRejectedValue(new Error('Google login failed'));
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            // The handleGoogleError would be called by the GoogleLogin component
-            // You'd need to mock GoogleLogin to test this properly
+            const googleButton = screen.getByTestId('google-login-button');
+            fireEvent.click(googleButton);
 
-            alertMock.mockRestore();
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Google login failed: Google login failed');
+            });
+
+            expect(localStorage.getItem('token')).toBeNull();
+            expect(mockNavigate).not.toHaveBeenCalled();
         });
     });
-
-
 
     describe('Form Validation', () => {
         it('requires email field', () => {
@@ -283,7 +315,7 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'password123' } });
@@ -301,14 +333,14 @@ describe('LoginForm', () => {
 
             const emailInput = screen.getByLabelText('Email');
             const passwordInput = screen.getByLabelText('Password');
-            const submitButton = screen.getByRole('button', { name: /sign in/i });
+            const submitButton = screen.getByRole('button', { name: /Login/i });
 
             fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordInput, { target: { value: 'wrong' } });
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText('Invalid email or password')).toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith('Invalid email or password.');
             });
 
             expect(localStorage.getItem('token')).toBeNull();

@@ -1,7 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { type CreateCompetitionDialogProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
+import { type CreateCompetitionProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -10,16 +10,18 @@ export async function getCompetitions(): Promise<Competition[]> {
       id: string;
       competition_title: string;
       competition_location: string;
-      date: Date;
+      start_date: Date;
+      end_date: Date;
     }[]>(`/competitions/`);
-
+    
     const formatted: Competition[] = response.data.map(c => ({
       id: c.id,
       competitionTitle: c.competition_title,
       competitionLocation: c.competition_location,
-      date: c.date,
+      startDate: new Date(c.start_date),
+      endDate: new Date(c.end_date),
     }));
-
+    
     return formatted;
   } catch (err) {
     console.error("Error fetching competitions:", err);
@@ -57,7 +59,7 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
  * Requires owner authentication
  */
 export async function createCompetition(
-  payload: CreateCompetitionDialogProps
+  payload: CreateCompetitionProps
 ): Promise<CompetitionResponse> {
   try {
     const response = await axiosClient.post<CompetitionResponse>(
