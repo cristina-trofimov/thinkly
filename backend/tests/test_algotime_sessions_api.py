@@ -153,7 +153,7 @@ def test_get_all_algotime_sessions_success(client, mock_db):
     
     assert len(data) == 1
     assert data[0]["id"] == 1
-    assert data[0]["event_name"] == "Session 1"
-    assert data[0]["series_id"] == 1
+    assert data[0]["eventName"] == "Session 1"
+    assert data[0]["seriesId"] == 1
     assert len(data[0]["questions"]) == 1
-    assert data[0]["questions"][0]["question_name"] == "Two Sum"
+    assert data[0]["questions"][0]["questionName"] == "Two Sum"
