@@ -41,7 +41,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
         localStorage.removeItem("token");
         logFrontend({
             level: 'ERROR',
-            message: `Failed to load riddles: ${(error as Error).message}`,
+            message: `Corrupt token: ${(error as Error).message}`,
             component: 'ProtectedRoute.tsx',
             url: window.location.href,
         })

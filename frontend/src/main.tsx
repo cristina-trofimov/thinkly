@@ -53,14 +53,14 @@ const router = createBrowserRouter([
     element: <ResetPasswordForm />,
   },
   {
-    path: "/unauthorized", 
+    path: "/unauthorized",
     element: <Unauthorized />,
   },
 
   // --- PROTECTED ROUTES ---
   {
     path: "/app",
-    element: <Layout />, 
+    element: <Layout />,
     errorElement: <ErrorPage />,
     children: [
 
@@ -109,20 +109,6 @@ const router = createBrowserRouter([
                 handle: { crumb: { title: "Change Password" } },
               },
             ],
-          },
-          {
-            path: "manageAccounts",
-            element: <ManageAccountsPage />,
-            handle: {
-              crumb: { title: "Manage Accounts" }
-            }
-          },
-          {
-            path: "manageRiddles",
-            element: <ManageRiddles />,
-            handle: {
-              crumb: { title: "Manage Riddles" }
-            }
           },
           {
             path: "algoTimeSessions",
