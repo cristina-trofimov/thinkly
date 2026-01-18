@@ -33,7 +33,7 @@ const data = {
     },
     {
       name: "Competition",
-      url: "/app/competition",
+      url: "/app/competitions",
       icon: Bot,
     },
     {
