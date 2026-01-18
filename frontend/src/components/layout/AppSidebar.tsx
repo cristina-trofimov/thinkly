@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Bot,
   LayoutDashboardIcon,
-  Settings2,
   SquareTerminal,
   Trophy
 } from "lucide-react"
@@ -34,11 +33,6 @@ const navMain = [
     name: "Competition",
     url: "/app/competitions",
     icon: Bot,
-  },
-  {
-    name: "Settings",
-    url: "/app/settings",
-    icon: Settings2,
   },
 ];
 

@@ -33,8 +33,6 @@ describe('Sidebar Navigation', () => {
     cy.contains('Leaderboards').click();
     cy.wait(2000)
     cy.location('pathname').should('include', '/leaderboards');
-    cy.contains('Settings').click();
-    cy.wait(2000)
     cy.contains('Competition').click();
     cy.wait(2000)
     cy.contains('AlgoTime').click();
