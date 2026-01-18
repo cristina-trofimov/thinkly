@@ -2,6 +2,7 @@ import axiosClient from "@/lib/axiosClient";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { type CreateCompetitionProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
+import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -125,7 +126,7 @@ export async function deleteCompetition(competitionId: number): Promise<void> {
  * Update an existing competition
  * Requires owner authentication
  */
-export const updateCompetition = async (payload: any) => {
+export const updateCompetition = async (payload: UpdateCompetitionProps) => {
   try {
     const response = await axiosClient.put(
       `/competitions/${payload.id}`,

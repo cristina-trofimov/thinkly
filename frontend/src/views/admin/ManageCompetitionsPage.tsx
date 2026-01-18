@@ -53,7 +53,7 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
   const [competitions, setCompetition] = useState<Competition[]>([]);

@@ -494,7 +494,7 @@ async def get_competition_detailed(
                 sendAtLocal=send_at_local
             )
 
-            logger.info(f"Email notification response created successfully")
+            logger.info("Email notification response created successfully")
         else:
             logger.info(f"No email notification found for competition ID {competition_id}")
 

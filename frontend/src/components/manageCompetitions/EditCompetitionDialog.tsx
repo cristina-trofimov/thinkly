@@ -26,6 +26,7 @@ import { updateCompetition, getCompetitionById } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import { type Question } from "../../types/questions/Question.type";
 import { type Riddle } from "../../types/riddle/Riddle.type";
+import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
@@ -237,7 +238,7 @@ export default function EditCompetitionDialog({
     setValidationError('');
 
     try {
-      const payload = {
+      const payload: UpdateCompetitionProps= {
         id: competitionId,
         name: formData.name,
         date: formData.date,
