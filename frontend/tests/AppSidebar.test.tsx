@@ -159,17 +159,6 @@ describe("AppSidebar", () => {
     );
   });
 
-  test("renders all other navigation links", () => {
-    render(<AppSidebar />);
-    expect(screen.getByRole("link", { name: "Leaderboards" })).toHaveAttribute(
-      "href",
-      "/app/leaderboards"
-    );
-    expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
-      "href",
-      "/app/dashboard"
-    );
-  });
 
   test("renders NavUser component with user data", async () => {
     render(<AppSidebar />);

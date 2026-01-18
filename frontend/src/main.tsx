@@ -31,11 +31,14 @@ import ResetPasswordForm from "./components/forms/ResetPasswordForm";
 import ManageRiddles from "./views/admin/ManageRiddlePage.tsx";
 import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
+import Unauthorized from "./views/Unauthorized.tsx";
+import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
 
 const router = createBrowserRouter([
+  // --- PUBLIC ROUTES ---
   {
     path: "/",
-    element: <LoginPage />, // 👈 LoginPage loads first
+    element: <LoginPage />,
   },
   {
     path: "/signup",
@@ -47,110 +50,65 @@ const router = createBrowserRouter([
   },
   {
     path: "/reset-password",
-    element: <ResetPasswordForm  />,
+    element: <ResetPasswordForm />,
   },
   {
-    path: "/app", // 👈 everything else under /app
+    path: "/unauthorized",
+    element: <Unauthorized />,
+  },
+
+  // --- PROTECTED ROUTES ---
+  {
+    path: "/app",
     element: <Layout />,
     errorElement: <ErrorPage />,
-
     children: [
+
       {
-        index: true,
-        element: <Navigate to="/app/home" replace />,
-      },
-      {
-        path: "home",
-        element: (
-          <div className="min-h-screen h-full">
-            <HomePage />
-          </div>
-        ),
-        handle: {
-          crumb: { title: "Home Page" },
-        },
-      },
-      {
-        path: "algotime",
-        element: <div>AlgoTime</div>,
-        handle: {
-          crumb: { title: "AlgoTime" },
-        },
-      },
-      {
-        path: "competition",
-        element: <div>Competition</div>,
-        handle: {
-          crumb: { title: "Competition" },
-        },
-      },
-      {
-        path: "settings",
-        element: <div>Settings</div>,
-        handle: {
-          crumb: { title: "Settings" },
-        },
-      },
-      {
-        path: "leaderboards",
-        element: <Leaderboards />,
-        handle: {
-          crumb: { title: "Leaderboards" },
-        },
+        element: <ProtectedRoute allowedRoles={["participant", "owner", "admin"]} />,
         children: [
           {
             index: true,
-            element: <div>Competitions</div>,
+            element: <Navigate to="/app/home" replace />,
           },
           {
-            path: ":competitionId",
-            element: <div>Competition Leaderboard</div>,
-            handle: {
-              crumb: { title: "Competition Leaderboard" },
-            },
-          },
-        ],
-      },
-      {
-        path: "dashboard",
-        element: <AdminDashboard />,
-        handle: {
-          crumb: { title: "Admin Dashboard" }
-        },
-        children: [
-          {
-            index: true,
-            element: <div>Admin Dashboard</div>,
+            path: "home",
+            element: (
+              <div className="min-h-screen h-full">
+                <HomePage />
+              </div>
+            ),
+            handle: { crumb: { title: "Home Page" } },
           },
           {
-            path: "competitions",
-            element: <ManageCompetitions />,
-            handle: {
-              crumb: { title: "Manage Competitions" }
-            },
+            path: "code",
+            element: <CodingView />,
+            handle: { crumb: { title: "Coding" } },
+          },
+          {
+            path: "leaderboards",
+            element: <Leaderboards />,
+            handle: { crumb: { title: "Leaderboards" } },
+            children: [
+              { index: true, element: <div>Competitions</div> },
+              {
+                path: ":competitionId",
+                element: <div>Competition Leaderboard</div>,
+                handle: { crumb: { title: "Competition Leaderboard" } },
+              },
+            ],
+          },
+          {
+            path: "profile",
+            element: <ProfilePage />,
+            handle: { crumb: { title: "Profile" } },
             children: [
               {
-                path: "createCompetition",
-                element: <CreateCompetition />,
-                handle: {
-                  crumb: { title: "Create Competition" }
-                }
+                path: "changePassword",
+                element: <ChangePasswordPage />,
+                handle: { crumb: { title: "Change Password" } },
               },
-            ]
-          },
-          {
-            path: "manageAccounts",
-            element: <ManageAccountsPage />,
-            handle: {
-              crumb: { title: "Manage Accounts" }
-            }
-          },
-          {
-            path: "manageRiddles",
-            element: <ManageRiddles />,
-            handle: {
-              crumb: { title: "Manage Riddles" }
-            }
+            ],
           },
           {
             path: "algoTimeSessions",
@@ -170,26 +128,46 @@ const router = createBrowserRouter([
           },
         ]
       },
+
+      // 2. ADMIN ACCESS ONLY (Owner, Admin)
+      // If a 'participant' tries to go here, they get sent to /unauthorized
       {
-        path: "code",
-        element: <CodingView />,
-        handle: {
-          crumb: { title: "Coding" },
-        },
-      },
-      {
-        path: "profile",
-        element: <ProfilePage />,
-        handle: {
-          crumb: { title: "Profile" },
-        },
+        element: <ProtectedRoute allowedRoles={["owner", "admin"]} />,
         children: [
           {
-            path: "changePassword",
-            element: <ChangePasswordPage />,
-            handle: {
-              crumb: { title: "Change Password" },
-            },
+            path: "dashboard",
+            element: <AdminDashboard />,
+            handle: { crumb: { title: "Admin Dashboard" } },
+            children: [
+              { index: true, element: <div>Admin Dashboard Overview</div> },
+              {
+                path: "competitions",
+                element: <ManageCompetitions />,
+                handle: { crumb: { title: "Manage Competitions" } },
+                children: [
+                  {
+                    path: "createCompetition",
+                    element: <CreateCompetition />,
+                    handle: { crumb: { title: "Create Competition" } },
+                  },
+                ],
+              },
+              {
+                path: "manageAccounts",
+                element: <ManageAccountsPage />,
+                handle: { crumb: { title: "Manage Accounts" } },
+              },
+              {
+                path: "manageRiddles",
+                element: <ManageRiddles />,
+                handle: { crumb: { title: "Manage Riddles" } },
+              },
+              {
+                path: "algoTimeSession",
+                element: <ManageAlgoTimePage />,
+                handle: { crumb: { title: "Manage AlgoTime Sessions" } },
+              },
+            ],
           },
         ],
       },
