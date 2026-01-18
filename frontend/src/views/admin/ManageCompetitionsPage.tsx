@@ -14,7 +14,7 @@ import EditCompetitionDialog from "../../components/manageCompetitions/EditCompe
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutlet, useLocation } from 'react-router-dom';
 import { type Competition } from "../../types/competition/Competition.type"
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitions } from "../../api/CompetitionAPI";
 
@@ -259,12 +259,6 @@ const ManageCompetitions = () => {
           </Button>
         </div>
       )}
-
-      <CreateCompetitionDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        key={createDialogOpen ? 'open' : 'closed'}
-      />
 
       {selectedCompetitionId && (
         <EditCompetitionDialog

@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -12,7 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { IconPlus, IconSearch, IconX, IconArrowUp, IconArrowDown } from "@tabler/icons-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Plus,
+  Search,
+  X,
+  ArrowUp,
+  ArrowDown,
+  Trophy,
+  Mail,
+  Clock,
+  MapPin,
+} from "lucide-react";
 import { updateCompetition, getCompetitionById } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import { type Question } from "../../types/questions/Question.type";
@@ -71,21 +80,15 @@ export default function EditCompetitionDialog({
     const loadCompetitionData = async () => {
       setLoading(true);
       try {
-        // Load all questions and riddles
         const [allQuestions, allRiddles, competitionData] = await Promise.all([
           getQuestions(),
           getRiddles(),
           getCompetitionById(competitionId)
         ]);
 
-        console.log('Competition data received:', competitionData);
-        console.log('All questions:', allQuestions);
-        console.log('All riddles:', allRiddles);
-
         setQuestions(allQuestions);
         setRiddles(allRiddles);
 
-        // Prefill form data
         setFormData({
           name: competitionData.competitionTitle || "",
           date: competitionData.date || "",
@@ -96,32 +99,21 @@ export default function EditCompetitionDialog({
           riddleCooldownTime: competitionData.riddleCooldownTime?.toString() || "60",
         });
 
-        // Prefill selected questions (maintaining order)
         if (competitionData.selectedQuestions && competitionData.selectedQuestions.length > 0) {
-          console.log('Selected question IDs:', competitionData.selectedQuestions);
           const orderedQs = competitionData.selectedQuestions
-            .map((id: number) => allQuestions.find(q => q.id === id.toString()))
+            .map((id: number) => allQuestions.find(q => q.id === id))
             .filter(Boolean) as Question[];
-          console.log('Mapped questions:', orderedQs);
           setOrderedQuestions(orderedQs);
         }
 
-        // Prefill selected riddles (maintaining order)
         if (competitionData.selectedRiddles && competitionData.selectedRiddles.length > 0) {
-          console.log('Selected riddle IDs:', competitionData.selectedRiddles);
           const orderedRs = competitionData.selectedRiddles
-            .map((id: number) => allRiddles.find(r => r.id === id.toString()))
+            .map((id: number) => allRiddles.find(r => r.id === id))
             .filter(Boolean) as Riddle[];
-          console.log('Mapped riddles:', orderedRs);
           setOrderedRiddles(orderedRs);
         }
 
-        // Prefill email data if exists
         if (competitionData.emailNotification) {
-          console.log('Email notification data:', competitionData.emailNotification);
-          console.log('sendAtLocal value:', competitionData.emailNotification.sendAtLocal);
-          console.log('sendAtLocal type:', typeof competitionData.emailNotification.sendAtLocal);
-
           setEmailEnabled(true);
           setEmailToAll(competitionData.emailNotification.to === "all participants");
           setEmailData({
@@ -131,17 +123,7 @@ export default function EditCompetitionDialog({
             sendAtLocal: competitionData.emailNotification.sendAtLocal || "",
             sendInOneMinute: competitionData.emailNotification.sendInOneMinute || false,
           });
-
-          console.log('Email data state set to:', {
-            to: competitionData.emailNotification.to || "",
-            subject: competitionData.emailNotification.subject || "",
-            body: competitionData.emailNotification.body || "",
-            sendAtLocal: competitionData.emailNotification.sendAtLocal || "",
-            sendInOneMinute: competitionData.emailNotification.sendInOneMinute || false,
-          });
         } else {
-          console.log('No email notification found in competition data');
-          // No email notification exists
           setEmailEnabled(false);
           setEmailToAll(false);
           setEmailData({
@@ -171,8 +153,8 @@ export default function EditCompetitionDialog({
 
     loadCompetitionData();
   }, [open, competitionId]);
+
   useEffect(() => {
-    // Reset the manual edit flag when any form field changes
     setEmailManuallyEdited(false);
   }, [
     formData.name,
@@ -181,7 +163,7 @@ export default function EditCompetitionDialog({
     formData.endTime,
     formData.location,
   ]);
-  // Auto-update email text
+
   useEffect(() => {
     if (emailManuallyEdited || !initialLoadComplete || !emailEnabled) return;
 
@@ -210,37 +192,17 @@ export default function EditCompetitionDialog({
     !orderedRiddles.find(or => or.id === r.id)
   );
 
-  const addQuestion = (question: Question) => {
-    setOrderedQuestions([...orderedQuestions, question]);
-  };
-
-  const removeQuestion = (id: string) => {
-    setOrderedQuestions(orderedQuestions.filter(q => q.id !== id));
-  };
-
-  const moveQuestion = (index: number, direction: 'up' | 'down') => {
-    const newOrder = [...orderedQuestions];
+  const moveItem = <T,>(
+    list: T[],
+    setList: React.Dispatch<React.SetStateAction<T[]>>,
+    index: number,
+    direction: 'up' | 'down'
+  ) => {
+    const newList = [...list];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex >= 0 && newIndex < newOrder.length) {
-      [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-      setOrderedQuestions(newOrder);
-    }
-  };
-
-  const addRiddle = (riddle: Riddle) => {
-    setOrderedRiddles([...orderedRiddles, riddle]);
-  };
-
-  const removeRiddle = (id: string) => {
-    setOrderedRiddles(orderedRiddles.filter(r => r.id !== id));
-  };
-
-  const moveRiddle = (index: number, direction: 'up' | 'down') => {
-    const newOrder = [...orderedRiddles];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex >= 0 && newIndex < newOrder.length) {
-      [newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-      setOrderedRiddles(newOrder);
+    if (newIndex >= 0 && newIndex < newList.length) {
+      [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
+      setList(newList);
     }
   };
 
@@ -296,18 +258,12 @@ export default function EditCompetitionDialog({
         } : undefined,
       };
 
-      console.log('Submitting update payload:', payload);
-
       await updateCompetition(payload);
-
-      console.log("Competition updated successfully ✅");
-
       onOpenChange(false);
       onSuccess?.();
 
     } catch (error) {
       console.error("Failed to update competition:", error);
-
       logFrontend({
         level: 'ERROR',
         message: `Failed to update competition: ${(error as Error).message}`,
@@ -315,26 +271,23 @@ export default function EditCompetitionDialog({
         url: window.location.href,
         stack: (error as Error).stack,
       });
-
       setValidationError("Failed to update competition. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getDifficultyClasses = (difficulty: string): string => {
-    const classMap: Record<string, string> = {
-      "Easy": "bg-green-100 text-green-700",
-      "Medium": "bg-yellow-100 text-yellow-700",
-      "Hard": "bg-red-100 text-red-700",
-    };
-    return classMap[difficulty] || "bg-gray-100 text-gray-700";
+  const getDiffColor = (d: string) => {
+    const diff = d.toLowerCase();
+    if (diff === "easy") return "bg-green-100 text-green-700";
+    if (diff === "medium") return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
   };
 
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px]">
+        <DialogContent className="sm:max-w-[95vw] max-h-[95vh]">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -348,405 +301,148 @@ export default function EditCompetitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-primary">
-            Edit Competition
-          </DialogTitle>
-          <DialogDescription>
-            Update the competition details below.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[95vw] max-h-[95vh] p-0 gap-0">
+        <div className="sticky top-0 z-30 bg-background border-b px-6 py-4">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <DialogHeader className="space-y-1">
+              <DialogTitle className="text-2xl font-bold text-primary">Edit Competition</DialogTitle>
+              <p className="text-sm text-muted-foreground">Update the competition details below.</p>
+            </DialogHeader>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting} className="min-w-[120px]">
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+
           {validationError && (
-            <p className="text-red-500 text-sm font-medium border border-red-300 p-2 rounded-md bg-red-50">
-              ⚠️ {validationError}
-            </p>
-          )}
-        </DialogHeader>
-        <div className="grid gap-6 py-4 overflow-y-auto max-h-[60vh] pr-2">
-          {/* General Information */}
-          <div className="grid gap-4">
-            <h3 className="text-sm font-semibold text-primary">General Information</h3>
-            <div className="grid gap-2">
-              <Label htmlFor="name">Competition Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter competition name"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input
-                  id="startTime"
-                  type="time"
-                  value={formData.startTime}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input
-                  id="endTime"
-                  type="time"
-                  value={formData.endTime}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Enter competition location"
-              />
-            </div>
-          </div>
-
-          {/* Question Selection */}
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-primary">Question Selection & Order</h3>
-              <span className="text-xs text-gray-500">{orderedQuestions.length} selected</span>
-            </div>
-
-            <div className="relative">
-              <IconSearch className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-              <Input
-                placeholder="Search questions to add..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <div className="border rounded-lg max-h-[180px] overflow-y-auto bg-white">
-              <div className="p-2 bg-gray-50 border-b sticky top-0">
-                <span className="text-xs font-medium text-gray-600">Available Questions</span>
-              </div>
-              {filteredQuestions.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">
-                  {searchQuery ? "No matching questions" : "All questions selected"}
-                </p>
-              ) : (
-                filteredQuestions.map((question) => (
-                  <div
-                    key={question.id}
-                    className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => addQuestion(question)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{question.title}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}>
-                        {question.difficulty}
-                      </span>
-                    </div>
-                    <IconPlus className="h-4 w-4 text-primary" />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="border rounded-lg p-3 bg-gray-50">
-              <Label className="text-xs font-medium text-gray-600 mb-2 block">Selected Questions (in order)</Label>
-              {orderedQuestions.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No questions selected yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {orderedQuestions.map((question, index) => (
-                    <div
-                      key={question.id}
-                      className="flex items-center gap-2 p-2 bg-white rounded border"
-                    >
-                      <span className="text-sm font-bold text-primary w-6">{index + 1}.</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{question.title}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded ${getDifficultyClasses(question.difficulty)}`}>
-                            {question.difficulty}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveQuestion(index, 'up')}
-                          disabled={index === 0}
-                          className="h-7 w-7 p-0"
-                        >
-                          <IconArrowUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveQuestion(index, 'down')}
-                          disabled={index === orderedQuestions.length - 1}
-                          className="h-7 w-7 p-0"
-                        >
-                          <IconArrowDown className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeQuestion(question.id)}
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <IconX className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="cooldownTime">Cooldown Time Between Questions (seconds)</Label>
-              <Input
-                id="cooldownTime"
-                type="number"
-                min="0"
-                value={formData.questionCooldownTime}
-                onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
-                placeholder="Enter cooldown time (default: 300)"
-              />
-            </div>
-          </div>
-
-          {/* Riddle Selection */}
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-primary">Riddle Selection & Order</h3>
-              <span className="text-xs text-gray-500">{orderedRiddles.length} selected</span>
-            </div>
-            <p className="text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded p-2">
-              ℹ️ One riddle will be shown before each question. You must select the same number of riddles as questions.
-            </p>
-
-            <div className="relative">
-              <IconSearch className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
-              <Input
-                placeholder="Search riddles to add..."
-                value={riddleSearchQuery}
-                onChange={(e) => setRiddleSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <div className="border rounded-lg max-h-[180px] overflow-y-auto bg-white">
-              <div className="p-2 bg-gray-50 border-b sticky top-0">
-                <span className="text-xs font-medium text-gray-600">Available Riddles</span>
-              </div>
-              {filteredRiddles.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">
-                  {riddleSearchQuery ? "No matching riddles" : "All riddles selected"}
-                </p>
-              ) : (
-                filteredRiddles.map((riddle) => (
-                  <div
-                    key={riddle.id}
-                    className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => addRiddle(riddle)}
-                  >
-                    <span className="font-medium text-sm">{riddle.question}</span>
-                    <IconPlus className="h-4 w-4 text-primary" />
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="border rounded-lg p-3 bg-gray-50">
-              <Label className="text-xs font-medium text-gray-600 mb-2 block">Selected Riddles (in order)</Label>
-              {orderedRiddles.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">No riddles selected yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {orderedRiddles.map((riddle, index) => (
-                    <div
-                      key={riddle.id}
-                      className="flex items-center gap-2 p-2 bg-white rounded border"
-                    >
-                      <span className="text-sm font-bold text-primary w-6">{index + 1}.</span>
-                      <div className="flex-1">
-                        <span className="font-medium text-sm">{riddle.question}</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveRiddle(index, 'up')}
-                          disabled={index === 0}
-                          className="h-7 w-7 p-0"
-                        >
-                          <IconArrowUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveRiddle(index, 'down')}
-                          disabled={index === orderedRiddles.length - 1}
-                          className="h-7 w-7 p-0"
-                        >
-                          <IconArrowDown className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeRiddle(riddle.id)}
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                        >
-                          <IconX className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="riddleCooldownTime">Cooldown Time Between Riddles (seconds)</Label>
-              <Input
-                id="riddleCooldownTime"
-                type="number"
-                min="0"
-                value={formData.riddleCooldownTime}
-                onChange={(e) => setFormData({ ...formData, riddleCooldownTime: e.target.value })}
-                placeholder="Enter cooldown time (default: 60)"
-              />
-            </div>
-          </div>
-
-          {/* Email Notification */}
-          <div className="flex items-center justify-between rounded-md border p-3 mb-2">
-            <div className="space-y-0.5">
-              <Label htmlFor="enableEmail" className="text-sm font-medium">Enable Email Notifications</Label>
-              <p className="text-xs text-gray-500">Toggle to enable or disable email notifications</p>
-            </div>
-            <Switch
-              id="enableEmail"
-              checked={emailEnabled}
-              onCheckedChange={(checked) => setEmailEnabled(checked)}
-            />
-          </div>
-          {emailEnabled && (
-            <div className="grid gap-4">
-              <h3 className="text-sm font-semibold text-primary">Email Notification</h3>
-              <p className="text-sm text-gray-500">Email reminders will be sent 24 hours before and 5 minutes before the competition.</p>
-
-              <div className="flex items-center justify-between rounded-md border p-3 mb-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="emailToAll" className="text-sm font-medium">Send to all participants</Label>
-                  <p className="text-xs text-gray-500">
-                    If enabled, the email will automatically go to all registered participants
-                  </p>
-                </div>
-                <Switch
-                  id="emailToAll"
-                  checked={emailToAll}
-                  onCheckedChange={(checked) => setEmailToAll(checked)}
-                />
-              </div>
-
-              {!emailToAll && (
-                <div className="grid gap-2">
-                  <Label htmlFor="emailTo">To (comma-separated)</Label>
-                  <Input
-                    id="emailTo"
-                    value={emailData.to}
-                    onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                    placeholder="alice@example.com, bob@example.com"
-                  />
-                </div>
-              )}
-
-              <div className="grid gap-2">
-                <Label htmlFor="emailSubject">Subject</Label>
-                <Input
-                  id="emailSubject"
-                  value={emailData.subject}
-                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                  placeholder="Competition announcement"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="emailText">Email Message (Edit if needed)</Label>
-                <Textarea
-                  id="emailText"
-                  rows={5}
-                  value={emailData.body}
-                  onChange={(e) => {
-                    setEmailManuallyEdited(true);
-                    setEmailData({ ...emailData, body: e.target.value });
-                  }}
-                  placeholder="Message that will be sent in reminders"
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex items-center justify-between rounded-md border p-3">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send test in 1 minute</Label>
-                    <p className="text-xs text-gray-500">
-                      For testing purposes
-                    </p>
-                  </div>
-                  <Switch
-                    id="sendInOneMinute"
-                    checked={emailData.sendInOneMinute}
-                    onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
-                  <Input
-                    id="sendAtLocal"
-                    type="datetime-local"
-                    value={emailData.sendAtLocal}
-                    onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
-                  />
-                </div>
-              </div>
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg flex items-center gap-3 mt-3">
+              <X className="h-4 w-4" />
+              <span className="font-medium text-xs">{validationError}</span>
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className="bg-primary hover:bg-primary/90"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Saving..." : "Save Changes"}
-          </Button>
-        </DialogFooter>
+
+        <div className="overflow-y-auto max-h-[calc(95vh-140px)] px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-1 space-y-8">
+              <Card>
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
+                  <div className="space-y-2"><Label htmlFor="date">Event Date</Label><Input id="date" type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2"><Label htmlFor="startTime">Start</Label><Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} /></div>
+                    <div className="space-y-2"><Label htmlFor="endTime">End</Label><Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} /></div>
+                  </div>
+                  <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Gameplay Logic</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2"><Label htmlFor="qCool">Question Cooldown (s)</Label><Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({ ...formData, questionCooldownTime: e.target.value })} /></div>
+                  <div className="space-y-2"><Label htmlFor="rCool">Riddle Cooldown (s)</Label><Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({ ...formData, riddleCooldownTime: e.target.value })} /></div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Mail className="h-5 w-5 text-primary" /> Notifications</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between"><Label htmlFor="enEmail">Enable Emails</Label><Switch id="enEmail" checked={emailEnabled} onCheckedChange={setEmailEnabled} /></div>
+                  {emailEnabled && (
+                    <div className="space-y-4 pt-2 border-t mt-2">
+                      <div className="flex items-center justify-between"><Label htmlFor="allPart" className="text-xs">Send to all participants</Label><Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} /></div>
+                      {!emailToAll && (
+                        <div className="space-y-1"><Label className="text-xs font-semibold">To (comma-separated)</Label><Input placeholder="alice@example.com" value={emailData.to} onChange={e => setEmailData({ ...emailData, to: e.target.value })} /></div>
+                      )}
+                      <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({ ...emailData, subject: e.target.value })} /></div>
+                      <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.body} onChange={e => { setEmailManuallyEdited(true); setEmailData({ ...emailData, body: e.target.value }); }} /></div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
+                        <Input id="sendAtLocal" type="datetime-local" value={emailData.sendAtLocal} onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })} />
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-2 space-y-8">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl">Coding Questions</CardTitle>
+                      <p className="text-sm text-muted-foreground">Select and order the problems.</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-primary">{orderedQuestions.length}</span>
+                      <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search available problems..." className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[400px] overflow-y-auto space-y-2">
+                      {filteredQuestions.map(q => (
+                        <div key={q.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
+                          <div className="flex flex-col gap-1"><span className="text-sm font-semibold">{q.title}</span><span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>{q.difficulty}</span></div>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedQuestions([...orderedQuestions, q])}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[400px] overflow-y-auto space-y-2">
+                      {orderedQuestions.map((q, idx) => (
+                        <div key={q.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
+                          <span className="text-lg font-black text-slate-200">{idx + 1}</span>
+                          <div className="flex-1 overflow-hidden"><p className="text-sm font-bold truncate">{q.title}</p></div>
+                          <div className="flex gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'up')}><ArrowUp className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === orderedQuestions.length - 1} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'down')}><ArrowDown className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setOrderedQuestions(orderedQuestions.filter(x => x.id !== q.id))}><X className="h-3.5 w-3.5" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl">Riddles</CardTitle>
+                      <p className="text-sm text-muted-foreground">Players solve these to unlock coding challenges.</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>{orderedRiddles.length}</span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search riddles..." className="pl-9" value={riddleSearchQuery} onChange={e => setRiddleSearchQuery(e.target.value)} /></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[300px] overflow-y-auto space-y-2">
+                      {filteredRiddles.map(r => (
+                        <div key={r.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary"><span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span><Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedRiddles([...orderedRiddles, r])}><Plus className="h-4 w-4" /></Button></div>
+                      ))}
+                    </div>
+                    <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[300px] overflow-y-auto space-y-2">
+                      {orderedRiddles.map((r, idx) => (
+                        <div key={r.id} className="bg-white p-3 rounded-lg border flex items-center gap-3"><span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span><p className="text-xs truncate flex-1">{r.question}</p><Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}><X className="h-3.5 w-3.5" /></Button></div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
