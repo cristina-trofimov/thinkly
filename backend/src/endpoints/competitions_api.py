@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, Participation, CompetitionLeaderboardEntry
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user, role_required
 from endpoints.send_email_api import send_email_via_brevo
@@ -643,7 +643,7 @@ async def update_competition(
 async def delete_competition(
         competition_id: int,
         db: Session = Depends(get_db),
-        current_user: dict = Depends(role_required("owner"))
+        current_user: dict = Depends(role_required("admin")) # to change to owner only if needed
 ):
     """
     Delete a competition.
@@ -662,6 +662,31 @@ async def delete_competition(
             )
 
         competition_name = base_event.event_name
+        # Delete in correct order to avoid foreign key issues
+        # 1. Delete competition emails
+        db.query(CompetitionEmail).filter(
+            CompetitionEmail.competition_id == competition_id
+        ).delete()
+
+        # 2. Delete question instances
+        db.query(QuestionInstance).filter(
+            QuestionInstance.event_id == competition_id
+        ).delete()
+
+        # 3. Delete leaderboard instances for that competition   Participation, CompetitionLeaderboardEntry
+        db.query(Participation).filter(
+            Participation.event_id == competition_id
+        ).delete()
+        db.query(CompetitionLeaderboardEntry).filter(
+            CompetitionLeaderboardEntry.competition_id == competition_id
+        ).delete()
+
+        # 4. Delete competition record
+        db.query(Competition).filter(
+            Competition.event_id == competition_id
+        ).delete()
+
+        # 5. Finally delete base event
         db.delete(base_event)
         _commit_or_rollback(db)
 

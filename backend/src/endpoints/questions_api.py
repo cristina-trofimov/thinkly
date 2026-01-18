@@ -28,3 +28,5 @@ def get_all_riddles(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
+
+
