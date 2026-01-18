@@ -110,22 +110,6 @@ const router = createBrowserRouter([
               },
             ],
           },
-          {
-            path: "algoTimeSessions",
-            element: <ManageAlgotimeSessionsPage />,
-            handle: {
-              crumb: { title: "Manage Algotime Sessions" }
-            },
-            children: [
-              {
-                path: "algoTimeSessionsManagement",
-                element: <ManageAlgoTimePage />,
-                handle: {
-                  crumb: { title: "Create AlgoTime Session" }
-                }
-              },
-            ]
-          },
         ]
       },
 
@@ -163,9 +147,20 @@ const router = createBrowserRouter([
                 handle: { crumb: { title: "Manage Riddles" } },
               },
               {
-                path: "algoTimeSession",
-                element: <ManageAlgoTimePage />,
-                handle: { crumb: { title: "Manage AlgoTime Sessions" } },
+                path: "algoTimeSessions",
+                element: <ManageAlgotimeSessionsPage />,
+                handle: {
+                  crumb: { title: "Manage Algotime Sessions" }
+                },
+                children: [
+                  {
+                    path: "algoTimeSessionsManagement",
+                    element: <ManageAlgoTimePage />,
+                    handle: {
+                      crumb: { title: "Create AlgoTime Session" }
+                    }
+                  },
+                ]
               },
             ],
           },
