@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Plus, 
-  Search, 
-  X, 
-  ArrowUp, 
+import {
+  Plus,
+  Search,
+  X,
+  ArrowUp,
   ArrowDown,
   Trophy,
   Mail,
@@ -36,7 +36,7 @@ interface PydanticError {
 
 export default function CreateCompetition() {
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     name: "",
     date: "",
@@ -107,9 +107,9 @@ export default function CreateCompetition() {
   );
 
   const moveItem = <T,>(
-    list: T[], 
-    setList: React.Dispatch<React.SetStateAction<T[]>>, 
-    index: number, 
+    list: T[],
+    setList: React.Dispatch<React.SetStateAction<T[]>>,
+    index: number,
     direction: 'up' | 'down'
   ) => {
     const newList = [...list];
@@ -153,8 +153,8 @@ export default function CreateCompetition() {
     setValidationError('');
 
     try {
-      const sendAtUTC = emailData.sendAtLocal 
-        ? new Date(emailData.sendAtLocal).toISOString() 
+      const sendAtUTC = emailData.sendAtLocal
+        ? new Date(emailData.sendAtLocal).toISOString()
         : undefined;
 
       const payload: CreateCompetitionProps = {
@@ -178,12 +178,12 @@ export default function CreateCompetition() {
       };
 
       await createCompetition(payload);
-      
+
       // Navigate back with a success flag in the location state
-      navigate("/app/dashboard/competitions", { 
-        state: { success: true, refresh: Date.now() }, 
-        replace: true 
-      }); 
+      navigate("/app/dashboard/competitions", {
+        state: { success: true, refresh: Date.now() },
+        replace: true
+      });
     } catch (err: unknown) {
       const error = err as {
         response?: { data?: { detail?: string | PydanticError[] }; status?: number };
@@ -205,7 +205,7 @@ export default function CreateCompetition() {
 
       setValidationError(errorMsg);
       toast.error(errorMsg); // Immediate error feedback via sonner
-      
+
       logFrontend({
         level: 'ERROR',
         message: `Submission error: ${error.message ?? "Unknown Error"}`,
@@ -226,7 +226,7 @@ export default function CreateCompetition() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
             <Button variant="ghost" size="sm" className="mb-2 -ml-2 text-muted-foreground" onClick={() => navigate(-1)}>
@@ -256,21 +256,21 @@ export default function CreateCompetition() {
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Winter Hackathon 2024" /></div>
-              <div className="space-y-2"><Label htmlFor="date">Event Date</Label><Input id="date" type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} /></div>
+              <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
+              <div className="space-y-2"><Label htmlFor="date">Event Date</Label><Input id="date" type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="startTime">Start</Label><Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} /></div>
-                <div className="space-y-2"><Label htmlFor="endTime">End</Label><Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} /></div>
+                <div className="space-y-2"><Label htmlFor="startTime">Start</Label><Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} /></div>
+                <div className="space-y-2"><Label htmlFor="endTime">End</Label><Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} /></div>
               </div>
-              <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Online or Physical Address" /></div>
+              <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Gameplay Logic</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="qCool">Question Cooldown (s)</Label><Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({...formData, questionCooldownTime: e.target.value})} /></div>
-              <div className="space-y-2"><Label htmlFor="rCool">Riddle Cooldown (s)</Label><Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({...formData, riddleCooldownTime: e.target.value})} /></div>
+              <div className="space-y-2"><Label htmlFor="qCool">Question Cooldown (s)</Label><Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({ ...formData, questionCooldownTime: e.target.value })} /></div>
+              <div className="space-y-2"><Label htmlFor="rCool">Riddle Cooldown (s)</Label><Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({ ...formData, riddleCooldownTime: e.target.value })} /></div>
             </CardContent>
           </Card>
 
@@ -282,10 +282,10 @@ export default function CreateCompetition() {
                 <div className="space-y-4 pt-2 border-t mt-2">
                   <div className="flex items-center justify-between"><Label htmlFor="allPart" className="text-xs">Send to all participants</Label><Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} /></div>
                   {!emailToAll && (
-                    <div className="space-y-1"><Label className="text-xs font-semibold">To (comma-separated)</Label><Input placeholder="alice@example.com" value={emailData.to} onChange={e => setEmailData({...emailData, to: e.target.value})} /></div>
+                    <div className="space-y-1"><Label className="text-xs font-semibold">To (comma-separated)</Label><Input placeholder="alice@example.com" value={emailData.to} onChange={e => setEmailData({ ...emailData, to: e.target.value })} /></div>
                   )}
-                  <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({...emailData, subject: e.target.value})} /></div>
-                  <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.text} onChange={e => { setEmailManuallyEdited(true); setEmailData({...emailData, text: e.target.value}); }} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({ ...emailData, subject: e.target.value })} /></div>
+                  <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.text} onChange={e => { setEmailManuallyEdited(true); setEmailData({ ...emailData, text: e.target.value }); }} /></div>
                 </div>
               )}
             </CardContent>

@@ -5,11 +5,6 @@ import {
   LogOut,
 } from "lucide-react"
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -26,17 +21,15 @@ import {
 } from "@/components/ui/sidebar"
 import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
+import { AvatarInitials } from "../helpers/AvatarInitials"
+import type { Account } from "@/types/account/Account.type"
+import { logFrontend } from '../../api/LoggerAPI'; 
 
 interface NavUserProps {
-  user: {
-    firstName: string
-    lastName: string
-    email: string
-    avatar: string
-  }
+  user: Account | null;
 }
 
-export function NavUser({ user }: Readonly<NavUserProps>) {
+export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate();
 
@@ -46,21 +39,34 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       alert("You have been logged out.");
       navigate('/');
     } catch (err: unknown) {
-      console.error("Logout failed:", err);
+      logFrontend({
+        level: 'ERROR', 
+        message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
+        component: 'NavUser',
+        url: window.location.href,
+    });
 
       // Narrow the type
       if (err instanceof Error) {
         alert(err.message);
       } else if (typeof err === "object" && err !== null && "response" in err) {
-        // For Axios-like errors
-        // @ts-expect-error TS can't infer 'response' property
-        alert(err.response?.data?.error);
+        const axiosError = err as { response?: { data?: { error?: string } } };
+        alert(axiosError.response?.data?.error || "An unknown error occurred during logout");
       } else {
         alert(String(err));
       }
     }
   };
 
+  const handleProfileClick = () => {
+    navigate('/app/profile');
+    logFrontend({
+        level: 'INFO', 
+        message: `Navigated to the user profile page.`,
+        component: 'NavUser',
+        url: window.location.href,
+    });
+  };
 
   return (
     <SidebarMenu>
@@ -71,15 +77,14 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback className="rounded-lg">
-                  {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarInitials
+                firstName={user?.firstName ?? ""}
+                lastName={user?.lastName ?? ""}
+                size="md"
+              />
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.firstName} {user.lastName}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
+                <span className="truncate text-xs">{user?.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -92,23 +97,22 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="rounded-lg">
-                    {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <AvatarInitials
+                  firstName={user?.firstName ?? ""}
+                  lastName={user?.lastName ?? ""}
+                  size="md"
+                />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.firstName} {user.lastName}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
+                  <span className="truncate text-xs">{user?.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfileClick}>
                 <BadgeCheck />
-                Account
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />

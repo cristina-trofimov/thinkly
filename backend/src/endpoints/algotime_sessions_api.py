@@ -5,7 +5,7 @@ from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
 from pydantic import BaseModel, validator
-from typing import List
+from typing import List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,6 +41,24 @@ class CreateAlgoTimeRequest(BaseModel):
         if v < 0:
             raise ValueError('Cooldown time cannot be negative')
         return v
+
+class AlgoTimeQuestionResponse(BaseModel):
+    questionId: int
+    questionName: str
+    questionDescription: str
+    difficulty: str
+    tags: List[str]
+    points: int
+
+class AlgoTimeSessionResponse(BaseModel):
+    id: int
+    eventName: str
+    startTime: str
+    endTime: str
+    questionCooldown: int
+    seriesId: Optional[int] = None
+    seriesName: Optional[str] = None
+    questions: List[AlgoTimeQuestionResponse]
 
 #------Functions to help 
 def validate_questions_exist(db: Session, question_ids: List[int]):
@@ -189,4 +207,54 @@ def create_algotime(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create AlgoTime"
+        )
+
+@algotime_router.get("/", response_model=List[AlgoTimeSessionResponse])
+def get_all_algotime_sessions(db: Session = Depends(get_db)):
+    try:
+        sessions = db.query(AlgoTimeSession).all()
+        logger.info(f"Fetched {len(sessions)} AlgoTime sessions.")
+
+        response = []
+
+        for s in sessions:
+            event = s.base_event
+
+            question_instances = (
+                db.query(QuestionInstance)
+                .filter(QuestionInstance.event_id == event.event_id)
+                .all()
+            )
+
+            questions = [
+                {
+                    "questionId": qi.question.question_id,
+                    "questionName": qi.question.question_name,
+                    "questionDescription": qi.question.question_description,
+                    "difficulty": qi.question.difficulty,
+                    "tags": [tag.tag_name for tag in qi.question.tags],
+                    "points": qi.points,
+                }
+                for qi in question_instances
+            ]
+
+            response.append({
+                "id": s.event_id,
+                "eventName": event.event_name,
+                "startTime": str(event.event_start_date),
+                "endTime": str(event.event_end_date),
+                "questionCooldown": event.question_cooldown,
+                "seriesId": s.algotime_series.algotime_series_id
+                    if s.algotime_series else None,
+                "seriesName": s.algotime_series.algotime_series_name 
+                    if s.algotime_series else None,
+                "questions": questions,
+            })
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error fetching AlgoTime sessions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve AlgoTime sessions. Exception: {str(e)}"
         )

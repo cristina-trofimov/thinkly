@@ -1,46 +1,40 @@
 import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
-type TimeRange = "3months" | "30days" | "7days";
+interface LoginsData {
+  month: string;
+  logins: number;
+}
 
-export const NumberOfLoginsChart = ({ timeRange }: { timeRange: TimeRange }) => {
-  const dataMap = {
-    "3months": [
-      { month: "Jan", logins: 166 },
-      { month: "Feb", logins: 305 },
-      { month: "Mar", logins: 237 },
-      { month: "Apr", logins: 73 },
-      { month: "May", logins: 209 },
-      { month: "Jun", logins: 234 },
-    ],
-    "30days": [
-      { month: "Week 1", logins: 285 },
-      { month: "Week 2", logins: 310 },
-      { month: "Week 3", logins: 195 },
-      { month: "Week 4", logins: 265 },
-    ],
-    "7days": [
-      { month: "Mon", logins: 45 },
-      { month: "Tue", logins: 52 },
-      { month: "Wed", logins: 48 },
-      { month: "Thu", logins: 55 },
-      { month: "Fri", logins: 62 },
-      { month: "Sat", logins: 38 },
-      { month: "Sun", logins: 35 },
-    ],
-  };
+interface NumberOfLoginsChartProps {
+  data: LoginsData[];
+  loading?: boolean;
+}
 
-  const data = dataMap[timeRange];
+export const NumberOfLoginsChart = ({ data, loading = false }: NumberOfLoginsChartProps) => {
+  // Show placeholder if loading or no data
+  const displayData = data.length > 0 ? data : [
+    { month: "Mon", logins: 0 },
+    { month: "Tue", logins: 0 },
+    { month: "Wed", logins: 0 },
+    { month: "Thu", logins: 0 },
+    { month: "Fri", logins: 0 },
+    { month: "Sat", logins: 0 },
+    { month: "Sun", logins: 0 },
+  ];
 
   return (
-    <ChartContainer config={{ logins: { color: "var(--chart-2)" } }} style={{ width: "100%", height: 180 }}>
+    <ChartContainer
+      config={{ logins: { color: "var(--chart-2)" } }}
+      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+    >
       <LineChart
-        data={data}
+        data={displayData}
         margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-        <XAxis 
-          dataKey="month" 
+        <XAxis
+          dataKey="month"
           stroke="var(--color-muted-foreground)"
           tick={{ fontSize: 12 }}
         />

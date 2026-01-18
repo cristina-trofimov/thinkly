@@ -1,6 +1,15 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Account } from "@/types/account/Account.type";
 
+// Backend user type value for accountAPI.
+// this is because the backend uses lowercase values while frontend capitalizes the first letter
+type UserType = "participant" | "admin" | "owner";
+
+const formatAccountType = (userType: UserType): Account["accountType"] => {
+  return (userType.charAt(0).toUpperCase() +
+    userType.slice(1)) as Account["accountType"];
+};
+
 export async function getAccounts(): Promise<Account[]> {
   try {
     const response = await axiosClient.get<
@@ -9,7 +18,7 @@ export async function getAccounts(): Promise<Account[]> {
         first_name: string;
         last_name: string;
         email: string;
-        user_type: "participant" | "admin" | "owner";
+        user_type: UserType;
       }[]
     >("/manage-accounts/users");
 
@@ -18,7 +27,7 @@ export async function getAccounts(): Promise<Account[]> {
       firstName: user.first_name,
       lastName: user.last_name,
       email: user.email,
-      accountType: user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1) as "Participant" | "Admin" | "Owner",
+      accountType: formatAccountType(user.user_type),
     }));
 
     return formattedAccounts;
@@ -59,7 +68,7 @@ export async function updateAccount(
       first_name: string;
       last_name: string;
       email: string;
-      type: "Participant" | "Admin" | "Owner";
+      user_type: UserType;
     }>(`/manage-accounts/users/${userId}`, updatedFields);
 
     const formattedAccounts: Account = {
@@ -67,7 +76,7 @@ export async function updateAccount(
       firstName: updatedAccount.data.first_name,
       lastName: updatedAccount.data.last_name,
       email: updatedAccount.data.email,
-      accountType: updatedAccount.data.type,
+      accountType: formatAccountType(updatedAccount.data.user_type),
     };
 
     return formattedAccounts;
