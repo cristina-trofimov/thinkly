@@ -28,16 +28,27 @@ import { toast } from 'sonner';
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
 
-const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compDate = new Date(competitionDate);
-  if (Number.isNaN(compDate.getTime())) return "Upcoming";
-  compDate.setHours(0, 0, 0, 0);
+const getCompetitionStatus = (
+  competitionStart: Date | string
+): "Completed" | "Active" | "Upcoming" => {
+  const now = new Date();
+  const start = new Date(competitionStart);
 
-  if (today.getTime() > compDate.getTime()) return "Completed";
-  if (today.getTime() === compDate.getTime()) return "Active";
-  return "Upcoming";
+  if (Number.isNaN(start.getTime())) return "Upcoming";
+
+  // If current time is before the start → Upcoming
+  if (now < start) return "Upcoming";
+
+  // If same calendar day and now >= start → Active
+  const sameDay =
+    now.getFullYear() === start.getFullYear() &&
+    now.getMonth() === start.getMonth() &&
+    now.getDate() === start.getDate();
+
+  if (sameDay) return "Active";
+
+  // Otherwise → Completed
+  return "Completed";
 };
 
 const formatCompetitionDate = (competitionDate: Date) => {

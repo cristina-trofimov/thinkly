@@ -8,7 +8,9 @@ import logging
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
 from typing import List, Optional
+from zoneinfo import ZoneInfo
 
+LOCAL_TZ = ZoneInfo("America/New_York")
 logger = logging.getLogger(__name__)
 competitions_router = APIRouter(tags=["Competitions"])
 
@@ -125,22 +127,22 @@ class DetailedCompetitionResponse(BaseModel):
 
 # ---------------- Helper Functions ----------------
 def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
-    """
-    Combines date and time strings into a timezone-aware datetime object.
-    """
     try:
-        dt_str = f"{date_str}T{time_str}:00"
-        dt = datetime.fromisoformat(dt_str)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
+        dt_naive = datetime.fromisoformat(f"{date_str}T{time_str}:00")
+
+        # Attach LOCAL timezone
+        dt_local = dt_naive.replace(tzinfo=LOCAL_TZ)
+
+        # Convert to UTC
+        dt_utc = dt_local.astimezone(timezone.utc)
+
+        return dt_utc
     except ValueError as e:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid date or time format: {str(e)}"
         )
-
 
 def validate_competition_times(start_dt: datetime, end_dt: datetime, skip_future_check: bool = False):
     """Validates that competition times are logical and in the future."""
@@ -459,9 +461,13 @@ async def get_competition_detailed(
         selected_riddles = [qi.riddle_id for qi in question_instances]
 
         # Extract date and time from datetime
-        date_str = base_event.event_start_date.strftime('%Y-%m-%d')
-        start_time_str = base_event.event_start_date.strftime('%H:%M')
-        end_time_str = base_event.event_end_date.strftime('%H:%M')
+        local_dt = base_event.event_start_date.astimezone(ZoneInfo("America/New_York"))
+
+        date_str = local_dt.strftime('%Y-%m-%d')
+        start_time_str = local_dt.strftime('%H:%M')
+        end_time_str = base_event.event_end_date.astimezone(
+            ZoneInfo("America/New_York")
+        ).strftime('%H:%M')
 
         # Get email notification if exists
         email_notification = None
