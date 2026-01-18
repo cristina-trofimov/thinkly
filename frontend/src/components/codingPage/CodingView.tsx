@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { getCodeResponse, postCode } from '@/api/Judge0API';
 import Testcase from './Testcase';
+import type { TestcaseType } from '@/types/questions/Testcases.type';
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -99,47 +100,67 @@ const CodingView = () => {
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
 
   // const [logs, setLogs] = useState("");
-  const [logs, setLogs] = useState<Testcase[]>([]);
+  const [logs, setLogs] = useState<TestcaseType[]>([]);
 
-  const [testcases, setTestcases] = useState(['Case 1']);
-  const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].id);
+  const [testcases, setTestcases] = useState([
+    {
+      id: "",
+      caseID: "Case 1",
+      inputs: "",
+      output: ""
+    }
+  ]);
+  const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].caseID);
 
   const addTestcase = () => {
-    console.log("active")
-    console.log(activeTestcase)
-    const nextIdx = `Case ${testcases.length + 1}`
-    // const newCase: Testcase = {
-    //   id: nextIdx,
-    //   smt: "",
-    //   smt: "",
-    // }
-    setTestcases((prev) => [...prev, nextIdx])
-    // setActiveTestcase(nextIdx)
-    console.log("active test case")
-    console.log(activeTestcase)
+    const newCase: TestcaseType = {
+      id: '',
+      caseID: `Case ${testcases.length + 1}`,
+      inputs: "",
+      output: "",
+    }
+    setTestcases((prev) => [...prev, newCase])
+    setActiveTestcase(newCase.caseID)
   }
 
   const updateTestcase = (
-    id: string,
-    field: "input" | "output",
+    caseID: string,
+    field: "inputs" | "output",
     value: string
   ) => {
-    // setTestcases((prev) =>
-    //   prev.map((c) =>
-    //     c.id === id ? { ...c, [field]: value } : c
-    //   )
-    // )
+    // TODO: FIX THIS
+    setTestcases((prev) =>
+      prev.map((c) =>
+        c.caseID === caseID ? { ...c, [field]: value } : c
+      )
+    )
   }
 
   const removeTestcase = (caseID: string) => {
-    // testcases.
-    const nextIdx = `Case ${testcases.length + 1}`
-    setTestcases((prev) => [...prev, nextIdx])
-    setActiveTestcase(nextIdx)
-  }
+    if (testcases.length === 1) return
 
-  useEffect(() => { setActiveTestcase(testcases[testcases.length - 1])
-  }, [testcases])
+    const filtered = testcases.filter((c) => c.caseID !== caseID)
+    let idx = -1
+    
+    testcases.map((c) => {
+      if (c.caseID === caseID) {
+        idx = testcases.indexOf(c)
+      }
+    })
+
+    setTestcases(filtered)
+
+    for (let i = idx; i < testcases.length; i++) {
+      testcases[i].caseID = `Case ${i}`
+    }
+
+    const newID = (idx === 0) ? idx : idx - 1
+
+    if (activeTestcase === caseID) {
+      // TODO: happens regardless of active testcase tab => onValueChange on Tablist
+      setActiveTestcase(testcases[newID].caseID)
+    }
+  }
 
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -330,11 +351,12 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases" 
                   className='max-h-full p-2.5' >
-                  <Tabs data-testid="testcases-tab" value={activeTestcase} >
+                  <Tabs data-testid="testcases-tab" value={activeTestcase} onValueChange={setActiveTestcase}
+                   >
                     <div className='flex '
                     >
                       <TabsList
-                        className='pb-2 flex gap-2 w-full'
+                        className='flex gap-2 w-full'
                       >
                         {testcases && testcases.map((c) => (
                           // let caseNum = idx + 1
@@ -344,8 +366,8 @@ const CodingView = () => {
                           //   data-[state=active]:border-primary
                           // '
                           // >
-                            <TabsTrigger value={c} key={c} data-testid={c}
-                              className='rounded-sm p-1.5
+                            <TabsTrigger value={c.caseID} key={`trigger-${c.caseID}`} data-testid={`trigger-${c.caseID}`}
+                              className='rounded-sm p-2
                                 hover:border-t-2 hover:border-primary/40 hover:bg-muted
                                 data-[state=active]:border-primary
                                 data-[state=active]:text-primary
@@ -356,8 +378,8 @@ const CodingView = () => {
                                 dark:data-[state=active]:border-primary
                                 flex items-center gap-2 transition-all'
                             >
-                            {c}
-                            <X size={14} onClick={() => removeTestcase(c)}
+                            {c.caseID}
+                            <X size={14} onClick={() => removeTestcase(c.caseID)}
                               className='rounded-full top-0 right-0
                                 hover:bg-muted hover:text-red-700 '
                             />
@@ -374,7 +396,7 @@ const CodingView = () => {
                       </Button>
                     </div>
                     {testcases && testcases.map((c) => (
-                      <TabsContent value={c} key={c} data-testid={c} >
+                      <TabsContent value={c.caseID} key={`content-${c.caseID}`} data-testid={`content-${c.caseID}`} >
                         <Testcase />
                       </TabsContent>
                     ))}
@@ -387,9 +409,9 @@ const CodingView = () => {
                     overflowY: "auto"
                   }}
                 >
-                  {logs.map((log) => (
+                  {/* {logs.map((log) => (
                     <samp>{log}</samp>
-                  ))}
+                  ))} */}
                   {/* <samp>{logs}</samp> */}
                 </TabsContent>
               </Tabs>
