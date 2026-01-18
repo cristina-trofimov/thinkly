@@ -8,7 +8,7 @@ export interface EmailNotificationProps {
 }
 
 export interface UpdateCompetitionProps {
-  id: string;
+  id: number;
   name: string;
   date: string;
   startTime: string;

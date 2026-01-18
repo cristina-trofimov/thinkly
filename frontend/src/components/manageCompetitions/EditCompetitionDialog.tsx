@@ -33,7 +33,7 @@ import buildCompetitionEmail from "./BuildEmail";
 interface EditCompetitionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  competitionId: string;
+  competitionId: number;
   onSuccess?: () => void;
 }
 
@@ -247,8 +247,8 @@ export default function EditCompetitionDialog({
         location: formData.location || undefined,
         questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
         riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
-        selectedQuestions: orderedQuestions.map(q => parseInt(q.id)),
-        selectedRiddles: orderedRiddles.map(r => parseInt(r.id)),
+        selectedQuestions: orderedQuestions.map(q => q.id),
+        selectedRiddles: orderedRiddles.map(r => r.id),
         emailEnabled,
         emailNotification: emailEnabled ? {
           to: emailToAll ? "all participants" : emailData.to.trim(),

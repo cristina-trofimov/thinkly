@@ -2,13 +2,13 @@ import axiosClient from "@/lib/axiosClient";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { type CreateCompetitionProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
-import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
+import { type UpdateCompetitionProps } from "../types/competition/EditCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
   try {
     const response = await axiosClient.get<{
-      id: string;
+      id: number;
       competition_title: string;
       competition_location: string;
       start_date: Date;
@@ -96,7 +96,7 @@ export async function listCompetitions(): Promise<CompetitionResponse[]> {
  * Get a specific competition by ID with all details for editing
  * Requires authentication
  */
-export const getCompetitionById = async (competitionId: string) => {
+export const getCompetitionById = async (competitionId: number) => {
   try {
     const response = await axiosClient.get(
       `/competitions/${competitionId}`

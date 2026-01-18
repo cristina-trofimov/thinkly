@@ -53,13 +53,13 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [setCreateDialogOpen] = useState(false);
+  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string | null>(null);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
   const [competitions, setCompetition] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [competitionToDelete, setCompetitionToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [competitionToDelete, setCompetitionToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadCompetitions = async () => {
@@ -137,7 +137,7 @@ const ManageCompetitions = () => {
       return bTime - aTime;
     });
 
-  const handleView = (id: string) => {
+  const handleView = (id: number) => {
     setSelectedCompetitionId(id);
     setEditDialogOpen(true);
   };
@@ -147,7 +147,7 @@ const ManageCompetitions = () => {
     loadCompetitions();
   };
 
-  const handleDeleteClick = (id: string, name: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: number, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setCompetitionToDelete({ id, name });
     setDeleteDialogOpen(true);
