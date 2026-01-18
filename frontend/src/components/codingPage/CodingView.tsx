@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useState, } from 'react'
 import CodeDescArea from "./CodeDescArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload, Plus, X } from "lucide-react";
+import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -9,13 +9,12 @@ import type { SubmissionType } from '../../types/SubmissionType.type';
 import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
-import Console from "@code-editor/console-feed";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { getCodeResponse, postCode } from '@/api/Judge0API';
-import Testcase from './Testcase';
-import type { TestcaseType } from '@/types/questions/Testcases.type';
+import Testcases from './Testcases';
+
 
 const CodingView = () => {
   const problemName = "problemName"
@@ -58,9 +57,10 @@ const CodingView = () => {
   }
 
   const runCode = async () => {
-    await postCode(code, judgeID, "Judge0", null)
+    console.log("running")
+    await postCode("64.58.46.96", code, judgeID, "Judge0", null)
       .then((response) => {
-        let responseDetails = getCodeResponse(response)
+        let responseDetails = getCodeResponse("64.58.46.96", response)
         console.log(responseDetails)
         setLogs((prev) => [...prev, responseDetails])
       })
@@ -100,67 +100,7 @@ const CodingView = () => {
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
 
   // const [logs, setLogs] = useState("");
-  const [logs, setLogs] = useState<TestcaseType[]>([]);
-
-  const [testcases, setTestcases] = useState([
-    {
-      id: "",
-      caseID: "Case 1",
-      inputs: "",
-      output: ""
-    }
-  ]);
-  const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].caseID);
-
-  const addTestcase = () => {
-    const newCase: TestcaseType = {
-      id: '',
-      caseID: `Case ${testcases.length + 1}`,
-      inputs: "",
-      output: "",
-    }
-    setTestcases((prev) => [...prev, newCase])
-    setActiveTestcase(newCase.caseID)
-  }
-
-  const updateTestcase = (
-    caseID: string,
-    field: "inputs" | "output",
-    value: string
-  ) => {
-    // TODO: FIX THIS
-    setTestcases((prev) =>
-      prev.map((c) =>
-        c.caseID === caseID ? { ...c, [field]: value } : c
-      )
-    )
-  }
-
-  const removeTestcase = (caseID: string) => {
-    if (testcases.length === 1) return
-
-    const filtered = testcases.filter((c) => c.caseID !== caseID)
-    let idx = -1
-    
-    testcases.map((c) => {
-      if (c.caseID === caseID) {
-        idx = testcases.indexOf(c)
-      }
-    })
-
-    setTestcases(filtered)
-
-    for (let i = idx; i < testcases.length; i++) {
-      testcases[i].caseID = `Case ${i}`
-    }
-
-    const newID = (idx === 0) ? idx : idx - 1
-
-    if (activeTestcase === caseID) {
-      // TODO: happens regardless of active testcase tab => onValueChange on Tablist
-      setActiveTestcase(testcases[newID].caseID)
-    }
-  }
+  const [logs, setLogs] = useState<Promise<Response>[]>([]);
 
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -351,56 +291,7 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases" 
                   className='max-h-full p-2.5' >
-                  <Tabs data-testid="testcases-tab" value={activeTestcase} onValueChange={setActiveTestcase}
-                   >
-                    <div className='flex '
-                    >
-                      <TabsList
-                        className='flex gap-2 w-full'
-                      >
-                        {testcases && testcases.map((c) => (
-                          // let caseNum = idx + 1
-                          // <div 
-                          // className='flex auto-rows-auto rounded-sm p-1
-                          //   hover:border-t-2 hover:border-primary/40 hover:bg-muted
-                          //   data-[state=active]:border-primary
-                          // '
-                          // >
-                            <TabsTrigger value={c.caseID} key={`trigger-${c.caseID}`} data-testid={`trigger-${c.caseID}`}
-                              className='rounded-sm p-2
-                                hover:border-t-2 hover:border-primary/40 hover:bg-muted
-                                data-[state=active]:border-primary
-                                data-[state=active]:text-primary
-                                data-[state=active]:shadow-none
-                                data-[state=active]:border-b-[2.5px]
-                                data-[state=active]:border-x-0
-                                data-[state=active]:border-t-0
-                                dark:data-[state=active]:border-primary
-                                flex items-center gap-2 transition-all'
-                            >
-                            {c.caseID}
-                            <X size={14} onClick={() => removeTestcase(c.caseID)}
-                              className='rounded-full top-0 right-0
-                                hover:bg-muted hover:text-red-700 '
-                            />
-                          </TabsTrigger>
-                          // <X size={14} className='hover:bg-muted hover:text-red-700 rounded-full'
-                          // />
-                          // </div>
-                        ))}
-                      </TabsList>
-                      <Button size={"icon"} variant={'ghost'} onClick={addTestcase}
-                        className=" hover:text-primary"
-                      >
-                        <Plus size={4} />
-                      </Button>
-                    </div>
-                    {testcases && testcases.map((c) => (
-                      <TabsContent value={c.caseID} key={`content-${c.caseID}`} data-testid={`content-${c.caseID}`} >
-                        <Testcase />
-                      </TabsContent>
-                    ))}
-                  </Tabs>
+                  <Testcases />
                 </TabsContent>
                 <TabsContent data-testid="results-tab" value="results"
                   className='h-full'
