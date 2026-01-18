@@ -44,10 +44,11 @@ export function LoginForm({
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
-      console.log("Logged in as:", decoded.sub);
 
-      // Navigate on success
-      navigate("/app/home");
+      if(decoded) {
+        navigate("/app/home");
+      }
+      
     } catch (err) {
       const isError = err instanceof Error;
       const errorMessage = isError

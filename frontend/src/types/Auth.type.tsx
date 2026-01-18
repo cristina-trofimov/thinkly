@@ -1,12 +1,7 @@
+// types/Auth.type.ts
+
 export interface LoginResponse {
     token: string;
-}
-
-export interface UserProfile {
-    id: number;
-    email: string;
-    username: string;
-    role: "user" | "admin" | "owner";
 }
 
 export interface LoginRequest {
@@ -22,9 +17,12 @@ export interface SignupRequest {
     lastName: string;
 }
 
+// ⚠️ FIXED: Matches Python backend structure
 export interface DecodedToken {
-    sub: UserProfile;
+    sub: string;       // Python sends email here
+    role: string;      // Python sends "participant" or "owner"
+    id: number;        // Python sends user_id here
     exp: number;
-    iat: number;
+    iat?: number;
+    jti?: string;
 }
-

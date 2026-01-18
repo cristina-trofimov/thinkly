@@ -7,11 +7,11 @@ import type {
 } from "@/types/Auth.type";
 
 export interface ForgotPasswordRequest {
-  email: string;
+    email: string;
 }
 
 export interface ForgotPasswordResponse {
-  message: string;
+    message: string;
 }
 
 export interface ChangePasswordRequest {
@@ -66,7 +66,7 @@ export async function getProfile(): Promise<Account> {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        accountType: (data.role.charAt(0).toUpperCase() + data.role.slice(1)) as Account["accountType"]
+        accountType: (data.role.charAt(0) + data.role.slice(1)) as Account["accountType"]
     };
 
     return account;
@@ -95,9 +95,9 @@ export async function logout(): Promise<void> {
 }
 
 export async function forgotPassword(data: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
-  // Call your backend endpoint to send the reset email
-  const response = await axiosClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
-  return response.data;
+    // Call your backend endpoint to send the reset email
+    const response = await axiosClient.post<ForgotPasswordResponse>("/auth/forgot-password", data);
+    return response.data;
 }
 
 export async function changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
