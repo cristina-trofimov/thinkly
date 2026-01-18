@@ -15,8 +15,15 @@ describe('Manage Competitions Page', () => {
     cy.intercept('GET', 'http://localhost:8000/**/*ompetition*', {
       statusCode: 200,
       body: [
-        { id: 1, title: 'Summer Hackathon', status: 'Active' },
-        { id: 2, title: 'Winter Codefest', status: 'Completed' },
+        {
+          id: 1,
+          title: 'Summer Hackathon',
+          status: 'Active',
+          // Add these "safety" fields just in case your UI needs them:
+          description: "Test description",
+          participantCount: 10,
+          startDate: "2024-01-01"
+        }
       ],
     }).as('getCompetitions');
 
