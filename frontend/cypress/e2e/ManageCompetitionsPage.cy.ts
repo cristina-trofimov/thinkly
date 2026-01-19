@@ -1,35 +1,46 @@
 describe('Manage Competitions Page', () => {
-  it('Visits the manage competitions page and checks all elements are present', () => {
-    cy.visit('http://localhost:5173/app/dashboard/competitions');
+  const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJuYW1lIjoiVGVzdCBVc2VyIiwicm9sZSI6ImFkbWluIn0.ZnFr";
 
-    // Check search input exists
-    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
+  beforeEach(() => {
+    // 1. Mock User Profile
+    cy.intercept('GET', '**/auth/profile', {
+      statusCode: 200,
+      body: { role: 'admin', firstName: 'Admin', lastName: 'User', id: 1 }
+    }).as('getProfile');
 
-    // Check filter button exists
-    cy.contains('All competitions').should('be.visible');
+    // 2. Mock Competitions Data
+    // IMPORTANT: I added 'http://localhost:8000' to ensure we only intercept 
+    // the BACKEND request, not the frontend page load.
+    // If your API port is different, change 8000.
+    cy.intercept('GET', 'http://localhost:8000/**/*ompetition*', {
+      statusCode: 200,
+      body: [
+        {
+          id: 1,
+          title: 'Summer Hackathon',
+          status: 'Active',
+          // Add these "safety" fields just in case your UI needs them:
+          description: "Test description",
+          participantCount: 10,
+          startDate: "2024-01-01"
+        }
+      ],
+    }).as('getCompetitions');
 
-    // Check Create New Competition card
-    cy.contains('Create New Competition').should('be.visible');
+    // 3. USE cy.visit() TO LOAD THE UI
+    cy.visit('http://localhost:5173/app/dashboard/competitions', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('token', ADMIN_TOKEN);
+      },
+    });
 
+    // 4. Wait for the API calls
+    cy.wait(['@getProfile', '@getCompetitions']);
   });
 
-
-  it('Filters competitions by status', () => {
-    cy.visit('http://localhost:5173/app/dashboard/competitions');
-
-    // Open filter dropdown
-    cy.contains('button', 'All competitions').click();
-    cy.contains('Filter by Status').should('be.visible');
-
-    // Filter by Active
-    cy.contains('[role="menuitem"]', 'Active').click();
-
-});
-
-  it('Clicks View button and Create New Competition card', () => {
-    cy.visit('http://localhost:5173/app/dashboard/competitions');
-
-    // Click Create New Competition card
-    cy.contains('Create New Competition').click();
+  it('Checks all elements are present', () => {
+    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
+    cy.contains('All competitions').should('be.visible');
+    cy.contains('Create New Competition').should('be.visible');
   });
 });

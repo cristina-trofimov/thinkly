@@ -369,3 +369,4 @@ const ManageCompetitions = () => {
 };
 
 export default ManageCompetitions;
+
