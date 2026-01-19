@@ -84,11 +84,9 @@ class CompetitionEmail(Base):
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
 
     # Basic email schedule info
-    name: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
-    date: Mapped[str] = mapped_column()  # "YYYY-MM-DD"
-    start_time: Mapped[str] = mapped_column()  # "HH:MM"
-    end_time: Mapped[str] = mapped_column()  # "HH:MM"
-    location: Mapped[Optional[str]] = mapped_column()
+    subject: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
+    to: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
+    body: Mapped[str] = mapped_column()
 
     # Computed reminder times
     time_24h_before: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

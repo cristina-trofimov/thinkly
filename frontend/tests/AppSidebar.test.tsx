@@ -151,11 +151,7 @@ describe("AppSidebar", () => {
     );
     expect(screen.getByRole("link", { name: "Competition" })).toHaveAttribute(
       "href",
-      "/app/competition"
-    );
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
-      "href",
-      "/app/settings"
+      "/app/competitions"
     );
   });
 

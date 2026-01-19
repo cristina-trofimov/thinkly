@@ -12,11 +12,13 @@ export interface CreateCompetitionProps {
   emailNotification?: {
     to: string;
     subject: string;
-    text: string;
+    body: string;
     sendInOneMinute: boolean;
     sendAtLocal?: string;
   }
 }
+
+
 
 export interface CompetitionResponse {
   event_id: number;

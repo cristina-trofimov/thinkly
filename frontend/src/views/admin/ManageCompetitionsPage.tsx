@@ -9,13 +9,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, Filter } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Search, Filter, Trash2 } from 'lucide-react';
+import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog"
 import { useEffect, useState } from 'react';
-import { useNavigate, useOutlet, useLocation } from 'react-router-dom'; 
+import { useNavigate, useOutlet, useLocation } from 'react-router-dom';
 import { type Competition } from "../../types/competition/Competition.type"
-import { toast } from "sonner";
+import { toast } from 'sonner';
 import { logFrontend } from "../../api/LoggerAPI";
-import { getCompetitions } from "../../api/CompetitionAPI";
+import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
 
 const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
   const today = new Date();
@@ -36,20 +47,41 @@ const formatCompetitionDate = (competitionDate: Date) => {
 };
 
 const ManageCompetitions = () => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const outlet = useOutlet();
-  const location = useLocation(); 
-  
+  const location = useLocation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
   const [competitions, setCompetition] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [competitionToDelete, setCompetitionToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const loadCompetitions = async () => {
+    try {
+      const data1 = await getCompetitions();
+      setCompetition(data1);
+    } catch (err) {
+      logFrontend({
+        level: 'ERROR',
+        message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
+        component: 'ManageCompetitionsPage.tsx',
+        url: window.location.href,
+        stack: (err as Error).stack,
+      });
+    }
+  };
 
   // 1. Handle Success Toast from Navigation State
   useEffect(() => {
     if (location.state?.success) {
       toast.success("Competition published successfully!");
-      
+
       // Clear the state so the toast doesn't show up again if the user refreshes
       window.history.replaceState({}, document.title);
     }
@@ -104,6 +136,49 @@ const ManageCompetitions = () => {
       const bTime = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
       return bTime - aTime;
     });
+
+  const handleView = (id: number) => {
+    setSelectedCompetitionId(id);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    // Reload competitions after successful edit
+    loadCompetitions();
+  };
+
+  const handleDeleteClick = (id: number, name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCompetitionToDelete({ id, name });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!competitionToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteCompetition(competitionToDelete.id);
+      toast.success(`Competition "${competitionToDelete.name}" deleted successfully`);
+
+      // Reload competitions
+      await loadCompetitions();
+
+      setDeleteDialogOpen(false);
+      setCompetitionToDelete(null);
+    } catch (err) {
+      toast.error("Failed to delete competition. Please try again.");
+      logFrontend({
+        level: 'ERROR',
+        message: `Failed to delete competition: ${(err as Error).message}`,
+        component: 'ManageCompetitionsPage.tsx',
+        url: window.location.href,
+        stack: (err as Error).stack,
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -174,28 +249,120 @@ const ManageCompetitions = () => {
                   <div className="text-xs font-medium text-primary/60 uppercase tracking-wider">Competition</div>
                 </div>
               </div>
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="p-4 pb-0 space-y-2">
                 <div>
                   <h3 className="font-semibold text-base mb-1 line-clamp-1">{comp.competitionTitle}</h3>
                   <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation}</p>
                   <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
                 </div>
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                    status === "Active" ? "bg-green-100 text-green-700" :
-                    status === "Upcoming" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-700"
-                  }`}>{status}</span>
-                  <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">View Details</Button>
+                <div className="flex items-start justify-between pt-2 border-t">
+                  {/* Status on the left */}
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                      status === "Active"
+                        ? "bg-green-100 text-green-700"
+                        : status === "Upcoming"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {status}
+                  </span>
+
+                  {/* Actions on the right */}
+                  <div className="flex flex-col items-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:bg-primary/10"
+                      onClick={() => handleView(comp.id)}
+                    >
+                      View →
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                      onClick={(e) =>
+                        handleDeleteClick(comp.id, comp.competitionTitle, e)
+                      }
+                    >
+                      Delete <Trash2 className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* No Results Message */}
+      {filteredCompetitions.length === 0 && competitions.length > 0 && (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+            <Search className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No competitions found</h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filter criteria
+          </p>
+        </div>
+      )}
+
+      {/* Empty State - No Competitions at All */}
+      {competitions.length === 0 && !loading && (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+            <Plus className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No competitions yet</h3>
+          <p className="text-muted-foreground mb-4">
+            Get started by creating your first competition
+          </p>
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Competition
+          </Button>
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      {selectedCompetitionId && (
+        <EditCompetitionDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          competitionId={selectedCompetitionId}
+          onSuccess={handleEditSuccess}
+          key={editDialogOpen ? selectedCompetitionId : 'closed'}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the competition "{competitionToDelete?.name}".
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
 export default ManageCompetitions;
-

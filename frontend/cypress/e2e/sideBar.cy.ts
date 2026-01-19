@@ -32,5 +32,15 @@ describe('Sidebar Navigation', () => {
     // 6. Navigate
     cy.contains('Leaderboards').click();
     cy.location('pathname').should('include', '/leaderboards');
+    cy.wait(2000)
+    cy.contains('Dashboard').click();
+    cy.wait(2000)
+    cy.visit('http://localhost:5173/app/home', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('token', ADMIN_TOKEN);
+      }
+    });
+    cy.wait(2000)
+    cy.contains('Competition').click();
   });
 });

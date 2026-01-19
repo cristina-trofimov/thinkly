@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Bot,
   LayoutDashboardIcon,
-  Settings2,
   SquareTerminal,
   Trophy
 } from "lucide-react"
@@ -32,13 +31,8 @@ const navMain = [
   },
   {
     name: "Competition",
-    url: "/app/competition",
+    url: "/app/competitions",
     icon: Bot,
-  },
-  {
-    name: "Settings",
-    url: "/app/settings",
-    icon: Settings2,
   },
 ];
 
@@ -52,7 +46,7 @@ const navOther = [
     name: "Dashboard",
     url: "/app/dashboard",
     icon: LayoutDashboardIcon,
-    // Add a permission flag here if you want to be generic, 
+    // Add a permission flag here if you want to be generic,
     // or we can hardcode the check in the component
     requiresAdmin: true
   },

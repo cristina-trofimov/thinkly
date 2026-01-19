@@ -55,9 +55,9 @@ def main():
             base_event = BaseEvent(
                 event_name=f"Competition {i}",
                 event_location="Online",
-                question_cooldown= 5,
+                question_cooldown=5,
                 event_start_date=event_start_date,
-                event_end_date = event_end_date,
+                event_end_date=event_end_date,
                 created_at=now,
                 updated_at=now,
             )
@@ -78,7 +78,7 @@ def main():
         questions = []
         for i in range(6):
             q = Question(
-                question_name=f"Problem {i+1}",
+                question_name=f"Problem {i + 1}",
                 question_description="Solve the problem efficiently.",
                 difficulty=random.choice(DIFFICULTIES),
                 template_solution="Reference solution",
@@ -95,10 +95,10 @@ def main():
         riddles_data = [
             ("I speak without a mouth and hear without ears. What am I?", "An echo"),
             ("The more of this there is, the less you see. What is it?", "Darkness"),
-            ("I’m tall when I’m young, and short when I’m old. What am I?", "A candle"),
-            ("What has keys but can’t open locks?", "A piano"),
+            ("I'm tall when I'm young, and short when I'm old. What am I?", "A candle"),
+            ("What has keys but can't open locks?", "A piano"),
             ("What can travel around the world while staying in one spot?", "A stamp"),
-            ("What has a heart that doesn’t beat?", "An artichoke"),
+            ("What has a heart that doesn't beat?", "An artichoke"),
         ]
 
         riddles = []
@@ -106,7 +106,7 @@ def main():
             riddle = Riddle(
                 riddle_question=question,
                 riddle_answer=answer,
-                riddle_file= None
+                riddle_file=None
             )
             riddles.append(riddle)
 
@@ -115,7 +115,7 @@ def main():
 
         print(f"✅ {len(riddles)} riddles created")
 
-        # ---------------- PARTICIPATION + LEADERBOARD ----------------
+        # ---------------- PARTICIPATION + COMPETITION LEADERBOARD ----------------
         for comp in competitions[:4]:
             participants = random.sample(users, random.randint(5, 8))
 
@@ -131,7 +131,7 @@ def main():
                     CompetitionLeaderboardEntry(
                         user_id=user.user_id,
                         competition_id=comp.event_id,
-                        name = f"{user.first_name} {user.last_name}",
+                        name=f"{user.first_name} {user.last_name}",
                         rank=rank,
                         total_score=random.randint(500, 1500),
                         problems_solved=random.randint(1, 5),
@@ -142,34 +142,61 @@ def main():
         db.commit()
         print("✅ Competition leaderboard entries created")
 
-        # ---------------- ALGOTIME SESSIONS + LEADERBOARD ----------------
-        # Pick your single AlgoTimeSeries
+        # ---------------- ALGOTIME SERIES ----------------
         series = AlgoTimeSeries(
             algotime_series_name="Winter Session 2026",
         )
         db.add(series)
-        db.commit()  # so series gets an ID
+        db.commit()
         print("✅ AlgoTime series created")
 
-        # Create multiple sessions, connected to existing BaseEvents (IDs 1 to 5)
+        # ---------------- ALGOTIME SESSIONS + LEADERBOARD ----------------
+        # Create sessions for events 1-5
         for event_id in range(1, 6):
-            # Create a single session for this event
+            # Create session
             session = AlgoTimeSession(
                 event_id=event_id,
                 algotime_series_id=series.algotime_series_id
             )
-        db.add(session)
-        db.commit()
-        print("✅ AlgoTime sessions created")
-        db.flush()  # get session.id if needed later
+            db.add(session)
+            db.flush()
 
             # Pick random participants for this session
-        participants = random.sample(users, random.randint(4, 7))
+            participants = random.sample(users, random.randint(4, 7))
 
-            # Store their best times for the leaderboard
+            # Create participations for AlgoTime sessions
+            for user in participants:
+                # Check if participation already exists (might be from competitions)
+                existing = db.query(Participation).filter_by(
+                    user_id=user.user_id,
+                    event_id=event_id
+                ).first()
+
+                if not existing:
+                    db.add(
+                        Participation(
+                            user_id=user.user_id,
+                            event_id=event_id
+                        )
+                    )
+
+        db.commit()
+        print("✅ AlgoTime sessions created")
+
+        # Create AlgoTime leaderboard (aggregate across all sessions in the series)
+        # Collect all participants from all AlgoTime sessions
+        all_algotime_participants = set()
+        for event_id in range(1, 6):
+            session_participants = db.query(Participation).filter_by(
+                event_id=event_id
+            ).all()
+            for p in session_participants:
+                all_algotime_participants.add(p.user_id)
+
+        # Create leaderboard entries
         results = []
-
-        for user in participants:
+        for user_id in all_algotime_participants:
+            user = db.query(type(users[0])).filter_by(user_id=user_id).first()
             time_ms = random.randint(200, 2000)
             results.append((user, time_ms))
 
@@ -186,17 +213,18 @@ def main():
                     total_score=best_time,
                     total_time=best_time,
                     problems_solved=random.randint(1, 5),
-                    rank=rank,  # ✅ FIX
+                    rank=rank,
                     last_updated=now
                 )
             )
 
         db.commit()
-        print("✅ leaderboard created")
+        print("✅ AlgoTime leaderboard created")
         print("🎉 Seeding completed successfully")
 
-    except Exception:
+    except Exception as e:
         db.rollback()
+        print(f"❌ Error: {e}")
         raise
     finally:
         db.close()
