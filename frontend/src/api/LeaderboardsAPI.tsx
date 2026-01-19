@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type {CurrentStandings} from "@/types/leaderboards/CurrentStandings.type";
+import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { formatSecondsToTime } from '@/utils/formatTime';
 
@@ -43,6 +43,7 @@ interface AlgoTimeLeaderboardResponse {
     id: string;
     seriesId: string;
     name: string;
+    date: string;
     participants: Array<{
         name: string;
         userId: number | null;
@@ -103,7 +104,7 @@ export async function getCompetitionsDetails(currentUserId?: number): Promise<Co
 }
 
 // Get all AlgoTime leaderboard entries
-export async function getAllAlgoTimeEntries(): Promise<AlgoTimeLeaderboardResponse[]>  {
+export async function getAllAlgoTimeEntries(): Promise<CompetitionWithParticipants[]>  {
     const response = await axiosClient.get<CompetitionLeaderboardResponse[]>("/leaderboards/algotime");
     return response.data.map((comp) => ({
         id: parseInt(comp.id),
