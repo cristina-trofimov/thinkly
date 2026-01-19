@@ -1,13 +1,25 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Leaderboards } from "../src/components/leaderboards/Leaderboards";
-import { getCompetitionsDetails } from "@/api/CompetitionAPI";
+import { getCompetitionsDetails, getCurrentCompetitionLeaderboard, getAllAlgoTimeEntries } from "../src/api/LeaderboardsAPI";
+import { getProfile } from "../src/api/AuthAPI";
 
-// 1. Mock API
-jest.mock("@/api/CompetitionAPI", () => ({
+// 1. Mock API - Fixed to use LeaderboardsAPI instead of CompetitionAPI
+jest.mock("@/api/LeaderboardsAPI", () => ({
   __esModule: true,
   getCompetitionsDetails: jest.fn().mockResolvedValue([]),
-  getCompetitions: jest.fn(),
+  getCurrentCompetitionLeaderboard: jest.fn().mockResolvedValue({
+    competitionName: "No Active Competition",
+    participants: [],
+    showSeparator: false,
+  }),
+  getAllAlgoTimeEntries: jest.fn().mockResolvedValue([]),
+}));
+
+// Mock AuthAPI
+jest.mock("@/api/AuthAPI", () => ({
+  __esModule: true,
+  getProfile: jest.fn().mockResolvedValue({ id: 1 }),
 }));
 
 // 2. Mock Child Component
@@ -42,10 +54,16 @@ describe("Leaderboards Component", () => {
 
   const setupSuccess = () => {
     (getCompetitionsDetails as jest.Mock).mockResolvedValue(mockCompetitionsData);
+    (getCurrentCompetitionLeaderboard as jest.Mock).mockResolvedValue({
+      competitionName: "No Active Competition",
+      participants: [],
+      showSeparator: false,
+    });
   };
 
   it("displays loading state initially", async () => {
     (getCompetitionsDetails as jest.Mock).mockReturnValue(new Promise(() => { }));
+    (getCurrentCompetitionLeaderboard as jest.Mock).mockReturnValue(new Promise(() => { }));
     render(<Leaderboards />);
     expect(screen.getByText(/loading leaderboards/i)).toBeInTheDocument();
   });
@@ -101,7 +119,6 @@ describe("Leaderboards Component", () => {
     const menu = await screen.findByRole("menu");
 
     // FIX: Use a more specific Regex to match "Oldest -> Newest" specifically
-    // The caret (^) ensures it matches the beginning of the string.
     const oldestOption = await within(menu).findByRole("menuitem", {
       name: /^Oldest/i
     });
@@ -130,7 +147,7 @@ describe("Leaderboards Component", () => {
     await user.type(input, "Nonexistent XYZ");
 
     await waitFor(() => {
-      expect(screen.getByText("No competitions found")).toBeInTheDocument();
+      expect(screen.getByText(/No competitions match your search/i)).toBeInTheDocument();
       expect(screen.queryByText("October Challenge")).not.toBeInTheDocument();
     });
   });
@@ -138,6 +155,7 @@ describe("Leaderboards Component", () => {
   it("handles API errors gracefully", async () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => { });
     (getCompetitionsDetails as jest.Mock).mockRejectedValue(new Error("API Error"));
+    (getCurrentCompetitionLeaderboard as jest.Mock).mockRejectedValue(new Error("API Error"));
 
     render(<Leaderboards />);
 

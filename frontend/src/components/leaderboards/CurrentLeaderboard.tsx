@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ScoreboardDataTable } from "./ScoreboardDataTable";
-import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
+import type {CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
 export type { CurrentStandings };
 import { getCurrentCompetitionLeaderboard } from "../../api/LeaderboardsAPI";
 
