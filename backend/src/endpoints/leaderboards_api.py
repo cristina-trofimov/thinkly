@@ -185,52 +185,6 @@ def get_leaderboards(current_user_id: Optional[int] = None, db: Session = Depend
         )
 
 
-@leaderboards_router.get("/algotime")
-def get_all_algotime_leaderboard_entries(db: Session = Depends(get_db)):
-    logger.info("Accessing /leaderboards/algotime/all endpoint to retrieve all AlgoTime leaderboard entries.")
-
-    try:
-        entries = (
-            db.query(AlgoTimeLeaderboardEntry)
-            .order_by(
-                AlgoTimeLeaderboardEntry.algotime_series_id.asc(),
-                AlgoTimeLeaderboardEntry.rank.asc()
-            )
-            .all()
-        )
-
-        logger.info(f"SUCCESSFUL FETCH: Retrieved {len(entries)} AlgoTime leaderboard entries.")
-
-        result = []
-        for entry in entries:
-            # Prefer live user data if user exists, else fallback to stored name
-            if entry.user_account:
-                user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
-            else:
-                user_name = entry.name
-
-            result.append({
-                "entryId": entry.algotime_leaderboard_entry_id,
-                "algoTimeSeriesId": entry.algotime_series_id,
-                "name": user_name,
-                "userId": entry.user_id,
-                "totalScore": entry.total_score,
-                "problemsSolved": entry.problems_solved,
-                "totalTime": entry.total_time,
-                "rank": entry.rank,
-                "lastUpdated": entry.last_updated.isoformat()
-            })
-
-        return result
-
-    except Exception:
-        logger.exception("FATAL error while fetching all AlgoTime leaderboard entries.")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve AlgoTime leaderboard entries."
-        )
-
-
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(current_user_id: Optional[int] = None, db: Session = Depends(get_db)):
     logger.info(f"=== /leaderboards/competitions/current endpoint ===")
@@ -315,69 +269,28 @@ def get_current_competition_leaderboard(current_user_id: Optional[int] = None, d
         )
 
 
-@leaderboards_router.get("/algotime/current")
-def get_current_algotime_leaderboard(db: Session = Depends(get_db)):
-    logger.info("Accessing /leaderboards/algotime/current endpoint to retrieve current AlgoTime session leaderboard.")
+@leaderboards_router.get("/algotime")
+def get_all_algotime_leaderboard_entries(db: Session = Depends(get_db)):
+    """
+    Returns all entries in the AlgoTime leaderboard table.
+    """
+    logger.info("Accessing /leaderboards/algotime endpoint to fetch all AlgoTime leaderboard entries.")
 
     try:
-        now = datetime.now(timezone.utc)
+        entries = db.query(AlgoTimeLeaderboardEntry).order_by(
+            AlgoTimeLeaderboardEntry.rank.asc()
+        ).all()
 
-        # Find current AlgoTime session (event that is currently ongoing)
-        current_algotime = (
-            db.query(AlgoTimeSession)
-            .join(BaseEvent)
-            .filter(
-                BaseEvent.event_start_date <= now,
-                BaseEvent.event_end_date >= now
-            )
-            .first()
-        )
-
-        if not current_algotime:
-            logger.info("No current AlgoTime session found.")
-            return {
-                "message": "No AlgoTime session is currently active.",
-                "session": None,
-                "entries": []
-            }
-
-        if not current_algotime.algotime_series_id:
-            logger.warning(f"Current AlgoTime session (ID {current_algotime.event_id}) has no associated series.")
-            return {
-                "message": "Current AlgoTime session has no associated series.",
-                "session": {
-                    "id": current_algotime.event_id,
-                    "name": current_algotime.base_event.event_name,
-                    "startDate": current_algotime.base_event.event_start_date.isoformat(),
-                    "endDate": current_algotime.base_event.event_end_date.isoformat()
-                },
-                "entries": []
-            }
-
-        logger.debug(
-            f"Found current AlgoTime session with ID {current_algotime.event_id} and series ID {current_algotime.algotime_series_id}.")
-
-        # Get leaderboard entries for this AlgoTime series
-        entries = (
-            db.query(AlgoTimeLeaderboardEntry)
-            .filter(AlgoTimeLeaderboardEntry.algotime_series_id == current_algotime.algotime_series_id)
-            .order_by(AlgoTimeLeaderboardEntry.rank.asc())
-            .all()
-        )
-
-        logger.info(
-            f"SUCCESSFUL FETCH: Retrieved {len(entries)} entries for current AlgoTime session '{current_algotime.base_event.event_name}'.")
-
-        result_entries = []
+        result = []
         for entry in entries:
-            # Prefer live user data if user exists, else fallback to stored name
             if entry.user_account:
                 user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
             else:
                 user_name = entry.name
 
-            result_entries.append({
+            result.append({
                 "entryId": entry.algotime_leaderboard_entry_id,
+                "algoTimeSeriesId": entry.algotime_series_id,
                 "name": user_name,
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,
@@ -387,21 +300,11 @@ def get_current_algotime_leaderboard(db: Session = Depends(get_db)):
                 "lastUpdated": entry.last_updated.isoformat()
             })
 
-        return {
-            "session": {
-                "id": current_algotime.event_id,
-                "name": current_algotime.base_event.event_name,
-                "seriesId": current_algotime.algotime_series_id,
-                "seriesName": current_algotime.algotime_series.algotime_series_name if current_algotime.algotime_series else None,
-                "startDate": current_algotime.base_event.event_start_date.isoformat(),
-                "endDate": current_algotime.base_event.event_end_date.isoformat()
-            },
-            "entries": result_entries
-        }
+        return result
 
     except Exception:
-        logger.exception("FATAL error while fetching current AlgoTime session leaderboard.")
+        logger.exception("FATAL error while fetching AlgoTime leaderboard entries.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve current AlgoTime session leaderboard."
+            detail="Failed to retrieve AlgoTime leaderboard entries."
         )

@@ -1,7 +1,9 @@
 import axiosClient from "@/lib/axiosClient";
-import type CurrentStandings from "@/types/leaderboards/CurrentStandings.type";
+import type { CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { formatSecondsToTime } from '@/utils/formatTime';
+import type {AlgoTimeLeaderboardBackendEntry} from "@/types/algoTime/AlgoTimeLeaderboard.type";
+
 
 // Backend response types
 interface CompetitionLeaderboardResponse {
@@ -40,18 +42,14 @@ interface CurrentCompetitionResponse {
 }
 
 interface AlgoTimeLeaderboardResponse {
-    id: string;
-    seriesId: string;
+    entryId: number;
+    seriesId: number;
     name: string;
-    date: string;
-    participants: Array<{
-        name: string;
-        userId: number | null;
-        points: number;
-        problemsSolved: number;
-        rank: number;
-        totalTime: number;
-    }>;
+    user_id: number;
+    total_score: number;
+    problems_solved: number;
+    rank: number;
+    total_time: string;
 }
 
 // Get current leaderboard standings
@@ -104,25 +102,17 @@ export async function getCompetitionsDetails(currentUserId?: number): Promise<Co
 }
 
 // Get all AlgoTime leaderboard entries
-export async function getAllAlgoTimeEntries(): Promise<CompetitionWithParticipants[]>  {
-    const response = await axiosClient.get<CompetitionLeaderboardResponse[]>("/leaderboards/algotime");
-    return response.data.map((comp) => ({
-        id: parseInt(comp.id),
-        competitionTitle: comp.name,
-        date: new Date(comp.date),
-        participants: comp.participants.map((p) => ({
-            name: p.name,
-            user_id: p.userId || 0,
-            total_score: p.points,
-            problems_solved: p.problemsSolved,
-            rank: p.rank,
-            total_time: formatSecondsToTime(p.totalTime),
-        })),
-    }));
-}
+export async function getAllAlgoTimeEntries(): Promise<AlgoTimeLeaderboardResponse[]>  {
+    const response = await axiosClient.get<AlgoTimeLeaderboardBackendEntry[]>("/leaderboards/algotime");
 
-// Get current AlgoTime session leaderboard
-export async function getCurrentAlgoTimeLeaderboard() {
-    const response = await axiosClient.get("/leaderboards/algotime/current");
-    return response.data;
+    return response.data.map((entry) => ({
+        entryId: entry.entryId,
+        seriesId: entry.algoTimeSeriesId,
+        name: entry.name,
+        user_id: entry.userId || 0,
+        total_score: entry.totalScore,
+        problems_solved: entry.problemsSolved,
+        rank: entry.rank,
+        total_time: formatSecondsToTime(entry.totalTime),
+    }));
 }
