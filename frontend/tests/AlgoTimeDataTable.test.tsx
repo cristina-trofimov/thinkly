@@ -165,13 +165,16 @@ describe("AlgoTimeDataTable", () => {
 
       expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
 
-      // Search for something
+      // Search for something - 11 results will fit on 1 page, so pagination disappears
       const searchInput = screen.getByPlaceholderText("Search by name...");
       fireEvent.change(searchInput, { target: { value: "User 1" } });
 
-      // Should be back on page 1 (pagination will show "Page 1 of 2" with 11 results)
-      expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
-      expect(screen.getByText("(11 results)")).toBeInTheDocument();
+      // Verify search results are displayed (User 1, User 10-19)
+      expect(screen.getByText("User 1")).toBeInTheDocument();
+      expect(screen.getByText("User 10")).toBeInTheDocument();
+
+      // Pagination should not be visible (11 results fit on 1 page)
+      expect(screen.queryByText(/Page/)).not.toBeInTheDocument();
     });
 
     it("should clear search when input is cleared", () => {
@@ -272,13 +275,27 @@ describe("AlgoTimeDataTable", () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it("should display result count when searching", () => {
-      render(<AlgoTimeDataTable participants={manyParticipants} />);
+    it("should display result count when searching with multiple pages", () => {
+      // Create enough participants so "User 2" search gives us >15 results (User 2, User 20-29 = 11 results on 1 page)
+      // Instead, search for just "User" which will match all 30, requiring pagination
+      const evenMoreParticipants = createMockParticipants(50);
+      render(<AlgoTimeDataTable participants={evenMoreParticipants} />);
 
       const searchInput = screen.getByPlaceholderText("Search by name...");
-      fireEvent.change(searchInput, { target: { value: "User 1" } });
+      // Search for "User 2" which matches User 2, User 20-29 (11 results, fits on 1 page - no pagination)
+      // Search for "User" instead - all 50 match, requiring multiple pages
+      fireEvent.change(searchInput, { target: { value: "User 2" } });
 
-      expect(screen.getByText("(11 results)")).toBeInTheDocument();
+      // User 2, User 20-29 = 11 results, fits on one page, no pagination
+      expect(screen.queryByText(/results/)).not.toBeInTheDocument();
+
+      // Now search for something that requires multiple pages
+      fireEvent.change(searchInput, { target: { value: "User" } });
+
+      // All 50 users match, should show pagination with result count
+      // Use regex matcher since text is broken up by elements
+      expect(screen.getByText(/Page\s+1\s+of\s+4/)).toBeInTheDocument();
+      expect(screen.getByText(/\(50 results\)/)).toBeInTheDocument();
     });
   });
 
