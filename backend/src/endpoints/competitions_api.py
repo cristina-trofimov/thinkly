@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, Participation, CompetitionLeaderboardEntry
 from DB_Methods.database import get_db, _commit_or_rollback
-from endpoints.authentification_api import get_current_user, role_required
+from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
 import logging
 from datetime import datetime, timezone, timedelta
@@ -315,7 +315,7 @@ async def list_competitions(
 async def create_competition(
         request: CreateCompetitionRequest,
         db: Session = Depends(get_db),
-        current_user: dict = Depends(role_required("admin"))
+        current_user: dict = Depends(get_current_user)
 ):
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
@@ -527,12 +527,9 @@ async def update_competition(
         competition_id: int,
         request: CreateCompetitionRequest,
         db: Session = Depends(get_db),
-        current_user: dict = Depends(role_required("admin"))
+        current_user: dict = Depends(get_current_user)
 ):
-    """
-    Update an existing competition.
-    Only accessible by users with 'admin' role.
-    """
+
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
 
@@ -643,7 +640,7 @@ async def update_competition(
 async def delete_competition(
         competition_id: int,
         db: Session = Depends(get_db),
-        current_user: dict = Depends(role_required("admin")) # to change to owner only if needed
+        current_user: dict = Depends(get_current_user)
 ):
     """
     Delete a competition.
