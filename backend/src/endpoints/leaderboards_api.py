@@ -7,11 +7,9 @@ from models.schema import (
     CompetitionLeaderboardEntry,
     AlgoTimeLeaderboardEntry,
     Competition,
-    AlgoTimeSession,
     BaseEvent
 )
 import logging
-from zoneinfo import ZoneInfo
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
@@ -114,7 +112,7 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 @leaderboards_router.get("/competitions")
 def get_leaderboards(current_user_id: Optional[int] = None, db: Session = Depends(get_db)):
-    logger.info(f"=== /leaderboards/competitions endpoint ===")
+    logger.info("=== /leaderboards/competitions endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
 
     try:
@@ -187,7 +185,7 @@ def get_leaderboards(current_user_id: Optional[int] = None, db: Session = Depend
 
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(current_user_id: Optional[int] = None, db: Session = Depends(get_db)):
-    logger.info(f"=== /leaderboards/competitions/current endpoint ===")
+    logger.info("=== /leaderboards/competitions/current endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
 
     try:
