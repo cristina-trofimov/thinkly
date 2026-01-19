@@ -9,9 +9,10 @@ import type { CompetitionWithParticipants } from "@/types/competition/Competitio
 interface Props {
   readonly competition: CompetitionWithParticipants;
   readonly isCurrent?: boolean;
+  readonly currentUserId?: number;
 }
 
-export function CompetitionCard({ competition, isCurrent = false }: Props) {
+export function CompetitionCard({ competition, isCurrent = false, currentUserId }: Props) {
   const [open, setOpen] = useState(isCurrent); // Auto-open if current competition
 
   const hasScoreboard = competition.participants && competition.participants.length > 0;
@@ -58,7 +59,11 @@ export function CompetitionCard({ competition, isCurrent = false }: Props) {
 
       {open && (
         <CardContent className="overflow-x-auto p-6 bg-white border-t">
-          <ScoreboardDataTable participants={competition.participants} />
+          <ScoreboardDataTable
+            participants={competition.participants}
+            currentUserId={currentUserId}
+            showSeparator={competition.showSeparator}
+          />
         </CardContent>
       )}
     </Card>

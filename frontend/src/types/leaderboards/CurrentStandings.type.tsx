@@ -1,6 +1,8 @@
-import type { Participant } from "@/types/account/Participant.type";
+import type { Participant } from "../account/Participant.type";
 
-export default interface CurrentStandings {
+export type CurrentStandings = {
     competitionName: string;
     participants: Participant[];
+    showSeparator?: boolean;
 }
+

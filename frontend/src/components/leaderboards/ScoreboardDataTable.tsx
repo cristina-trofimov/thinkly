@@ -21,6 +21,8 @@ import type { Participant } from "../../types/account/Participant.type";
 
 interface Props {
   readonly participants: Participant[];
+  readonly currentUserId?: number;
+  readonly showSeparator?: boolean;
 }
 
 // --- Move headers and cells out of parent component ---
@@ -59,6 +61,7 @@ const TotalTimeHeader = () => (
     Total Time
   </div>
 );
+
 // --- Helper for row background color ---
 const getRowBgClass = (idx: number) => {
   if (idx === 0) return "bg-yellow-100";
@@ -66,25 +69,31 @@ const getRowBgClass = (idx: number) => {
   if (idx === 2) return "bg-orange-100";
   return "";
 };
+
 const RankCellRenderer = (props: CellContext<Participant, unknown>) => {
-  return <NumberCircle number={props.row.index + 1} />;
+  return <NumberCircle number={props.row.original.rank} />;
 };
 
 const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
   return <span className="font-medium">{props.row.original.name}</span>;
 };
 
-export function ScoreboardDataTable({ participants }: Props) {
+export function ScoreboardDataTable({ participants, currentUserId, showSeparator = false }: Props) {
+  console.log("ScoreboardDataTable - Participants:", participants.length, "Current User ID:", currentUserId, "Show Separator:", showSeparator);
+  console.log("Participant user IDs:", participants.map(p => p.user_id));
+  participants.forEach((participant) => {
+    console.log("Participant:", participant.name, "Rank:", participant.rank);
+  });
   const columns: ColumnDef<Participant>[] = [
     {
       id: "rank",
       header: RankHeader,
-      cell: RankCellRenderer, // just pass the component
+      cell: RankCellRenderer,
     },
     {
       accessorKey: "name",
       header: NameHeader,
-      cell: NameCellRenderer, // just pass the component
+      cell: NameCellRenderer,
     },
     {
       accessorKey: "total_score",
@@ -127,15 +136,42 @@ export function ScoreboardDataTable({ participants }: Props) {
         </TableHeader>
         <TableBody>
           {table.getRowModel().rows.length ? (
-            table.getRowModel().rows.map((row, idx) => (
-              <TableRow key={row.id} className={getRowBgClass(idx)}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            <>
+              {table.getRowModel().rows.map((row, idx) => {
+                const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
+                // If current user, use purple highlight, otherwise use podium colors
+                const rowClass = isCurrentUser
+                  ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
+                  : getRowBgClass(idx);
+
+                // Insert separator after rank 10 (index 9) if needed
+                const shouldShowSeparator = showSeparator && idx === 9;
+
+                return (
+                  <>
+                    <TableRow
+                      key={row.id}
+                      className={rowClass}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {shouldShowSeparator && (
+                      <TableRow className="bg-gray-50 hover:bg-gray-50">
+                        <TableCell colSpan={5} className="text-center py-2 text-gray-400">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-2xl">. . .</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
+            </>
           ) : (
             <TableRow>
               <TableCell
