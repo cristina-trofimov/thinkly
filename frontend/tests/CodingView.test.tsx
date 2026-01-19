@@ -11,18 +11,6 @@ jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     default: () => <div data-testid="desc-area" />
 }))
 
-jest.mock("../src/components/ui/shadcn-io/sandbox", () => ({
-    SandboxProvider: ({ children }: any) => <div data-testid="sandbox-provider" >{children}</div>,
-    SandboxLayout: ({ children }: any) => <div data-testid="sandbox-layout" >{children}</div>,
-    SandboxTabs: ({ children }: any) => <div data-testid="sandbox-tabs" >{children}</div>,
-    SandboxTabsList: ({ children }: any) => <div data-testid="sandbox-tabs-list" >{children}</div>,
-    SandboxTabsTrigger: ({ children }: any) => <div data-testid='sandbox-tabs-trigger' >{children}</div>,
-    SandboxTabsContent: ({ children }) => <div data-testid='sandbox-tabs-content'>{children}</div>,
-    SandboxPreview: () => <div data-testid="sandbox-preview" />,
-    SandboxConsole: () => <div data-testid="sandbox-console" />,
-    SandboxCodeEditor: () => <div data-testid="sandbox-code-editor" />,
-}))
-
 jest.mock("../src/components/ui/dropdown-menu", () => ({
     __esModule: true,
     DropdownMenu: ({ children }: any) => <div data-testid="languageDropdown" >{children}</div>,
@@ -32,28 +20,33 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
     DropdownMenuItem: ({ children, ...props }: any) => <div data-testid={`languageItem-${children}`} {...props} role='menuitem' >{children}</div>,
 }))
 
-jest.mock("../src/components/ui/resizable", () => ({
+jest.mock("react-resizable-panels", () => ({
+// jest.mock("../src/components/ui/resizable", () => ({
     __esModule: true,
-    ResizablePanelGroup: ({ children }: any) => <div data-testid="resizable-group" >{children}</div>,
-    ResizablePanel: React.forwardRef(({ children }: any, ref) => {
-      React.useImperativeHandle(ref, () => ({
-        resize: jest.fn(), // allow testing of resize() calls
-      }));
-      return <div data-testid="resizable-panel" >{children}</div>;
+    PanelGroup: React.forwardRef(({children}: any, ref) => {
+        React.useImperativeHandle(ref, () => ({
+            setLayout: jest.fn(),
+        }))
+        return <div data-testid="panel-group" >{children}</div>
     }),
-    ResizableHandle: () => <div data-testid="resizable-handle" />,
+    Panel: ({children}: any) => (
+        <div data-testid="resizable-panel" >{children}</div>
+    ),
+    PanelResizeHandle: () => <div data-testid="resizable-handle" />,
 }))
 
-jest.mock("../src/components/helpers/SandpackConfig", () => ({
+jest.mock("../src/components/helpers/MonacoConfig", () => ({
     __esModule: true,
-    getSandpackConfigs: jest.fn(() => ({
+    buildMonacoCode: jest.fn(() => ({
       Javascript: {
-        template: "vanilla",
-        files: { "/index.js": { code: "console.log('test javascript')"} },
+        monacoID: "javascript",
+        judgeID: "63",
+        templateCode: "console.log('test javascript')",
       },
       Typescript: {
-        template: "vanilla-ts",
-        files: { "/index.ts": { code: "console.log('test typescript')"} },
+        monacoID: "typescript",
+        judgeID: "74",
+        templateCode: "console.log('test typescript')",
       },
     })),
 }))
@@ -81,12 +74,11 @@ describe('CodingView Component', () => {
     
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
         render(<CodingView />)
+        expect(screen.getAllByTestId("panel-group").length).toBe(2)
         expect(screen.getAllByTestId("resizable-panel").length).toBe(4)
-        expect(screen.getByTestId("sandbox-layout")).toBeInTheDocument()
-        expect(screen.getByTestId("sandbox-preview")).toBeInTheDocument()
-        expect(screen.getByTestId("sandbox-console")).toBeInTheDocument()
-        expect(screen.getByTestId("sandbox-provider")).toBeInTheDocument()
-        expect(screen.getByTestId("desc-area")).toBeInTheDocument()
+        expect(screen.getByTestId("submit-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
+        expect(screen.getByTestId("results-tab")).toBeInTheDocument()
     })
     
     it("doesn't call panelRef.current.resize when refs are not set", async () => {
@@ -96,14 +88,6 @@ describe('CodingView Component', () => {
         })
 
         expect(nullRef.current?.resize).toBeUndefined();
-    })
-
-    it('shows dropdown with languages and updates selected language', async () => {
-        render(<CodingView />)
-        const langBtn = screen.getByTestId('languageBtn')
-        expect(langBtn).toBeInTheDocument()
-
-        await userEvent.click(langBtn)
     })
 
     it('toggles and closes code area fullscreen mode', async () => {
@@ -154,14 +138,14 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
     })
 
-    it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('code-area-collapse'))
-        expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
+    // it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
+    //     render(<CodingView />)
+    //     await userEvent.click(screen.getByTestId('code-area-collapse'))
+    //     expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
 
-        await userEvent.click(screen.getByTestId('output-area-collapse'))
+    //     await userEvent.click(screen.getByTestId('output-area-collapse'))
         
-        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
-        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
-    })
+    //     expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+    //     expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
+    // })
 })

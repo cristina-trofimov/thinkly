@@ -9,20 +9,22 @@ import { Button } from '../ui/button'
 const Testcases = () => {
     const [testcases, setTestcases] = useState<TestcaseType[]>([
         {
-            id: "",
+            test_case_id: "",
+            question_id: "",
             caseID: "Case 1",
-            inputs: "",
-            output: ""
+            input_data: "",
+            expected_output: ""
         }
     ]);
     const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].caseID);
     
     const addTestcase = () => {
         const newCase: TestcaseType = {
-            id: '',
+            test_case_id: '',
+            question_id: '',
             caseID: `Case ${testcases.length + 1}`,
-            inputs: "",
-            output: "",
+            input_data: "",
+            expected_output: "",
         }
         setTestcases((prev) => [...prev, newCase])
         setActiveTestcase(newCase.caseID)
@@ -54,7 +56,7 @@ const Testcases = () => {
     
     const updateTestcase = (
         caseID: string,
-        field: "inputs" | "output",
+        field: "input_data" | "expected_output",
         value: string
     ) => {
         setTestcases((prev) =>
@@ -65,7 +67,7 @@ const Testcases = () => {
     }
 
     return (
-        <Tabs data-testid="testcases-tab" value={activeTestcase} onValueChange={setActiveTestcase} >
+        <Tabs value={activeTestcase} onValueChange={setActiveTestcase} >
             <div className='flex ' >
                 <TabsList className='w-full flex gap-2' >
                     {testcases && testcases.map((c) => (
@@ -105,15 +107,14 @@ const Testcases = () => {
                 >
                     <div className='space-y-2' >
                         <Label>Input(s)</Label>
-                        <Input value={c.inputs}
-                            onChange={(e) => updateTestcase(c.caseID, "inputs", e.target.value)}
+                        <Input value={c.input_data}
+                            onChange={(e) => updateTestcase(c.caseID, "input_data", e.target.value)}
                         />
                     </div>
                     <div className='space-y-2' >
                         <Label>Expected output</Label>
-                        <Input  />
-                        <Input value={c.output}
-                            onChange={(e) => updateTestcase(c.caseID, "output", e.target.value)}
+                        <Input value={c.expected_output}
+                            onChange={(e) => updateTestcase(c.caseID, "expected_output", e.target.value)}
                         />
                     </div>
                 </TabsContent>
