@@ -178,6 +178,13 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: "code/:problem_title",
+        element: <CodingView />,
+        handle: {
+          crumb: { title: "Coding" },
+        },
+      },
+      {
         path: "profile",
         element: <ProfilePage />,
         handle: {

@@ -6,7 +6,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/r
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { SubmissionType } from '../../types/SubmissionType.type';
-import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
@@ -14,37 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { getCodeResponse, postCode } from '@/api/Judge0API';
 import Testcases from './Testcases';
+import { useLocation } from 'react-router-dom';
+import type { Question } from '@/types/questions/Question.type';
 
 
 const CodingView = () => {
-  const problemName = "problemName"
-  const inputVars = [{ name: "test", type: "int" }, { name: "me", type: "string" }]
-  const outputType = "int"
-
-  const problemInfo: QuestionInfo = {
-    title: "Sum",
-    clarification: "some randome clarification",
-    examples: [
-      {
-        inputs: [{ name: "test", type: "int" }, { name: "me", type: "string" }],
-        outputs: [{ name: "test", type: "int" }],
-        expectations: "bla bla bla",
-      },
-      {
-        inputs: [{ name: "test", type: "int" }, { name: "me", type: "string" }],
-        outputs: [{ name: "test", type: "int" }],
-        expectations: "bla bla bla",
-      },
-      {
-        inputs: [{ name: "test", type: "int" }, { name: "me", type: "string" }],
-        outputs: [{ name: "test", type: "int" }],
-        expectations: "bla bla bla",
-      },
-    ],
-    description: `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi nec diam ac mauris venenatis dapibus eget non urna. In hac habitasse platea dictumst. Nunc hendrerit vestibulum sodales. Sed gravida a lacus quis luctus. Duis at lorem sit amet massa accumsan tempus eu et eros. Nam ullamcorper, ligula in varius pellentesque, enim ex facilisis eros, sit amet lacinia ex est sit amet nulla. Praesent congue vehicula tellus ullamcorper pretium. Aenean imperdiet risus quis felis dictum vestibulum. Donec et leo ultrices, pellentesque diam id, volutpat metus. Suspendisse ultrices nisi eget ipsum commodo, non posuere velit dignissim. Aenean id mi a nisi sagittis pellentesque non nec libero. Proin et orci erat. Quisque consectetur consequat tincidunt. Ut vulputate sem in nisl laoreet feugiat.
-
-    Ut efficitur metus vel nisl hendrerit laoreet. Donec ultrices hendrerit tincidunt. Nam felis elit, aliquam id mattis ac, pellentesque at libero. Duis faucibus vitae urna et rhoncus. In a neque velit. Aenean quis ultrices mi. In fringilla libero a lectus imperdiet tristique. Sed at odio auctor, fringilla ante sed, accumsan felis.`
-  }
+  const { state } = useLocation()
+  const question: Question = state.problem
 
   const submissions: SubmissionType[] = [
     { "status": "Accepted", "language": "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40" },
@@ -58,18 +33,22 @@ const CodingView = () => {
 
   const runCode = async () => {
     console.log("running")
-    await postCode("64.58.46.96", code, judgeID, "Judge0", null)
-      .then((response) => {
-        let responseDetails = getCodeResponse("64.58.46.96", response)
-        console.log(responseDetails)
-        setLogs((prev) => [...prev, responseDetails])
-      })
+    // await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
+    //   .then((response) => {
+    //     console.log("response")
+    //     console.log(response)
+    //     let responseDetails = getCodeResponse("64.58.46.96:2368", response)
+    //     console.log("responseDetails")
+    //     console.log(responseDetails)
+    //     setLogs((prev) => [...prev, responseDetails])
+    //   })
 
-    // let response = await postCode(code, judgeID, "Judge0", null)
+    let response = await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
 
-    // console.log("responseDetails")
-    // let responseDetails = await getCodeResponse(response)
-    // console.log(responseDetails)
+    console.log("responseDetails")
+    let responseDetails = await getCodeResponse("64.58.46.96:2358", response)
+    console.log(responseDetails)
+    setLogs((prev) => [...prev, responseDetails])
     // setLogs(logs + "</br></br>" + responseDetails )
     
 
@@ -143,35 +122,36 @@ const CodingView = () => {
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
   return (
-    <div data-testid="sandbox-provider" key="sandbox-provider"
+    <div data-testid="sandbox" key="sandbox"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       <div className='flex items-center justify-center my-2 w-full' >
-        <Button onClick={submitCode} >
+        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn" >
           <CloudUpload size={16} />Submit
         </Button>
       </div>
-      <PanelGroup ref={mainPanelGroup} direction="horizontal"
+      <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
         className='h-full w-full' 
       >
         {/* Description panel */}
-        <Panel data-testid="desc-area" //collapsible collapsedSize={5}
+        <Panel data-testid="resizable-panel" key="desc-area" //collapsible collapsedSize={5}
           defaultSize={50} minSize={5} //maxSize={100}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea problemInfo={problemInfo}
+          <CodeDescArea problemInfo={question}
             submissions={submissions} />
         </Panel>
 
-        <PanelResizeHandle className="w-[0.35px] mx-[1.5px] border-none"
+        <PanelResizeHandle data-testid="resizable-handle" 
+          className="w-[0.35px] mx-[1.5px] border-none"
           style={{ background: "transparent" }} 
         />
 
         {/* Second panel */}
-        <Panel data-testid="second-panel" defaultSize={50} >
-          <PanelGroup direction="vertical" ref={codePanelGroup} >
+        <Panel defaultSize={50} data-testid="resizable-panel" >
+          <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group" >
             {/* Coding area panel */}
-            <Panel defaultSize={65}
+            <Panel defaultSize={65} data-testid="resizable-panel"
               className="ml-0.75 mb-1 rounded-md border"
             >
               <div data-testid="coding-area" >
@@ -212,7 +192,7 @@ const CodingView = () => {
                         <ChevronDown />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className='z-999' >
+                    <DropdownMenuContent className='z-999' asChild >
                       <div data-testid='languageMenu'
                         className="z-10 text-sm bg-white w-26 border rounded-lg"
                       >
@@ -246,7 +226,7 @@ const CodingView = () => {
               style={{ background: "transparent" }} 
             />
             {/* Output panel */}
-            <Panel data-testid="output-area" defaultSize={35} 
+            <Panel data-testid="resizable-panel" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
               <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >

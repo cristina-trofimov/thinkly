@@ -1,5 +1,4 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState, } from 'react'
@@ -9,13 +8,14 @@ import { useStateCallback } from '../helpers/UseStateCallback'
 import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
+import type { Question } from '@/types/questions/Question.type'
 
 
 const CodeDescArea = (
     { problemInfo, submissions }:
-        {
-            problemInfo: QuestionInfo, submissions: SubmissionType[]
-        }) => {
+    {
+        problemInfo: Question, submissions: SubmissionType[]
+    }) => {
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -146,7 +146,7 @@ const CodeDescArea = (
                     <p className='max-h-125 text-left leading-6 wrap-break-word overflow-scroll whitespace-normal' >
                         {problemInfo.description}
                     </p>
-                    {problemInfo.examples.map((e, idx) => {
+                    {/* {problemInfo.examples.map((e, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1' >
@@ -165,7 +165,7 @@ const CodeDescArea = (
                                 <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>
                             </div>
                         </div>
-                    })}
+                    })} */}
                 </div>
             </TabsContent>
 

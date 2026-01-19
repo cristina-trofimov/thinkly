@@ -7,6 +7,10 @@ export async function getQuestions(): Promise<Question[]> {
     const response = await axiosClient.get<{
       question_id: number;
       question_name: string;
+      description: string;
+      media: string;
+      preset_code: string;
+      template_solution: string;
       difficulty: "Easy" | "Medium" | "Hard",
       last_modified_at: string;
     }[]>(`/questions/get-all-questions`);
@@ -14,6 +18,10 @@ export async function getQuestions(): Promise<Question[]> {
     const formatted: Question[] = response.data.map(q => ({
       id: q.question_id,
       title: q.question_name,
+      description: q.description,
+      media: q.media,
+      preset_code: q.preset_code,
+      template_solution: q.template_solution,
       difficulty: q.difficulty,
       date: new Date(q.last_modified_at),
     }));
