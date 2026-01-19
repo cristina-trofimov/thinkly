@@ -55,27 +55,40 @@ interface AlgoTimeLeaderboardResponse {
 // Get current leaderboard standings
 export async function getCurrentCompetitionLeaderboard(currentUserId?: number): Promise<CurrentStandings> {
     const params = currentUserId ? { current_user_id: currentUserId } : {};
+    console.log("getCurrentCompetitionLeaderboard - Sending params:", params);
     const response = await axiosClient.get<CurrentCompetitionResponse>("/leaderboards/competitions/current", { params });
+    console.log("getCurrentCompetitionLeaderboard - Response:", response.data);
+    console.log("getCurrentCompetitionLeaderboard - showSeparator:", response.data.showSeparator);
 
     if (!response.data.competition || response.data.entries.length === 0) {
         return {
             competitionName: "No Active Competition",
-            participants: []
+            participants: [],
+            showSeparator: false,
         };
     }
 
-    return {
+    const result = {
         competitionName: response.data.competition.name,
         participants: response.data.entries.map((entry) => ({
             name: entry.name,
-            user_id: entry.userId || 0,
+            user_id: entry.userId ?? 0,
             total_score: entry.totalScore,
             problems_solved: entry.problemsSolved,
             rank: entry.rank,
             total_time: formatSecondsToTime(entry.totalTime),
         })),
-        showSeparator: response.data.showSeparator || false,
+        showSeparator: response.data.showSeparator ?? false,
     };
+
+    console.log("getCurrentCompetitionLeaderboard - Final result:", {
+        name: result.competitionName,
+        participantCount: result.participants.length,
+        showSeparator: result.showSeparator,
+        userIds: result.participants.map(p => p.user_id)
+    });
+
+    return result;
 }
 
 // Get all competitions with their leaderboards (original endpoint)
@@ -85,19 +98,28 @@ export async function getCompetitionsDetails(currentUserId?: number): Promise<Co
     const response = await axiosClient.get<CompetitionLeaderboardResponse[]>("/leaderboards/competitions", { params });
     console.log("getCompetitionsDetails - Response length:", response.data.length);
 
+    if (response.data.length > 0) {
+        console.log("getCompetitionsDetails - First competition:", {
+            name: response.data[0].name,
+            participantCount: response.data[0].participants.length,
+            showSeparator: response.data[0].showSeparator,
+            userIds: response.data[0].participants.map(p => p.userId)
+        });
+    }
+
     return response.data.map((comp) => ({
         id: parseInt(comp.id),
         competitionTitle: comp.name,
         date: new Date(comp.date),
         participants: comp.participants.map((p) => ({
             name: p.name,
-            user_id: p.userId || 0,
+            user_id: p.userId ?? 0,
             total_score: p.points,
             problems_solved: p.problemsSolved,
             rank: p.rank,
             total_time: formatSecondsToTime(p.totalTime),
         })),
-        showSeparator: comp.showSeparator || false,
+        showSeparator: comp.showSeparator ?? false,
     }));
 }
 

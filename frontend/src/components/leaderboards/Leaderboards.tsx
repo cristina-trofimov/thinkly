@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Trophy, Clock } from "lucide-react";
 import { CompetitionCard } from "./CompetitionCard";
+import { AlgoTimeCard } from "./AlgoTimeCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { getCompetitionsDetails, getCurrentCompetitionLeaderboard, getAllAlgoTimeEntries } from "@/api/LeaderboardsAPI";
@@ -63,18 +64,18 @@ export function Leaderboards() {
         } else {
           // Fetch the single AlgoTime table
           const entries = await getAllAlgoTimeEntries();
-            const participants = entries.map((e) => ({
-              entryId: e.entryId,
-              name: e.name,
-              user_id: e.user_id || 0,
-              total_score: e.total_score,
-              problems_solved: e.problems_solved,
-              total_time: e.total_time,
-              rank: e.rank
-            }));
+          const participants = entries.map((e) => ({
+            entryId: e.entryId,
+            name: e.name,
+            user_id: e.user_id || 0,
+            total_score: e.total_score,
+            problems_solved: e.problems_solved,
+            total_time: e.total_time,
+            rank: e.rank
+          }));
 
-            setAlgoTimeEntries(participants);
-          }
+          setAlgoTimeEntries(participants);
+        }
       } catch (err) {
         console.error("Error loading leaderboards:", err);
         setError("Failed to load leaderboards");
@@ -124,12 +125,14 @@ export function Leaderboards() {
         </button>
       </div>
 
-      <SearchAndFilterBar
-        search={search}
-        setSearch={setSearch}
-        sortAsc={sortAsc}
-        setSortAsc={setSortAsc}
-      />
+      {leaderboardType === "competition" && (
+        <SearchAndFilterBar
+          search={search}
+          setSearch={setSearch}
+          sortAsc={sortAsc}
+          setSortAsc={setSortAsc}
+        />
+      )}
 
       {loading && <div className="text-center py-8 text-gray-600">Loading leaderboards...</div>}
       {error && <div className="text-center py-8 text-red-500 bg-red-50 rounded-lg border border-red-200">{error}</div>}
@@ -138,6 +141,7 @@ export function Leaderboards() {
         <>
           {currentCompetition && (
             <div className="border-4 border-[#8065CD] rounded-lg p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
+              <h2 className="text-lg font-semibold text-[#8065CD] mb-3">Current Competition</h2>
               <CompetitionCard competition={currentCompetition} isCurrent={true} currentUserId={currentUserId} />
             </div>
           )}
@@ -167,14 +171,8 @@ export function Leaderboards() {
             </div>
           )}
           {algoTimeEntries.length > 0 && (
-            <CompetitionCard
-              competition={{
-                id: 1,
-                competitionTitle: `AlgoTime Leaderboard`,
-                date: new Date(),
-                participants: algoTimeEntries,
-              }}
-              isCurrent={true}
+            <AlgoTimeCard
+              participants={algoTimeEntries}
               currentUserId={currentUserId}
             />
           )}
