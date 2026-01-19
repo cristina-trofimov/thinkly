@@ -102,6 +102,7 @@ export function Leaderboards() {
       {/* Toggle between Competition and AlgoTime */}
       <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 w-fit">
         <button
+          data-cy="leaderboard-competitions"
           onClick={() => setLeaderboardType("competition")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
             leaderboardType === "competition"
@@ -113,6 +114,7 @@ export function Leaderboards() {
           Competitions
         </button>
         <button
+          data-cy="leaderboard-algotime"
           onClick={() => setLeaderboardType("algotime")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
             leaderboardType === "algotime"

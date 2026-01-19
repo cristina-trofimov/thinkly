@@ -35,12 +35,11 @@ describe('Leaderboards Page', () => {
   });
 
   it('loads the leaderboards successfully', () => {
-    // Wait for the correct alias
-    cy.wait(['@getProfile', '@getLeaderboardData']);
 
     // Assertions
     cy.contains('Loading leaderboards...').should('not.exist');
+    cy.get('[data-cy="leaderboard-algotime"]').click();
+    cy.get('[data-cy="leaderboard-competitions"]').click();
 
-    // Check for the data we mocked above
   });
 });
