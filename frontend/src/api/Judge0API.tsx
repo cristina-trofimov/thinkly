@@ -1,16 +1,15 @@
 import axiosClient from "@/lib/axiosClient";
 
+
 export async function postCode(
     ip: string,
     code: string,
     language_id: string,
     stdin: string,
     expected_output: string | null,
-): Promise<string> {
-// ): Promise<Response> {
+): Promise<Response> {
     try{
-        const response = await axiosClient.post(
-            `http://${ip}/submissions`,
+        const postResponse = await axiosClient.post(`http://${ip}/submissions`,
             {
                 "source_code": code,
                 //"#include <stdio.h>\n\nint main(void) {\n  char name[10];\n  scanf(\"%s\", name);\n  printf(\"hello, %s\\n\", name);\n  return 0\n}",
@@ -30,21 +29,17 @@ export async function postCode(
                 "max_file_size": null,
                 "enable_network": null
             }
-        );
+        )
         
-        return response.data.token
+        // await new Promise(resolve => setTimeout(resolve, 300))
+        
+        const getResponse = await axiosClient.get(`http://${ip}/submissions/` + postResponse.data.token);
+
+        console.log(getResponse.data)
+
+        return await getResponse.data
     } catch (err) {
         console.error("Error running code:", err);
-        throw err;
-    }
-}
-
-export async function getCodeResponse( ip: string, token: string ): Promise<Response> {
-    try{
-        const response = await axiosClient.get(`http://${ip}/submissions/` + token);
-        return response.data
-    } catch (err) {
-        console.error("Error getting code results:", err);
         throw err;
     }
 }

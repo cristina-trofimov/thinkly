@@ -9,12 +9,16 @@ import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
+import type { TestcaseType } from '@/types/questions/Testcases.type'
+import { useTestcases } from '../helpers/useTestcases'
 
 
 const CodeDescArea = (
-    { problemInfo, submissions }:
+    { question, submissions }:
+    // { question, submissions, testcases }:
     {
-        problemInfo: Question, submissions: SubmissionType[]
+        question: Question, submissions: SubmissionType[], 
+        // testcases: TestcaseType[] | undefined
     }) => {
 
     const tabs = [
@@ -23,32 +27,9 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const code = [
-        {
-            language: 'jsx',
-            filename: 'MyComponent.jsx',
-            code: `function MyComponent(props) {
-    return (
-        <div>
-        <h1>Hello, {props.name}!</h1>
-        <p>This is an example React component.</p>
-        </div>
-    );
-      }`,
-        },
-        {
-            language: 'tsx',
-            filename: 'MyComponent.tsx',
-            code: `function MyComponent(props: { name: string }) {
-    return (
-        <div>
-        <h1>Hello, {props.name}!</h1>
-        <p>This is an example React component.</p>
-        </div>
-    );
-      }`,
-        },
-    ];
+    const { testcases } = useTestcases(question.id)
+
+    // TODO: Add the submission code
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -140,32 +121,29 @@ const CodeDescArea = (
             <TabsContent value='description' data-testid="tabs-content-description" >
                 <div className='h-full p-6' >
                     <h1 className='font-bold mb-3 '>
-                        {problemInfo.title}
+                        {question.title}
                     </h1>
 
-                    <p className='max-h-125 text-left leading-6 wrap-break-word overflow-scroll whitespace-normal' >
-                        {problemInfo.description}
+                    <p className='max-h-125 text-left leading-6 wrap-break-word overflow-scroll whitespace-pre' >
+                        {question.description}
                     </p>
-                    {/* {problemInfo.examples.map((e, idx) => {
+                    {testcases?.map((t, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1' >
-                                <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {e.inputs.map((i, i_idx) => {
+                                {/* <p className='font-bold'>Inputs <span className='font-normal'>
+                                    {t.input_data.map((i, i_idx) => {
                                         const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
                                         return `${i.name}: ${i.type}${separator}`
                                     })}
-                                </span></p>
-                                <p className='font-bold'>Outputs <span className='font-normal'>
-                                    {e.outputs.map((o, o_idx) => {
-                                        const separator = o_idx < e.outputs.length - 1 ? `, ` : `\n`
-                                        return `${o.name}: ${o.type}${separator}`
-                                    })}
-                                </span></p>
-                                <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>
+                                </span></p> */}
+                                <p className='font-bold'>Outputs: <span className='font-normal'>
+                                    {t.expected_output}</span>
+                                </p>
+                                {/* <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p> */}
                             </div>
                         </div>
-                    })} */}
+                    })}
                 </div>
             </TabsContent>
 
@@ -214,18 +192,6 @@ const CodeDescArea = (
                                     {selectedSubmission.status}
                                 </h1>
                             </div>
-
-                            <CodeBlock data-testid="code-block" data={code} defaultValue={code[0].language}>
-                                <CodeBlockBody data-testid="code-body" >
-                                    {(item) => (
-                                        <CodeBlockItem data-testid="code-item" key={item.language} value={item.language}>
-                                            <CodeBlockContent data-testid="code-content" language={item.language as BundledLanguage}>
-                                                {item.code}
-                                            </CodeBlockContent>
-                                        </CodeBlockItem>
-                                    )}
-                                </CodeBlockBody>
-                            </CodeBlock>
                         </div>
                         )}
                 </div>

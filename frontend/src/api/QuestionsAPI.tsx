@@ -1,13 +1,14 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Question } from "../types/questions/Question.type";
 import type { Riddle } from "../types/riddle/Riddle.type";
+import type { TestcaseType } from "@/types/questions/Testcases.type";
 
 export async function getQuestions(): Promise<Question[]> {
   try {
     const response = await axiosClient.get<{
       question_id: number;
       question_name: string;
-      description: string;
+      question_description: string;
       media: string;
       preset_code: string;
       template_solution: string;
@@ -18,7 +19,7 @@ export async function getQuestions(): Promise<Question[]> {
     const formatted: Question[] = response.data.map(q => ({
       id: q.question_id,
       title: q.question_name,
-      description: q.description,
+      description: q.question_description,
       media: q.media,
       preset_code: q.preset_code,
       template_solution: q.template_solution,
@@ -53,5 +54,35 @@ export async function getRiddles(): Promise<Riddle[]> {
   } catch (err) {
     console.error("Error fetching questions:", err);
     throw err;
+  }
+}
+
+export async function getTestcases(question_id: number): Promise<TestcaseType[]> {
+  try {
+      const response = await axiosClient.get<{
+          test_case_id: number,
+          question_id: number,
+          input_data: string,
+          // input_data: string,
+          expected_output: string,
+          caseID: string,
+      }[]>(`/questions/get-all-testcases/${question_id}`);
+      // }[]>(`/testcases/get-all-testcases/${question_id}`);
+
+      const formatted: TestcaseType[] = response.data.map(t => ({
+          test_case_id: t.test_case_id,
+          question_id: t.question_id,
+          input_data: JSON.parse(t.input_data),
+          expected_output: t.expected_output,
+          caseID: `Case ${response.data.indexOf(t) + 1}`,
+      }));
+
+      console.log("formatted")
+      console.log(formatted)
+
+      return formatted;
+    } catch (err) {
+      console.error("Error fetching testcases:", err);
+      throw err;
   }
 }

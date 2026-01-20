@@ -11,15 +11,41 @@ import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
-import { getCodeResponse, postCode } from '@/api/Judge0API';
+import { postCode } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
+import type { TestcaseType } from '@/types/questions/Testcases.type';
+import { getTestcases } from '@/api/QuestionsAPI';
+import { useTestcases } from '../helpers/useTestcases';
 
 
 const CodingView = () => {
   const { state } = useLocation()
   const question: Question = state.problem
+  if (!question?.id) {
+    console.log("Loading question")
+    // TODO: add loader on screen
+  }
+
+  const { testcases, addTestcase, removeTestcase, loading,
+        updateTestcase, activeTestcase, setActiveTestcase } 
+    = useTestcases(question?.id)
+
+  if (loading) {
+    console.log("Loading test cases")
+    // TODO: add loader on screen
+  }
+  // const { testcases } = useTestcases(question.id)
+  // const [ testcases, setTestcases ] = useState<TestcaseType[]>([])
+
+  // useEffect(() => {
+  //   const loadTestcases = async () => {
+  //     await getTestcases(question.id)
+  //             .then((response) => setTestcases(response))
+  //   }
+  //   loadTestcases()
+  // }, []);
 
   const submissions: SubmissionType[] = [
     { "status": "Accepted", "language": "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40" },
@@ -31,27 +57,13 @@ const CodingView = () => {
     console.log("submitting code")
   }
 
+  const [logs, setLogs] = useState<Response[]>([]);
+
   const runCode = async () => {
-    console.log("running")
-    // await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
-    //   .then((response) => {
-    //     console.log("response")
-    //     console.log(response)
-    //     let responseDetails = getCodeResponse("64.58.46.96:2368", response)
-    //     console.log("responseDetails")
-    //     console.log(responseDetails)
-    //     setLogs((prev) => [...prev, responseDetails])
-    //   })
-
-    let response = await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
-
-    console.log("responseDetails")
-    let responseDetails = await getCodeResponse("64.58.46.96:2358", response)
-    console.log(responseDetails)
-    setLogs((prev) => [...prev, responseDetails])
-    // setLogs(logs + "</br></br>" + responseDetails )
-    
-
+    await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
+            .then((r) => setLogs((prev) => [...prev, r]))
+    console.log("logs")
+    console.log(logs)
 
     // let token = postCode(
     //   "#include <stdio.h>\n\nint main(void) {\n  char name[10];\n  scanf(\"%s\", name);\n  printf(\"hello, %s\\n\", name);\n  return 0\n}",
@@ -66,7 +78,7 @@ const CodingView = () => {
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: "twoSum",
+    problemName: question.title,
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -77,9 +89,6 @@ const CodingView = () => {
   const [ code, setCode ] = useStateCallback<string>(templateCode)
 
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
-
-  // const [logs, setLogs] = useState("");
-  const [logs, setLogs] = useState<Promise<Response>[]>([]);
 
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -138,8 +147,9 @@ const CodingView = () => {
           defaultSize={50} minSize={5} //maxSize={100}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea problemInfo={question}
-            submissions={submissions} />
+          <CodeDescArea question={question}
+            submissions={submissions} //testcases={testcases}
+          />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle" 
@@ -271,7 +281,12 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases" 
                   className='max-h-full p-2.5' >
-                  <Testcases />
+                  <Testcases //question_id={question.id}
+                    testcases={testcases} activeTestcase={activeTestcase}
+                    setActiveTestcase={setActiveTestcase} addTestcase={addTestcase}
+                    removeTestcase={removeTestcase} updateTestcase={updateTestcase}
+                    // cases={testcases} 
+                  />
                 </TabsContent>
                 <TabsContent data-testid="results-tab" value="results"
                   className='h-full'

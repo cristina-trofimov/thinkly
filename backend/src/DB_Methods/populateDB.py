@@ -225,7 +225,7 @@ def main():
                 # Insert CompetitionLeaderboardEntry
                 leaderboard_entry = CompetitionLeaderboardEntry(
                     competition_id=comp.event_id,
-                    username=user.username,
+                    # username=user.username,
                     user_id=user.user_id,
                     total_score=participation.total_score,
                 )
