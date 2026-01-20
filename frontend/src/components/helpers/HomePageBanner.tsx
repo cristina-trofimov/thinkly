@@ -131,7 +131,7 @@ export default function HomePageBanner({ competitions }: HomePageBannerProps) {
         {competition.competitionTitle}
       </h1>
       <p className="text-white text-lg mb-3">
-        Get ready! The competition starts on {new Date(competition.startDate).toLocaleDateString()} at {new Date(competition.startDate).toLocaleTimeString()}.
+        Get ready! The competition starts on {new Date(competition.startDate).toLocaleDateString()} at {new Date(competition.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit',})}.
       </p>
     </div>
   );
