@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
 
     // 1. No token? Redirect to login.
     if (!token) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     try {
@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
         // 2. Token expired? Redirect to login.
         if (decoded.exp < currentTime) {
             localStorage.removeItem("token");
-            return <Navigate to="/login" replace />;
+            return <Navigate to="/" replace />;
         }
 
         // 3. Check Role
@@ -45,7 +45,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
             component: 'ProtectedRoute.tsx',
             url: window.location.href,
         })
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 };
 

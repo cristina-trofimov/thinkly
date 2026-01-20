@@ -42,5 +42,6 @@ describe('Sidebar Navigation', () => {
     });
     cy.wait(2000)
     cy.contains('Competition').click();
+
   });
 });

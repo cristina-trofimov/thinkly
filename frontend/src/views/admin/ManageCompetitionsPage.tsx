@@ -28,16 +28,27 @@ import { toast } from 'sonner';
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
 
-const getCompetitionStatus = (competitionDate: Date): "Completed" | "Active" | "Upcoming" => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compDate = new Date(competitionDate);
-  if (Number.isNaN(compDate.getTime())) return "Upcoming";
-  compDate.setHours(0, 0, 0, 0);
+const getCompetitionStatus = (
+  competitionStart: Date | string
+): "Completed" | "Active" | "Upcoming" => {
+  const now = new Date();
+  const start = new Date(competitionStart);
 
-  if (today.getTime() > compDate.getTime()) return "Completed";
-  if (today.getTime() === compDate.getTime()) return "Active";
-  return "Upcoming";
+  if (Number.isNaN(start.getTime())) return "Upcoming";
+
+  // If current time is before the start → Upcoming
+  if (now < start) return "Upcoming";
+
+  // If same calendar day and now >= start → Active
+  const sameDay =
+    now.getFullYear() === start.getFullYear() &&
+    now.getMonth() === start.getMonth() &&
+    now.getDate() === start.getDate();
+
+  if (sameDay) return "Active";
+
+  // Otherwise → Completed
+  return "Completed";
 };
 
 const formatCompetitionDate = (competitionDate: Date) => {
@@ -137,7 +148,7 @@ const ManageCompetitions = () => {
       return bTime - aTime;
     });
 
-  const handleView = (id: number) => {
+  const handleCardClick = (id: number) => {
     setSelectedCompetitionId(id);
     setEditDialogOpen(true);
   };
@@ -241,7 +252,11 @@ const ManageCompetitions = () => {
         {filteredCompetitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate);
           return (
-            <Card key={comp.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white">
+            <Card
+              key={comp.id}
+              className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer"
+              onClick={() => handleCardClick(comp.id)}
+            >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
                 <div className="relative z-10 text-center">
@@ -250,15 +265,10 @@ const ManageCompetitions = () => {
                 </div>
               </div>
               <CardContent className="p-4 pb-0 space-y-2">
-                <div>
-                  <h3 className="font-semibold text-base mb-1 line-clamp-1">{comp.competitionTitle}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
-                </div>
-                <div className="flex items-start justify-between pt-2 border-t">
-                  {/* Status on the left */}
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle}</h3>
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
                       status === "Active"
                         ? "bg-green-100 text-green-700"
                         : status === "Upcoming"
@@ -268,29 +278,22 @@ const ManageCompetitions = () => {
                   >
                     {status}
                   </span>
-
-                  {/* Actions on the right */}
-                  <div className="flex flex-col items-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:bg-primary/10"
-                      onClick={() => handleView(comp.id)}
-                    >
-                      View →
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:bg-destructive/10"
-                      onClick={(e) =>
-                        handleDeleteClick(comp.id, comp.competitionTitle, e)
-                      }
-                    >
-                      Delete <Trash2 className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
+                </div>
+                <div className="flex items-center justify-end pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={(e) =>
+                      handleDeleteClick(comp.id, comp.competitionTitle, e)
+                    }
+                  >
+                    Delete <Trash2 className="h-4 w-4 ml-1" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -366,3 +369,4 @@ const ManageCompetitions = () => {
 };
 
 export default ManageCompetitions;
+

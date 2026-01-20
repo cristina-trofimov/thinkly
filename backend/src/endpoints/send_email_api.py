@@ -135,7 +135,7 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | N
     try:
         logger.debug(f"Sending email via Brevo to {to}, subject: {subject[:30]}...")
         resp = requests.post(BREVO_SEND_URL, headers=headers, json=payload, timeout=20)
-    except requests.RequestException as e:
+    except Exception as e:
         logger.exception("Network error when calling Brevo API")
         raise RuntimeError(f"Network error calling Brevo: {e}")
 

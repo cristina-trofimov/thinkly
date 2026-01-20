@@ -31,7 +31,7 @@ def main():
     try:
         # ---------------- USERS ----------------
         users = []
-        for i in range(1, 11):
+        for i in range(1, 21):
             user = create_user(
                 db=db,
                 email=f"user{i}@example.com",
@@ -117,7 +117,7 @@ def main():
 
         # ---------------- PARTICIPATION + COMPETITION LEADERBOARD ----------------
         for comp in competitions[:4]:
-            participants = random.sample(users, random.randint(5, 8))
+            participants = random.sample(users, random.randint(15, 19))
 
             for rank, user in enumerate(participants, start=1):
                 db.add(
@@ -138,6 +138,7 @@ def main():
                         total_time=round(random.uniform(20, 90), 2),
                     )
                 )
+
 
         db.commit()
         print("✅ Competition leaderboard entries created")
