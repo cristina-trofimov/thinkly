@@ -61,7 +61,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Session = Depen
         logger.error(f"Error uploading question: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload question. Exception: {str(e)}")  
 
-@questions_router.post("/upload-question-batch")
+@questions_router.post("/upload-question-batch", status_code=201)
 def upload_question_batch(question_request: list[CreateQuestionRequest], db: Session = Depends(get_db)):
     try:
         questions = [

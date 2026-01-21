@@ -7,6 +7,8 @@ from types import SimpleNamespace
 import sys
 import os
 
+from backend.src.models.schema import Tag
+
 
 # 1. Boilerplate to make Python see the 'backend' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -117,3 +119,146 @@ def test_get_all_questions_db_error(client, mock_db):
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
     assert "Exception" in response.json()["detail"]
+
+def test_upload_question_success(client, mock_db):
+    """Test uploading a single question successfully."""
+    
+    question_payload = {
+        "question_name": "Sample Question",
+        "question_description": "This is a sample question.",
+        "difficulty": "easy",
+        "preset_code": "class PresetCode:\n    pass",
+        "from_string_function": "def from_string(s):\n    return s",
+        "to_string_function": "def to_string(obj):\n    return str(obj)",
+        "template_solution": "def solution():\n    pass",
+        "tags": ["sample", "test"],
+        "testcases": [
+            ("input1", "output1"),
+            ("input2", "output2")
+        ]
+    }
+
+    response = client.post("/upload-question", json=question_payload)
+    assert response.status_code == 201
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+
+def test_upload_question_batch_success(client, mock_db):
+    """Test uploading a batch of questions successfully."""
+    
+    batch_payload = [
+        {
+            "question_name": "Batch Question 1",
+            "question_description": "First question in batch.",
+            "difficulty": "medium",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def solution1():\n    pass",
+            "tags": ["batch", "first"],
+            "testcases": [
+                ("inputA", "outputA")
+            ]
+        },
+        {
+            "question_name": "Batch Question 2",
+            "question_description": "Second question in batch.",
+            "difficulty": "hard",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def solution2():\n    pass",
+            "tags": ["batch", "second"],
+            "testcases": [
+                ("inputB", "outputB")
+            ]
+        }
+    ]
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+    assert response.status_code == 201
+    mock_db.add_all.assert_called_once()
+    mock_db.commit.assert_called_once()
+
+def test_upload_question_db_error(client, mock_db):
+    """Test how the upload question endpoint handles a database exception."""
+    
+    question_payload = {
+        "question_name": "Error Question",
+        "question_description": "This will trigger a DB error.",
+        "difficulty": "easy",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solution():\n    pass",
+        "tags": [],
+        "testcases": []
+    }
+
+    # Arrange: Trigger an exception when commit is called
+    mock_db.commit.side_effect = Exception("DB Commit Failed")
+
+    response = client.post("/upload-question", json=question_payload)
+    assert response.status_code == 500
+    assert "Failed to upload question" in response.json()["detail"]
+
+def test_upload_question_invalid_payload(client):
+    """Test uploading a question with invalid payload."""
+    
+    invalid_payload = {
+        # Missing required fields like question_name, template_solution, etc.
+        "question_description": "Missing name and solution."
+    }
+
+    response = client.post("/upload-question", json=invalid_payload)
+    assert response.status_code == 422
+
+def test_upload_question_existing_name(client, mock_db):
+    """Test uploading a question with a name that already exists."""
+    
+    question_payload = {
+        "question_name": "Existing Question",
+        "question_description": "This question name already exists.",
+        "difficulty": "easy",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solution():\n    pass",
+        "tags": [],
+        "testcases": []
+    }
+
+    # Arrange: Simulate existing question by raising an IntegrityError on commit
+    from sqlalchemy.exc import IntegrityError
+    mock_db.commit.side_effect = IntegrityError("Unique constraint failed", params={}, orig=None)
+
+    response = client.post("/upload-question", json=question_payload)
+    assert response.status_code == 500
+    assert "Failed to upload question" in response.json()["detail"]
+
+def test_upload_question_existing_tags(client, mock_db):
+    """Test uploading a question with tags that already exist in the database."""
+    
+    question_payload = {
+        "question_name": "Tag Test Question",
+        "question_description": "Testing existing tags.",
+        "difficulty": "medium",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solution():\n    pass",
+        "tags": ["existing_tag1", "existing_tag2"],
+        "testcases": []
+    }
+
+    # Arrange: Mock existing tags in the database
+    existing_tags = [
+        Tag(tag_name="existing_tag1"),
+        Tag(tag_name="existing_tag2")
+    ]
+    mock_db.query.return_value.filter.return_value.all.return_value = existing_tags
+
+    response = client.post("/upload-question", json=question_payload)
+    assert response.status_code == 201
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
