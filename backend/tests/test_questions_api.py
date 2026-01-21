@@ -7,8 +7,7 @@ from types import SimpleNamespace
 import sys
 import os
 
-from backend.src.models.schema import Tag
-
+from src.endpoints.questions_api import Tag
 
 # 1. Boilerplate to make Python see the 'backend' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
