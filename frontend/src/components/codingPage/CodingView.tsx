@@ -5,7 +5,6 @@ import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { SubmissionType } from '../../types/SubmissionType.type';
 import { useStateCallback } from '../helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
@@ -15,14 +14,13 @@ import { postCode } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
-import type { TestcaseType } from '@/types/questions/Testcases.type';
-import { getTestcases } from '@/api/QuestionsAPI';
 import { useTestcases } from '../helpers/useTestcases';
 
 
 const CodingView = () => {
   const { state } = useLocation()
   const question: Question = state.problem
+
   if (!question?.id) {
     console.log("Loading question")
     // TODO: add loader on screen
@@ -36,25 +34,10 @@ const CodingView = () => {
     console.log("Loading test cases")
     // TODO: add loader on screen
   }
-  // const { testcases } = useTestcases(question.id)
-  // const [ testcases, setTestcases ] = useState<TestcaseType[]>([])
-
-  // useEffect(() => {
-  //   const loadTestcases = async () => {
-  //     await getTestcases(question.id)
-  //             .then((response) => setTestcases(response))
-  //   }
-  //   loadTestcases()
-  // }, []);
-
-  const submissions: SubmissionType[] = [
-    { "status": "Accepted", "language": "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40" },
-    { "status": "Runtime Error", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-23 17:40" },
-    { "status": "Wrong Answer", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40" },
-  ]
 
   const submitCode = () => {
     console.log("submitting code")
+    // TODO: add loader on screen
   }
 
   const [logs, setLogs] = useState<Response[]>([]);
@@ -147,9 +130,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5} //maxSize={100}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question}
-            submissions={submissions} //testcases={testcases}
-          />
+          <CodeDescArea question={question} testcases={testcases} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle" 
@@ -281,11 +262,10 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases" 
                   className='max-h-full p-2.5' >
-                  <Testcases //question_id={question.id}
+                  <Testcases 
                     testcases={testcases} activeTestcase={activeTestcase}
                     setActiveTestcase={setActiveTestcase} addTestcase={addTestcase}
                     removeTestcase={removeTestcase} updateTestcase={updateTestcase}
-                    // cases={testcases} 
                   />
                 </TabsContent>
                 <TabsContent data-testid="results-tab" value="results"

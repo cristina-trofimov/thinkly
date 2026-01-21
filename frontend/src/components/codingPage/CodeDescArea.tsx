@@ -10,16 +10,12 @@ import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import type { TestcaseType } from '@/types/questions/Testcases.type'
-import { useTestcases } from '../helpers/useTestcases'
 
 
 const CodeDescArea = (
-    { question, submissions }:
-    // { question, submissions, testcases }:
-    {
-        question: Question, submissions: SubmissionType[], 
-        // testcases: TestcaseType[] | undefined
-    }) => {
+    { question, testcases }:
+    { question: Question, testcases: TestcaseType[] }
+    ) => {
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -27,9 +23,12 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { testcases } = useTestcases(question.id)
-
     // TODO: Add the submission code
+    const submissions: SubmissionType[] = [
+        { "status": "Accepted", "language": "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40" },
+        { "status": "Runtime Error", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-23 17:40" },
+        { "status": "Wrong Answer", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40" },
+      ]
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -140,7 +139,7 @@ const CodeDescArea = (
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
                                     {t.expected_output}</span>
                                 </p>
-                                {/* <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p> */}
+                                {/* <p className='font-bold'>Explanation <span className='font-normal'>{t.explanation}</span></p> */}
                             </div>
                         </div>
                     })}

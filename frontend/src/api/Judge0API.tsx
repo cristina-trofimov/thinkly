@@ -1,6 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
 
-
 export async function postCode(
     ip: string,
     code: string,
@@ -30,14 +29,18 @@ export async function postCode(
                 "enable_network": null
             }
         )
-        
-        // await new Promise(resolve => setTimeout(resolve, 300))
-        
-        const getResponse = await axiosClient.get(`http://${ip}/submissions/` + postResponse.data.token);
 
-        console.log(getResponse.data)
+        let getResponse = await axiosClient.get(`http://${ip}/submissions/` + postResponse.data.token)
+        
+        while (getResponse.data.status.description === "In queue" || getResponse.data.status.description === "Processing") {
+            getResponse = await axiosClient.get(`http://${ip}/submissions/` + postResponse.data.token)
+            
+            console.log(getResponse.data.status.description)
+            
+            await new Promise(r => setTimeout(r, 500))
+        }
 
-        return await getResponse.data
+        return getResponse.data
     } catch (err) {
         console.error("Error running code:", err);
         throw err;

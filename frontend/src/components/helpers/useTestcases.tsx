@@ -1,11 +1,12 @@
 import { getTestcases } from "@/api/QuestionsAPI";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function useTestcases(question_id?: number) {
     const [ testcases, setTestcases ] = useState<TestcaseType[]>([])
     const [ loading, setLoading ] = useState(true)
-    const [activeTestcase, setActiveTestcase] = useState<string>(testcases[0].caseID);
+    const initRef = useRef(false)
+    const [activeTestcase, setActiveTestcase] = useState<string>("");
 
     useEffect(() => {
         if (!question_id) return;
@@ -16,12 +17,13 @@ export function useTestcases(question_id?: number) {
             .finally(() => setLoading(false))
     }, [question_id]);
 
-    //     const loadTestcases = async () => {
-    //     await getTestcases(question_id)
-    //             .then((response) => setTestcases(response))
-    //     }
-    //     loadTestcases()
-    // }, []);
+    useEffect(() => {
+        // To load default test case
+        if (!initRef.current && testcases.length > 0) {
+            setActiveTestcase(testcases[0]?.caseID)
+            initRef.current = true
+        }
+    }, [testcases]);
 
     const addTestcase = () => {
         const newCase: TestcaseType = {

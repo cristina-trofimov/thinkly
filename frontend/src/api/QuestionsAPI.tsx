@@ -67,7 +67,6 @@ export async function getTestcases(question_id: number): Promise<TestcaseType[]>
           expected_output: string,
           caseID: string,
       }[]>(`/questions/get-all-testcases/${question_id}`);
-      // }[]>(`/testcases/get-all-testcases/${question_id}`);
 
       const formatted: TestcaseType[] = response.data.map(t => ({
           test_case_id: t.test_case_id,
@@ -76,9 +75,6 @@ export async function getTestcases(question_id: number): Promise<TestcaseType[]>
           expected_output: t.expected_output,
           caseID: `Case ${response.data.indexOf(t) + 1}`,
       }));
-
-      console.log("formatted")
-      console.log(formatted)
 
       return formatted;
     } catch (err) {
