@@ -43,7 +43,7 @@ Provide setup instructions, dependencies, and commands here.
 - Database setup
 - Other dependencies
 
-### Installation
+### Installation with Docker
 
 Docker commands (to run in root of project)</br>
 **have docker desktop installed and opened**</br>
@@ -53,56 +53,21 @@ Docker commands (to run in root of project)</br>
 4-  ```docker ps``` (view running containers)</br></br>
 
 
+|| **Frontend** | **Backend** |
+|------|-----------------|-----------------|
+| **Installation** | 1- ```cd frontend```</br>2- ```npm install```</br></br> | **Create virtual environment** </br>1- ```cd backend```</br>2- ```python -m venv .venv```</br></br> **Install Python dependencies** </br>1- ```cd backend```</br>2- ```pip install -r src/requirements.txt```</br></br>|
+| **Run** | 1- ```cd frontend```</br>2- ```npm run dev```</br></br> | 1- ```cd backend```</br>2- ```python src/main.py```</br></br> |
+| **Run Tests** | **Jest Tests**</br>1- ```cd frontend```</br>2- ```npm test```</br></br> **Cypress**</br>1- ```cd frontend```</br>2- ```npm run cypress:open```</br></br> | **Pytest**</br>1- ```cd backend```</br>2- ```python -m pytest -v```</br> |
+| **Linting** | 1- ```cd frontend```</br>2- ```npm run lint```</br>or </br>2- ```npm run lint -- --fix``` (will auto-fix some issues) </br> | 1- ```cd backend```</br>2- ```ruff check src/```</br>or </br>2- ```ruff check src/ --fix``` (will auto-fix some issues)</br> |
 
-installing the frontend</br>
-1- ```cd frontend```</br>
-2- ```npm install```</br></br>
-to run frontend</br>
-1- ```cd frontend```</br>
-2- ```npm run dev```</br></br>
-to run jest </br>
-1- ```cd frontend```</br>
-2- ```npm test```</br></br>
-
-to run cypress</br>
-1- ```cd frontend```</br>
-2- ```npm run cypress:open```</br></br>
-
-INSTALLING THE BACKEND</br>
-create virtual environement</br>
-1- ```cd backend```</br>
-2- ```python -m venv .venv```</br>
-install python dependencies</br>
-1- ```cd backend```</br>
-2- ```pip install -r src/requirements.txt```</br></br>
-to run python</br>
-1- ```cd backend```</br>
-2- ```python src/main.py```</br></br>
-run pytest</br>
-1- ```cd backend```</br>
-2- ```python -m pytest -v```</br>
-
-LINTING</br>
-frontend </br>
-1- ```cd frontend```</br>
-2- ```npm run lint```</br>
-or
-2- ```npm run lint -- --fix``` (will auto-fix some issues) </br>
-
-backend </br>
-1- ```cd backend```</br>
-2- ```ruff check src/```</br>
-or </br>
-2- ```ruff check src/ --fix``` (will auto-fix some issues)</br>
-
-## If you have any issues with creating your database
-1. Download pgAdmin4
-2. Right click on Servers, select Register then Server
-3. Name it whatever you want in the General tab
-4. Go to Connection tab, name it  ```localhost``` again and set Port to 5432 (if you change either of these, then make sure to update src/db.py so the local provider can match the postgres one)
+## Database Creation
+1. Download **pgAdmin4**
+2. Right click on `Servers`, select `Register` then `Server`
+3. Name it whatever you want in the `General` tab
+4. Go to `Connection` tab, name it  ```localhost``` again and set Port to 5432 (if you change either of these, then make sure to update src/db.py so the local provider can match the postgres one)
 5. Set username and password (we set both to postgres by default but you can change it to whatever, just make sure to update db.py)
-6. Still in pgAdmin4, right click on Databases, and create a new one
-7. Name it ThinklyDB
-8. Make sure the Locale Provider under the Definition tab matches the template you use (libc or icu, or whatever else)
+6. Still in **pgAdmin4**, right click on `Databases`, and create a new one
+7. Name it **ThinklyDB**
+8. Make sure the `Locale Provider` under the `Definition` tab matches the template you use (libc or icu, or whatever else)
 9. In your terminal, cd backend then run ```python src/init_db.py```
 10. Then cd src (still in backend) and run ```python -m populateDB```
