@@ -13,7 +13,7 @@ const getApiUrl = (): string => {
   }
 
   // Default fallback
-  return "http://localhost:8000";
+  return "https://thinkly-production.up.railway.app/";
 };
 
 const API_URL = getApiUrl();
