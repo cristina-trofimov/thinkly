@@ -171,7 +171,7 @@ export default function CreateCompetition() {
         emailNotification: emailEnabled ? {
           to: emailToAll ? "all participants" : emailData.to.trim(),
           subject: emailData.subject.trim(),
-          text: emailData.text.trim(),
+          body: emailData.text.trim(),
           sendInOneMinute: emailData.sendInOneMinute,
           sendAtLocal: sendAtUTC,
         } : undefined,
@@ -286,7 +286,18 @@ export default function CreateCompetition() {
                   )}
                   <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({ ...emailData, subject: e.target.value })} /></div>
                   <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.text} onChange={e => { setEmailManuallyEdited(true); setEmailData({ ...emailData, text: e.target.value }); }} /></div>
+                  <div className="grid gap-2">
+                  <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
+                  <Input
+                    id="sendAtLocal"
+                    type="datetime-local"
+                    value={emailData.sendAtLocal}
+                    onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                  />
                 </div>
+                </div>
+
+
               )}
             </CardContent>
           </Card>

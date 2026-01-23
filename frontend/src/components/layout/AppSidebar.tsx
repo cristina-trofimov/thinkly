@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Bot,
   LayoutDashboardIcon,
-  Settings2,
   SquareTerminal,
   Trophy
 } from "lucide-react"
@@ -23,38 +22,35 @@ import {
 import { getProfile } from "@/api/AuthAPI"
 import type { Account } from "@/types/account/Account.type"
 
-// Sample data - can keep navMain and other even when backend is implemented, but remove user
-const data = {
-  navMain: [
-    {
-      name: "AlgoTime",
-      url: "/app/algotime",
-      icon: SquareTerminal,
-    },
-    {
-      name: "Competition",
-      url: "/app/competition",
-      icon: Bot,
-    },
-    {
-      name: "Settings",
-      url: "/app/settings",
-      icon: Settings2,
-    },
-  ],
-  navOther: [
-    {
-      name: "Leaderboards",
-      url: "/app/leaderboards",
-      icon: Trophy,
-    },
-    {
-      name: "Dashboard",
-      url: "/app/dashboard",
-      icon: LayoutDashboardIcon,
-    },
-  ],
-}
+// Static data definitions
+const navMain = [
+  {
+    name: "AlgoTime",
+    url: "/app/algotime",
+    icon: SquareTerminal,
+  },
+  {
+    name: "Competition",
+    url: "/app/competitions",
+    icon: Bot,
+  },
+];
+
+const navOther = [
+  {
+    name: "Leaderboards",
+    url: "/app/leaderboards",
+    icon: Trophy,
+  },
+  {
+    name: "Dashboard",
+    url: "/app/dashboard",
+    icon: LayoutDashboardIcon,
+    // Add a permission flag here if you want to be generic,
+    // or we can hardcode the check in the component
+    requiresAdmin: true
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [user, setUser] = React.useState<Account | null>(null);
@@ -63,13 +59,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const fetchUser = async () => {
       try {
         const currentAccount = await getProfile();
+        console.log("Fetched user profile:", currentAccount);
         setUser({
-            id: currentAccount.id,
-            firstName: currentAccount.firstName,
-            lastName: currentAccount.lastName,
-            email: currentAccount.email,
-            accountType: currentAccount.accountType, 
-          });
+          id: currentAccount.id,
+          firstName: currentAccount.firstName,
+          lastName: currentAccount.lastName,
+          email: currentAccount.email,
+          accountType: currentAccount.accountType,
+        });
       } catch (error) {
         console.error("Failed to load user profile:", error);
       }
@@ -77,7 +74,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
     fetchUser();
   }, []);
-  
+
+  // 🔒 Filter logic:
+  // We recreate the 'navOther' list based on the user's role.
+  const filteredOtherLinks = React.useMemo(() => {
+    if (!user) return []; // Or return just public links if you prefer
+
+    const isAdminOrOwner = ['admin', 'owner'].includes(user.accountType);
+
+    return navOther.filter(item => {
+      // If the item requires admin and the user is NOT one, hide it.
+      if (item.requiresAdmin && !isAdminOrOwner) {
+        return false;
+      }
+      return true;
+    });
+  }, [user]);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -102,10 +115,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavSection link={data.navMain} label="Platform" />
-        <NavSection link={data.navOther} label="Other" />
+        {/* navMain is static for everyone */}
+        <NavSection link={navMain} label="Platform" />
+
+        {/* 🔒 Use the filtered list here */}
+        <NavSection link={filteredOtherLinks} label="Other" />
       </SidebarContent>
+
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>

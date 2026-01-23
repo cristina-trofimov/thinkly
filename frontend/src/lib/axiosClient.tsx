@@ -13,7 +13,7 @@ const getApiUrl = (): string => {
   }
 
   // Default fallback
-  return "http://localhost:8000";
+  return "https://thinkly-production.up.railway.app/";
 };
 
 const API_URL = getApiUrl();
@@ -54,7 +54,7 @@ axiosClient.interceptors.response.use(
 
     if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.href = "/";
     }
 
     return Promise.reject(error);

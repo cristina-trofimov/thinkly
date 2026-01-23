@@ -1,0 +1,52 @@
+import React from "react";
+import { Navigate, Outlet } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import type { DecodedToken } from "@/types/Auth.type";
+import { logFrontend } from "@/api/LoggerAPI";
+
+interface ProtectedRouteProps {
+    allowedRoles: string[]; // e.g. ['admin', 'owner']
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
+    const token = localStorage.getItem("token");
+
+    // 1. No token? Redirect to login.
+    if (!token) {
+        return <Navigate to="/" replace />;
+    }
+
+    try {
+        const decoded = jwtDecode<DecodedToken>(token);
+        const currentTime = Date.now() / 1000;
+
+        // 2. Token expired? Redirect to login.
+        if (decoded.exp < currentTime) {
+            localStorage.removeItem("token");
+            return <Navigate to="/" replace />;
+        }
+
+        // 3. Check Role
+        // ⚠️ Note: Your Python backend uses 'participant', not 'user'. 
+        // Ensure allowedRoles matches your DB strings exactly.
+        if (!allowedRoles.includes(decoded.role)) {
+            return <Navigate to="/unauthorized" replace />;
+        }
+
+        // 4. Authorized: Render the page
+        return <Outlet />;
+
+    } catch (error) {
+        // 5. Corrupt token? Clear it and redirect.
+        localStorage.removeItem("token");
+        logFrontend({
+            level: 'ERROR',
+            message: `Corrupt token: ${(error as Error).message}`,
+            component: 'ProtectedRoute.tsx',
+            url: window.location.href,
+        })
+        return <Navigate to="/" replace />;
+    }
+};
+
+export default ProtectedRoute;

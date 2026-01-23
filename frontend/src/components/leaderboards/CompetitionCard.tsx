@@ -8,10 +8,12 @@ import type { CompetitionWithParticipants } from "@/types/competition/Competitio
 
 interface Props {
   readonly competition: CompetitionWithParticipants;
+  readonly isCurrent?: boolean;
+  readonly currentUserId?: number;
 }
 
-export function CompetitionCard({ competition }: Props) {
-  const [open, setOpen] = useState(false);
+export function CompetitionCard({ competition, isCurrent = false, currentUserId }: Props) {
+  const [open, setOpen] = useState(isCurrent); // Auto-open if current competition
 
   const hasScoreboard = competition.participants && competition.participants.length > 0;
 
@@ -20,7 +22,7 @@ export function CompetitionCard({ competition }: Props) {
     return null;
   }
 
-  const backgroundColor = open ? "bg-white" : "bg-gray-50";
+  const backgroundColor = open ? "bg-white" : isCurrent ? "bg-purple-50" : "bg-gray-50";
   const statusIndicator = open ? (
     <ChevronUp className="w-5 h-5 text-gray-600" />
   ) : (
@@ -28,7 +30,7 @@ export function CompetitionCard({ competition }: Props) {
   );
 
   return (
-    <Card className={`mb-6 shadow-sm border border-gray-200 ${backgroundColor}`}>
+    <Card className={`mb-6 shadow-sm border ${isCurrent ? 'border-[#8065CD]' : 'border-gray-200'} ${backgroundColor}`}>
       <CardHeader
         onClick={() => setOpen(!open)}
         className="flex flex-row items-center justify-between px-6 py-4 cursor-pointer"
@@ -37,7 +39,17 @@ export function CompetitionCard({ competition }: Props) {
           <CardTitle className="text-lg font-semibold text-[#8065CD]">
             {competition.competitionTitle}
           </CardTitle>
-          <p className="text-sm text-gray-500">{competition.date.toString()}</p>
+          <p className="text-sm text-gray-500">
+            {competition.date.toLocaleString("en-US", {
+              weekday: "short",
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -47,7 +59,11 @@ export function CompetitionCard({ competition }: Props) {
 
       {open && (
         <CardContent className="overflow-x-auto p-6 bg-white border-t">
-          <ScoreboardDataTable participants={competition.participants} />
+          <ScoreboardDataTable
+            participants={competition.participants}
+            currentUserId={currentUserId}
+            showSeparator={competition.showSeparator}
+          />
         </CardContent>
       )}
     </Card>

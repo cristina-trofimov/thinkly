@@ -11,8 +11,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-const GOOGLE_CLIENT_ID =
-  "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.googleusercontent.com";
 
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
@@ -31,11 +29,16 @@ import ResetPasswordForm from "./components/forms/ResetPasswordForm";
 import ManageRiddles from "./views/admin/ManageRiddlePage.tsx";
 import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
+import Unauthorized from "./views/Unauthorized.tsx";
+import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
 
 const router = createBrowserRouter([
+  // --- PUBLIC ROUTES ---
   {
     path: "/",
-    element: <LoginPage />, // 👈 LoginPage loads first
+    element: <LoginPage />,
   },
   {
     path: "/signup",
@@ -47,156 +50,121 @@ const router = createBrowserRouter([
   },
   {
     path: "/reset-password",
-    element: <ResetPasswordForm  />,
+    element: <ResetPasswordForm />,
   },
   {
-    path: "/app", // 👈 everything else under /app
+    path: "/unauthorized",
+    element: <Unauthorized />,
+  },
+
+  // --- PROTECTED ROUTES ---
+  {
+    path: "/app",
     element: <Layout />,
     errorElement: <ErrorPage />,
-
     children: [
+
       {
-        index: true,
-        element: <Navigate to="/app/home" replace />,
-      },
-      {
-        path: "home",
-        element: (
-          <div className="min-h-screen h-full">
-            <HomePage />
-          </div>
-        ),
-        handle: {
-          crumb: { title: "Home Page" },
-        },
-      },
-      {
-        path: "algotime",
-        element: <div>AlgoTime</div>,
-        handle: {
-          crumb: { title: "AlgoTime" },
-        },
-      },
-      {
-        path: "competition",
-        element: <div>Competition</div>,
-        handle: {
-          crumb: { title: "Competition" },
-        },
-      },
-      {
-        path: "settings",
-        element: <div>Settings</div>,
-        handle: {
-          crumb: { title: "Settings" },
-        },
-      },
-      {
-        path: "leaderboards",
-        element: <Leaderboards />,
-        handle: {
-          crumb: { title: "Leaderboards" },
-        },
+        element: <ProtectedRoute allowedRoles={["participant", "owner", "admin"]} />,
         children: [
           {
             index: true,
-            element: <div>Competitions</div>,
+            element: <Navigate to="/app/home" replace />,
           },
           {
-            path: ":competitionId",
-            element: <div>Competition Leaderboard</div>,
+            path: "home",
+            element: (
+              <div className="min-h-screen h-full">
+                <HomePage />
+              </div>
+            ),
+            handle: { crumb: { title: "Home Page" } },
+          },
+          {
+            path: "code/:problem_title",
+            element: <CodingView />,
             handle: {
-              crumb: { title: "Competition Leaderboard" },
+              crumb: { title: "Coding" },
             },
           },
-        ],
-      },
-      {
-        path: "dashboard",
-        element: <AdminDashboard />,
-        handle: {
-          crumb: { title: "Admin Dashboard" }
-        },
-        children: [
           {
-            index: true,
-            element: <div>Admin Dashboard</div>,
+            path: "leaderboards",
+            element: <Leaderboards />,
+            handle: { crumb: { title: "Leaderboards" } },
+            children: [
+              { index: true, element: <div>Competitions</div> },
+              {
+                path: ":competitionId",
+                element: <div>Competition Leaderboard</div>,
+                handle: { crumb: { title: "Competition Leaderboard" } },
+              },
+            ],
           },
           {
-            path: "competitions",
-            element: <ManageCompetitions />,
-            handle: {
-              crumb: { title: "Manage Competitions" }
-            },
+            path: "profile",
+            element: <ProfilePage />,
+            handle: { crumb: { title: "Profile" } },
             children: [
               {
-                path: "createCompetition",
-                element: <CreateCompetition />,
-                handle: {
-                  crumb: { title: "Create Competition" }
-                }
+                path: "changePassword",
+                element: <ChangePasswordPage />,
+                handle: { crumb: { title: "Change Password" } },
               },
-            ]
-          },
-          {
-            path: "manageAccounts",
-            element: <ManageAccountsPage />,
-            handle: {
-              crumb: { title: "Manage Accounts" }
-            }
-          },
-          {
-            path: "manageRiddles",
-            element: <ManageRiddles />,
-            handle: {
-              crumb: { title: "Manage Riddles" }
-            }
-          },
-          {
-            path: "algoTimeSessions",
-            element: <ManageAlgotimeSessionsPage />,
-            handle: {
-              crumb: { title: "Manage Algotime Sessions" }
-            },
-            children: [
-              {
-                path: "algoTimeSessionsManagement",
-                element: <ManageAlgoTimePage />,
-                handle: {
-                  crumb: { title: "Create AlgoTime Session" }
-                }
-              },
-            ]
+            ],
           },
         ]
       },
+
+      // 2. ADMIN ACCESS ONLY (Owner, Admin)
+      // If a 'participant' tries to go here, they get sent to /unauthorized
       {
-        path: "code",
-        element: <CodingView />,
-        handle: {
-          crumb: { title: "Coding" },
-        },
-      },
-      {
-        path: "code/:problem_title",
-        element: <CodingView />,
-        handle: {
-          crumb: { title: "Coding" },
-        },
-      },
-      {
-        path: "profile",
-        element: <ProfilePage />,
-        handle: {
-          crumb: { title: "Profile" },
-        },
+        element: <ProtectedRoute allowedRoles={["owner", "admin"]} />,
         children: [
           {
-            path: "changePassword",
-            element: <ChangePasswordPage />,
-            handle: {
-              crumb: { title: "Change Password" },
-            },
+            path: "dashboard",
+            element: <AdminDashboard />,
+            handle: { crumb: { title: "Admin Dashboard" } },
+            children: [
+              { index: true, element: <div>Admin Dashboard Overview</div> },
+              {
+                path: "competitions",
+                element: <ManageCompetitions />,
+                handle: { crumb: { title: "Manage Competitions" } },
+                children: [
+                  {
+                    path: "createCompetition",
+                    element: <CreateCompetition />,
+                    handle: { crumb: { title: "Create Competition" } },
+                  },
+                ],
+              },
+              {
+                path: "manageAccounts",
+                element: <ManageAccountsPage />,
+                handle: { crumb: { title: "Manage Accounts" } },
+              },
+              {
+                path: "manageRiddles",
+                element: <ManageRiddles />,
+                handle: { crumb: { title: "Manage Riddles" } },
+              },
+              {
+                path: "algoTimeSessions",
+                element: <ManageAlgotimeSessionsPage />,
+                handle: {
+                  crumb: { title: "Manage Algotime Sessions" }
+                },
+                children: [
+                  {
+                    path: "algoTimeSessionsManagement",
+                    element: <ManageAlgoTimePage />,
+                    handle: {
+                      crumb: { title: "Create AlgoTime Session" }
+                    }
+                  },
+                ]
+              },
+            ],
           },
         ],
       },
