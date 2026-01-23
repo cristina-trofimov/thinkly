@@ -12,7 +12,7 @@ describe('Manage Competitions Page', () => {
     // IMPORTANT: I added 'https://thinkly-production.up.railway.app' to ensure we only intercept 
     // the BACKEND request, not the frontend page load.
     // If your API port is different, change 8000.
-    cy.intercept('GET', 'https://thinkly-production.up.railway.app/**/*ompetition*', {
+    cy.intercept('GET', '/**/competitions*', {
       statusCode: 200,
       body: [
         {
