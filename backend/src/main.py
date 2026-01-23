@@ -42,6 +42,12 @@ app.add_middleware(
 def root():
     return {"message": "Backend is running!"}
 
+@app.get("/__config")
+def config():
+    return {
+        "allowed_origins": origins,
+    }
+
 # Include routers
 try:
     app.include_router(log_router, prefix="/log")
