@@ -1,0 +1,16 @@
+[build]
+  # Your existing build settings (if any)
+
+[configuration]
+  # Step 3 fix: Ignore package-lock.json because it triggers false positives 
+  # on generic words like "postgres"
+  secretsScanOmitPaths = ["package-lock.json", "yarn.lock"]
+
+  # Step 2 fix: Explicitly allow public keys
+  secretsScanOmitKeys = [
+    "GOOGLE_CLIENT_ID",
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "DEFAULT_SENDER_NAME",
+    "DEFAULT_SENDER_EMAIL"
+  ]

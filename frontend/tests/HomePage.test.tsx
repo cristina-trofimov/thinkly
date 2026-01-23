@@ -13,7 +13,7 @@ jest.mock('../src/api/LoggerAPI', () => ({
 
 jest.mock('../src/config', () => ({
     config: {
-        backendUrl: 'http://localhost:8000'
+        backendUrl: 'https://thinkly-production.up.railway.app'
     }
 }));
 

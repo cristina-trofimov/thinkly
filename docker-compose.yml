@@ -22,7 +22,7 @@ services:
       - ./frontend:/app
       - /app/node_modules  # Prevent host node_modules from overwriting container's
     environment:
-      - VITE_BACKEND_URL=http://localhost:8000
+      - VITE_BACKEND_URL=https://thinkly-production.up.railway.app
     depends_on:
       - backend
     env_file:
