@@ -1,4 +1,4 @@
 // src/__mocks__/config.ts
 export const config = {
-  backendUrl: 'http://localhost:8000',
+  backendUrl: 'https://thinkly-production.up.railway.app',
 };

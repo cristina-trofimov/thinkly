@@ -11,8 +11,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-const GOOGLE_CLIENT_ID =
-  "622761118132-r0i8qolh6dpgmovcjb2qiur4lm7mpfmq.apps.googleusercontent.com";
 
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
@@ -33,6 +31,8 @@ import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
 
 const router = createBrowserRouter([
   // --- PUBLIC ROUTES ---
