@@ -26,12 +26,10 @@ const Testcases = (
 ) => {
 
     return (
-        <Tabs value={activeTestcase} onValueChange={setActiveTestcase} >
-            <div className='flex ' >
+        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase} >
+            <div key="testcases-triggers" className='flex' >
                 <TabsList className='w-full flex gap-2' >
                     {testcases?.map((tc) => (
-                        // let caseNum = idx + 1
-
                         <TabsTrigger value={tc?.caseID} key={`trigger-${tc?.caseID}`} data-testid={`trigger-${tc?.caseID}`}
                             className='rounded-sm p-2 flex items-center gap-1
                             data-[state=active]:text-primary
@@ -51,7 +49,7 @@ const Testcases = (
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                <Button size={"icon"} variant={'ghost'} onClick={addTestcase}
+                <Button key="add-testcase-btn" size={"icon"} variant={'ghost'} onClick={addTestcase}
                     className=" hover:text-primary"
                 >
                     <Plus size={4} />
@@ -61,21 +59,16 @@ const Testcases = (
                 <TabsContent value={tc.caseID} key={`content-${tc.caseID}`} data-testid={`content-${tc.caseID}`} 
                     className='mt-3 space-y-6'
                 >
-                    <div className='space-y-2' >
-                        <Label>Input(s)</Label>
-                        {/* {c.input_data.map((input) => {
-                            // 
-                        })} */}
-                        {/* <Input value={c.input_data}
-                            onChange={(e) => updateTestcase(c.caseID, "input_data", e.target.value)}
-                        /> */}
-                    </div>
-                    <div className='space-y-2' >
-                        <Label>Expected output</Label>
-                        <Input value={tc.expected_output}
-                            onChange={(e) => updateTestcase(tc.caseID, "expected_output", e.target.value)}
-                        />
-                    </div>
+                    {Object.entries(tc.input_data).map(([key, val]) => (
+                        <div className='flex flex-col gap-2' >
+                            <Label >
+                                {key}
+                            </Label>
+                            <Input key={key} value={`${val}`}
+                                onChange={(e) => updateTestcase(tc.caseID, "input_data", e.target.value)}
+                            />
+                        </div>
+                    ))}
                 </TabsContent>
             ))}
         </Tabs>

@@ -24,11 +24,6 @@ const CodeDescArea = (
     ]
 
     // TODO: Add the submission code
-    const submissions: SubmissionType[] = [
-        { "status": "Accepted", "language": "Java", "memory": "15.6 MB", "runtime": "14 MS", "submittedOn": "2025-10-27 17:40" },
-        { "status": "Runtime Error", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-23 17:40" },
-        { "status": "Wrong Answer", "language": "Java", "memory": "N/A", "runtime": "N/A", "submittedOn": "2025-10-24 17:40" },
-      ]
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -123,19 +118,19 @@ const CodeDescArea = (
                         {question.title}
                     </h1>
 
-                    <p className='max-h-125 text-left leading-6 wrap-break-word overflow-scroll whitespace-pre' >
+                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre' >
                         {question.description}
                     </p>
                     {testcases?.map((t, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1' >
-                                {/* <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {t.input_data.map((i, i_idx) => {
-                                        const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
-                                        return `${i.name}: ${i.type}${separator}`
+                                <p className='font-bold'>Inputs <span className='font-normal'>
+                                    {Object.entries(t.input_data).map(([key, val], idx) => {
+                                        const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
+                                        return `${key} = ${val}${separator}`
                                     })}
-                                </span></p> */}
+                                </span></p>
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
                                     {t.expected_output}</span>
                                 </p>
@@ -160,26 +155,7 @@ const CodeDescArea = (
                                 </TableRow>
                             </TableHeader>
 
-                            <TableBody>
-                                {submissions.map((s, idx) => {
-                                    return (
-                                        <TableRow key={`submission ${idx + 1}`} >
-                                            <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
-                                                <span>{s.status}</span>
-                                                <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>
-                                            </TableCell>
-                                            <TableCell className="" >{s.language}</TableCell>
-                                            <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
-                                            <TableCell className="text-right text-gray-500" >{s.runtime}</TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-
-                            <TableFooter className='mt-3' >
-                                <TableRow><TableCell colSpan={4} className='text-gray-500' >{submissions.length} attempt{submissions.length > 1 ? 's' : ''}</TableCell>
-                                </TableRow>
-                            </TableFooter>
+                            
                         </Table>
                         : (<div>
                             <div className='flex flex-row gap-6 items-center mb-4' >

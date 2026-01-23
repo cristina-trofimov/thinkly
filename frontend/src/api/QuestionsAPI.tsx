@@ -63,7 +63,6 @@ export async function getTestcases(question_id: number): Promise<TestcaseType[]>
           test_case_id: number,
           question_id: number,
           input_data: string,
-          // input_data: string,
           expected_output: string,
           caseID: string,
       }[]>(`/questions/get-all-testcases/${question_id}`);

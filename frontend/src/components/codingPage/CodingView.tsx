@@ -10,7 +10,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
-import { postCode } from '@/api/Judge0API';
+import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
@@ -40,21 +40,14 @@ const CodingView = () => {
     // TODO: add loader on screen
   }
 
-  const [logs, setLogs] = useState<Response[]>([]);
+  const logs: Response[] = []
 
   const runCode = async () => {
-    await postCode("64.58.46.96:2358", code, judgeID, "Judge0", null)
-            .then((r) => setLogs((prev) => [...prev, r]))
-    console.log("logs")
-    console.log(logs)
+    const response = await submitToJudge0("64.58.46.96:2358", code, judgeID, "Judge0", null)    
+    logs.push(response)
 
-    // let token = postCode(
-    //   "#include <stdio.h>\n\nint main(void) {\n  char name[10];\n  scanf(\"%s\", name);\n  printf(\"hello, %s\\n\", name);\n  return 0\n}",
-    //   "50", "Judge0", null
-    // )
-    // console.log(token)
-    // let response = getCodeResponse("d42360ba-0746-4049-863f-a496295233ca")
-    // console.log(response)
+    console.log("log")
+    console.log(logs)
   }
 
   const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
@@ -270,14 +263,15 @@ const CodingView = () => {
                 </TabsContent>
                 <TabsContent data-testid="results-tab" value="results"
                   className='h-full'
-                  style={{
-                    background: "#1e1e1e", color: "white", padding: "10px",
-                    overflowY: "auto"
-                  }}
+                  // style={{
+                  //   background: "#1e1e1e", color: "white", padding: "10px",
+                  //   overflowY: "auto"
+                  // }}
                 >
-                  {/* {logs.map((log) => (
-                    <samp>{log}</samp>
-                  ))} */}
+                  {logs.map((log) => (
+                    <code>{log}</code>
+                    // <samp>{log}</samp>
+                  ))}
                   {/* <samp>{logs}</samp> */}
                 </TabsContent>
               </Tabs>
