@@ -25,6 +25,10 @@ const Testcases = (
     }
 ) => {
 
+    if (!testcases) {
+        addTestcase()
+    }
+
     return (
         <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase} >
             <div key="testcases-triggers" className='flex' >
