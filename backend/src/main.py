@@ -27,7 +27,9 @@ async def log_requests(request: Request, call_next):
 origins = [
     "http://localhost:5173",      # local dev (outside Docker)
     "http://vite-frontend:5173",  # Docker service name from docker-compose
-    "http://127.0.0.1:5173",  # Create React App
+    "http://127.0.0.1:5173",
+    "https://thinklyscs.com",
+    "https://wwww.thinklyscs.com"# Create React App
 ]
 app.add_middleware(
     CORSMiddleware,
