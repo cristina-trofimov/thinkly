@@ -263,16 +263,7 @@ const CodingView = () => {
                 </TabsContent>
                 <TabsContent data-testid="results-tab" value="results"
                   className='h-full'
-                  // style={{
-                  //   background: "#1e1e1e", color: "white", padding: "10px",
-                  //   overflowY: "auto"
-                  // }}
                 >
-                  {logs.map((log) => (
-                    <code>{log}</code>
-                    // <samp>{log}</samp>
-                  ))}
-                  {/* <samp>{logs}</samp> */}
                 </TabsContent>
               </Tabs>
             </Panel>
