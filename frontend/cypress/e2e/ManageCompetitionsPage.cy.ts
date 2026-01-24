@@ -27,6 +27,13 @@ describe('Manage Competitions Page', () => {
       ],
     }).as('getCompetitions');
 
+    const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9.mock';
+    cy.visit('/app/dashboard', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('token', mockToken);
+      },
+    });
+
     // 3. USE cy.visit() TO LOAD THE UI
     cy.visit('http://localhost:5173/app/dashboard/competitions', {
       onBeforeLoad: (window) => {
@@ -39,7 +46,7 @@ describe('Manage Competitions Page', () => {
   });
 
   it('Checks all elements are present', () => {
-//    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
+    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
     cy.contains('All competitions').should('be.visible');
     cy.contains('Create New Competition').should('be.visible');
   });
