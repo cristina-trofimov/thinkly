@@ -91,23 +91,24 @@ class ParticipationDataPoint(BaseModel):
 # ---------------- Helper Functions ----------------
 
 # Time range configuration: maps time_range to (days, label)
+DEFAULT_TIME_RANGE = (90, "3 months")
 TIME_RANGE_CONFIG = {
     "7days": (7, "7 days"),
     "30days": (30, "30 days"),
-    "3months": (90, "3 months"),
+    "3months": DEFAULT_TIME_RANGE,
 }
 
 
 def get_time_range_start(time_range: str) -> datetime:
     """Get the start datetime based on time range filter."""
     now = datetime.now(timezone.utc)
-    days = TIME_RANGE_CONFIG.get(time_range, (90, "3 months"))[0]
+    days = TIME_RANGE_CONFIG.get(time_range, DEFAULT_TIME_RANGE)[0]
     return now - timedelta(days=days)
 
 
 def get_period_config(time_range: str, range_start: datetime) -> tuple[datetime, str]:
     """Get previous period start and label for a time range."""
-    days, label = TIME_RANGE_CONFIG.get(time_range, (90, "3 months"))
+    days, label = TIME_RANGE_CONFIG.get(time_range, DEFAULT_TIME_RANGE)
     previous_start = range_start - timedelta(days=days)
     return previous_start, label
 
