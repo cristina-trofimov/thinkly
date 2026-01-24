@@ -14,6 +14,35 @@ import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
 
+function getSignupErrorMessage(err: unknown): string {
+  if (typeof err === "object" && err !== null && "response" in err) {
+    // @ts-expect-error TS cannot infer 'response' property
+    return err.response?.data?.error || "Signup failed";
+  }
+  if (err instanceof Error) {
+    return err.message || "Signup failed";
+  }
+  return "Signup failed";
+}
+
+function handleLoginError(err: unknown, setError: (msg: string) => void): void {
+  const isError = err instanceof Error;
+  const errorMessage = isError ? err.message : "Unknown error during login.";
+  const logMessage = isError
+    ? `Invalid email or password: ${errorMessage}`
+    : `Unknown error during login: ${errorMessage}`;
+
+  logFrontend({
+    level: "ERROR",
+    message: logMessage,
+    component: "SignupForm",
+    url: window.location.href,
+    stack: isError ? err.stack : undefined,
+  });
+
+  setError("Invalid email or password");
+}
+
 export function SignupForm() {
   const navigate = useNavigate();
 
@@ -28,6 +57,34 @@ export function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function loginAfterSignup(): Promise<void> {
+    const { token } = await login({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (!token) {
+      throw new Error("Login failed: token missing");
+    }
+
+    localStorage.setItem("token", token);
+    console.log(localStorage.getItem("token"));
+
+    const decoded = jwtDecode<DecodedToken>(token);
+    console.log("Logged in as:", decoded.sub);
+
+    logFrontend({
+      level: "INFO",
+      message: `Logged in as: ${decoded.sub}`,
+      component: "SignupForm",
+      url: window.location.href,
+    });
+
+    if (decoded) {
+      navigate("/app/home");
+    }
+  }
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -37,8 +94,8 @@ export function SignupForm() {
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
       await signup({
         email: formData.email,
         password: formData.password,
@@ -49,71 +106,12 @@ export function SignupForm() {
       toast.success("Account created successfully!");
 
       try {
-        const { token } = await login({
-          email: formData.email,
-          password: formData.password,
-        });
-        if (!token) {
-          throw new Error("Login failed: token missing");
-        }
-
-        localStorage.setItem("token", token);
-
-        console.log(localStorage.getItem("token"));
-
-        const decoded = jwtDecode<DecodedToken>(token);
-        console.log("Logged in as:", decoded.sub);
-
-        logFrontend({
-          level: "INFO",
-          message: `Logged in as: ${decoded.sub}`,
-          component: "SignupForm",
-          url: window.location.href,
-        });
-
-        if (decoded) {
-          navigate("/app/home");
-        }
+        await loginAfterSignup();
       } catch (err: unknown) {
-        const isError = err instanceof Error;
-          const errorMessage = isError
-            ? err.message
-            : "Unknown error during login.";
-        if (isError) {
-          setError("Invalid email or password");
-          
-          logFrontend({
-            level: "ERROR",
-            message: `Invalid email or password: ${errorMessage}`,
-            component: "SignupForm",
-            url: window.location.href,
-            stack: isError ? err.stack : undefined, // Safely access stack
-          });
-
-        } else {
-          logFrontend({
-            level: "ERROR",
-            message: `Unknown error during login: ${errorMessage}`,
-            component: "SignupForm",
-            url: window.location.href,
-            stack: isError ? err.stack : undefined, // Safely access stack
-          });
-          setError("Invalid email or password");
-        }
-      } finally {
-        setLoading(false);
+        handleLoginError(err, setError);
       }
     } catch (err: unknown) {
-      if (typeof err === "object" && err !== null && "response" in err) {
-        // @ts-expect-error TS cannot infer 'response' property
-        const message = err.response?.data?.error || "Signup failed";
-        toast.error(message);
-      } else if (err instanceof Error) {
-        const message = err.message || "Signup failed";
-        toast.error(message);
-      } else {
-        toast.error("Signup failed");
-      }
+      toast.error(getSignupErrorMessage(err));
     } finally {
       setLoading(false);
     }
