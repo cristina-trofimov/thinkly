@@ -9,10 +9,10 @@ describe('Manage Competitions Page', () => {
     }).as('getProfile');
 
     // 2. Mock Competitions Data
-    // IMPORTANT: I added 'https://thinkly-production.up.railway.app' to ensure we only intercept 
+    // IMPORTANT: I added 'https://thinkly-production.up.railway.app' to ensure we only intercept
     // the BACKEND request, not the frontend page load.
     // If your API port is different, change 8000.
-    cy.intercept('GET', 'https://thinkly-production.up.railway.app/**/*ompetition*', {
+    cy.intercept('GET', 'https://thinkly-production.up.railway.app/**/*competition*', {
       statusCode: 200,
       body: [
         {
