@@ -15,12 +15,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { forgotPassword } from "@/api/AuthAPI";
 import thinkly from "@/assets/thinkly_logo.png";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 
 export default function ForgotPasswordForm({
   className,
