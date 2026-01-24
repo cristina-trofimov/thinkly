@@ -2,6 +2,7 @@ import React from 'react'
 import '@testing-library/jest-dom'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
+import { Question } from '../src/types/questions/Question.type'
 
 
 jest.mock('../src/components/ui/button', () => ({
@@ -74,17 +75,15 @@ jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
 }));
 
 // Samples
-const problemInfo = {
+const mockProblem: Question = {
+  id: 1,
   title: "Sum Problem",
   description: "Add two numbers",
-  clarification: "njcnsdjnvjsvn",
-  examples: [
-    {
-      inputs: [{ name: "a", type: "int" }, { name: "b", type: "int" }],
-      outputs: [{ name: "result", type: "int" }],
-      expectations: "Should output sum",
-    },
-  ],
+  media: "string",
+  preset_code: "string",
+  template_solution: "string",
+  difficulty: "Easy",
+  date: new Date("2025-10-28T10:00:00Z"),
 }
 
 
@@ -112,20 +111,14 @@ afterAll(() => {
 })
 describe('CodeDescArea', () => {
   it("should render all tab triggers", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
+    render(<CodeDescArea question={mockProblem} />)
 
     const triggers = screen.getAllByTestId("tabs-trigger")
     expect(triggers.length).toBe(3)
   })
 
   it("renders Description tab with problem title and description (by default)", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
+    render(<CodeDescArea question={mockProblem} />)
 
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
     expect(screen.getByText("Add two numbers")).toBeInTheDocument()
@@ -133,10 +126,7 @@ describe('CodeDescArea', () => {
   })
 
   it("can switch to Submissions tab", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
+    render(<CodeDescArea question={mockProblem} />)
 
     const tab = screen.getByText("Submissions")
     fireEvent.click(tab)
@@ -146,10 +136,7 @@ describe('CodeDescArea', () => {
   })
 
   it("clicking a submission opens code view and can go back", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
+    render(<CodeDescArea question={mockProblem} />)
 
     fireEvent.click(screen.getByText("Submissions"))
     
@@ -164,17 +151,14 @@ describe('CodeDescArea', () => {
   })
 
   it("can switch to Leaderboard tab", () => {
-  render(<CodeDescArea
-    problemInfo={problemInfo}
-    submissions={submissions}
-  />);
+    render(<CodeDescArea question={mockProblem} />)
 
-  const tab = screen.getByText("Leaderboard");
-  fireEvent.click(tab);
+    const tab = screen.getByText("Leaderboard");
+    fireEvent.click(tab);
 
-  // Assert the mocked leaderboard is rendered
-  expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
-});
+    // Assert the mocked leaderboard is rendered
+    expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
+  });
 
   it('formats submission time properly', () => {
     const times = [
@@ -191,10 +175,7 @@ describe('CodeDescArea', () => {
       }
 
       const { unmount } = render(
-        <CodeDescArea
-          problemInfo={problemInfo}
-          submissions={[submission]}
-        />
+        <CodeDescArea question={mockProblem} />
       )
 
       fireEvent.click(screen.getByText('Submissions'))

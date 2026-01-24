@@ -9,12 +9,12 @@ import type { BundledLanguage } from 'shiki'
 import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
-import type { TestcaseType } from '@/types/questions/Testcases.type'
+import { useTestcases } from '../helpers/useTestcases'
 
 
 const CodeDescArea = (
-    { question, testcases }:
-    { question: Question, testcases: TestcaseType[] }
+    { question }:
+    { question: Question }
     ) => {
 
     const tabs = [
@@ -22,6 +22,9 @@ const CodeDescArea = (
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
+
+    const { testcases } = useTestcases(question?.id)
+
 
     // TODO: Add the submission code
 

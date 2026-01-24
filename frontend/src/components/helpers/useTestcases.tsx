@@ -57,7 +57,6 @@ export function useTestcases(question_id?: number) {
     
         const newID = (activeTestcase === caseID && idx !== 0) ? idx : idx - 1
         // TODO: happens regardless of active testcase tab => onValueChange on Tablist
-        // setActiveTestcase(testcases[newID].caseID)
         setActiveTestcase(testcases[newID].caseID)
     }
 
@@ -68,6 +67,7 @@ export function useTestcases(question_id?: number) {
     ) => {
         setTestcases((prev) =>
             prev.map((c) =>
+                // if (c.caseID === caseID) { [field]: value }
                 c.caseID === caseID ? { ...c, [field]: value } : c
             )
         )

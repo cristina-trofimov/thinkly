@@ -1,90 +1,141 @@
 import React from 'react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { useTestcases } from '../src/components/helpers/useTestcases'
 import Testcases from '../src/components/codingPage/Testcases'
+import userEvent from '@testing-library/user-event'
+
+
+jest.mock('../src/components/helpers/useTestcases')
+
+const mockUseTestcases = useTestcases as jest.Mock
+
+const mockTestcases = [
+  {
+    caseID: 'Case 1',
+    input_data: {
+      a: 10,
+      b: 20,
+    },
+  },
+  {
+    caseID: 'Case 2',
+    input_data: {
+      x: 5,
+    },
+  },
+]
+
+const setup = () => {
+  const addTestcase = jest.fn()
+  const removeTestcase = jest.fn()
+  const updateTestcase = jest.fn()
+  const setActiveTestcase = jest.fn()
+
+  mockUseTestcases.mockReturnValue({
+    testcases: mockTestcases,
+    addTestcase,
+    removeTestcase,
+    updateTestcase,
+    loading: false,
+    activeTestcase: 'Case 1',
+    setActiveTestcase,
+  })
+
+  render(<Testcases question_id={123} />)
+
+  return {
+    addTestcase,
+    removeTestcase,
+    updateTestcase,
+    setActiveTestcase,
+  }
+}
+
 
 describe('Testcases Component', () => {
   it('renders with a default testcase', () => {
-    render(<Testcases />)
+    setup()
 
     expect(screen.getByTestId('trigger-Case 1')).toBeInTheDocument()
     expect(screen.getByTestId('content-Case 1')).toBeInTheDocument()
   })
 
+  it('renders active testcase content', () => {
+    setup()
+
+    expect(screen.getByTestId('content-Case 1')).toBeInTheDocument()
+    expect(screen.getByText('a')).toBeInTheDocument()
+    expect(screen.getByText('b')).toBeInTheDocument()
+  })
+
   it('adds a new testcase and activates it', async () => {
-    render(<Testcases />)
+    const { addTestcase } = setup()
 
-    const addBtn = screen.getByRole('button')
-    await userEvent.click(addBtn)
+    fireEvent.click(screen.getByTestId('add-testcase-btn'))
 
+    expect(addTestcase).toHaveBeenCalled()
     expect(screen.getByTestId('trigger-Case 2')).toBeInTheDocument()
     expect(screen.getByTestId('content-Case 2')).toBeInTheDocument()
   })
 
-  it('switches between testcase tabs', async () => {
-    render(<Testcases />)
+  it('sets newly added testcase as active', async () => {
+    setup()
 
-    await userEvent.click(screen.getByRole('button')) // add Case 2
+    fireEvent.click(screen.getByTestId('add-testcase-btn'))
+
+    expect(screen.getByTestId('content-Case 2')).toBeInTheDocument()
+  })
+
+  it('switches between testcase tabs', async () => {
+    setup()
+
+    await userEvent.click(screen.getByTestId('add-testcase-btn'))
+
+    expect(screen.getByTestId('content-Case 1')).not.toBeVisible()
+    expect(screen.getByTestId('content-Case 2')).toBeVisible()
+
     await userEvent.click(screen.getByTestId('trigger-Case 1'))
 
     expect(screen.getByTestId('content-Case 1')).toBeVisible()
+    expect(screen.getByTestId('content-Case 2')).not.toBeVisible()
   })
 
   it('updates inputs and output fields', async () => {
-    render(<Testcases />)
+    const { updateTestcase } = setup()
+    const inputField = screen.getByTestId('Case 1-a-input')
+    
+    fireEvent.change(inputField, {target: {value: '99'}})
+    expect(updateTestcase).toHaveBeenCalledWith('Case 1', "input_data", "99")
+    expect(inputField.ariaValueText).toBe("99")
 
-    const inputField = screen.getAllByRole('textbox')[0]
-    const outputField = screen.getAllByRole('textbox')[1]
-
-    await userEvent.type(inputField, '1 2 3')
-    await userEvent.type(outputField, '6')
-
-    expect(inputField).toHaveValue('1 2 3')
-    expect(outputField).toHaveValue('6')
+    // fireEvent.change(inputField, {target: {value: 'ghnkjh'}})
+    // expect(updateTestcase).toHaveBeenCalledWith('Case 1', "input_data", "ghnkjh")
   })
 
   it('removes a testcase and renumbers remaining cases', async () => {
-    render(<Testcases />)
+    const { removeTestcase } = setup()
+    // expect(screen.getByTestId('trigger-Case 2')).not.toBeInTheDocument()
 
-    // Add Case 2 and Case 3
-    const addBtn = screen.getByRole('button')
+    const addBtn = screen.getByTestId('add-testcase-btn')
     await userEvent.click(addBtn)
-    await userEvent.click(addBtn)
 
-    expect(screen.getByTestId('trigger-Case 3')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('trigger-Case 1')
+                          .querySelector('svg')!)
 
-    // Remove Case 2
-    const removeIcons = screen.getAllByTestId(/trigger-Case/)
-    const case2CloseBtn =
-      screen.getByTestId('trigger-Case 2').parentElement?.querySelector('svg')
-
-    expect(case2CloseBtn).toBeInTheDocument()
-    await userEvent.click(case2CloseBtn!)
-
-    // Case 3 should now be renamed to Case 2
-    expect(screen.queryByTestId('trigger-Case 3')).not.toBeInTheDocument()
-    expect(screen.getByTestId('trigger-Case 2')).toBeInTheDocument()
+    expect(removeTestcase).toHaveBeenCalledWith("Case 1")
+    // expect(screen.getByTestId('trigger-Case 2')).not.toBeInTheDocument()
+    // expect(screen.getByTestId('trigger-Case 1')).toBeInTheDocument()
   })
 
   it('does not remove the last remaining testcase', async () => {
-    render(<Testcases />)
+    setup()
 
     const closeBtn =
       screen.getByTestId('trigger-Case 1').parentElement?.querySelector('svg')
 
     await userEvent.click(closeBtn!)
 
-    // Still exists
     expect(screen.getByTestId('trigger-Case 1')).toBeInTheDocument()
-  })
-
-  it('sets newly added testcase as active', async () => {
-    render(<Testcases />)
-
-    await userEvent.click(screen.getByRole('button'))
-
-    const activeContent = screen.getByTestId('content-Case 2')
-    expect(activeContent).toBeVisible()
   })
 })

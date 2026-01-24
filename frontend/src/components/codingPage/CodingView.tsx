@@ -14,24 +14,15 @@ import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
-import { useTestcases } from '../helpers/useTestcases';
 
 
 const CodingView = () => {
-  const { state } = useLocation()
-  const question: Question = state.problem
+  // const { state } = useLocation()
+  const location = useLocation()
+  const question: Question = location?.state?.problem
 
   if (!question?.id) {
     console.log("Loading question")
-    // TODO: add loader on screen
-  }
-
-  const { testcases, addTestcase, removeTestcase, loading,
-        updateTestcase, activeTestcase, setActiveTestcase } 
-    = useTestcases(question?.id)
-
-  if (loading) {
-    console.log("Loading test cases")
     // TODO: add loader on screen
   }
 
@@ -123,7 +114,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5} //maxSize={100}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} testcases={testcases} />
+          <CodeDescArea question={question} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle" 
@@ -255,15 +246,16 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases" 
                   className='max-h-full p-2.5' >
-                  <Testcases 
-                    testcases={testcases} activeTestcase={activeTestcase}
-                    setActiveTestcase={setActiveTestcase} addTestcase={addTestcase}
-                    removeTestcase={removeTestcase} updateTestcase={updateTestcase}
-                  />
+                  <Testcases question_id={question.id} />
                 </TabsContent>
-                <TabsContent data-testid="results-tab" value="results"
+                <TabsContent data-testid="code-output-tab" value="results"
                   className='h-full'
                 >
+                  {logs.map((log) => (
+                    <p>
+                      {log.text()}
+                    </p>
+                  ))}
                 </TabsContent>
               </Tabs>
             </Panel>

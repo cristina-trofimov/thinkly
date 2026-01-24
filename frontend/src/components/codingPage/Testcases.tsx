@@ -2,32 +2,29 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@radix-ui/react-tabs'
 import { X, Plus } from 'lucide-react'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
-import type { TestcaseType } from '@/types/questions/Testcases.type'
 import { Button } from '../ui/button'
+import { useTestcases } from '../helpers/useTestcases'
+import { useEffect } from 'react'
 
 
 const Testcases = (
-    {
-        testcases, activeTestcase, setActiveTestcase,
-        addTestcase, removeTestcase, updateTestcase
-    }:
-    {
-        testcases: TestcaseType[],
-        activeTestcase: string,
-        setActiveTestcase: (value: string) => void,
-        addTestcase: () => void,
-        removeTestcase: (caseID: string) => void,
-        updateTestcase: (
-            caseID: string,
-            field: "input_data" | "expected_output",
-            value: string
-        ) => void,
-    }
+    { question_id }:
+    { question_id: number }
 ) => {
 
-    if (!testcases) {
-        addTestcase()
+    const { testcases, addTestcase, removeTestcase, loading,
+            updateTestcase, activeTestcase, setActiveTestcase } 
+        = useTestcases(question_id)
+
+    if (loading) {
+        console.log("Loading test cases")
+        // TODO: add loader on screen
     }
+
+    useEffect(() => {
+        if (!testcases) addTestcase()
+      }, [testcases])
+      
 
     return (
         <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase} >
@@ -53,7 +50,10 @@ const Testcases = (
                         </TabsTrigger>
                     ))}
                 </TabsList>
-                <Button key="add-testcase-btn" size={"icon"} variant={'ghost'} onClick={addTestcase}
+                <Button key="add-testcase-btn" data-testid="add-testcase-btn"
+                    size={"icon"} 
+                    variant={'ghost'} 
+                    onClick={addTestcase}
                     className=" hover:text-primary"
                 >
                     <Plus size={4} />
@@ -65,11 +65,11 @@ const Testcases = (
                 >
                     {Object.entries(tc.input_data).map(([key, val]) => (
                         <div className='flex flex-col gap-2' >
-                            <Label >
+                            <Label data-testid={`${tc.caseID}-${key}-label`} >
                                 {key}
                             </Label>
-                            <Input key={key} value={`${val}`}
-                                onChange={(e) => updateTestcase(tc.caseID, "input_data", e.target.value)}
+                            <Input key={key} value={`${val}`} data-testid={`${tc.caseID}-${key}-input`} 
+                                onChange={(e) => { updateTestcase(tc.caseID, "input_data", e.target.value); console.log(tc.input_data) } }
                             />
                         </div>
                     ))}
