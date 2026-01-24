@@ -26,7 +26,7 @@ export const getBackendUrl = (): string => {
   }
 
   // 3. Default fallback
-  return 'http://localhost:8000';
+  return 'https://thinkly-production.up.railway.app';
 };
 
 export const BACKEND_URL = getBackendUrl();

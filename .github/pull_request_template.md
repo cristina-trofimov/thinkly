@@ -6,7 +6,7 @@
 
 List all major updates or modifications:
 
- Added ...
+Added ...
 Updated ...
 Removed ...
 Fixed ...
@@ -22,7 +22,7 @@ Before requesting review, confirm the following:
 
  - [ ] My code follows the project’s style guidelines
  - [ ] I’ve performed a self-review of my own code
- - [ ] I’ve commented my code where necessary OR rempved unnecessary commented out code
+ - [ ] I’ve commented my code where necessary OR removed unnecessary commented out code
  - [ ]  I’ve added or updated tests if applicable
  - [ ] New and existing tests pass locally
  - [ ] Documentation has been updated (if relevant)
