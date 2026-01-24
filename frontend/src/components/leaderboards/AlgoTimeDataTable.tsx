@@ -188,10 +188,13 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
                 const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
                 const absoluteIndex = currentPage * pageSize + row.index;
 
-                // Apply purple highlight for current user, otherwise use podium colors (only on first page with no search)
-                const rowClass = isCurrentUser
-                  ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
-                  : (currentPage === 0 && !searchQuery) ? getRowBgClass(absoluteIndex) : "";
+                // Determine row styling based on user and position
+                let rowClass = "";
+                if (isCurrentUser) {
+                  rowClass = "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold";
+                } else if (currentPage === 0 && !searchQuery) {
+                  rowClass = getRowBgClass(absoluteIndex);
+                }
 
                 return (
                   <TableRow key={row.id} className={rowClass}>

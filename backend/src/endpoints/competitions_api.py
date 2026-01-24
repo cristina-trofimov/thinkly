@@ -178,13 +178,7 @@ def create_competition_emails(
         db: Session,
         competition: Competition,
         email_data: EmailNotificationRequest,
-        competition_start: datetime,
-        competition_end: datetime,
-        competition_name: str,
-        date_str: str,
-        start_time_str: str,
-        end_time_str: str,
-        location: Optional[str]
+        competition_start: datetime
 ):
     """
     Creates scheduled email record for the competition.
@@ -375,7 +369,7 @@ async def create_competition(
         # Email Triggering Logic
         if request.emailEnabled and request.emailNotification:
             # 1. Save to DB
-            create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
+            create_competition_emails(db, competition, request.emailNotification, start_dt)
 
             # 2. Resolve Recipients
             recipients = []
@@ -608,13 +602,7 @@ async def update_competition(
                 db,
                 competition,
                 request.emailNotification,
-                start_dt,
-                end_dt,
-                request.name,
-                request.date,
-                request.startTime,
-                request.endTime,
-                request.location
+                start_dt
             )
 
         _commit_or_rollback(db)

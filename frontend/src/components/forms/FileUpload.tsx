@@ -84,7 +84,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
         e.target.value = ""; // reset input
     }
 
-    function onDrop(e: DragEvent<HTMLDivElement>) {
+    function onDrop(e: DragEvent<HTMLLabelElement>) {
         e.preventDefault();
         e.stopPropagation();
         setIsOver(false);
@@ -100,8 +100,8 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
     }
 
     // --- Drag Visuals ---
-    function onDragOver(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setIsOver(true); }
-    function onDragLeave(e: DragEvent<HTMLDivElement>) { e.preventDefault(); setIsOver(false); }
+    function onDragOver(e: DragEvent<HTMLLabelElement>) { e.preventDefault(); setIsOver(true); }
+    function onDragLeave(e: DragEvent<HTMLLabelElement>) { e.preventDefault(); setIsOver(false); }
 
     // --- Submission Logic ---
 
@@ -210,11 +210,11 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                         <Label>Attachment (Optional)</Label>
                         
                         {!file ? (
-                            <div
-                                onClick={() => inputRef.current?.click()}
+                            <label
                                 onDrop={onDrop}
                                 onDragOver={onDragOver}
                                 onDragLeave={onDragLeave}
+                                htmlFor="file-input"
                                 className={[
                                     "rounded-lg border-2 border-dashed p-8 cursor-pointer transition flex flex-col items-center justify-center text-center gap-2",
                                     isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-muted/30",
@@ -233,7 +233,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                                     <div className="font-semibold text-sm">Click to upload or drag and drop</div>
                                     <div className="text-xs text-muted-foreground">Image, Audio, Video, or PDF (Max 100MB)</div>
                                 </div>
-                            </div>
+                            </label>
                         ) : (
                             // Selected File View
                             <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
