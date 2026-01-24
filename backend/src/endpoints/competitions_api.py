@@ -369,7 +369,7 @@ async def create_competition(
         # Email Triggering Logic
         if request.emailEnabled and request.emailNotification:
             # 1. Save to DB
-            create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
+            create_competition_emails(db, competition, request.emailNotification, start_dt)
 
             # 2. Resolve Recipients
             recipients = []
@@ -602,13 +602,7 @@ async def update_competition(
                 db,
                 competition,
                 request.emailNotification,
-                start_dt,
-                end_dt,
-                request.name,
-                request.date,
-                request.startTime,
-                request.endTime,
-                request.location
+                start_dt
             )
 
         _commit_or_rollback(db)
