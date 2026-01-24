@@ -178,13 +178,7 @@ def create_competition_emails(
         db: Session,
         competition: Competition,
         email_data: EmailNotificationRequest,
-        competition_start: datetime,
-        competition_end: datetime,
-        competition_name: str,
-        date_str: str,
-        start_time_str: str,
-        end_time_str: str,
-        location: Optional[str]
+        competition_start: datetime
 ):
     """
     Creates scheduled email record for the competition.
