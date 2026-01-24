@@ -1,12 +1,10 @@
 [build]
-  # Your existing build settings (if any)
+  publish = "dist"
+  command = "npm run build"
 
 [configuration]
-  # Step 3 fix: Ignore package-lock.json because it triggers false positives 
-  # on generic words like "postgres"
+  # Kept per your request to manage secret scanning behavior
   secretsScanOmitPaths = ["package-lock.json", "yarn.lock"]
-
-  # Step 2 fix: Explicitly allow public keys
   secretsScanOmitKeys = [
     "GOOGLE_CLIENT_ID",
     "VITE_SUPABASE_URL",
@@ -14,3 +12,14 @@
     "DEFAULT_SENDER_NAME",
     "DEFAULT_SENDER_EMAIL"
   ]
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Fixes the Cross-Origin-Opener-Policy error from your screenshot
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
