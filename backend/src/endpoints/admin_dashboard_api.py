@@ -90,15 +90,48 @@ class ParticipationDataPoint(BaseModel):
 
 # ---------------- Helper Functions ----------------
 
+# Time range configuration: maps time_range to (days, label)
+TIME_RANGE_CONFIG = {
+    "7days": (7, "7 days"),
+    "30days": (30, "30 days"),
+    "3months": (90, "3 months"),
+}
+
+
 def get_time_range_start(time_range: str) -> datetime:
     """Get the start datetime based on time range filter."""
     now = datetime.now(timezone.utc)
-    if time_range == "7days":
-        return now - timedelta(days=7)
-    elif time_range == "30days":
-        return now - timedelta(days=30)
-    else:  # 3months
-        return now - timedelta(days=90)
+    days = TIME_RANGE_CONFIG.get(time_range, (90, "3 months"))[0]
+    return now - timedelta(days=days)
+
+
+def get_period_config(time_range: str, range_start: datetime) -> tuple[datetime, str]:
+    """Get previous period start and label for a time range."""
+    days, label = TIME_RANGE_CONFIG.get(time_range, (90, "3 months"))
+    previous_start = range_start - timedelta(days=days)
+    return previous_start, label
+
+
+def calculate_trend(current_count: int, previous_count: int) -> tuple[str, str]:
+    """Calculate trend percentage and direction from period counts."""
+    if previous_count > 0:
+        trend_value = ((current_count - previous_count) / previous_count) * 100
+        trend = f"+{trend_value:.0f}%" if trend_value >= 0 else f"{trend_value:.0f}%"
+        direction = "Up" if trend_value >= 0 else "Down"
+        return trend, direction
+
+    trend = "+100%" if current_count > 0 else "0%"
+    direction = "Up" if current_count > 0 else "No change"
+    return trend, direction
+
+
+def get_trend_description(direction: str) -> str:
+    """Get description text based on trend direction."""
+    descriptions = {
+        "Up": "More users are joining Thinkly",
+        "Down": "Fewer users are joining Thinkly",
+    }
+    return descriptions.get(direction, "User signups are stable")
 
 
 def format_date(dt: datetime) -> str:
@@ -225,6 +258,7 @@ async def get_new_accounts_stats(
 
     try:
         range_start = get_time_range_start(time_range)
+        previous_start, period_label = get_period_config(time_range, range_start)
 
         # Get new accounts in current period
         current_period_count = (
@@ -234,16 +268,6 @@ async def get_new_accounts_stats(
         )
 
         # Get previous period for comparison
-        if time_range == "7days":
-            previous_start = range_start - timedelta(days=7)
-            period_label = "7 days"
-        elif time_range == "30days":
-            previous_start = range_start - timedelta(days=30)
-            period_label = "30 days"
-        else:  # 3months
-            previous_start = range_start - timedelta(days=90)
-            period_label = "3 months"
-
         previous_period_count = (
             db.query(func.count(UserAccount.user_id))
             .filter(
@@ -253,23 +277,9 @@ async def get_new_accounts_stats(
             .scalar() or 0
         )
 
-        # Calculate trend percentage
-        if previous_period_count > 0:
-            trend_value = ((current_period_count - previous_period_count) / previous_period_count) * 100
-            trend = f"+{trend_value:.0f}%" if trend_value >= 0 else f"{trend_value:.0f}%"
-            trend_direction = "Up" if trend_value >= 0 else "Down"
-        else:
-            trend = "+100%" if current_period_count > 0 else "0%"
-            trend_direction = "Up" if current_period_count > 0 else "No change"
-
+        trend, trend_direction = calculate_trend(current_period_count, previous_period_count)
         subtitle = f"{trend_direction} {abs(int(trend.replace('%', '').replace('+', '')))}% in the last {period_label}"
-
-        if trend_direction == "Up":
-            description = "More users are joining Thinkly"
-        elif trend_direction == "Down":
-            description = "Fewer users are joining Thinkly"
-        else:
-            description = "User signups are stable"
+        description = get_trend_description(trend_direction)
 
         return NewAccountsStatsResponse(
             value=current_period_count,
