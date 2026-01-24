@@ -41,7 +41,7 @@ class SendEmailRequest(BaseModel):
             try:
                 validate_email(recipient)
             except EmailNotValidError as e:
-                logger.error(f"Validation failed: Invalid recipient email format: '{recipient}'")
+                logger.error("Validation failed: Invalid recipient email format")
                 raise ValueError(f"Invalid recipient '{recipient}': {e}")
         return v
 
@@ -95,7 +95,7 @@ def _validate_email_inputs(to: list[str], subject: str, text: str):
         try:
             validate_email(recipient)
         except EmailNotValidError as e:
-            logger.error(f"Invalid recipient email: {recipient}")
+            logger.error("Invalid recipient email format")
             raise ValueError(f"Invalid recipient '{recipient}': {e}")
 
     if not subject or not subject.strip():
