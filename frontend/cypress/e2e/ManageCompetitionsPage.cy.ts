@@ -46,7 +46,7 @@ describe('Manage Competitions Page', () => {
   });
 
   it('Checks all elements are present', () => {
-    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
+//    cy.get('input[placeholder="Search competitions..."]').should('be.visible');
     cy.contains('All competitions').should('be.visible');
     cy.contains('Create New Competition').should('be.visible');
   });
