@@ -19,6 +19,26 @@ import {
   getParticipationStats,
 } from "@/api/AdminDashboardAPI";
 
+const TIME_RANGE_LABELS: Record<TimeRange, string> = {
+  "3months": "Last 3 months",
+  "30days": "Last 30 days",
+  "7days": "Last 7 days",
+};
+
+function getTimeRangeLabel(timeRange: TimeRange): string {
+  return TIME_RANGE_LABELS[timeRange];
+}
+
+function getLoadingPlaceholder(type: "account" | "competition" | "default"): ManageItem[] {
+  if (type === "account") {
+    return [{ avatarUrl: undefined, name: "Loading...", info: "" }];
+  }
+  if (type === "competition") {
+    return [{ color: "var(--color-chart-1)", name: "Loading...", info: "" }];
+  }
+  return [{ name: "Loading...", info: "" }];
+}
+
 export function AdminDashboard() {
   const location = useLocation();
   const [timeRange, setTimeRange] = useState<TimeRange>("3months");
@@ -135,9 +155,7 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Accounts"
-                items={recentAccounts.length > 0 ? recentAccounts : [
-                  { avatarUrl: undefined, name: "Loading...", info: "" },
-                ]}
+                items={recentAccounts.length > 0 ? recentAccounts : getLoadingPlaceholder("account")}
               />
             </Link>
             <Link
@@ -146,17 +164,13 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Competitions"
-                items={recentCompetitions.length > 0 ? recentCompetitions : [
-                  { color: "var(--color-chart-1)", name: "Loading...", info: "" },
-                ]}
+                items={recentCompetitions.length > 0 ? recentCompetitions : getLoadingPlaceholder("competition")}
               />
             </Link>
             <div className="flex-1 min-w-0">
               <ManageCard
                 title="Manage Questions"
-                items={recentQuestions.length > 0 ? recentQuestions : [
-                  { name: "Loading...", info: "" },
-                ]}
+                items={recentQuestions.length > 0 ? recentQuestions : getLoadingPlaceholder("default")}
               />
             </div>
             <Link
@@ -165,9 +179,7 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Algotime Sessions"
-                items={recentAlgoTimeSessions.length > 0 ? recentAlgoTimeSessions : [
-                  { name: "Loading...", info: "" },
-                ]}
+                items={recentAlgoTimeSessions.length > 0 ? recentAlgoTimeSessions : getLoadingPlaceholder("default")}
               />
             </Link>
             <Link
@@ -200,7 +212,7 @@ export function AdminDashboard() {
               <div>
                 <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
                   <SelectTrigger className="text-primary rounded-lg">
-                    <SelectValue className="text-primary" placeholder={timeRange === "3months" ? "Last 3 months" : timeRange === "30days" ? "Last 30 days" : "Last 7 days"} />
+                    <SelectValue className="text-primary" placeholder={getTimeRangeLabel(timeRange)} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -226,13 +238,7 @@ export function AdminDashboard() {
 
               <StatsCard
                 title="Questions solved"
-                dateSubtitle={
-                  timeRange === "3months"
-                    ? "Last 3 months"
-                    : timeRange === "30days"
-                      ? "Last 30 days"
-                      : "Last 7 days"
-                }
+                dateSubtitle={getTimeRangeLabel(timeRange)}
               >
                 <QuestionsSolvedChart data={questionsSolvedData} loading={loading} />
               </StatsCard>
