@@ -20,6 +20,7 @@ import { forgotPassword } from "@/api/AuthAPI";
 import thinkly from "@/assets/thinkly_logo.png";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export default function ForgotPasswordForm({
   className,
@@ -72,12 +73,12 @@ export default function ForgotPasswordForm({
       {...props}
     >
       <div className="flex justify-center gap-2 md:justify-start">
-        <a href="#" className="flex items-center gap-2 font-medium">
+        <Link to="/" className="flex items-center gap-2 font-medium">
           <div className="text-primary-foreground flex size-10 items-center justify-center rounded-md">
-            <img src={thinkly} alt="Your icon" className="size-10" />
+            <img src={thinkly} alt="scs logo" className="size-10" />
           </div>
           <span className="font-semibold">Thinkly</span>
-        </a>
+        </Link>
       </div>
       <Card className="w-full max-w-md">
         <CardHeader>

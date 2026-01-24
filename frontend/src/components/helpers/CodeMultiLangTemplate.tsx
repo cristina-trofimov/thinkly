@@ -132,13 +132,15 @@ fun solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}){
         fileExt: "ts",
         filename: "index.ts",
         template: 'vanilla-ts',
-        codeBuilder: (problemName, inputVars, outputType) =>
-            `function ${problemName}(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}): ${outputType} {
+        codeBuilder: (problemName, inputVars, outputType) => {
+            const params = inputVars.map(v => `${v.name}: ${v.type}`).join(', ');
+            return `function ${problemName}(${params}): ${outputType} {
     // TODO
     return null as any
 }
 
-export default ${problemName};`.trim()
+export default ${problemName};`.trim();
+        }
     },
     "Javascript": {
         fileExt: "js",

@@ -23,7 +23,7 @@ export const StatsCard = ({
   children,
   dateSubtitle,
 }: StatsCardProps) => {
-  const isPositive = !trend || !trend.trim().startsWith("-");
+  const isPositive = !trend?.trim().startsWith("-");
 
   // Chart card mode (when children is provided)
     if (children) {
