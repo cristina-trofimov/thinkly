@@ -22,7 +22,14 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
     return null;
   }
 
-  const backgroundColor = open ? "bg-white" : isCurrent ? "bg-purple-50" : "bg-gray-50";
+  let backgroundColor = "bg-gray-50";
+
+  if (open) {
+    backgroundColor = "bg-white";
+  } else if (isCurrent) {
+    backgroundColor = "bg-purple-50";
+  }
+
   const statusIndicator = open ? (
     <ChevronUp className="w-5 h-5 text-gray-600" />
   ) : (
