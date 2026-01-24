@@ -80,18 +80,14 @@ def normalize_iso_utc(iso_str):
         return None
 
 
-def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | None = None,
-                         html: str | None = None) -> dict:
-    """Send an email via Brevo with full logging and validation."""
-
-    # Validate sender email
+def _validate_email_inputs(to: list[str], subject: str, text: str):
+    """Validate all email inputs before sending."""
     try:
         validate_email(DEFAULT_SENDER_EMAIL)
     except EmailNotValidError as e:
         logger.error(f"Invalid default sender email: {DEFAULT_SENDER_EMAIL}")
         raise ValueError(f"Invalid sender email: {e}")
 
-    # Validate recipients
     if not to or not isinstance(to, list):
         raise ValueError("Recipient 'to' must be a non-empty list of emails")
 
@@ -102,11 +98,16 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | N
             logger.error(f"Invalid recipient email: {recipient}")
             raise ValueError(f"Invalid recipient '{recipient}': {e}")
 
-    # Validate subject & text
     if not subject or not subject.strip():
         raise ValueError("Email subject is required")
     if not text or not text.strip():
         raise ValueError("Email body text is required")
+
+
+def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | None = None,
+                         html: str | None = None) -> dict:
+    """Send an email via Brevo with full logging and validation."""
+    _validate_email_inputs(to, subject, text)
 
     scheduledAt = normalize_iso_utc(sendAt)
 
