@@ -33,7 +33,7 @@ export function useTestcases(question_id?: number) {
             test_case_id: -1,
             question_id: -1,
             caseID: `Case ${testcases.length + 1}`,
-            input_data: "",
+            input_data: {},
             expected_output: "",
         }
         setTestcases((prev) => [...prev, newCase])
