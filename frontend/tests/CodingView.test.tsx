@@ -202,32 +202,21 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
     })
 
-    // it('uncollapses both areas when output area is collapsed and console is already collapsed', async () => {
-    //     render(<CodingView />)
+    it('uncollapses both areas when output area is collapsed and console is already collapsed', async () => {
+        render(<CodingView />)
 
-    //     expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
-    //     expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
-    //     expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
-    //     expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+        expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
 
-    //     await userEvent.click(screen.getByTestId('output-area-collapse'))
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
 
-    //     expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
-    //     expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
-    //     expect(screen.queryByTestId('output-area-down-icon')).toBeNull()
-    //     expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
-
-    //     await userEvent.click(screen.getByTestId('code-area-collapse'))
-
-    //     // expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
-    //     // expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
-    //     // expect(screen.queryByTestId('output-area-up-icon')).toBeNull() // this is false for some reason
-    //     // expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
-        
-
-    //     // expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
-    //     // expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
-    // })
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-down-icon')).toBeNull()
+        expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
+    })
 
     it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
         render(<CodingView />)
@@ -243,12 +232,5 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
         expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
         expect(screen.queryByTestId('code-area-up-icon')).toBeNull()
-
-        await userEvent.click(screen.getByTestId('output-area-collapse'))
-
-        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
-        // expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
-        // expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
-        // expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
     })
 })

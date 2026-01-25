@@ -174,69 +174,7 @@ describe('CodeDescArea', () => {
     expect(screen.getAllByTestId("tabs-trigger").length).toBe(3)
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
     expect(screen.getByText("Add two numbers")).toBeInTheDocument()
-    // expect(screen.getByText(/num/)).toBeInTheDocument()
+    expect(screen.getByText(/num = 10/i)).toBeInTheDocument()
   })
-
-  // it("can switch to Submissions tab", () => {
-  //   setup()
-
-  //   fireEvent.click(screen.getByText("Submissions"))
-
-  //   expect(screen.getByText("Accepted")).toBeInTheDocument()
-  //   expect(screen.getByText("JavaScript")).toBeInTheDocument()
-  // })
-
-  // it("clicking a submission opens code view and can go back", () => {
-  //   render(<CodeDescArea question={mockProblem} />)
-
-  //   fireEvent.click(screen.getByText("Submissions"))
-    
-  //   const statusCell = screen.getByText("Accepted")
-  //   fireEvent.click(statusCell)
-  //   expect(screen.getByTestId("code-block")).toBeInTheDocument()
-
-  //   const backBtn = screen.getByText("Back")
-  //   expect(backBtn).toBeInTheDocument()
-  //   fireEvent.click(backBtn)
-  //   expect(screen.getByText("Accepted")).toBeInTheDocument()
-  // })
-
-  // it("can switch to Leaderboard tab", () => {
-  //   render(<CodeDescArea question={mockProblem} />)
-
-  //   const tab = screen.getByText("Leaderboard");
-  //   fireEvent.click(tab);
-
-  //   // Assert the mocked leaderboard is rendered
-  //   expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
-  // });
-
-  // it('formats submission time properly', () => {
-  //   const times = [
-  //     { ago: 1000, expected: '1 second' },
-  //     { ago: 60000, expected: '1 minute' },
-  //     { ago: 3600000, expected: '1 hour' },
-  //     { ago: 86400000, expected: '1 day' },
-  //   ]
-
-  //   times.forEach(time => {
-  //     const submission = {
-  //       ...submissions[0],
-  //       submittedOn: new Date(Date.now() - time.ago).toISOString(),
-  //     }
-
-  //     const { unmount } = render(
-  //       <CodeDescArea question={mockProblem} />
-  //     )
-
-  //     fireEvent.click(screen.getByText('Submissions'))
-
-  //     expect(
-  //       screen.getByText(new RegExp(time.expected, 'i'))
-  //     ).toBeInTheDocument()
-
-  //     unmount() // Clean up after each iteration
-  //   })
-  // })
 })
 
