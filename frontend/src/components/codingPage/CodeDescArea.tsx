@@ -1,12 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState, } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
-import type { BundledLanguage } from 'shiki'
-import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
@@ -55,29 +53,6 @@ const CodeDescArea = (
         halfSize = fullSize / 2
         quarterSize = fullSize / 4
     }
-
-    const timeDiff = (submittedOn: string) => {
-        const diffMs = Date.now() - Date.parse(submittedOn)
-
-        const seconds = Math.floor(diffMs / 1000)
-        const minutes = Math.floor(diffMs / (1000 * 60))
-        const hours = Math.floor(diffMs / (1000 * 60 * 60))
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-        let displayTime = ''
-        if (days > 0) {
-            displayTime = `${days} day${days > 1 ? "s" : ""} ago`
-        } else if (hours > 0) {
-            displayTime = `${hours} hour${hours > 1 ? "s" : ""} ago`
-        } else if (minutes > 0) {
-            displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
-        } else {
-            displayTime = `${seconds} second${seconds > 1 ? "s" : ""} ago`
-        }
-
-        return displayTime
-    }
-
 
     return (
         <Tabs data-testid="tabs" defaultValue='description'
