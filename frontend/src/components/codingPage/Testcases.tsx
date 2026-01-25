@@ -18,7 +18,6 @@ const Testcases = (
 
     if (loading) {
         console.log("Loading test cases")
-        // TODO: add loader on screen
     }
 
     useEffect(() => {
@@ -64,7 +63,7 @@ const Testcases = (
                     className='mt-3 space-y-6'
                 >
                     {Object.entries(tc.input_data).map(([key, val]) => (
-                        <div className='flex flex-col gap-2' >
+                        <div key={`${key}-input-row`} className='flex flex-col gap-2' >
                             <Label data-testid={`${tc.caseID}-${key}-label`} >
                                 {key}
                             </Label>

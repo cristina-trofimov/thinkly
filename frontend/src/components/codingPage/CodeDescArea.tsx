@@ -24,8 +24,6 @@ const CodeDescArea = (
     const { testcases } = useTestcases(question?.id)
 
 
-    // TODO: Add the submission code
-
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)

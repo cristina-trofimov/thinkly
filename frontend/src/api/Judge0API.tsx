@@ -37,8 +37,6 @@ export async function submitToJudge0(
         console.error("Error running code with Judge0:", err);
         throw err;
     }
-
-    controller.abort()
 }
 
 export async function getOutput(

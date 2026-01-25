@@ -23,12 +23,10 @@ const CodingView = () => {
 
   if (!question?.id) {
     console.log("Loading question")
-    // TODO: add loader on screen
   }
 
   const submitCode = () => {
     console.log("submitting code")
-    // TODO: add loader on screen
   }
 
   const logs: Response[] = []
@@ -79,13 +77,10 @@ const CodingView = () => {
     } else if (fullOutput) {
       mainPanelSize = [0, 100]
       codePanelSize = [0, 100]
-    } else if (closeCode && closeOutput) {
-      mainPanelSize = [50, 50]
-      codePanelSize = [65, 35]
-    } else if (closeCode) {
+    } else if (closeCode && !closeOutput) {
       mainPanelSize = [50, 50]
       codePanelSize = [4.75, 95.25]
-    } else if (closeOutput) {
+    } else if (closeOutput && !closeCode) {
       mainPanelSize = [50, 50]
       codePanelSize = [95.25, 4.75]
     } else {
@@ -253,8 +248,8 @@ const CodingView = () => {
                 <TabsContent data-testid="code-output-tab" value="results"
                   className='h-full'
                 >
-                  {logs.map((log) => (
-                    <p>
+                  {logs.map((log, idx) => (
+                    <p key={`log-${idx}`} >
                       {log.text()}
                     </p>
                   ))}

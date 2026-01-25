@@ -46,7 +46,7 @@ export function useTestcases(question_id?: number) {
         const filtered = testcases.filter((c) => c.caseID !== caseID)
         let idx = -1
     
-        testcases.map((c) => {
+        testcases.forEach((c) => {
             if (c.caseID === caseID) {
                 idx = testcases.indexOf(c)
             }
@@ -59,7 +59,6 @@ export function useTestcases(question_id?: number) {
         setTestcases(filtered)
     
         const newID = (activeTestcase === caseID && idx !== 0) ? idx : idx - 1
-        // TODO: happens regardless of active testcase tab => onValueChange on Tablist
         setActiveTestcase(filtered[newID]?.caseID ?? filtered[0].caseID)
     }
 
