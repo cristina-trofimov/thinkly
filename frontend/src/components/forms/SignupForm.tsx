@@ -36,7 +36,7 @@ function handleLoginError(err: unknown, setError: (msg: string) => void): void {
     level: "ERROR",
     message: logMessage,
     component: "SignupForm",
-    url: window.location.href,
+    url: globalThis.location.href,
     stack: isError ? err.stack : undefined,
   });
 
@@ -77,7 +77,7 @@ export function SignupForm() {
       level: "INFO",
       message: `Logged in as: ${decoded.sub}`,
       component: "SignupForm",
-      url: window.location.href,
+      url: globalThis.location.href,
     });
 
     if (decoded) {

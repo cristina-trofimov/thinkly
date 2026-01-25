@@ -20,10 +20,10 @@ export default function ResetPasswordForm({ className, ...props }: React.Compone
 
     useEffect(() => {
         const tokenFromUrl = searchParams.get("token");
-        if (!tokenFromUrl) {
-            setError("Invalid or missing reset token. Please request a new password reset link.");
-        } else {
+        if (tokenFromUrl) {
             setToken(tokenFromUrl);
+        } else {
+            setError("Invalid or missing reset token. Please request a new password reset link.");
         }
     }, [searchParams]);
 
