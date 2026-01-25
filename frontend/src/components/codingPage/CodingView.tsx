@@ -64,7 +64,7 @@ const CodingView = () => {
   const languages = Object.keys(sampleTemps) as Array<keyof typeof sampleTemps>
 
   const [selectedLang, setSelectedLang] = useStateCallback(languages[0])
-  const { template, files } = sampleTemps[selectedLang]!
+  const { template, files } = sampleTemps[selectedLang]
 
   const outputTabs = [
     { id: 'preview', text: 'Preview', icon: <MonitorCheck size={16} /> },

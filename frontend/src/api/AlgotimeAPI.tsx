@@ -21,7 +21,7 @@ export async function createAlgotime(
         level: 'ERROR',
         message: `Error creating Algotime sessions: ${err}`,
         component: 'AlgotimeAPI',
-        url: window.location.href,
+        url: globalThis.location.href,
     });
         throw err;
     }
@@ -55,7 +55,7 @@ export async function getAllAlgotimeSessions(): Promise<AlgoTimeSession[]> {
       level: 'ERROR',
       message: `Error fetching Algotime sessions: ${err}`,
       component: 'AlgotimeAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
   });
     throw err;
   }

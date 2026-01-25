@@ -39,7 +39,7 @@ export async function getRiddles(): Promise<Riddle[]> {
                         level: 'ERROR',
                         message: `Failed fetch riddles: ${err}`,
                         component: 'ManageRiddlesPage.tsx',
-                        url: window.location.href,
+                        url: globalThis.location.href,
                 });
         throw err;
     }
@@ -70,7 +70,7 @@ export async function createRiddle(params: CreateRiddleParams): Promise<Riddle> 
                 level: 'ERROR',
                 message: `Failed to create riddles: ${err}`,
                 component: 'ManageRiddlesPage.tsx',
-                url: window.location.href,
+                url: globalThis.location.href,
         });
         throw err;
     }
@@ -87,7 +87,7 @@ export async function deleteRiddle(riddleId: number): Promise<void> {
                 level: 'ERROR',
                 message: `Failed to delete riddles: ${err}`,
                 component: 'ManageRiddlesPage.tsx',
-                url: window.location.href,
+                url: globalThis.location.href,
         });
         throw err;
     }
@@ -118,7 +118,7 @@ export async function getRiddleById(riddleId: number): Promise<Riddle> {
                 level: 'ERROR',
                 message: `Failed to fetch single riddle: ${err}`,
                 component: 'ManageRiddlesPage.tsx',
-                url: window.location.href,
+                url: globalThis.location.href,
         });;
         throw err;
     }

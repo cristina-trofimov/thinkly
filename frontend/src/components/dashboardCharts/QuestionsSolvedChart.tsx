@@ -41,8 +41,8 @@ export const QuestionsSolvedChart = ({ data, loading = false }: QuestionsSolvedC
             paddingAngle={0}
             dataKey="value"
           >
-            {placeholderData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+            {placeholderData.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
             ))}
           </Pie>
         </PieChart>
@@ -74,8 +74,8 @@ export const QuestionsSolvedChart = ({ data, loading = false }: QuestionsSolvedC
           paddingAngle={0}
           dataKey="value"
         >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
+          {chartData.map((entry) => (
+            <Cell key={entry.name} fill={entry.color} />
           ))}
         </Pie>
         <ChartTooltip content={<ChartTooltipContent />} />
