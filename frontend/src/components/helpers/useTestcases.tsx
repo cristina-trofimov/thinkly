@@ -9,7 +9,10 @@ export function useTestcases(question_id?: number) {
     const [activeTestcase, setActiveTestcase] = useState<string>("");
 
     useEffect(() => {
-        if (!question_id) return;
+        if (!question_id) {
+            setLoading(false)
+            return
+        }
         
         setLoading(true)
         getTestcases(question_id)
@@ -57,7 +60,7 @@ export function useTestcases(question_id?: number) {
     
         const newID = (activeTestcase === caseID && idx !== 0) ? idx : idx - 1
         // TODO: happens regardless of active testcase tab => onValueChange on Tablist
-        setActiveTestcase(testcases[newID].caseID)
+        setActiveTestcase(filtered[newID]?.caseID ?? filtered[0].caseID)
     }
 
     const updateTestcase = (
