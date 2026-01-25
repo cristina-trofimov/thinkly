@@ -46,7 +46,7 @@ export default function EditCompetitionDialog({
   onOpenChange,
   competitionId,
   onSuccess
-}: EditCompetitionDialogProps) {
+}: Readonly<EditCompetitionDialogProps>) {
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
@@ -146,7 +146,7 @@ export default function EditCompetitionDialog({
           level: 'ERROR',
           message: `Failed to load competition data: ${(err as Error).message}`,
           component: 'EditCompetitionDialog.tsx',
-          url: window.location.href,
+          url: globalThis.location.href,
           stack: (err as Error).stack,
         });
         setValidationError("Failed to load competition data. Please try again.");
@@ -189,12 +189,12 @@ export default function EditCompetitionDialog({
 
   const filteredQuestions = questions.filter((q) =>
     q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !orderedQuestions.find(oq => oq.id === q.id)
+    !orderedQuestions.some(oq => oq.id === q.id)
   );
 
   const filteredRiddles = riddles.filter((r) =>
     r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
-    !orderedRiddles.find(or => or.id === r.id)
+    !orderedRiddles.some(or => or.id === r.id)
   );
 
   const moveItem = <T,>(
@@ -273,7 +273,7 @@ export default function EditCompetitionDialog({
         level: 'ERROR',
         message: `Failed to update competition: ${(error as Error).message}`,
         component: 'EditCompetitionDialog.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (error as Error).stack,
       });
       setValidationError("Failed to update competition. Please try again.");

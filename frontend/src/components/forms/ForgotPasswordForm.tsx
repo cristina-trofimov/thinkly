@@ -54,7 +54,7 @@ export default function ForgotPasswordForm({
         level: "ERROR",
         message: `API Error: Failed to send reset email: ${errorMessage}`,
         component: "ForgotPasswordForm",
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: isError ? err.stack : undefined, // Safely access stack
       });
       toast.error("Something went wrong. Try again.");

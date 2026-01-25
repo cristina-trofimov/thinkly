@@ -25,7 +25,7 @@ export async function getDashboardOverview(): Promise<DashboardOverviewResponse>
       level: 'ERROR',
       message: `Error fetching dashboard overview: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;
@@ -50,7 +50,7 @@ export async function getNewAccountsStats(
       level: 'ERROR',
       message: `Error fetching new accounts stats: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;
@@ -76,7 +76,7 @@ export async function getQuestionsSolvedStats(
       level: 'ERROR',
       message: `Error fetching questions solved stats: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;
@@ -102,7 +102,7 @@ export async function getTimeToSolveStats(
       level: 'ERROR',
       message: `Error fetching time to solve stats: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;
@@ -128,7 +128,7 @@ export async function getLoginsStats(
       level: 'ERROR',
       message: `Error fetching logins stats: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;
@@ -155,7 +155,7 @@ export async function getParticipationStats(
       level: 'ERROR',
       message: `Error fetching participation stats: ${(err as Error).message}`,
       component: 'AdminDashboardAPI',
-      url: window.location.href,
+      url: globalThis.location.href,
       stack: (err as Error).stack,
     });
     throw err;

@@ -57,7 +57,7 @@ function ChangePasswordPage() {
         level: 'ERROR',
         message: `Change password error: ${err instanceof Error ? err.message : String(err)}`,
         component: 'SomePage',
-        url: window.location.href,
+        url: globalThis.location.href,
       });
 
       // 1. Default fallback message

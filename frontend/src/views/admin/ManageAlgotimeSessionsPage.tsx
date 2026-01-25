@@ -25,7 +25,7 @@ export default function ManageAlgotimeSessionsPage() {
         level: 'ERROR',
         message: `Failed to load algotime sessions: ${(err as Error).message}`,
         component: 'ManageAlgotimeSessionsPage.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
       });
       toast.error("Failed to load algotime sessions");
     } finally {

@@ -10,7 +10,7 @@ interface CompetitionItemProps {
   date: string;
 }
 
-export default function CompetitionItem({ title, date }: CompetitionItemProps) {
+export default function CompetitionItem({ title, date }: Readonly<CompetitionItemProps>) {
   return (
     <Item variant="outline" className="bg-white p-3">
       <ItemContent>

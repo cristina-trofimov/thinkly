@@ -59,7 +59,7 @@ export function LoginForm({
         level: "ERROR",
         message: `API Error: Failed to login: ${errorMessage}`,
         component: "LoginForm",
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: isError ? err.stack : undefined, // Safely access stack
       });
 
@@ -101,7 +101,7 @@ export function LoginForm({
         level: "ERROR",
         message: `API Error: Failed to login using Google: ${errorMessage}`,
         component: "LoginForm",
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: isError ? err.stack : undefined, // Safely access stack
       });
 

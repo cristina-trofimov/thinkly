@@ -7,7 +7,7 @@ ignore:
   - "**/ui/**"
   - "**/config.ts"
   - "**/DB_Methods/**"
-  - "db.py"
+  - "**/db.py"
 
 coverage:
   status:

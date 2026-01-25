@@ -21,7 +21,7 @@ interface TimeRemaining {
   seconds: number;
 }
 
-export default function HomePageBanner({ competitions }: HomePageBannerProps) {
+export default function HomePageBanner({ competitions }: Readonly<HomePageBannerProps>) {
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 

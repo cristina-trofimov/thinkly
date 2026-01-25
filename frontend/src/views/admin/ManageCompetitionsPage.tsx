@@ -64,10 +64,10 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
-  const [competitions, setCompetition] = useState<Competition[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{ id: number; name: string } | null>(null);
@@ -76,15 +76,28 @@ const ManageCompetitions = () => {
   const loadCompetitions = async () => {
     try {
       const data1 = await getCompetitions();
-      setCompetition(data1);
+      setCompetitions(data1);
     } catch (err) {
       logFrontend({
         level: 'ERROR',
         message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
         component: 'ManageCompetitionsPage.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
+    }
+  };
+
+  const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
+    switch (status) {
+      case "Active":
+        return "bg-green-100 text-green-700";
+      case "Upcoming":
+        return "bg-blue-100 text-blue-700";
+      case "Completed":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700";
     }
   };
 
@@ -94,7 +107,7 @@ const ManageCompetitions = () => {
       toast.success("Competition published successfully!");
 
       // Clear the state so the toast doesn't show up again if the user refreshes
-      window.history.replaceState({}, document.title);
+      globalThis.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
@@ -107,14 +120,14 @@ const ManageCompetitions = () => {
       try {
         const data = await getCompetitions();
         if (!cancelled) {
-          setCompetition(data);
+          setCompetitions(data);
         }
       } catch (err) {
         logFrontend({
           level: 'ERROR',
           message: `Failed to load competitions: ${(err as Error).message}`,
           component: 'ManageCompetitionsPage.tsx',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } finally {
         if (!cancelled) setLoading(false);
@@ -183,7 +196,7 @@ const ManageCompetitions = () => {
         level: 'ERROR',
         message: `Failed to delete competition: ${(err as Error).message}`,
         component: 'ManageCompetitionsPage.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
     } finally {
@@ -268,13 +281,7 @@ const ManageCompetitions = () => {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle}</h3>
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
-                      status === "Active"
-                        ? "bg-green-100 text-green-700"
-                        : status === "Upcoming"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${getStatusClasses(status)}`}
                   >
                     {status}
                   </span>

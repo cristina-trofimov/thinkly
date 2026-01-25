@@ -43,7 +43,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
             level: 'ERROR',
             message: `Corrupt token: ${(error as Error).message}`,
             component: 'ProtectedRoute.tsx',
-            url: window.location.href,
+            url: globalThis.location.href,
         })
         return <Navigate to="/" replace />;
     }

@@ -89,7 +89,7 @@ export default function CreateCompetition() {
           level: 'ERROR',
           message: `Failed to load selection data for CreateCompetitionPage: ${(err as Error).message}`,
           component: 'CreateCompetitionPage',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       }
     };
@@ -98,12 +98,12 @@ export default function CreateCompetition() {
 
   const filteredQuestions = (questions || []).filter((q) =>
     q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !orderedQuestions.find(oq => oq.id === q.id)
+    !orderedQuestions.some(oq => oq.id === q.id)
   );
 
   const filteredRiddles = (riddles || []).filter((r) =>
     r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
-    !orderedRiddles.find(or => or.id === r.id)
+    !orderedRiddles.some(or => or.id === r.id)
   );
 
   const moveItem = <T,>(
@@ -210,7 +210,7 @@ export default function CreateCompetition() {
         level: 'ERROR',
         message: `Submission error: ${error.message ?? "Unknown Error"}`,
         component: 'CreateCompetitionPage',
-        url: window.location.href,
+        url: globalThis.location.href,
       });
     } finally {
       setIsSubmitting(false);

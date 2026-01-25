@@ -25,7 +25,7 @@ function HomePage() {
           level: "DEBUG",
           message: `Finished initial data fetch for questions successfully.`,
           component: "HomePage",
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } catch (err: unknown) {
         const isError = err instanceof Error;
@@ -39,7 +39,7 @@ function HomePage() {
           level: "ERROR",
           message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
           component: "HomePage",
-          url: window.location.href,
+          url: globalThis.location.href,
           stack: isError ? err.stack : undefined,
         });
       }
@@ -63,7 +63,7 @@ function HomePage() {
           level: "DEBUG",
           message: `Competitions data loaded.`,
           component: "HomePage",
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } catch (err: unknown) {
         const isError = err instanceof Error;
@@ -75,7 +75,7 @@ function HomePage() {
           level: "ERROR",
           message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
           component: "HomePage",
-          url: window.location.href,
+          url: globalThis.location.href,
           stack: isError ? err.stack : undefined,
         });
       }
@@ -94,8 +94,7 @@ function HomePage() {
   const competitionDates = competitions.map((c) => c.startDate);
 
   return (
-    <>
-      <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-4">
+    <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-4">
         <div className="flex w-full gap-4 items-start">
           <div className="flex flex-col w-full gap-4">
             <HomePageBanner competitions={competitions} />
@@ -141,7 +140,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-    </>
   );
 }
 

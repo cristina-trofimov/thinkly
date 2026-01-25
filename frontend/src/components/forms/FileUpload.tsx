@@ -23,7 +23,7 @@ interface CreateRiddleFormProps {
     onSuccess?: () => void;
 }
 
-export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
+export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFormProps>) {
     // Form State
     const [question, setQuestion] = useState("");
     const [answer, setAnswer] = useState("");
@@ -64,7 +64,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                 level: 'ERROR',
                 message: `Failed to load riddles: ${error}`,
                 component: 'ManageRiddlesPage.tsx',
-                url: window.location.href,
+                url: globalThis.location.href,
         });
             toast.error(error);
             return;
@@ -118,7 +118,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
         try {
             // 2. Upload File (if exists)
             if (file) {
-                const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+                const safeName = file.name.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
                 const path = `${folder}/${Date.now()}_${safeName}`;
 
                 const { error: uploadError } = await supabase.storage
@@ -157,7 +157,7 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                     level: 'ERROR',
                     message: `Failed to load riddles: ${(err as Error).message}`,
                     component: 'ManageRiddlesPage.tsx',
-                    url: window.location.href,
+                    url: globalThis.location.href,
                     });
             
             const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
@@ -209,7 +209,33 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                     <div className="space-y-2">
                         <Label>Attachment (Optional)</Label>
                         
-                        {!file ? (
+                        {file ? (
+                            // Selected File View
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    {/* Mini Preview Thumbnail */}
+                                    {file.type.startsWith("image/") && previewUrl && (
+                                        <img src={previewUrl} alt="preview" className="h-10 w-10 object-cover rounded-md" />
+                                    )}
+                                    <div className="min-w-0">
+                                        <div className="font-medium text-sm truncate max-w-[200px]">{file.name}</div>
+                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                                            {file.type}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={removeFile}
+                                    disabled={isSubmitting}
+                                    className="text-muted-foreground hover:text-destructive"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ) : (
                             <label
                                 onDrop={onDrop}
                                 onDragOver={onDragOver}
@@ -234,32 +260,6 @@ export default function CreateRiddleForm({ onSuccess }: CreateRiddleFormProps) {
                                     <div className="text-xs text-muted-foreground">Image, Audio, Video, or PDF (Max 100MB)</div>
                                 </div>
                             </label>
-                        ) : (
-                            // Selected File View
-                            <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                                <div className="flex items-center gap-3 overflow-hidden">
-                                    {/* Mini Preview Thumbnail */}
-                                    {file.type.startsWith("image/") && previewUrl && (
-                                        <img src={previewUrl} alt="preview" className="h-10 w-10 object-cover rounded-md" />
-                                    )}
-                                    <div className="min-w-0">
-                                        <div className="font-medium text-sm truncate max-w-[200px]">{file.name}</div>
-                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                                            {file.type}
-                                        </Badge>
-                                    </div>
-                                </div>
-                                
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    onClick={removeFile}
-                                    disabled={isSubmitting}
-                                    className="text-muted-foreground hover:text-destructive"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
-                            </div>
                         )}
                     </div>
 

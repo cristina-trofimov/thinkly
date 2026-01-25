@@ -42,5 +42,3 @@ async def capture_client_log(log_data: ClientLogPayload, request: Request):
         # Log the internal failure of the logging endpoint itself
         logger.exception(f"Internal error processing client log request: {type(e).__name__}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal logging error")
-        
-    return
