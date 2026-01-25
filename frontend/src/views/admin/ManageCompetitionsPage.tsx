@@ -64,10 +64,10 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
-  const [competitions, setCompetition] = useState<Competition[]>([]);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{ id: number; name: string } | null>(null);
@@ -76,13 +76,13 @@ const ManageCompetitions = () => {
   const loadCompetitions = async () => {
     try {
       const data1 = await getCompetitions();
-      setCompetition(data1);
+      setCompetitions(data1);
     } catch (err) {
       logFrontend({
         level: 'ERROR',
         message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
         component: 'ManageCompetitionsPage.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
     }
@@ -94,7 +94,7 @@ const ManageCompetitions = () => {
       toast.success("Competition published successfully!");
 
       // Clear the state so the toast doesn't show up again if the user refreshes
-      window.history.replaceState({}, document.title);
+      globalThis.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
@@ -107,14 +107,14 @@ const ManageCompetitions = () => {
       try {
         const data = await getCompetitions();
         if (!cancelled) {
-          setCompetition(data);
+          setCompetitions(data);
         }
       } catch (err) {
         logFrontend({
           level: 'ERROR',
           message: `Failed to load competitions: ${(err as Error).message}`,
           component: 'ManageCompetitionsPage.tsx',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } finally {
         if (!cancelled) setLoading(false);
@@ -183,7 +183,7 @@ const ManageCompetitions = () => {
         level: 'ERROR',
         message: `Failed to delete competition: ${(err as Error).message}`,
         component: 'ManageCompetitionsPage.tsx',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
     } finally {

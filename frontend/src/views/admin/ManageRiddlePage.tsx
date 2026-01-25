@@ -34,7 +34,7 @@ export default function ManageRiddles() {
                 level: 'ERROR',
                 message: `Failed to load riddles: ${(err as Error).message}`,
                 component: 'ManageRiddlesPage.tsx',
-                url: window.location.href,
+                url: globalThis.location.href,
         });
             toast.error("Failed to load riddles");
         } finally {
