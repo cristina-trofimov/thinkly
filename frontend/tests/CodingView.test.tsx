@@ -77,7 +77,7 @@ jest.mock("react-resizable-panels", () => ({
     PanelResizeHandle: () => <div data-testid="resizable-handle" />,
 }))
 
-jest.mock("@/components/helpers/MonacoConfig", () => ({
+jest.mock("@/src/components/helpers/MonacoConfig", () => ({
     __esModule: true,
     buildMonacoCode: jest.fn(() => ({
       Javascript: {
