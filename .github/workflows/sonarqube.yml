@@ -85,11 +85,13 @@ jobs:
       - name: Fix coverage paths for SonarQube
         run: |
           cd backend
-          # Replace the source tag and fix all filename paths
-          sed -i 's|<source>src</source>|<source>/home/runner/work/thinkly/thinkly/backend/src</source>|g' coverage.xml
-          sed -i 's|filename="|filename="src/|g' coverage.xml
+          # Change source from 'src' to 'backend/src' (relative to project root)
+          sed -i 's|<source>src</source>|<source>backend/src</source>|g' coverage.xml
+          # Prepend 'backend/src/' to all filename paths
+          sed -i 's|filename="|filename="backend/src/|g' coverage.xml
           echo "--- Updated coverage.xml paths ---"
           grep '<source>' coverage.xml
+          echo "Sample file paths:"
           grep '<class.*filename=' coverage.xml | head -5
 
       # ----------- SONAR ------------
