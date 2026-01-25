@@ -85,12 +85,14 @@ jobs:
       - name: Fix coverage paths for SonarQube
         run: |
           cd backend
-          # Change source from 'src' to 'backend/src' (relative to project root)
-          sed -i 's|<source>src</source>|<source>backend/src</source>|g' coverage.xml
-          # Prepend 'backend/src/' to all filename paths
+          # Remove the <source> tag entirely - SonarQube will use projectBaseDir
+          sed -i '/<sources>/,/<\/sources>/d' coverage.xml
+          
+          # Make all filename paths relative to project root (backend/src/...)
           sed -i 's|filename="|filename="backend/src/|g' coverage.xml
-          echo "--- Updated coverage.xml paths ---"
-          grep '<source>' coverage.xml
+          
+          echo "--- Updated coverage.xml (source removed, paths from project root) ---"
+          head -30 coverage.xml
           echo "Sample file paths:"
           grep '<class.*filename=' coverage.xml | head -5
 
@@ -105,9 +107,10 @@ jobs:
             -Dsonar.projectBaseDir=.
             -Dsonar.sources=frontend/src,backend/src
             -Dsonar.tests=frontend/tests,backend/tests
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/DB_Methods/**,**/init_db.py,**/__init__.py,**/*.config.ts,**/config.ts,**/db.py,**/hooks/**,**/shadcn-io/**,**/models/**,**/logging_config.py
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
-            -Dsonar.coverage.exclusions=**/*test*.py,**/test_*.py,**/__init__.py
+            -Dsonar.python.version=3.11
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
