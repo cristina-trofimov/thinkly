@@ -51,7 +51,8 @@ jobs:
         run: |
           cd backend
           source .venv/bin/activate
-          pytest --cov=src --cov-branch --cov-report=xml:coverage.xml --disable-warnings -q
+          # Use relative-files to make paths relative to where pytest runs
+          pytest --cov=src --cov-branch --cov-report=xml:coverage.xml --cov-report=term --disable-warnings -q
         env:
           PYTHONPATH: backend
           BREVO_API_KEY: test-brevo-key
@@ -78,6 +79,8 @@ jobs:
           fi
           echo "✅ Backend coverage file exists"
           head -20 backend/coverage.xml
+          echo "--- Checking filename paths in coverage.xml ---"
+          grep '<class.*filename=' backend/coverage.xml | head -5
 
       # ----------- SONAR ------------
       - name: SonarQube Scan
@@ -88,10 +91,11 @@ jobs:
           args: >
             -Dsonar.verbose=true
             -Dsonar.projectBaseDir=.
-            -Dsonar.sources=./frontend/src,./backend/src
-            -Dsonar.tests=./frontend/tests,./backend/tests
-            -Dsonar.javascript.lcov.reportPaths=./frontend/coverage/lcov.info
-            -Dsonar.python.coverage.reportPaths=./backend/coverage.xml
+            -Dsonar.sources=frontend/src,backend/src
+            -Dsonar.tests=frontend/tests,backend/tests
+            -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
+            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
+            -Dsonar.coverage.exclusions=**/*test*.py,**/test_*.py,**/__init__.py
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
@@ -107,8 +111,8 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           working-directory: ./frontend
-          branch: ${{ github.head_ref }}      # Use the PR branch as base
-          fixes: true                         # Attempt to resolve missing base commit
+          branch: ${{ github.head_ref }}
+          fixes: true
 
       - name: Upload backend coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -120,5 +124,5 @@ jobs:
           fail_ci_if_error: true
           verbose: true
           working-directory: ./backend
-          branch: ${{ github.head_ref }}      # Use the PR branch as base
-          fixes: true                         # Attempt to resolve missing base commit
+          branch: ${{ github.head_ref }}
+          fixes: true
