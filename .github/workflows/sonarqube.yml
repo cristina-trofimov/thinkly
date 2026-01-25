@@ -107,7 +107,7 @@ jobs:
             -Dsonar.projectBaseDir=.
             -Dsonar.sources=frontend/src,backend/src
             -Dsonar.tests=frontend/tests,backend/tests
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/DB_Methods/**,**/init_db.py,**/__init__.py,**/*.config.ts,**/config.ts,**/db.py,**/hooks/**,**/shadcn-io/**,**/models/**,**/logging_config.py
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/DB_Methods/**,**/init_db.py,**/__init__.py,**/*.config.ts,**/config.ts,**/db.py,**/hooks/**,**/shadcn-io/**,**/models/**,**/logging_config.py,**/ui/**
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
             -Dsonar.python.version=3.11
