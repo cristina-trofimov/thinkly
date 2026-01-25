@@ -538,7 +538,7 @@ export const AlgoTimeSessionForm = () => {
 
             <div className="flex gap-2 mt-8">
               <div className="w-25">
-                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="startTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   Start Time
                 </Label>
                 <Input
@@ -552,7 +552,7 @@ export const AlgoTimeSessionForm = () => {
               </div>
 
               <div className="w-25">
-                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="endTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   End Time
                 </Label>
                 <Input
