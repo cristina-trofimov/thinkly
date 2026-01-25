@@ -18,6 +18,28 @@ app.include_router(admin_dashboard_api.admin_dashboard_router, prefix="/admin/da
 
 
 @pytest.fixture
+def client(mock_db):
+    """Creates a test client with dependency overrides."""
+    test_app = FastAPI()
+    test_app.include_router(competitions_router)
+
+    # Override database dependency
+    def override_get_db():
+        try:
+            yield mock_db
+        finally:
+            pass
+
+    # Override authentication dependency
+    def override_get_current_user():
+        return {"sub": "test@example.com", "role": "admin"}
+
+    test_app.dependency_overrides[database.get_db] = override_get_db
+    test_app.dependency_overrides[get_current_user] = override_get_current_user
+
+    return TestClient(test_app)
+
+@pytest.fixture
 def mock_db_session():
     return MagicMock()
 
