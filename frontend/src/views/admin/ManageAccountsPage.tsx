@@ -17,7 +17,7 @@ export default function ManageAccountsPage() {
         level: 'INFO',
         message: `Attempting to fetch all user accounts.`,
         component: 'ManageAccountsPage',
-        url: window.location.href,
+        url: globalThis.location.href,
       });
 
       try {
@@ -29,7 +29,7 @@ export default function ManageAccountsPage() {
           level: 'INFO',
           message: `Successfully loaded ${users.length} user accounts.`,
           component: 'ManageAccountsPage',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -40,7 +40,7 @@ export default function ManageAccountsPage() {
           level: 'ERROR',
           message: `Data fetch failure: ${errorMessage}`,
           component: 'ManageAccountsPage',
-          url: window.location.href,
+          url: globalThis.location.href,
           stack: error instanceof Error ? error.stack : undefined,
         });
 
@@ -65,7 +65,7 @@ export default function ManageAccountsPage() {
       level: 'INFO',
       message: `UI state updated after batch deletion of ${deletedUserIds.length} users.`,
       component: 'ManageAccountsPage',
-      url: window.location.href,
+      url: globalThis.location.href,
     });
 
     setData((prevData) =>
@@ -79,7 +79,7 @@ export default function ManageAccountsPage() {
       level: 'INFO',
       message: `UI state updated after modifying user ID: ${updatedUser.id}.`,
       component: 'ManageAccountsPage',
-      url: window.location.href,
+      url: globalThis.location.href,
     });
 
     setData((prevData) =>

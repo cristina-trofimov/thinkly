@@ -29,7 +29,7 @@ interface NavUserProps {
   user: Account | null;
 }
 
-export function NavUser({ user }: NavUserProps) {
+export function NavUser({ user }: Readonly<NavUserProps>) {
   const { isMobile } = useSidebar()
   const navigate = useNavigate();
 
@@ -43,7 +43,7 @@ export function NavUser({ user }: NavUserProps) {
         level: 'ERROR', 
         message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
         component: 'NavUser',
-        url: window.location.href,
+        url: globalThis.location.href,
     });
 
       // Narrow the type
@@ -64,7 +64,7 @@ export function NavUser({ user }: NavUserProps) {
         level: 'INFO', 
         message: `Navigated to the user profile page.`,
         component: 'NavUser',
-        url: window.location.href,
+        url: globalThis.location.href,
     });
   };
 

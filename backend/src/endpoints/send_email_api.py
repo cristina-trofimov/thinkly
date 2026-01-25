@@ -104,12 +104,12 @@ def _validate_email_inputs(to: list[str], subject: str, text: str):
         raise ValueError("Email body text is required")
 
 
-def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | None = None,
+def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | None = None,
                          html: str | None = None) -> dict:
     """Send an email via Brevo with full logging and validation."""
     _validate_email_inputs(to, subject, text)
 
-    scheduledAt = normalize_iso_utc(sendAt)
+    scheduled_at = normalize_iso_utc(send_at)
 
     payload = {
         "sender": {"email": DEFAULT_SENDER_EMAIL, "name": DEFAULT_SENDER_NAME},
@@ -123,9 +123,9 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | N
         payload["htmlContent"] = html
         logger.debug("HTML content included in email")
 
-    if scheduledAt:
-        payload["scheduledAt"] = scheduledAt
-        logger.info(f"Email scheduled for {scheduledAt}")
+    if scheduled_at:
+        payload["scheduledAt"] = scheduled_at
+        logger.info(f"Email scheduled for {scheduled_at}")
 
     headers = {
         "accept": "application/json",
@@ -149,7 +149,7 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, sendAt: str | N
         raise RuntimeError(f"Brevo API error {resp.status_code}: {detail}")
 
     logger.info(f"SUCCESS: Email sent successfully. Message ID: {resp.json().get('messageId')}")
-    return {"brevo": resp.json(), "scheduledAt": scheduledAt}
+    return {"brevo": resp.json(), "scheduledAt": scheduled_at}
 
 # Routes
 
@@ -160,7 +160,7 @@ async def send_email(request: SendEmailRequest):
             to=request.to,
             subject=request.subject,
             text=request.text,
-            sendAt=request.sendAt
+            send_at=request.sendAt
         )
         return {"ok": True, **result}
     except Exception as e:

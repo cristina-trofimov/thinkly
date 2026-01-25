@@ -115,7 +115,7 @@ class TestSendEmailViaBrevo(unittest.TestCase):
             to=["user@example.com"],
             subject="Scheduled",
             text="Body",
-            sendAt="2025-12-31T10:00:00Z"
+            send_at="2025-12-31T10:00:00Z"
         )
 
         assert result["brevo"]["messageId"] == "scheduled123"
