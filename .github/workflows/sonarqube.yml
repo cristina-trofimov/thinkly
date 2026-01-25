@@ -85,10 +85,16 @@ jobs:
       - name: Fix coverage paths for SonarQube
         run: |
           cd backend
-          # Change source from 'src' to 'backend/src' (relative to project root)
-          sed -i 's|<source>src</source>|<source>backend/src</source>|g' coverage.xml
-          # Prepend 'backend/src/' to all filename paths
-          sed -i 's|filename="|filename="backend/src/|g' coverage.xml
+          # Get the absolute path to backend/src
+          BACKEND_SRC_PATH="$(pwd)/src"
+          echo "Backend src absolute path: $BACKEND_SRC_PATH"
+          
+          # Replace source with absolute path
+          sed -i "s|<source>src</source>|<source>$BACKEND_SRC_PATH</source>|g" coverage.xml
+          
+          # Update all filename paths to be absolute
+          sed -i "s|filename=\"|filename=\"$BACKEND_SRC_PATH/|g" coverage.xml
+          
           echo "--- Updated coverage.xml paths ---"
           grep '<source>' coverage.xml
           echo "Sample file paths:"
