@@ -16,11 +16,10 @@ import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
-import type { Session } from "@/types/algoTime/AlgoTime.type";
+import type { Session, CreateAlgotimeRequest, CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 import {createAlgotime} from "@/api/AlgotimeAPI"
-import { type CreateAlgotimeRequest, type CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type"
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -152,7 +151,7 @@ export const AlgoTimeSessionForm = () => {
           level: 'DEBUG', // <--- Now using DEBUG level
           message: `Finished initial data fetch for questions successfully.`,
           component: 'HomePage',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       } catch (err: unknown) {
         const isError = err instanceof Error;
@@ -163,7 +162,7 @@ export const AlgoTimeSessionForm = () => {
           level: 'ERROR',
           message: `API Error: Failed to fetch questions. Reason: ${errorMessage}`,
           component: 'HomePage',
-          url: window.location.href,
+          url: globalThis.location.href,
           stack: isError ? err.stack : undefined, // Safely access stack
         });
       }
@@ -243,7 +242,7 @@ export const AlgoTimeSessionForm = () => {
       return format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d, yyyy");
     }
     const firstDate = format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d");
-    const lastDate = format(new Date(repeatSessions[repeatSessions.length - 1].date + 'T00:00:00'), "MMM d, yyyy");
+    const lastDate = format(new Date(repeatSessions.at(-1)!.date + 'T00:00:00'), "MMM d, yyyy");
     return `${firstDate} - ${lastDate}`;
   };
 
@@ -281,7 +280,7 @@ export const AlgoTimeSessionForm = () => {
         level: "INFO",
         message: "AlgoTime sessions created successfully",
         component: "AlgoTimeSessionForm",
-        url: window.location.href,
+        url: globalThis.location.href,
       });
 
       // Handle email notification if recipients are provided
@@ -299,7 +298,7 @@ export const AlgoTimeSessionForm = () => {
           level: 'INFO',
           message: `Email processing initiated ✅`,
           component: 'AlgoTimeSessionForm',
-          url: window.location.href,
+          url: globalThis.location.href,
         });
 
       }
@@ -368,7 +367,7 @@ export const AlgoTimeSessionForm = () => {
             <div className="flex flex-wrap gap-x-4 gap-y-8">
               <div className="w-48">
                 <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  {formData.repeatType !== "none" ? "Start Date" : "Date"}
+                  {formData.repeatType === "none" ? "Date" : "Start Date"}
                 </Label>
                 <div className="relative ">
                   <Input
