@@ -11,8 +11,8 @@ describe("CodeMultiLangTemplate", () => {
 
     it("should have templates for all expected languages", () => {
         const expectedLanguages = [
-            "Java", "Python", "Python3", "C", "C#", "C++",
-            "Kotlin", "Typescript", "Javascript", "Ruby", "Rust", "Erlang"
+            "Java", "Python", "C", "C#", "C++", "Kotlin",
+            "Typescript", "Javascript", "Ruby", "Rust", "Erlang", "Objective-C"
         ];
         expectedLanguages.forEach(lang => {
             expect(CodeMultiLangTemplate).toHaveProperty(lang);
@@ -21,9 +21,8 @@ describe("CodeMultiLangTemplate", () => {
 
     it("each template should have a fileExt, filename, template, and codeBuilder", () => {
         Object.values(CodeMultiLangTemplate).forEach((tpl: QuestionTemplate) => {
-            expect(tpl.fileExt).toBeTruthy();
-            expect(tpl.filename).toBeTruthy();
-            expect(tpl.template).toBeTruthy();
+            expect(tpl.monacoID).toBeTruthy();
+            expect(tpl.judgeID).toBeTruthy();
             expect(typeof tpl.codeBuilder).toBe("function");
         });
     });
