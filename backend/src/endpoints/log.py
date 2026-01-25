@@ -33,7 +33,11 @@ async def capture_client_log(log_data: ClientLogPayload, request: Request):
 
         # Determine the logging function (e.g., logger.error)
         log_level = log_data.level.upper()
-        log_func = getattr(logger, log_level.lower(), logger.info)
+
+        if log_level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+            log_func = getattr(logger, log_level.lower())
+        else:
+            log_func = logger.info
         
         # Log the final plain text message
         log_func(final_message)

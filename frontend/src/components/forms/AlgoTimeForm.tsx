@@ -239,10 +239,22 @@ export const AlgoTimeSessionForm = () => {
 
   const getDateRangeString = () => {
     if (repeatSessions.length === 1) {
-      return format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d, yyyy");
+      return format(
+        new Date(repeatSessions[0].date + 'T00:00:00'),
+        'MMM d, yyyy'
+      );
     }
-    const firstDate = format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d");
-    const lastDate = format(new Date(repeatSessions[repeatSessions.length - 1].date + 'T00:00:00'), "MMM d, yyyy");
+
+    const firstDate = format(
+      new Date(repeatSessions[0].date + 'T00:00:00'),
+      'MMM d'
+    );
+
+    const lastDate = format(
+      new Date(repeatSessions.at(-1)!.date + 'T00:00:00'),
+      'MMM d, yyyy'
+    );
+
     return `${firstDate} - ${lastDate}`;
   };
 

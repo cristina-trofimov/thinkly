@@ -8,9 +8,9 @@ const getApiUrl = (): string => {
   }
 
   // Try process.env for Jest/Node environments
-  if (typeof process !== 'undefined' && process.env?.VITE_BACKEND_URL) {
-    return process.env.VITE_BACKEND_URL;
-  }
+  if (globalThis.window && (globalThis.window as any).VITE_BACKEND_URL) {
+  return (globalThis.window as any).VITE_BACKEND_URL;
+    }
 
   // Default fallback
   return "https://thinkly-production.up.railway.app/";
