@@ -82,6 +82,16 @@ jobs:
           echo "--- Checking filename paths in coverage.xml ---"
           grep '<class.*filename=' backend/coverage.xml | head -5
 
+      - name: Fix coverage paths for SonarQube
+        run: |
+          cd backend
+          # Replace the source tag and fix all filename paths
+          sed -i 's|<source>src</source>|<source>/home/runner/work/thinkly/thinkly/backend/src</source>|g' coverage.xml
+          sed -i 's|filename="|filename="src/|g' coverage.xml
+          echo "--- Updated coverage.xml paths ---"
+          grep '<source>' coverage.xml
+          grep '<class.*filename=' coverage.xml | head -5
+
       # ----------- SONAR ------------
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v6
