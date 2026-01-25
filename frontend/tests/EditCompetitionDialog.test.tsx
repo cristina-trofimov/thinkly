@@ -23,9 +23,35 @@ describe('EditCompetitionDialog', () => {
   const competitionId = 2;
 
   const mockQuestions = [
-    { id: 1, title: 'Two Sum', difficulty: 'Easy' as const, date: new Date('2024-01-01') },
-    { id: 2, title: 'Binary Search', difficulty: 'Medium' as const, date: new Date('2024-01-02') },
-    { id: 3, title: 'Graph Traversal', difficulty: 'Hard' as const, date: new Date('2024-01-03') },
+    { 
+      id: 1, 
+      title: 'Two Sum', 
+      difficulty: 'Easy' as const, 
+      date: new Date('2024-01-01'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
+    { 
+      id: 2,
+      title: 'Binary Search',
+      difficulty: 'Medium' as const,
+      date: new Date('2024-01-02'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
+    { id: 3,
+      title: 'Graph Traversal',
+      difficulty: 'Hard' as const,
+      date: new Date('2024-01-03'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
   ];
 
   const mockRiddles = [

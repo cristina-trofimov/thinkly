@@ -61,10 +61,10 @@ export function DataTable<TData, TValue>({
         <Input
           placeholder="Search questions..."
           value={
-            (table.getColumn("title")?.getFilterValue() as string) ?? ""
+            (table.getColumn("questionTitle")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
+            table.getColumn("questionTitle")?.setFilterValue(event.target.value)
           }
           className="max-w-sm w-[250px]"
         />
