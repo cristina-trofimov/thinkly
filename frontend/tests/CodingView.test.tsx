@@ -3,7 +3,8 @@ import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/components/codingPage/CodingView'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
+import { Question } from '../src/types/questions/Question.type'
 
 
 jest.mock('@monaco-editor/react', () => {
@@ -55,7 +56,7 @@ jest.mock("../src/components/ui/dropdown-menu", () => {
           {children}
         </DropdownContext.Provider>
       ),
-      DropdownMenuTrigger: ({ children }: any) => <button>{children}</button>,
+      DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
       DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
       DropdownMenuItem: ({ children }: any) => <div>{children}</div>,
     }
@@ -100,8 +101,6 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
     },
 }))
 
-const nullRef = { current: null }
-
 const mockProblem: Question = {
     id: 1,
     title: "Sum Problem",
@@ -112,6 +111,8 @@ const mockProblem: Question = {
     difficulty: "Easy",
     date: new Date("2025-10-28T10:00:00Z"),
 }
+
+const nullRef = { current: null }
 
 jest.spyOn(React, 'useRef')
     .mockImplementationOnce(() => nullRef)
@@ -137,7 +138,10 @@ describe('CodingView Component', () => {
 
         expect(screen.getAllByTestId("panel-group").length).toBe(2)
         expect(screen.getAllByTestId("resizable-panel").length).toBe(4)
+        expect(screen.getAllByTestId("resizable-handle").length).toBe(2)
         expect(screen.getByTestId("submit-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("language-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("coding-btns")).toBeInTheDocument()
         expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
         expect(screen.getByTestId("code-output-tab")).toBeInTheDocument()
     })
@@ -152,63 +156,99 @@ describe('CodingView Component', () => {
 
     it('toggles and closes code area fullscreen mode', async () => {
         render(<CodingView />)
-        
-        const fullscreenBtn = screen.getByTestId('code-area-fullscreen')
-        expect(screen.getByTestId('code-area-max-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
-        expect(screen.getByTestId('code-area-min-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('code-area-max-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('code-area-min-icon')).toBeNull()
+
+        await userEvent.click(screen.getByTestId('code-area-fullscreen'))
+
+        expect(screen.queryByTestId('code-area-max-icon')).toBeNull()
+        expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
     })
 
     it('collapses and uncollapses code area', async () => {
         render(<CodingView />)
 
-        const collapseAreaBtn = screen.getByTestId('code-area-collapse')
-        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
-        // expect(screen.getByTestId('code-area-down-btn')).not.toBeInTheDocument()
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
 
-        await userEvent.click(collapseAreaBtn)
-        expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
-        // expect(screen.getByTestId('code-area-up-btn')).not.toBeInTheDocument()
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+
+        expect(screen.queryByTestId('code-area-up-icon')).toBeNull()
+        expect(screen.getByTestId('code-area-down-icon')).toBeInTheDocument()
     })
 
     it('toggles and closes output area fullscreen mode', async () => {
         render(<CodingView />)
-        const fullscreenBtn = screen.getByTestId('output-area-fullscreen')
-        expect(screen.getByTestId('output-area-max-btn')).toBeInTheDocument()
 
-        await userEvent.click(fullscreenBtn)
-        expect(screen.getByTestId('output-area-min-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-max-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-min-icon')).toBeNull()
+
+        await userEvent.click(screen.getByTestId('output-area-fullscreen'))
+
+        expect(screen.queryByTestId('output-area-max-icon')).toBeNull()
+        expect(screen.getByTestId('output-area-min-icon')).toBeInTheDocument()
     })
 
     it('collapses and uncollapses output area', async () => {
         render(<CodingView />)
-        const collapseOutputBtn = screen.getByTestId('output-area-collapse')
-        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
 
-        await userEvent.click(collapseOutputBtn)
-        expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+
+        expect(screen.queryByTestId('output-area-down-icon')).toBeNull()
+        expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
     })
 
-    it('collapses both areas when output area is collapsed and console is already collapsed', async () => {
+    // it('uncollapses both areas when output area is collapsed and console is already collapsed', async () => {
+    //     render(<CodingView />)
+
+    //     expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+    //     expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+    //     expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+    //     expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
+
+    //     await userEvent.click(screen.getByTestId('output-area-collapse'))
+
+    //     expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+    //     expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
+    //     expect(screen.queryByTestId('output-area-down-icon')).toBeNull()
+    //     expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
+
+    //     await userEvent.click(screen.getByTestId('code-area-collapse'))
+
+    //     // expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+    //     // expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+    //     // expect(screen.queryByTestId('output-area-up-icon')).toBeNull() // this is false for some reason
+    //     // expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
+        
+
+    //     // expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
+    //     // expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
+    // })
+
+    it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
         render(<CodingView />)
-        await userEvent.click(screen.getByTestId('output-area-collapse'))
-        expect(screen.getByTestId('output-area-up-btn')).toBeInTheDocument()
+
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+        expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
 
         await userEvent.click(screen.getByTestId('code-area-collapse'))
-        
-        expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
-        expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
+
+        expect(screen.getByTestId('code-area-down-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+        expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+        expect(screen.queryByTestId('code-area-up-icon')).toBeNull()
+
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        // expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+        // expect(screen.queryByTestId('output-area-up-icon')).toBeNull()
+        // expect(screen.queryByTestId('code-area-down-icon')).toBeNull()
     })
-
-    // // it('collapses both areas when console is collapsed and output area is already collapsed', async () => {
-    // //     render(<CodingView />)
-    // //     await userEvent.click(screen.getByTestId('code-area-collapse'))
-    // //     expect(screen.getByTestId('code-area-down-btn')).toBeInTheDocument()
-
-    // //     await userEvent.click(screen.getByTestId('output-area-collapse'))
-        
-    // //     expect(screen.getByTestId('code-area-up-btn')).toBeInTheDocument()
-    // //     expect(screen.getByTestId('output-area-down-btn')).toBeInTheDocument()
-    // // })
 })

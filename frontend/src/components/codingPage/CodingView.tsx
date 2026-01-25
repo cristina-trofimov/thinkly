@@ -117,7 +117,7 @@ const CodingView = () => {
           <CodeDescArea question={question} />
         </Panel>
 
-        <PanelResizeHandle data-testid="resizable-handle" 
+        <PanelResizeHandle data-testid="resizable-handle"
           className="w-[0.35px] mx-[1.5px] border-none"
           style={{ background: "transparent" }} 
         />
@@ -130,8 +130,9 @@ const CodingView = () => {
               className="ml-0.75 mb-1 rounded-md border"
             >
               <div data-testid="coding-area" >
-                <div className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                      border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                <div data-testid="coding-btns" 
+                  className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium" >Code</span>
                   <div className="grid grid-cols-4 gap-1">
@@ -147,20 +148,20 @@ const CodingView = () => {
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {fullCode ? <Minimize2 data-testid='code-area-min-btn' size={22} color="black" />
-                        : <Maximize2 data-testid='code-area-max-btn' size={22} color="black" />}
+                      {fullCode ? <Minimize2 data-testid='code-area-min-icon' size={22} color="black" />
+                        : <Maximize2 data-testid='code-area-max-icon' size={22} color="black" />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {closeCode ? <ChevronDown data-testid='code-area-down-btn' size={22} color="black" />
-                        : <ChevronUp data-testid='code-area-up-btn' size={22} color="black" />}
+                      {closeCode ? <ChevronDown data-testid='code-area-down-icon' size={22} color="black" />
+                        : <ChevronUp data-testid='code-area-up-icon' size={22} color="black" />}
                     </Button>
                   </div>
                 </div>
                 <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2" >
-                  <DropdownMenu data-testid='languageDropdown'>
+                  <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
-                      <Button data-testid='languageBtn'
+                      <Button data-testid='language-btn'
                         className="bg-background text-black text-base font-bold h-7
                                   hover:bg-primary/20 focus:bg-primary/55" >
                         {selectedLang}
@@ -168,7 +169,7 @@ const CodingView = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild >
-                      <div data-testid='languageMenu'
+                      <div data-testid='language-menu'
                         className="z-10 text-sm bg-white w-26 border rounded-lg"
                       >
                         {supportedLanguages.map((lang) => (
@@ -197,11 +198,12 @@ const CodingView = () => {
               />
             </Panel>
 
-            <PanelResizeHandle className='my-[0.5px] border-none h-[0.5px]'
+            <PanelResizeHandle data-testid="resizable-handle"
+              className='my-[0.5px] border-none h-[0.5px]'
               style={{ background: "transparent" }} 
             />
             {/* Output panel */}
-            <Panel data-testid="resizable-panel" defaultSize={35} 
+            <Panel data-testid="resizable-handle" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
               <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >
@@ -234,13 +236,13 @@ const CodingView = () => {
                     {/* Size buttons */}
                     <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {fullOutput ? <Minimize2 data-testid='output-area-min-btn' size={22} color="black" />
-                        : <Maximize2 data-testid='output-area-max-btn' size={22} color="black" />}
+                      {fullOutput ? <Minimize2 data-testid='output-area-min-icon' size={22} color="black" />
+                        : <Maximize2 data-testid='output-area-max-icon' size={22} color="black" />}
                     </Button>
                     <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {closeOutput ? <ChevronUp data-testid='output-area-up-btn' size={22} color="black" />
-                        : <ChevronDown data-testid='output-area-down-btn' size={22} color="black" />}
+                      {closeOutput ? <ChevronUp data-testid='output-area-up-icon' size={22} color="black" />
+                        : <ChevronDown data-testid='output-area-down-icon' size={22} color="black" />}
                     </Button>
                   </div>
                 </TabsList>
