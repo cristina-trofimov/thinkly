@@ -9,6 +9,8 @@
     }
   ],
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": ["jest", "@testing-library/jest-dom", "node"],

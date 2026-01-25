@@ -239,10 +239,22 @@ export const AlgoTimeSessionForm = () => {
 
   const getDateRangeString = () => {
     if (repeatSessions.length === 1) {
-      return format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d, yyyy");
+      return format(
+        new Date(repeatSessions[0].date + 'T00:00:00'),
+        'MMM d, yyyy'
+      );
     }
-    const firstDate = format(new Date(repeatSessions[0].date + 'T00:00:00'), "MMM d");
-    const lastDate = format(new Date(repeatSessions[repeatSessions.length - 1].date + 'T00:00:00'), "MMM d, yyyy");
+
+    const firstDate = format(
+      new Date(repeatSessions[0].date + 'T00:00:00'),
+      'MMM d'
+    );
+
+    const lastDate = format(
+      new Date(repeatSessions.at(-1)!.date + 'T00:00:00'),
+      'MMM d, yyyy'
+    );
+
     return `${firstDate} - ${lastDate}`;
   };
 
@@ -526,7 +538,7 @@ export const AlgoTimeSessionForm = () => {
 
             <div className="flex gap-2 mt-8">
               <div className="w-25">
-                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="startTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   Start Time
                 </Label>
                 <Input
@@ -540,7 +552,7 @@ export const AlgoTimeSessionForm = () => {
               </div>
 
               <div className="w-25">
-                <Label htmlFor="time-picker" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="endTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   End Time
                 </Label>
                 <Input
