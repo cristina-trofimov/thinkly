@@ -46,7 +46,7 @@ export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProp
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="time" radius={[0, 4, 4, 0]}>
           {displayData.map((entry) => (
-            <Cell key={entry.type} fill={entry.color} />
+            <Cell key={`${entry.type}-${entry.time}`} fill={entry.color} />
           ))}
         </Bar>
       </BarChart>
