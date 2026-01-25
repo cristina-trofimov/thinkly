@@ -7,7 +7,7 @@ describe("LoginPage", () => {
     });
 
     it("should render the Thinkly logo and link", () => {
-        cy.get('a[href="#"]').should("exist").within(() => {
+        cy.get('a[href="/"]').should("exist").within(() => {
             cy.get("img[alt='Your icon']").should("be.visible");
             cy.contains("Thinkly").should("exist");
         });
