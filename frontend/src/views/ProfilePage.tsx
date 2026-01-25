@@ -60,7 +60,7 @@ function ProfilePage() {
                     level: 'ERROR',
                     message: `Failed to load user profile: ${error}`,
                     component: 'ProfilePage',
-                    url: window.location.href,
+                    url: globalThis.location.href,
                 });
                 toast.error("Failed to load profile data.");
             } finally {
@@ -101,8 +101,8 @@ function ProfilePage() {
 
             setUser(updatedAccount);
             
-            const fieldLabel = editingField.charAt(0).toUpperCase() + 
-                               editingField.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase();
+            const fieldLabel = editingField.charAt(0).toUpperCase() +
+                               editingField.slice(1).replaceAll(/([A-Z])/g, ' $1').toLowerCase();
             
             // Store the success message in session storage so it survives the reload
             sessionStorage.setItem("profileUpdateToast", `${fieldLabel} updated successfully.`);
@@ -111,7 +111,7 @@ function ProfilePage() {
             setTempValue("");
             
             // Full refresh to update navbar/sidebar names
-            window.location.reload();
+            globalThis.location.reload();
         } catch (error) {
             console.error(`Error updating ${editingField}:`, error);
             toast.error(`Failed to update ${editingField.toLowerCase()}.`);
@@ -290,7 +290,11 @@ function ProfilePage() {
                                         <Label className="text-muted-foreground text-base font-normal">
                                             {user?.email ?? ""}
                                         </Label>
-                                        {!user?.isGoogleUser ? (
+                                        {user?.isGoogleUser ? (
+                                            <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
+                                                Managed by Google
+                                            </span>
+                                        ) : (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -299,10 +303,6 @@ function ProfilePage() {
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </Button>
-                                        ) : (
-                                            <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
-                                                Managed by Google
-                                            </span>
                                         )}
                                     </>
                                 )}
@@ -320,7 +320,11 @@ function ProfilePage() {
                                 <Label className="text-muted-foreground text-base font-normal tracking-widest">
                                     ••••••••••••
                                 </Label>
-                                {!user?.isGoogleUser ? (
+                                {user?.isGoogleUser ? (
+                                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
+                                        Managed by Google
+                                    </span>
+                                ) : (
                                     <Button
                                         variant="ghost"
                                         className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
@@ -328,10 +332,6 @@ function ProfilePage() {
                                     >
                                         Change Password
                                     </Button>
-                                ) : (
-                                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
-                                        Managed by Google
-                                    </span>
                                 )}
                             </div>
                         </div>

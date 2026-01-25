@@ -3,8 +3,8 @@ import axios from "axios";
 // Get API URL - works in both Vite and Jest environments
 const getApiUrl = (): string => {
   // Check if we're in a Vite environment
-  if (typeof window !== 'undefined' && (window as any).VITE_BACKEND_URL) {
-    return (window as any).VITE_BACKEND_URL;
+  if (typeof globalThis.window !== 'undefined' && (globalThis.window as any).VITE_BACKEND_URL) {
+    return (globalThis.window as any).VITE_BACKEND_URL;
   }
 
   // Try process.env for Jest/Node environments
@@ -54,7 +54,7 @@ axiosClient.interceptors.response.use(
 
     if (status === 401 && !isAuthEndpoint) {
       localStorage.removeItem("token");
-      window.location.href = "/";
+      globalThis.location.href = "/";
     }
 
     return Promise.reject(error);
