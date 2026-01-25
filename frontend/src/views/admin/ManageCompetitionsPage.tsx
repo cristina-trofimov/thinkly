@@ -88,6 +88,19 @@ const ManageCompetitions = () => {
     }
   };
 
+  const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
+    switch (status) {
+      case "Active":
+        return "bg-green-100 text-green-700";
+      case "Upcoming":
+        return "bg-blue-100 text-blue-700";
+      case "Completed":
+        return "bg-gray-100 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
   // 1. Handle Success Toast from Navigation State
   useEffect(() => {
     if (location.state?.success) {
@@ -268,13 +281,7 @@ const ManageCompetitions = () => {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle}</h3>
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
-                      status === "Active"
-                        ? "bg-green-100 text-green-700"
-                        : status === "Upcoming"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${getStatusClasses(status)}`}
                   >
                     {status}
                   </span>

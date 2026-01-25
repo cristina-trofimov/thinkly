@@ -341,10 +341,10 @@ function ProfilePage() {
                 {user?.isGoogleUser && (
                     <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl">
                         <p className="text-xs text-blue-600/80 leading-relaxed text-center">
-                            You signed in with Google. To change your password, please manage your settings through your
-                        <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="ml-1 underline font-semibold">
-                                Google Account
-                        </a>.
+                          You signed in with Google. To change your password, please manage your settings through your{' '}
+                          <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="underline font-semibold">
+                              Google Account
+                          </a>.
                         </p>
                     </div>
                 )}
