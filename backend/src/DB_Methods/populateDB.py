@@ -222,14 +222,16 @@
 #             for rank, participation in enumerate(participations, start=1):
 #                 user = db.query(UserAccount).get(participation.user_id)
                 
-#                 # Insert CompetitionLeaderboardEntry
-#                 leaderboard_entry = CompetitionLeaderboardEntry(
-#                     competition_id=comp.event_id,
-#                     username=user.username,
-#                     user_id=user.user_id,
-#                     total_score=participation.total_score,
-#                 )
-#                 db.add(leaderboard_entry)
+                # Insert CompetitionLeaderboardEntry
+                # leaderboard_entry = CompetitionLeaderboardEntry(
+                #     competition_id=comp.event_id,
+                #     name=user.first_name + " " + user.last_name,
+                #     user_id=user.user_id,
+                #     total_score=participation.total_score,
+                #     total_time= random.randint(300, 3600), # Mock total time in seconds
+                #     rank=rank
+                # )
+                # db.add(leaderboard_entry)
                 
 #         db.commit()
 #         print("✅ Created CompetitionLeaderboardEntries.")

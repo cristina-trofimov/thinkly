@@ -108,7 +108,7 @@ export async function getCompetitionsDetails(currentUserId?: number): Promise<Co
     }
 
     return response.data.map((comp) => ({
-        id: parseInt(comp.id),
+        id: Number.parseInt(comp.id),
         competitionTitle: comp.name,
         date: new Date(comp.date),
         participants: comp.participants.map((p) => ({

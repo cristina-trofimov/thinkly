@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { forgotPassword } from "@/api/AuthAPI";
 import thinkly from "../../../public/assets/thinkly_logo.png";
 import { logFrontend } from "@/api/LoggerAPI";
@@ -72,12 +72,12 @@ export default function ForgotPasswordForm({
       {...props}
     >
       <div className="flex justify-center gap-2 md:justify-start">
-        <a href="#" className="flex items-center gap-2 font-medium">
+        <Link to="/" className="flex items-center gap-2 font-medium">
           <div className="text-primary-foreground flex size-10 items-center justify-center rounded-md">
-            <img src={thinkly} alt="Your icon" className="size-10" />
+            <img src={thinkly} alt="scs logo" className="size-10" />
           </div>
           <span className="font-semibold">Thinkly</span>
-        </a>
+        </Link>
       </div>
       <Card className="w-full max-w-md">
         <CardHeader>

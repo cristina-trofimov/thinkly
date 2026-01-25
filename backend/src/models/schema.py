@@ -5,6 +5,12 @@ from db import Base
 from typing import List, Optional
 from datetime import datetime, timezone
 
+# Foreign key reference constants
+FK_USER_ACCOUNT_USER_ID = 'user_account.user_id'
+FK_BASE_EVENT_EVENT_ID = 'base_event.event_id'
+FK_QUESTION_QUESTION_ID = 'question.question_id'
+ON_DELETE_SET_NULL = 'SET NULL'
+
 class UserAccount(Base):
     __tablename__ = 'user_account'
 
@@ -26,7 +32,7 @@ class UserPreferences(Base):
     __tablename__ = 'user_preferences'
 
     pref_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id', ondelete='CASCADE'), unique=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete='CASCADE'), unique=True)
     theme: Mapped[str] = mapped_column(Enum('light', 'dark', name='theme_type'), default='light')
     notifications_enabled: Mapped[bool] = mapped_column(default=True)
     last_used_programming_language: Mapped[Optional[str]] = mapped_column()
@@ -37,7 +43,7 @@ class UserSession(Base):
     __tablename__ = 'user_session'
 
     session_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id'))
+    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
     jwt_token: Mapped[str] = mapped_column(unique=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -69,7 +75,7 @@ class BaseEvent(Base):
 class Competition(Base):
     __tablename__ = 'competition'
 
-    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'), primary_key=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), primary_key=True)
     riddle_cooldown: Mapped[int] = mapped_column(default=60)
 
     base_event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='competition', uselist=False)
@@ -105,8 +111,8 @@ class AlgoTimeSeries(Base):
 class AlgoTimeSession(Base):
     __tablename__ = 'algotime_session'
 
-    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'), primary_key=True)
-    algotime_series_id: Mapped[Optional[int]] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete='SET NULL'))
+    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), primary_key=True)
+    algotime_series_id: Mapped[Optional[int]] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete=ON_DELETE_SET_NULL))
 
     base_event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='algotime', uselist=False)
     algotime_series: Mapped[Optional[AlgoTimeSeries]] = relationship('AlgoTimeSeries', back_populates='algotime_sessions', uselist=False)
@@ -114,7 +120,7 @@ class AlgoTimeSession(Base):
 question_tag = Table(
     'question_tag', Base.metadata,
     Column('tag_id', Integer, ForeignKey('tag.tag_id', ondelete='CASCADE'), primary_key=True),
-    Column('question_id', Integer, ForeignKey('question.question_id', ondelete='CASCADE'), primary_key=True)
+    Column('question_id', Integer, ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'), primary_key=True)
 )
 
 class Question(Base):
@@ -140,7 +146,7 @@ class TestCase(Base):
     __tablename__ = 'test_case'
 
     test_case_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey('question.question_id', ondelete='CASCADE'))
+    question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
     input_data: Mapped[str] = mapped_column()
     expected_output: Mapped[str] = mapped_column()
 
@@ -167,10 +173,10 @@ class QuestionInstance(Base):
     __tablename__ = 'question_instance'
 
     question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey('question.question_id', ondelete='CASCADE'))
-    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'))
+    question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
+    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'))
     points: Mapped[int] = mapped_column(default=0)
-    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete='SET NULL'))
+    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete=ON_DELETE_SET_NULL))
     is_riddle_completed: Mapped[bool] = mapped_column(default=False)
 
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
@@ -186,8 +192,8 @@ class Participation(Base):
     __tablename__ = 'participation'
 
     participation_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('user_account.user_id', ondelete='CASCADE'))
-    event_id: Mapped[int] = mapped_column(ForeignKey('base_event.event_id', ondelete='CASCADE'))
+    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete='CASCADE'))
+    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'))
     total_score: Mapped[int] = mapped_column(default=0)
 
     user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='participations', uselist=False)
@@ -221,7 +227,7 @@ class CompetitionLeaderboardEntry(Base):
     competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
     name: Mapped[str] = mapped_column() # <= NOT NULL
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
     total_time: Mapped[int] = mapped_column()
@@ -240,7 +246,7 @@ class AlgoTimeLeaderboardEntry(Base):
     algotime_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     algotime_series_id: Mapped[int] = mapped_column(ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'))
     name: Mapped[str] = mapped_column()
-    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey('user_account.user_id', ondelete='SET NULL'))
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
     total_time: Mapped[int] = mapped_column()

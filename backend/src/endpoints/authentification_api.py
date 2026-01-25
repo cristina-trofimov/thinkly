@@ -25,6 +25,10 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
+# ---------------- Error Messages ----------------
+ERROR_USER_NOT_FOUND = "User not found"
+ERROR_INVALID_TOKEN = "Invalid token"
+
 
 # ---------------- Models ----------------
 class SignupRequest(BaseModel):
@@ -59,7 +63,7 @@ def update_user_password(db: Session, email: str, new_hashed_password: str) -> N
     """Update the hashed_password field for a given user email"""
     user = db.query(UserAccount).filter(UserAccount.email == email).first()
     if not user:
-        raise ValueError("User not found")
+        raise ValueError(ERROR_USER_NOT_FOUND)
     user.hashed_password = new_hashed_password
     db.commit()
 
@@ -97,12 +101,12 @@ def verify_token(token: str):
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
-            raise HTTPException(status_code=400, detail="Invalid token")
+            raise HTTPException(status_code=400, detail=ERROR_INVALID_TOKEN)
         return email
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token expired")
     except jwt.PyJWTError:
-        raise HTTPException(status_code=400, detail="Invalid token")
+        raise HTTPException(status_code=400, detail=ERROR_INVALID_TOKEN)
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(
@@ -135,7 +139,7 @@ def decode_access_token(token: str):
         return payload
     except JWTError as e:
         logger.error(f"Token validation failed. Error: {e.__class__.__name__}. Token snippet: {token[:10]}...")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_INVALID_TOKEN)
 
 def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
@@ -252,7 +256,7 @@ async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get
     
     if not user:
         logger.warning(f"Profile failed: User not found in DB for email: {user_email}")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
         
     logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
     return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email, "role": user.user_type}
@@ -375,7 +379,7 @@ async def change_password(
     user = get_user_by_email(db, user_email)
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
 
     # Check if old password matches
     if not verify_password(request.old_password, user.hashed_password):
@@ -398,7 +402,7 @@ async def is_google_account(
     user = get_user_by_email(db, user_email)
     
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
         
     # As per your requirement: Google users have an empty string as password in the DB
     is_google = user.hashed_password == ""

@@ -24,7 +24,7 @@ export default function LoginPage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                     <img
                         src={scsLogo}
-                        alt="Image"
+                        alt="logo of scs"
                         className="max-w-md object-cover dark:brightness-[0.2] dark:grayscale"
                     />
                 </div>

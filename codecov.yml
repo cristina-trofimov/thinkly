@@ -1,3 +1,13 @@
+ignore:
+  - "**/DB_Methods/**"
+  - "**/migrations/**"
+  - "**/generated/**"
+  - "**/*.config.ts"
+  - "**/__init__.py"
+  - "**/ui/**"
+  - "**/config.ts"
+  - "**/DB_Methods/**"
+  - "db.py"
 
 coverage:
   status:

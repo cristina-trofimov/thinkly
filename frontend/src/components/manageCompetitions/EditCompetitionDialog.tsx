@@ -30,6 +30,10 @@ import { type UpdateCompetitionProps } from "../../types/competition/EditCompeti
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 
+function findById<T extends { id: number }>(items: T[], id: number): T | undefined {
+  return items.find(item => item.id === id);
+}
+
 interface EditCompetitionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -102,14 +106,14 @@ export default function EditCompetitionDialog({
 
         if (competitionData.selectedQuestions && competitionData.selectedQuestions.length > 0) {
           const orderedQs = competitionData.selectedQuestions
-            .map((id: number) => allQuestions.find(q => q.id === id))
+            .map((id: number) => findById(allQuestions, id))
             .filter(Boolean) as Question[];
           setOrderedQuestions(orderedQs);
         }
 
         if (competitionData.selectedRiddles && competitionData.selectedRiddles.length > 0) {
           const orderedRs = competitionData.selectedRiddles
-            .map((id: number) => allRiddles.find(r => r.id === id))
+            .map((id: number) => findById(allRiddles, id))
             .filter(Boolean) as Riddle[];
           setOrderedRiddles(orderedRs);
         }
@@ -245,8 +249,8 @@ export default function EditCompetitionDialog({
         startTime: formData.startTime,
         endTime: formData.endTime,
         location: formData.location || undefined,
-        questionCooldownTime: parseInt(formData.questionCooldownTime) || 300,
-        riddleCooldownTime: parseInt(formData.riddleCooldownTime) || 60,
+        questionCooldownTime: Number.parseInt(formData.questionCooldownTime) || 300,
+        riddleCooldownTime: Number.parseInt(formData.riddleCooldownTime) || 60,
         selectedQuestions: orderedQuestions.map(q => q.id),
         selectedRiddles: orderedRiddles.map(r => r.id),
         emailEnabled,

@@ -21,7 +21,11 @@ export const ParticipationOverTimeChart = ({
   // Generate placeholder data if no data provided
   const displayData = data.length > 0 ? data : generatePlaceholderData(timeRange);
 
-  const interval = timeRange === "7days" ? 0 : timeRange === "30days" ? 2 : 4;
+  const intervalMap: Record<string, number> = {
+    "7days": 0,
+    "30days": 2,
+  };
+  const interval = intervalMap[timeRange] ?? 4;
 
   return (
     <div className="w-full mt-6 px-6">
@@ -64,11 +68,6 @@ function generatePlaceholderData(timeRange: TimeRange): ParticipationData[] {
       { date: "Sat", participation: 0 },
       { date: "Sun", participation: 0 },
     ];
-  } else if (timeRange === "30days") {
-    return Array.from({ length: 30 }, (_, i) => ({
-      date: `Day ${i + 1}`,
-      participation: 0,
-    }));
   } else {
     // 3 months - just a few sample days
     return Array.from({ length: 30 }, (_, i) => ({

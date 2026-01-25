@@ -16,12 +16,12 @@ describe("LoginPage", () => {
     it("should show the SCS logo on large screens", () => {
         // Simulate a large screen
         cy.viewport(1200, 800);
-        cy.get("div.bg-primary img[alt='Image']").should("be.visible");
+        cy.get("div.bg-primary img[alt='logo of scs']").should("be.visible");
     });
 
     it("should hide the SCS logo on small screens", () => {
         cy.viewport(768, 600); // simulate smaller than lg breakpoint
-        cy.get("div.bg-primary img[alt='Image']").should("not.be.visible");
+        cy.get("div.bg-primary img[alt='logo of scs']").should("not.be.visible");
     });
 
     it("should have proper layout classes", () => {

@@ -138,7 +138,7 @@ fun solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}){
 }
 
 export default ${problemName};`.trim()
-    },
+        },
     "Javascript": {
         monacoID: "javascript",
         judgeID: "63",

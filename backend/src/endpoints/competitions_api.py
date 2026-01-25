@@ -10,7 +10,10 @@ from pydantic import BaseModel, validator
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
-LOCAL_TZ = ZoneInfo("America/New_York")
+TIMEZONE_NEW_YORK = "America/New_York"
+LOCAL_TZ = ZoneInfo(TIMEZONE_NEW_YORK)
+ERROR_COMPETITION_NOT_FOUND = "Competition not found"
+
 logger = logging.getLogger(__name__)
 competitions_router = APIRouter(tags=["Competitions"])
 
@@ -178,13 +181,7 @@ def create_competition_emails(
         db: Session,
         competition: Competition,
         email_data: EmailNotificationRequest,
-        competition_start: datetime,
-        competition_end: datetime,
-        competition_name: str,
-        date_str: str,
-        start_time_str: str,
-        end_time_str: str,
-        location: Optional[str]
+        competition_start: datetime
 ):
     """
     Creates scheduled email record for the competition.
@@ -232,6 +229,42 @@ def create_competition_emails(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to schedule email notifications"
+        )
+
+
+def resolve_email_recipients(db: Session, recipient_str: str) -> List[str]:
+    """Resolve recipient string to list of email addresses."""
+    if recipient_str.strip().lower() == "all participants":
+        return [u.email for u in db.query(UserAccount).all()]
+    return [e.strip() for e in recipient_str.split(",") if e.strip()]
+
+
+def send_competition_emails(
+        db: Session,
+        competition: Competition,
+        email_notification: EmailNotificationRequest,
+        start_dt: datetime
+):
+    """Handle email creation and sending for a competition."""
+    create_competition_emails(db, competition, email_notification, start_dt)
+
+    recipients = resolve_email_recipients(db, email_notification.to)
+    if not recipients:
+        logger.warning("Email enabled but no recipients resolved.")
+        return
+
+    if email_notification.sendInOneMinute:
+        send_email_via_brevo(
+            to=recipients,
+            subject=f"[TEST] {email_notification.subject}",
+            text=email_notification.body
+        )
+    elif email_notification.sendAtLocal:
+        send_email_via_brevo(
+            to=recipients,
+            subject=email_notification.subject,
+            text=email_notification.body,
+            sendAt=email_notification.sendAtLocal
         )
 
 
@@ -372,37 +405,8 @@ async def create_competition(
         _commit_or_rollback(db)
         logger.info(f"Added {len(request.selectedQuestions)} question+riddle pairs")
 
-        # Email Triggering Logic
         if request.emailEnabled and request.emailNotification:
-            # 1. Save to DB
-            create_competition_emails(db, competition, request.emailNotification, start_dt, end_dt, request.name, request.date, request.startTime, request.endTime, request.location)
-
-            # 2. Resolve Recipients
-            recipients = []
-            if request.emailNotification.to.strip().lower() == "all participants":
-                recipients = [u.email for u in db.query(UserAccount).all()]
-            else:
-                recipients = [e.strip() for e in request.emailNotification.to.split(",") if e.strip()]
-
-            if recipients:
-                # A. Send/Schedule 24h Reminder
-                # if email_record.time_24h_before and email_record.time_24h_before > datetime.now(timezone.utc):
-                #      TO-DO in future features: have something that watches if the email can be sent yet (Brevo only allows less than 3 days of email scheduling)
-
-                # B. Send/Schedule 5m Reminder
-                # if email_record.time_5min_before and email_record.time_5min_before > datetime.now(timezone.utc):
-                #     TO-DO in future features: have something that watches if the email can be sent yet (Brevo only allows less than 3 days of email scheduling)
-
-                # C. Send Immediate Test
-                if request.emailNotification.sendInOneMinute:
-                    # Send now (Brevo handles immediate delivery if sendAt is None or very soon)
-                    send_email_via_brevo(to=recipients, subject=f"[TEST] {request.emailNotification.subject}", text=request.emailNotification.text)
-
-                # D. Send/Schedule Custom Reminder
-                if request.emailNotification.sendAtLocal and not request.emailNotification.sendInOneMinute:
-                    send_email_via_brevo(to=recipients, subject=request.emailNotification.subject, text=request.emailNotification.text, sendAt=request.emailNotification.sendAtLocal)
-            else:
-                logger.warning("Email enabled but no recipients resolved.")
+            send_competition_emails(db, competition, request.emailNotification, start_dt)
 
         return CompetitionResponse(
             event_id=base_event.event_id,
@@ -443,7 +447,7 @@ async def get_competition_detailed(
         if not base_event:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Competition not found"
+                detail=ERROR_COMPETITION_NOT_FOUND
             )
 
         competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
@@ -465,12 +469,12 @@ async def get_competition_detailed(
         selected_riddles = [qi.riddle_id for qi in question_instances]
 
         # Extract date and time from datetime
-        local_dt = base_event.event_start_date.astimezone(ZoneInfo("America/New_York"))
+        local_dt = base_event.event_start_date.astimezone(LOCAL_TZ)
 
         date_str = local_dt.strftime('%Y-%m-%d')
         start_time_str = local_dt.strftime('%H:%M')
         end_time_str = base_event.event_end_date.astimezone(
-            ZoneInfo("America/New_York")
+            LOCAL_TZ
         ).strftime('%H:%M')
 
         # Get email notification if exists
@@ -548,7 +552,7 @@ async def update_competition(
         if not base_event:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Competition not found"
+                detail=ERROR_COMPETITION_NOT_FOUND
             )
 
         competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
@@ -608,13 +612,7 @@ async def update_competition(
                 db,
                 competition,
                 request.emailNotification,
-                start_dt,
-                end_dt,
-                request.name,
-                request.date,
-                request.startTime,
-                request.endTime,
-                request.location
+                start_dt
             )
 
         _commit_or_rollback(db)
@@ -664,7 +662,7 @@ async def delete_competition(
         if not base_event:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Competition not found"
+                detail=ERROR_COMPETITION_NOT_FOUND
             )
 
         competition_name = base_event.event_name
