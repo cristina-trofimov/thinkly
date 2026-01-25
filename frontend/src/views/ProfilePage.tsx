@@ -102,7 +102,7 @@ function ProfilePage() {
             setUser(updatedAccount);
             
             const fieldLabel = editingField.charAt(0).toUpperCase() +
-                               editingField.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase();
+                               editingField.slice(1).replaceAll(/([A-Z])/g, ' $1').toLowerCase();
             
             // Store the success message in session storage so it survives the reload
             sessionStorage.setItem("profileUpdateToast", `${fieldLabel} updated successfully.`);
