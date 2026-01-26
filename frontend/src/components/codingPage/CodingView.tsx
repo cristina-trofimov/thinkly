@@ -249,7 +249,7 @@ const CodingView = () => {
                   className='h-full'
                 >
                   {logs.map((log, idx) => (
-                    <p key={`log-${idx}`} >
+                    <p key={`log-${idx+1}`} >
                       {log.text()}
                     </p>
                   ))}
