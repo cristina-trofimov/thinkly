@@ -32,7 +32,8 @@ Currently, organizers share algorithmic practice problems via Discord, which lim
 </br>
 The platform will be self-hosted and customizable for long-term sustainability, support multiple programming languages (Python, Java, C++, and JavaScript), and provide both beginners and advanced students with opportunities to learn, mentor, and strengthen their problem-solving skills in a more engaging and interactive environment.
 
-
+## Website Hosting
+https://thinklyscs.com/
 
 ## Getting Started Guide
 What does a new developer need to do to get the system up and running?  
@@ -42,6 +43,7 @@ Provide setup instructions, dependencies, and commands here.
 - Node.js / Java / Python version
 - Database setup
 - Other dependencies
+
 
 ### Installation with Docker
 
