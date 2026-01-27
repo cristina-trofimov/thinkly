@@ -81,9 +81,11 @@ const router = createBrowserRouter([
             handle: { crumb: { title: "Home Page" } },
           },
           {
-            path: "code",
+            path: "code/:problem_title",
             element: <CodingView />,
-            handle: { crumb: { title: "Coding" } },
+            handle: {
+              crumb: { title: "Coding" },
+            },
           },
           {
             path: "leaderboards",

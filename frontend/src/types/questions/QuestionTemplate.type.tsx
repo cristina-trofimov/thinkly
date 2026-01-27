@@ -1,10 +1,8 @@
-import type { allowedTemplateTypes } from "../../components/helpers/SandpackConfig"
-import type { variableTemplate } from "../VariableTemplate.type"
+import type { variableTemplate } from "./VariableTemplate.type"
 
 export type QuestionTemplate = {
-    fileExt: string,
-    filename: string,
-    template: allowedTemplateTypes,
+    monacoID: string,
+    judgeID: string,
     codeBuilder: (problemName: string,
         inputVars: variableTemplate[],
         outputType: string) => string

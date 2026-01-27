@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import { DataTable } from "../src/components/questionsTable/questionDataTable"
 import type { ColumnDef } from "@tanstack/react-table"
 import { waitFor } from "@testing-library/react"
+import { MemoryRouter } from "react-router-dom"
 
 // Mock Button, Input, DropdownMenu components (if needed)
 jest.mock("../src/components/ui/button", () => ({
@@ -44,13 +45,17 @@ const data: Question[] = [
 
 describe("DataTable", () => {
   test("renders column headers", () => {
-    render(<DataTable columns={columns} data={data} />)
+    render(
+      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+    )
     expect(screen.getByText("Question Title")).toBeInTheDocument()
     expect(screen.getByText("Difficulty")).toBeInTheDocument()
   })
 
   test("renders all rows", () => {
-    render(<DataTable columns={columns} data={data} />)
+    render(
+      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+    )
     expect(screen.getByText("Two Sum")).toBeInTheDocument()
     expect(screen.getByText("Palindrome")).toBeInTheDocument()
     const easyElements = screen.getAllByText("Easy")
@@ -60,12 +65,16 @@ describe("DataTable", () => {
   })
 
   test("shows 'No results.' when data is empty", () => {
-    render(<DataTable columns={columns} data={[]} />)
+    render(
+      <MemoryRouter><DataTable columns={columns} data={[]} /></MemoryRouter>
+    )
     expect(screen.getByText("No results.")).toBeInTheDocument()
   })
 
   test("search input filters rows", async () => {
-    render(<DataTable columns={columns} data={data} />)
+    render(
+      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+    )
     const input = screen.getByPlaceholderText("Search questions...") as HTMLInputElement
     expect(input).toBeInTheDocument()
 
@@ -77,7 +86,9 @@ describe("DataTable", () => {
   })
 
   test("dropdown filter sets difficulty filter", async () => {
-    render(<DataTable columns={columns} data={data} />)
+    render(
+      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+    )
     const easyFilter = screen.getByTestId("filter-easy")
     fireEvent.click(easyFilter)
 

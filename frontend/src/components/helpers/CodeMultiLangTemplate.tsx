@@ -3,9 +3,8 @@ import type { QuestionTemplate } from "../../types/questions/QuestionTemplate.ty
 
 export const CodeMultiLangTemplate: Record<string, QuestionTemplate> = {
     Java: {
-        fileExt: "java",
-        filename: "Main.java",
-        template: 'vanilla',
+        monacoID: "java",
+        judgeID: "62",
         codeBuilder: (problemName, inputVars, outputType) =>
             `class ${problemName} {
     public static void main(String[] args) {
@@ -20,9 +19,8 @@ export const CodeMultiLangTemplate: Record<string, QuestionTemplate> = {
 }`.trim()
     },
     Python: {
-        fileExt: "py",
-        filename: "solution.py",
-        template: 'vanilla',
+        monacoID: "python",
+        judgeID: "71",
         codeBuilder: (problemName, inputVars, outputType) =>
             `def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
     # TODO
@@ -37,14 +35,19 @@ if __name__ == "__main__":
     """
     ${problemName}(${inputVars.map(v => v.name).join(', ')})`.trim()
     },
-    Python3: {
-        fileExt: "py",
-        filename: "solution_py3.py",
-        template: 'vanilla',
+    "Objective-C": {
+        monacoID: "objective-c",
+        judgeID: "79",
         codeBuilder: (problemName, inputVars, outputType) =>
-            `def ${problemName}(${inputVars.map(v => v.name).join(', ')}):
-    # TODO
-    pass
+            `#import <Foundation/Foundation.h>
+
+@interface ${problemName} : NSObject
++ (NSArray *)solution:(NSArray *)nums target:(NSNumber *)target;
+@end
+
+int main(int argc, const char * argv[]) {
+    // TODO
+    return 0;
 
 if __name__ == "__main__":
     """
@@ -53,12 +56,12 @@ if __name__ == "__main__":
     
     :rtype ${outputType}
     """
-    ${problemName}(${inputVars.map(v => v.name).join(', ')})`.trim()
+    ${problemName}(${inputVars.map(v => v.name).join(', ')})
+}`.trim()
     },
     C: {
-        fileExt: "c",
-        filename: "solution.c",
-        template: 'vanilla',
+        monacoID: "c",
+        judgeID: "50",
         codeBuilder: (problemName, inputVars, outputType) =>
             `#include <stdio.h>
 // ${problemName}
@@ -74,9 +77,8 @@ int main() {
 }`.trim()
     },
     "C#": {
-        fileExt: "cs",
-        filename: "program.cs",
-        template: 'vanilla',
+        monacoID: "csharp",
+        judgeID: "51",
         codeBuilder: (problemName, inputVars, outputType) =>
             `using System;
 
@@ -93,9 +95,8 @@ public class ${problemName} {
 }`.trim()
     },
     "C++": {
-        fileExt: "cpp",
-        filename: "solution.cpp",
-        template: 'vanilla',
+        monacoID: "cpp",
+        judgeID: "54",
         codeBuilder: (problemName, inputVars, outputType) =>
             `#include <iostream>
 using namespace std;
@@ -113,9 +114,8 @@ int main() {
 }`.trim()
     },
     "Kotlin": {
-        fileExt: "kt",
-        filename: "Main.kt",
-        template: 'vanilla',
+        monacoID: "kotlin",
+        judgeID: "78",
         codeBuilder: (problemName, inputVars, outputType) =>
             `fun main(){
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
@@ -129,23 +129,19 @@ fun solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}){
 }`.trim()
     },
     "Typescript": {
-        fileExt: "ts",
-        filename: "index.ts",
-        template: 'vanilla-ts',
-        codeBuilder: (problemName, inputVars, outputType) => {
-            const params = inputVars.map(v => `${v.name}: ${v.type}`).join(', ');
-            return `function ${problemName}(${params}): ${outputType} {
+        monacoID: "typescript",
+        judgeID: "74",
+        codeBuilder: (problemName, inputVars, outputType) =>
+            `function ${problemName}(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}): ${outputType} {
     // TODO
     return null as any
 }
 
-export default ${problemName};`.trim();
-        }
-    },
+export default ${problemName};`.trim()
+        },
     "Javascript": {
-        fileExt: "js",
-        filename: "index.js",
-        template: 'vanilla',
+        monacoID: "javascript",
+        judgeID: "63",
         codeBuilder: (problemName, inputVars, outputType) =>
             `function ${problemName}(${inputVars.map(v => v.name).join(', ')}) {
     // ${outputType}
@@ -155,9 +151,8 @@ export default ${problemName};`.trim();
 module.exports = ${problemName}`.trim()
     },
     "Ruby": {
-        fileExt: "rb",
-        filename: "solution.rb",
-        template: 'vanilla',
+        monacoID: "ruby",
+        judgeID: "72",
         codeBuilder: (problemName, inputVars, outputType) =>
             `def ${problemName}(${inputVars.map(v => v.name).join(", ")})
     # ${outputType}
@@ -170,9 +165,8 @@ if __FILE__ == $0
 end`.trim()
     },
     "Rust": {
-        fileExt: "rs",
-        filename: "main.rs",
-        template: 'vanilla',
+        monacoID: "rust",
+        judgeID: "73",
         codeBuilder: (problemName, inputVars, outputType) =>
             `fn main() {
     ${inputVars.map(v => `// ${v.type} ${v.name}`).join('\n    ')}
@@ -187,9 +181,8 @@ fn solution(${inputVars.map(v => `${v.name}: ${v.type}`).join(', ')}) {
 }`.trim()
     },
     "Erlang": {
-        fileExt: "erl",
-        filename: "main.erl",
-        template: 'vanilla',
+        monacoID: "erlang",
+        judgeID: "58",
         codeBuilder: (problemName, inputVars, outputType) =>
             `-module(${problemName.toLowerCase()}).
 -export([main/0]).

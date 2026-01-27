@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -51,6 +52,8 @@ export function DataTable<TData, TValue>({
       columnFilters,
     },
   });
+
+  const nav = useNavigate()
 
   return (
     <div>
@@ -138,6 +141,14 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => {
+                    nav(`/app/code/${row.getValue('title')}`, {
+                      state: {
+                        fromFeed: true,
+                        problem: row.original,
+                      }
+                    })
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="text-left">
