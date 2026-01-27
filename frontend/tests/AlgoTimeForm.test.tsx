@@ -159,9 +159,13 @@ describe('AlgoTimeSessionForm', () => {
   test('submits form successfully', async () => {
     render(<AlgoTimeSessionForm />);
 
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowString = tomorrow.toISOString().split('T')[0];
+
     // Fill in the date
     const dateInput = screen.getByPlaceholderText('YYYY-MM-DD');
-    fireEvent.change(dateInput, { target: { value: '2026-01-26' } });
+    fireEvent.change(dateInput, { target: { value: tomorrowString } });
 
     // Fill in start time
     const startTimeInput = screen.getByLabelText('Start Time') as HTMLInputElement;
