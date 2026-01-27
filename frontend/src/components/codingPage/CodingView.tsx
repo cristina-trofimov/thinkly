@@ -15,9 +15,7 @@ import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
 
-
 const CodingView = () => {
-  // const { state } = useLocation()
   const location = useLocation()
   const question: Question = location?.state?.problem
 
