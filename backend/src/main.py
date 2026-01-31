@@ -27,6 +27,7 @@ async def log_requests(request: Request, call_next):
 origins = [
     "https://thinklyscs.com",
     "https://www.thinklyscs.com",  # Create React App
+    "http://localhost:5173"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -41,7 +42,7 @@ app.add_middleware(
 def root():
     return {"message": "Backend is running!"}
 
-@app.get("/__config")
+@app.get("/config")
 def config():
     return {
         "allowed_origins": origins,
