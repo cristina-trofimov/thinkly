@@ -20,7 +20,7 @@ class TestMainApp:
 
 
     def test_config_route(self, client):
-        response = client.get("/__config")
+        response = client.get("/config")
         assert response.status_code == 200
 
         data = response.json()
