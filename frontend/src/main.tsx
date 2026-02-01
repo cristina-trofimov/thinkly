@@ -20,7 +20,7 @@ import HomePage from "./views/HomePage.tsx";
 import SignupPage from "./views/SignupPage.tsx";
 import ManageCompetitions from "./views/admin/ManageCompetitionsPage.tsx";
 import CreateCompetition from "./views/admin/CreateCompetitionPage.tsx";
-import ErrorPage from "./components/ErrorPage.tsx";
+import ErrorPage from "./views/ErrorPage.tsx";
 import ManageAccountsPage from "./views/admin/ManageAccountsPage.tsx";
 import ManageAlgotimeSessionsPage from "./views/admin/ManageAlgotimeSessionsPage.tsx";
 import ManageAlgoTimePage from "./views/admin/AlgoTimeSession.tsx";
