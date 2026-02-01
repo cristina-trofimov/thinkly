@@ -72,13 +72,13 @@ describe("HomePage", () => {
 
         // Mock getQuestions to return formatted data (already converted to Date objects)
         (questionsApi.getQuestions as jest.Mock).mockResolvedValue([
-            { id: "1", questionTitle: "Two sum", date: new Date("2025-08-02"), difficulty: "Easy" },
-            { id: "2", questionTitle: "Palindrome", date: new Date("2025-08-15"), difficulty: "Medium" },
-            { id: "3", questionTitle: "Merge K Sorted Lists", date: new Date("2025-07-01"), difficulty: "Hard" },
-            { id: "4", questionTitle: "Christmas Tree", date: new Date("2025-07-12"), difficulty: "Easy" },
-            { id: "5", questionTitle: "Inverse String", date: new Date("2025-08-03"), difficulty: "Easy" },
-            { id: "6", questionTitle: "Hash Map", date: new Date("2025-08-03"), difficulty: "Medium" },
-            { id: "7", questionTitle: "Binary Tree", date: new Date("2025-08-19"), difficulty: "Hard" },
+            { id: "1", title: "Two sum", date: new Date("2025-08-02"), difficulty: "Easy" },
+            { id: "2", title: "Palindrome", date: new Date("2025-08-15"), difficulty: "Medium" },
+            { id: "3", title: "Merge K Sorted Lists", date: new Date("2025-07-01"), difficulty: "Hard" },
+            { id: "4", title: "Christmas Tree", date: new Date("2025-07-12"), difficulty: "Easy" },
+            { id: "5", title: "Inverse String", date: new Date("2025-08-03"), difficulty: "Easy" },
+            { id: "6", title: "Hash Map", date: new Date("2025-08-03"), difficulty: "Medium" },
+            { id: "7", title: "Binary Tree", date: new Date("2025-08-19"), difficulty: "Hard" },
         ]);
 
         // Mock getCompetitions to return formatted data (already converted to Date objects)

@@ -29,18 +29,18 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
 // Sample columns and data
 interface Question {
   id: string
-  questionTitle: string
+  title: string
   difficulty: string
 }
 
 const columns: ColumnDef<Question>[] = [
-  { accessorKey: "questionTitle", header: "Question Title" },
+  { accessorKey: "title", header: "Question Title" },
   { accessorKey: "difficulty", header: "Difficulty" },
 ]
 
 const data: Question[] = [
-  { id: "1", questionTitle: "Two Sum", difficulty: "Easy" },
-  { id: "2", questionTitle: "Palindrome", difficulty: "Medium" },
+  { id: "1", title: "Two Sum", difficulty: "Easy" },
+  { id: "2", title: "Palindrome", difficulty: "Medium" },
 ]
 
 describe("DataTable", () => {
