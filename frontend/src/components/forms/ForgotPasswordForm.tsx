@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate, Link } from "react-router-dom";
 import { forgotPassword } from "@/api/AuthAPI";
-import thinkly from "@/assets/thinkly_logo.png";
+import thinkly from "../../../public/assets/thinkly_logo.png";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
 

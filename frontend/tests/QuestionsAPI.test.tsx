@@ -3,6 +3,7 @@ import {
   getQuestions,
   getRiddles,
   deleteCompetition,
+  getTestcases
 } from "../src/api/QuestionsAPI";
 
 jest.mock("../src/lib/axiosClient");
@@ -94,6 +95,39 @@ describe("QuestionsAPI", () => {
 
       await expect(deleteCompetition("123")).rejects.toThrow("Delete failed");
       expect(console.error).toHaveBeenCalledWith("Error deleting competition:", expect.any(Error));
+    });
+  });
+
+  describe("getTestcases", () => {
+    it("fetches and formats testcases correctly", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: [
+          {
+            test_case_id: 1,
+            question_id: 1,
+            input_data: '{ "a": [1, 2], "b": 6 }',
+            expected_output: "",
+          },
+        ],
+      } as any);
+
+      const result = await getTestcases(1);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-testcases/1");
+      expect(result).toEqual([
+        {
+          test_case_id: 1,
+          question_id: 1,
+          input_data: { a: [1, 2], b: 6 },
+          expected_output: "",
+          caseID: "Case 1",
+        },
+      ]);
+    });
+
+    it("throws error if axios fails", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getTestcases(-1)).rejects.toThrow("Network error");
     });
   });
 });

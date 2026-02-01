@@ -44,18 +44,30 @@ describe("Questions Columns", () => {
       title: "Two Sum",
       date: new Date("2024-01-15"),
       difficulty: "Easy",
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
     },
     {
       id: 2,
       title: "Reverse Linked List",
       date: new Date("2024-02-20"),
       difficulty: "Medium",
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
     },
     {
       id: 3,
       title: "Merge K Sorted Lists",
       date: new Date("2024-03-10"),
       difficulty: "Hard",
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
     },
   ]
 
