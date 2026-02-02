@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import '@testing-library/jest-dom'
 import React from "react"
-import ErroPage from '../src/components/ErrorPage'
+import ErroPage from '../src/views/ErrorPage'
 
 const nav = jest.fn()
 
