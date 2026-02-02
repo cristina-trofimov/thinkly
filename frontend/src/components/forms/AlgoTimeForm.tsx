@@ -11,6 +11,7 @@ import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import DatePicker from "@/components/ui/DatePicker";
+import { TimeInput } from "@/components/ui/TimeInput";
 import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -428,13 +429,10 @@ export const AlgoTimeSessionForm = () => {
                 <Label htmlFor="startTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   Start Time
                 </Label>
-                <Input
-                  type="time"
+                <TimeInput
                   id="startTime-picker"
-                  step="60"
-                  value={formData.startTime || "12:00:00"}
-                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
+                  value={formData.startTime}
+                  onChange={(value) => setFormData({ ...formData, startTime: value })}
                 />
               </div>
 
@@ -442,13 +440,10 @@ export const AlgoTimeSessionForm = () => {
                 <Label htmlFor="endTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
                   End Time
                 </Label>
-                <Input
-                  type="time"
+                <TimeInput
                   id="endTime-picker"
-                  step="60"
-                  value={formData.endTime || "12:00:00"}
-                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none cursor-pointer"
+                  value={formData.endTime}
+                  onChange={(value) => setFormData({ ...formData, endTime: value })}
                 />
               </div>
             </div>
