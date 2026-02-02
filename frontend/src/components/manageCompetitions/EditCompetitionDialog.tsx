@@ -22,7 +22,6 @@ import {
   Mail,
   Clock,
   MapPin,
-  Calendar as CalendarIcon,
 } from "lucide-react";
 import { updateCompetition, getCompetitionById } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
@@ -31,8 +30,7 @@ import { type Riddle } from "../../types/riddle/Riddle.type";
 import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
-import { Popover,PopoverContent,PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import DatePicker from "@/components/ui/DatePicker";
 import { format } from "date-fns";
 
 function findById<T extends { id: number }>(items: T[], id: number): T | undefined {
@@ -75,8 +73,6 @@ export default function EditCompetitionDialog({
   });
   const [validationError, setValidationError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [openStart, setOpenStart] = useState(false);
-  const [monthStart, setMonthStart] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
 
@@ -345,65 +341,12 @@ export default function EditCompetitionDialog({
                   <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
                   <div className="space-y-2">
                     <Label htmlFor="date">Event Date</Label>
-                    <div className="relative ">
-                      <Input
-                        id="date"
-                        type="text"
-                        value={formData.date}
-                        onChange={e => setFormData({ ...formData, date: e.target.value })}
-                        placeholder="YYYY-MM-DD"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      />
-                      <Popover open={openStart} onOpenChange={setOpenStart}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            id="date-picker"
-                            variant="ghost"
-                            className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
-                          >
-                            <CalendarIcon className="size-3.5" />
-                            <span className="sr-only">Select date</span>
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent
-                          className="w-auto overflow-hidden p-0"
-                          align="end"
-                          alignOffset={-8}
-                          sideOffset={10}
-                        >
-                          <Calendar
-                            mode="single"
-                            selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
-                            captionLayout="dropdown"
-                            month={monthStart}
-                            onMonthChange={setMonthStart}
-                            startMonth={new Date(2024, 0, 1)}
-                            endMonth={new Date(2050, 11, 31)}
-                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                            onSelect={(selectedDate) => {
-                              if (selectedDate) {
-                                setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
-                              }
-                              setOpenStart(false)
-                            }}
-                            modifiers={{
-                              today: new Date()
-                            }}
-                            modifiersClassNames={{
-                              today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
-                                ? "bg-accent text-accent-foreground font-normal rounded-md" 
-                                : ""
-                            }}
-                            classNames={{
-                              day_button: "hover:bg-primary/10",
-                              day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-                              month_caption: "text-primary",
-                              day_disabled: "text-muted-foreground/30 opacity-30"
-                            }}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                    <DatePicker
+                      id="date"
+                      value={formData.date}
+                      onChange={(v) => setFormData({ ...formData, date: v })}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2"><Label htmlFor="startTime">Start</Label><TimeInput id="startTime" value={formData.startTime} onChange={value => setFormData({ ...formData, startTime: value })} /></div>

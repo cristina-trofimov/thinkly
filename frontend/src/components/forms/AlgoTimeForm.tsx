@@ -5,13 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch";
-import { AlertCircle, CalendarIcon } from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import { Popover,PopoverContent,PopoverTrigger,} from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
+import DatePicker from "@/components/ui/DatePicker";
 import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -53,10 +52,6 @@ export const AlgoTimeSessionForm = () => {
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [searchQueries, setSearchQueries] = useState<{ [key: number]: string }>({});
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
-  const [openStart, setOpenStart] = useState(false)
-  const [openEnd, setOpenEnd] = useState(false)
-  const [monthStart, setMonthStart] = useState(new Date())
-  const [monthEnd, setMonthEnd] = useState(new Date())
   const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: number[] }>({
     1: []
   });
@@ -381,67 +376,12 @@ export const AlgoTimeSessionForm = () => {
                 <Label className="block text-sm font-medium text-gray-700 mb-2">
                   {formData.repeatType === "none" ? "Date" : "Start Date"}
                 </Label>
-                <div className="relative ">
-                  <Input
-                    type="text"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    placeholder="YYYY-MM-DD"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                  <Popover open={openStart} onOpenChange={setOpenStart}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date-picker"
-                        variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
-                      >
-                        <CalendarIcon className="size-3.5" />
-                        <span className="sr-only">Select date</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto overflow-hidden p-0"
-                      align="end"
-                      alignOffset={-8}
-                      sideOffset={10}
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
-                        captionLayout="dropdown"
-                        month={monthStart}
-                        onMonthChange={setMonthStart}
-                        startMonth={new Date(2024, 0, 1)}
-                        endMonth={new Date(2050, 11, 31)}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        onSelect={(selectedDate) => {
-                          if (selectedDate) {
-                            setFormData({ ...formData, date: format(selectedDate, "yyyy-MM-dd") })
-                          }
-                          setOpenStart(false)
-                        }}
-                        modifiers={{
-                          today: new Date()
-                        }}
-                        modifiersClassNames={{
-                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
-                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
-                            : ""
-                        }}
-                        classNames={{
-                          day_button: "hover:bg-primary/10",
-                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
-                          month_caption: "text-primary",
-                          day_disabled: "text-muted-foreground/30 opacity-30"
-                        }}
-
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
+                <DatePicker
+                  id="date"
+                  value={formData.date}
+                  onChange={(v) => setFormData({ ...formData, date: v })}
+                  min={new Date().toISOString().split('T')[0]}
+                />
               </div>
               <div className="w-48">
                 <Label className="block text-sm font-medium text-gray-700 mb-2">Repeat</Label>
@@ -472,65 +412,12 @@ export const AlgoTimeSessionForm = () => {
 
               <div className="w-48 mt-8">
                 <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
-                <div className="relative">
-                  <Input
-                    type="text"
-                    value={formData.repeatEndDate}
-                    onChange={(e) => setFormData({ ...formData, repeatEndDate: e.target.value })}
-                    placeholder="YYYY-MM-DD"
-                    className=" border border-gray-300 rounded-lg focus:ring-2  focus:border-transparent"
-                  />
-                  <Popover open={openEnd} onOpenChange={setOpenEnd}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        id="date-picker"
-                        variant="ghost"
-                        className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
-                      >
-                        <CalendarIcon className="size-3.5" />
-                        <span className="sr-only">Select date</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto overflow-hidden p-0"
-                      align="end"
-                      alignOffset={-8}
-                      sideOffset={10}
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : undefined}
-                        captionLayout="dropdown"
-                        month={monthEnd}
-                        onMonthChange={setMonthEnd}
-                        startMonth={new Date(2024, 0, 1)}
-                        endMonth={new Date(2050, 11, 31)}
-                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        onSelect={(selectedDate) => {
-                          if (selectedDate) {
-                            setFormData({ ...formData, repeatEndDate: format(selectedDate, "yyyy-MM-dd") })
-                          }
-                          setOpenEnd(false)
-                        }}
-                        modifiers={{
-                          today: new Date()
-                        }}
-                        modifiersClassNames={{
-                          today: formData.date && formData.date !== format(new Date(), "yyyy-MM-dd")
-                            ? "bg-accent text-accent-foreground font-normal rounded-md" 
-                            : ""
-                        }}
-                        classNames={{
-                          day_button: "hover:bg-primary/10",
-                          day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-                          // today: "bg-gray-200 text-gray-900 font-normal rounded-md",
-                          month_caption: "text-primary",
-                          day_disabled: "text-muted-foreground/30 opacity-30"
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <DatePicker
+                  id="repeatEndDate"
+                  value={formData.repeatEndDate}
+                  onChange={(v) => setFormData({ ...formData, repeatEndDate: v })}
+                  min={new Date().toISOString().split('T')[0]}
+                />
               </div>
 
 
