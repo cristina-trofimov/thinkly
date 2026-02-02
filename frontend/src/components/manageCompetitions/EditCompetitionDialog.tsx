@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TimeInput } from "@/components/ui/TimeInput";
+import { TimeInput } from "@/helpers/TimeInput";
 import {
   Plus,
   Search,
@@ -30,7 +30,7 @@ import { type Riddle } from "../../types/riddle/Riddle.type";
 import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
-import DatePicker from "@/components/ui/DatePicker";
+import DatePicker from "@/helpers/DatePicker";
 import { format } from "date-fns";
 
 function findById<T extends { id: number }>(items: T[], id: number): T | undefined {

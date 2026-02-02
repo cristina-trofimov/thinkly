@@ -10,8 +10,8 @@ import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import DatePicker from "@/components/ui/DatePicker";
-import { TimeInput } from "@/components/ui/TimeInput";
+import DatePicker from "@/helpers/DatePicker";
+import { TimeInput } from "@/helpers/TimeInput";
 import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
