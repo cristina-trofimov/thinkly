@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Clock } from "lucide-react";
 import { CompetitionCard } from "./CompetitionCard";
 import { AlgoTimeCard } from "./AlgoTimeCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
