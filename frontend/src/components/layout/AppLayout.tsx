@@ -11,10 +11,15 @@ interface RouteHandle {
   };
 }
 
+function getSidebarCookie(): boolean {
+  const match = document.cookie.match(/(?:^|; )sidebar_state=([^;]*)/);
+  return match ? match[1] === "true" : true;
+}
+
 export function Layout() {
   // Get all active routes
   const routes = useMatches();
-  
+
   // Build breadcrumb items from routes
   const breadcrumbItems = routes
     .filter((match) => {
@@ -27,7 +32,7 @@ export function Layout() {
     }));
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={getSidebarCookie()}>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1">
