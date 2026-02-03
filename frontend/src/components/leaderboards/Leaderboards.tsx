@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Clock } from "lucide-react";
 import { CompetitionCard } from "./CompetitionCard";
 import { AlgoTimeCard } from "./AlgoTimeCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { getCompetitionsDetails, getCurrentCompetitionLeaderboard, getAllAlgoTimeEntries } from "@/api/LeaderboardsAPI";
 import { getProfile } from "@/api/AuthAPI";
@@ -12,7 +12,7 @@ import type { Participant } from "@/types/account/Participant.type.tsx"
 type LeaderboardType = "competition" | "algotime";
 
 export function Leaderboards() {
-  const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("competition");
+  const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("algotime");
   const [competitions, setCompetitions] = useState<CompetitionWithParticipants[]>([]);
   const [currentCompetition, setCurrentCompetition] = useState<CompetitionWithParticipants | null>(null);
   const [algoTimeEntries, setAlgoTimeEntries] = useState<Participant[]>([]);
@@ -100,31 +100,26 @@ export function Leaderboards() {
   return (
     <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem] space-y-4">
       {/* Toggle between Competition and AlgoTime */}
-      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 w-fit">
-        <button
-          data-cy="leaderboard-competitions"
-          onClick={() => setLeaderboardType("competition")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
-            leaderboardType === "competition"
-              ? "bg-[#8065CD] text-white"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <Trophy className="w-4 h-4" />
-          Competitions
-        </button>
-        <button
-          data-cy="leaderboard-algotime"
-          onClick={() => setLeaderboardType("algotime")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
-            leaderboardType === "algotime"
-              ? "bg-[#8065CD] text-white"
-              : "text-gray-600 hover:bg-gray-100"
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          AlgoTime
-        </button>
+      <div className="flex items-center">
+        <Tabs value={leaderboardType} onValueChange={(v) => setLeaderboardType(v as LeaderboardType)}>
+          <TabsList className="space-x-1">
+            <TabsTrigger
+              value="algotime"
+              className="rounded-md text-primary"
+              data-cy="leaderboard-algotime"
+            >
+              AlgoTime
+            </TabsTrigger>
+            <TabsTrigger
+              value="competition"
+              className="rounded-md text-primary"
+              data-cy="leaderboard-competitions"
+            >
+              Competitions
+            </TabsTrigger>
+
+          </TabsList>
+        </Tabs>
       </div>
 
       {leaderboardType === "competition" && (
