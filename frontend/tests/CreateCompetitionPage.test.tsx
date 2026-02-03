@@ -25,6 +25,23 @@ jest.mock("../src/api/LoggerAPI", () => ({
 }));
 jest.mock("../src/components/manageCompetitions/BuildEmail", () => jest.fn(() => "Automated Email Content"));
 
+// Mock TimeInput to render a simple controlled input (the real component uses a read-only input + popover)
+jest.mock("../src/helpers/TimeInput", () => {
+  const React = require("react");
+  return {
+    TimeInput: React.forwardRef(
+      ({ value, onChange, id, placeholder }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }, ref: React.Ref<HTMLInputElement>) =>
+        React.createElement("input", {
+          ref,
+          id,
+          value: value || "",
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+          placeholder: placeholder || "Select time",
+        })
+    ),
+  };
+});
+
 describe("CreateCompetitionPage", () => {
   const mockQuestions = [
     { id: "1", title: "Two Sum", difficulty: "easy" },
