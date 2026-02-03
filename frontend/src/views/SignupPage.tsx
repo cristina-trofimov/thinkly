@@ -1,5 +1,5 @@
-import thinkly from "@/assets/thinkly_logo.png"
-import scsLogo from "@/assets/logo.png"
+import thinkly from "../../public/assets/thinkly_logo.png"
+import scsLogo from "../../public/assets/logo.png"
 import { SignupForm } from "@/components/forms/SignupForm";
 
 export default function SignupPage() {

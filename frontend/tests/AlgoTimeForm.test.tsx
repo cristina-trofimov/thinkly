@@ -22,13 +22,11 @@ jest.mock('@/api/QuestionsAPI', () => ({
   getQuestions: jest.fn(() => Promise.resolve([
     {
       id: 1,
-      questionTitle: 'Test Question 1',
       title: 'Test Question 1',
       difficulty: 'Easy',
     },
     {
       id: 2,
-      questionTitle: 'Test Question 2',
       title: 'Test Question 2',
       difficulty: 'Medium',
     },
