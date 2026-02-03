@@ -37,7 +37,7 @@ describe('Leaderboards Page', () => {
   it('loads the leaderboards successfully', () => {
 
     // Assertions
-    cy.contains('AlgoTime').click();
+    cy.get('[data-cy="leaderboard-algotime"]').click();
     cy.contains('Loading leaderboards...').should('not.exist');
     cy.get('[data-cy="leaderboard-competitions"]').click();
 

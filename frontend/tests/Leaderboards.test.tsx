@@ -61,6 +61,11 @@ describe("Leaderboards Component", () => {
     });
   };
 
+  const switchToCompetitionTab = async (user: ReturnType<typeof userEvent.setup>) => {
+    const competitionTab = screen.getByRole("tab", { name: /competitions/i });
+    await user.click(competitionTab);
+  };
+
   it("displays loading state initially", async () => {
     (getCompetitionsDetails as jest.Mock).mockReturnValue(new Promise(() => { }));
     (getCurrentCompetitionLeaderboard as jest.Mock).mockReturnValue(new Promise(() => { }));
@@ -70,7 +75,11 @@ describe("Leaderboards Component", () => {
 
   it("renders competitions sorted by newest date by default", async () => {
     setupSuccess();
+    const user = userEvent.setup();
     render(<Leaderboards />);
+
+    // Switch to competition tab
+    await switchToCompetitionTab(user);
 
     await waitFor(() => {
       expect(screen.getByText("October Challenge")).toBeInTheDocument();
@@ -86,6 +95,9 @@ describe("Leaderboards Component", () => {
     setupSuccess();
     const user = userEvent.setup();
     render(<Leaderboards />);
+
+    // Switch to competition tab
+    await switchToCompetitionTab(user);
 
     await waitFor(() => {
       expect(screen.getByText("October Challenge")).toBeInTheDocument();
@@ -105,6 +117,9 @@ describe("Leaderboards Component", () => {
     setupSuccess();
     const user = userEvent.setup();
     render(<Leaderboards />);
+
+    // Switch to competition tab
+    await switchToCompetitionTab(user);
 
     // 1. Wait for initial render
     await waitFor(() => {
@@ -138,6 +153,9 @@ describe("Leaderboards Component", () => {
     const user = userEvent.setup();
     render(<Leaderboards />);
 
+    // Switch to competition tab
+    await switchToCompetitionTab(user);
+
     await waitFor(() => {
       expect(screen.getByText("October Challenge")).toBeInTheDocument();
     });
@@ -156,6 +174,7 @@ describe("Leaderboards Component", () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => { });
     (getCompetitionsDetails as jest.Mock).mockRejectedValue(new Error("API Error"));
     (getCurrentCompetitionLeaderboard as jest.Mock).mockRejectedValue(new Error("API Error"));
+    (getAllAlgoTimeEntries as jest.Mock).mockRejectedValue(new Error("API Error"));
 
     render(<Leaderboards />);
 
