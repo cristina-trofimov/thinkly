@@ -146,8 +146,8 @@ const ManageCompetitions = () => {
 
   const filteredCompetitions = competitions
     .filter((comp) => {
-      const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        comp.competitionLocation.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (comp.competitionTitle?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (comp.competitionLocation?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
       const status = getCompetitionStatus(comp.startDate);
       const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
