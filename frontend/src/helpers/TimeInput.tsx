@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Clock } from "lucide-react";
 
@@ -21,12 +21,12 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Generate list of all times in 15-minute intervals
-    const allTimes = Array.from({ length: 96 }, (_, i) => {
+    // Generate list of all times in 15-minute intervals (stable reference)
+    const allTimes = useMemo(() => Array.from({ length: 96 }, (_, i) => {
       const hours = Math.floor(i / 4);
       const minutes = (i % 4) * 15;
       return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-    });
+    }), []);
 
     useEffect(() => {
       // Filter times based on current input
