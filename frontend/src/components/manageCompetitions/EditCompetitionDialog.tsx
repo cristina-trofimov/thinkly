@@ -31,7 +31,6 @@ import { type UpdateCompetitionProps } from "../../types/competition/EditCompeti
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
 import DatePicker from "@/helpers/DatePicker";
-import { format } from "date-fns";
 
 function findById<T extends { id: number }>(items: T[], id: number): T | undefined {
   return items.find(item => item.id === id);
@@ -180,11 +179,7 @@ export default function EditCompetitionDialog({
       setEmailData((prev) => ({ ...prev, body: autoText }));
     }
   }, [
-    formData.name,
-    formData.date,
-    formData.startTime,
-    formData.endTime,
-    formData.location,
+    formData,
     emailManuallyEdited,
     initialLoadComplete,
     emailEnabled

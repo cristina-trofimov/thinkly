@@ -15,7 +15,7 @@ interface TimeInputProps {
  * Formats time as HH:MM (no seconds).
  */
 export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
-  ({ value, onChange, id, placeholder, step }, ref) => {
+  ({ value, onChange, id, placeholder, step }, _ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const [filteredTimes, setFilteredTimes] = useState<string[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -38,7 +38,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
       } else {
         setFilteredTimes(allTimes);
       }
-    }, [value]);
+    }, [value, allTimes]);
 
     useEffect(() => {
       // Close dropdown when clicking outside
