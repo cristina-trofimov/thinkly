@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Clock } from "lucide-react";
 
 interface TimeInputProps {
@@ -7,177 +9,141 @@ interface TimeInputProps {
   onChange: (value: string) => void;
   id?: string;
   placeholder?: string;
-  step?: string;
 }
 
-/**
- * Custom time input with dropdown picker that works reliably across all browsers including Safari.
- * Formats time as HH:MM (no seconds).
- */
+function to12h(time24: string): { display: string; period: "AM" | "PM" } {
+  if (!time24 || !time24.includes(":")) return { display: "", period: "AM" };
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const m = mStr.padStart(2, "0");
+  if (isNaN(h)) return { display: "", period: "AM" };
+  const period: "AM" | "PM" = h >= 12 ? "PM" : "AM";
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return { display: `${h}:${m} ${period}`, period };
+}
+
 export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
-  ({ value, onChange, id, placeholder, step }, _ref) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [filteredTimes, setFilteredTimes] = useState<string[]>([]);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+  ({ value, onChange, id, placeholder }, _ref) => {
+    const [open, setOpen] = useState(false);
+    const listRef = useRef<HTMLDivElement>(null);
 
-    // Generate list of all times in 15-minute intervals (stable reference)
-    const allTimes = useMemo(() => Array.from({ length: 96 }, (_, i) => {
-      const hours = Math.floor(i / 4);
-      const minutes = (i % 4) * 15;
-      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-    }), []);
+    const currentParsed = to12h(value);
+    const [viewPeriod, setViewPeriod] = useState<"AM" | "PM">(currentParsed.period);
 
+    // Sync viewPeriod when value changes externally
     useEffect(() => {
-      // Filter times based on current input
-      if (value) {
-        const filtered = allTimes.filter((time) =>
-          time.toLowerCase().startsWith(value.toLowerCase())
-        );
-        setFilteredTimes(filtered.length > 0 ? filtered : allTimes);
-      } else {
-        setFilteredTimes(allTimes);
+      if (value && value.includes(":")) {
+        setViewPeriod(to12h(value).period);
       }
-    }, [value, allTimes]);
+    }, [value]);
 
+    // Generate times for the active period (AM or PM)
+    const times = useMemo(() => {
+      const result: { label: string; value24: string }[] = [];
+      const startHour24 = viewPeriod === "AM" ? 0 : 12;
+      for (let h = startHour24; h < startHour24 + 12; h++) {
+        for (let m = 0; m < 60; m += 15) {
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          const label = `${h12}:${String(m).padStart(2, "0")} ${viewPeriod}`;
+          const value24 = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+          result.push({ label, value24 });
+        }
+      }
+      return result;
+    }, [viewPeriod]);
+
+    // Auto-scroll to selected time when popover opens
     useEffect(() => {
-      // Close dropdown when clicking outside
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          containerRef.current &&
-          !containerRef.current.contains(event.target as Node)
-        ) {
-          setIsOpen(false);
+      if (open && listRef.current && value) {
+        const selectedEl = listRef.current.querySelector("[data-selected='true']");
+        if (selectedEl) {
+          selectedEl.scrollIntoView({ block: "center" });
         }
-      };
-
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let inputValue = e.target.value;
-
-      // Remove any non-time characters
-      inputValue = inputValue.replace(/[^\d:]/g, "");
-
-      // Handle different input formats
-      if (inputValue.length <= 2) {
-        // Just hours
-        if (inputValue && parseInt(inputValue) > 23) {
-          inputValue = "23";
-        }
-      } else if (inputValue.length <= 5) {
-        // Hours and minutes (HH:MM)
-        const parts = inputValue.split(":");
-        if (parts.length === 1) {
-          inputValue = parts[0];
-        } else {
-          const hours = parts[0];
-          const minutes = parts[1];
-
-          // Validate hours
-          if (hours && parseInt(hours) > 23) {
-            inputValue = "23:" + (minutes || "");
-          }
-          // Validate minutes
-          if (minutes && parseInt(minutes) > 59) {
-            inputValue = (hours || "00") + ":59";
-          }
-
-          // Format as HH:MM
-          if (
-            hours &&
-            minutes &&
-            hours.length === 2 &&
-            minutes.length === 2
-          ) {
-            inputValue = `${hours}:${minutes}`;
-          }
-        }
-      } else {
-        // If user tries to enter more, limit to HH:MM
-        const parts = inputValue.split(":");
-        const hours = parts[0] || "00";
-        const minutes = parts[1] || "00";
-        inputValue = `${hours}:${minutes}`;
       }
+    }, [open, value, viewPeriod]);
 
-      onChange(inputValue);
-      setIsOpen(true); // Keep dropdown open while typing
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-      let finalValue = e.target.value;
-
-      // If user entered partial time, format it
-      if (finalValue && !finalValue.includes(":")) {
-        const num = parseInt(finalValue);
-        if (!isNaN(num) && num >= 0 && num <= 23) {
-          finalValue = `${String(num).padStart(2, "0")}:00`;
-        }
-      } else if (finalValue && finalValue.split(":").length >= 2) {
-        // Has hours and minutes
-        const [hours, minutes] = finalValue.split(":");
-        finalValue = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-      }
-
-      onChange(finalValue);
-    };
-
-    const handleSelectTime = (time: string) => {
-      onChange(time);
-      setIsOpen(false);
-      inputRef.current?.blur();
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "ArrowDown") {
-        setIsOpen(true);
-      } else if (e.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
+    const handleSelect = useCallback(
+      (value24: string) => {
+        onChange(value24);
+        setOpen(false);
+      },
+      [onChange]
+    );
 
     return (
-      <div ref={containerRef} className="relative w-full">
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            id={id}
-            type="text"
-            inputMode="time"
-            placeholder={placeholder || "HH:MM"}
-            value={value}
-            onChange={handleInputChange}
-            onBlur={handleBlur}
-            onFocus={() => setIsOpen(true)}
-            onKeyDown={handleKeyDown}
-            pattern="\d{2}:\d{2}"
-            step={step}
-            className="font-mono pr-10 cursor-pointer"
-            maxLength={5}
-          />
-          <Clock
-            className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
-          />
-        </div>
-
-        {isOpen && filteredTimes.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-input rounded-md shadow-lg z-50 max-h-48 overflow-y-auto">
-            {filteredTimes.map((time) => (
-              <div
-                key={time}
-                onClick={() => handleSelectTime(time)}
-                className={`px-3 py-2 cursor-pointer hover:bg-primary/10 ${
-                  value === time ? "bg-primary/20 font-semibold" : ""
+      <div className="relative">
+        <Input
+          id={id}
+          type="text"
+          readOnly
+          value={currentParsed.display}
+          placeholder={placeholder || "Select time"}
+          className="pr-10 cursor-pointer"
+          onClick={() => setOpen(true)}
+        />
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              id={id ? `${id}-picker` : "time-picker"}
+              variant="ghost"
+              className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
+            >
+              <Clock className="size-3.5" />
+              <span className="sr-only">Select time</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-48 p-0 overflow-hidden"
+            align="end"
+            alignOffset={-8}
+            sideOffset={10}
+          >
+            {/* AM/PM toggle */}
+            <div className="flex border-b">
+              <button
+                type="button"
+                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                  viewPeriod === "AM"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
                 }`}
+                onClick={() => setViewPeriod("AM")}
               >
-                {time}
-              </div>
-            ))}
-          </div>
-        )}
+                AM
+              </button>
+              <button
+                type="button"
+                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                  viewPeriod === "PM"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setViewPeriod("PM")}
+              >
+                PM
+              </button>
+            </div>
+
+            {/* Time list */}
+            <div ref={listRef} className="max-h-52 overflow-y-auto">
+              {times.map((t) => (
+                <div
+                  key={t.value24}
+                  data-selected={value === t.value24}
+                  onClick={() => handleSelect(t.value24)}
+                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
+                    value === t.value24
+                      ? "bg-primary/15 font-semibold text-primary"
+                      : "hover:bg-primary/5"
+                  }`}
+                >
+                  {t.label}
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     );
   }
