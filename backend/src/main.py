@@ -35,6 +35,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    max_age=3600,  # Allow browser to cache preflight for 1 hour
+    expose_headers=["*"],
 )
 
 # Root route (for testing)
