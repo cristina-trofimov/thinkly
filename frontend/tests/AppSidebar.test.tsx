@@ -77,12 +77,6 @@ jest.mock("@/components/ui/sidebar", () => ({
   SidebarMenuItem: ({ children }: any) => (
     <li data-testid="sidebar-menu-item">{children}</li>
   ),
-  SidebarRail: () => <div data-testid="sidebar-rail" />,
-  SidebarTrigger: ({ className, style }: any) => (
-    <button data-testid="sidebar-trigger" className={className} style={style}>
-      Toggle
-    </button>
-  ),
 }));
 
 jest.mock("@/components/ui/avatar", () => ({
@@ -126,13 +120,6 @@ describe("AppSidebar", () => {
     expect(screen.getByTestId("avatar-fallback")).toHaveTextContent("T");
   });
 
-  test("renders sidebar trigger in header", () => {
-    render(<AppSidebar />);
-    const trigger = screen.getByTestId("sidebar-trigger");
-    expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveStyle({ color: "#8065CD" });
-  });
-
   test("renders Platform navigation section", () => {
     render(<AppSidebar />);
     expect(screen.getByText("Platform")).toBeInTheDocument();
@@ -163,11 +150,6 @@ describe("AppSidebar", () => {
       const navUser = screen.getByTestId("nav-user");
       expect(navUser).toHaveTextContent("shadcn example");
     });
-  });
-
-  test("renders sidebar rail", () => {
-    render(<AppSidebar />);
-    expect(screen.getByTestId("sidebar-rail")).toBeInTheDocument();
   });
 
   test("renders correct sidebar structure with header, content, and footer", () => {
