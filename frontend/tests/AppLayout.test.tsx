@@ -17,6 +17,15 @@ jest.mock("../src/components/ui/sidebar", () => ({
   SidebarProvider: ({ children }: any) => (
     <div data-testid="sidebar-provider">{children}</div>
   ),
+  SidebarTrigger: ({ className }: any) => (
+    <button data-testid="sidebar-trigger" className={className}>Toggle</button>
+  ),
+}));
+
+jest.mock("../src/components/ui/separator", () => ({
+  Separator: ({ orientation, className }: any) => (
+    <div data-testid="separator" data-orientation={orientation} className={className} />
+  ),
 }));
 
 jest.mock("../src/components/layout/AppSidebar", () => ({

@@ -1,7 +1,8 @@
 import { Outlet, useMatches } from 'react-router-dom'
-import { SidebarProvider } from '../ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '../ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppBreadcrumbs } from './AppBreadcrumb';
+import { Separator } from '../ui/separator';
 
 // Define the shape of route handle data
 interface RouteHandle {
@@ -10,10 +11,15 @@ interface RouteHandle {
   };
 }
 
+function getSidebarCookie(): boolean {
+  const match = document.cookie.match(/(?:^|; )sidebar_state=([^;]*)/);
+  return match ? match[1] === "true" : true;
+}
+
 export function Layout() {
   // Get all active routes
   const routes = useMatches();
-  
+
   // Build breadcrumb items from routes
   const breadcrumbItems = routes
     .filter((match) => {
@@ -26,11 +32,15 @@ export function Layout() {
     }));
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={getSidebarCookie()}>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1">
-          <AppBreadcrumbs items={breadcrumbItems} />
+          <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <SidebarTrigger className="-ml-1 text-primary" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <AppBreadcrumbs items={breadcrumbItems} />
+          </header>
           <div className="mt-4">
             <Outlet />
           </div>

@@ -16,8 +16,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { getProfile } from "@/api/AuthAPI"
 import type { Account } from "@/types/account/Account.type"
@@ -96,22 +94,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 w-full">
-              <SidebarMenuButton size="lg" asChild>
-                <a href="/app/home">
-                  <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <Avatar>
-                      <AvatarImage src="/assets/thinkly_logo.png" />
-                      <AvatarFallback>T</AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div>
-                    <span className="font-medium">Thinkly</span>
-                  </div>
-                </a>
-              </SidebarMenuButton>
-              <SidebarTrigger className="ml-auto group-data-[collapsible=icon]:hidden" style={{ color: '#8065CD' }} />
-            </div>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/app/home">
+                <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Avatar>
+                    <AvatarImage src="/assets/thinkly_logo.png" />
+                    <AvatarFallback>T</AvatarFallback>
+                  </Avatar>
+                </div>
+                <div>
+                  <span className="font-medium">Thinkly</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -119,7 +114,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* navMain is static for everyone */}
         <NavSection link={navMain} label="Platform" />
-
+        
         {/* 🔒 Use the filtered list here */}
         <NavSection link={filteredOtherLinks} label="Other" />
       </SidebarContent>
@@ -127,7 +122,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <NavUser user={user} />
       </SidebarFooter>
-      <SidebarRail />
     </Sidebar>
   )
 }
