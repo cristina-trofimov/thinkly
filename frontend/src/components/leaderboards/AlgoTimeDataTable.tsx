@@ -61,10 +61,10 @@ const TotalTimeHeader = () => (
   </div>
 );
 
-const getRowBgClass = (idx: number) => {
-  if (idx === 0) return "bg-yellow-100";
-  if (idx === 1) return "bg-gray-100";
-  if (idx === 2) return "bg-orange-100";
+const getRowBgClass = (rank: number) => {
+  if (rank === 1) return "bg-yellow-100";
+  if (rank === 2) return "bg-gray-100";
+  if (rank === 3) return "bg-orange-100";
   return "";
 };
 
@@ -82,6 +82,7 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
   const pageSize = 15;
 
   // Filter participants based on search query
+  // Note: participants are already sorted by rank from the API
   const filteredParticipants = useMemo(() => {
     if (!searchQuery.trim()) {
       return participants;
@@ -186,14 +187,15 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => {
                 const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
-                const absoluteIndex = currentPage * pageSize + row.index;
+                const rank = row.original.rank;
 
-                // Determine row styling based on user and position
+                // Determine row styling based on user and rank
                 let rowClass = "";
                 if (isCurrentUser) {
                   rowClass = "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold";
                 } else if (currentPage === 0 && !searchQuery) {
-                  rowClass = getRowBgClass(absoluteIndex);
+                  // Only apply medal colors on first page when not searching
+                  rowClass = getRowBgClass(rank);
                 }
 
                 return (
