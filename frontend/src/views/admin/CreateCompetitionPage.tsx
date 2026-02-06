@@ -48,7 +48,6 @@ export default function CreateCompetition() {
     sendInOneMinute: false,
   });
 
-  const [validationError, setValidationError] = useState('');
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,7 +101,6 @@ export default function CreateCompetition() {
 
     const isQuestion = type === 'questions';
 
-    // We explicitly tell TS these are arrays of the union type to allow shared methods
     const sourceList = (source.droppableId.includes('available')
       ? (isQuestion ? availableQuestions : availableRiddles)
       : (isQuestion ? orderedQuestions : orderedRiddles)) as (Question | Riddle)[];
@@ -127,7 +125,6 @@ export default function CreateCompetition() {
       newList = newList.filter((_, idx) => idx !== source.index);
     }
 
-    // Final update: cast back to the specific expected state type
     if (isQuestion) {
       setOrderedQuestions(newList as Question[]);
     } else {
@@ -144,7 +141,7 @@ export default function CreateCompetition() {
     }
   };
 
-  const validateForm = () => {
+  const validateForm = (): string | null => {
     const newErrors: Record<string, boolean> = {
       name: !formData.name.trim(),
       date: !formData.date,
@@ -157,33 +154,30 @@ export default function CreateCompetition() {
     setErrors(newErrors);
 
     if (Object.values(newErrors).some(v => v)) {
-      setValidationError("Please fill in all mandatory fields.");
-      return false;
+      return "Please fill in all mandatory fields.";
     }
 
-    // Secondary validation: Logic errors (not missing fields)
     const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
     if (competitionDateTime.getTime() <= Date.now()) {
-      setValidationError("Competition must be scheduled for a future date/time.");
-      setErrors(prev => ({ ...prev, date: true, startTime: true }));
-      return false;
+      return "Competition must be scheduled for a future date/time.";
     }
 
     if (orderedQuestions.length !== orderedRiddles.length) {
-      setValidationError(`Questions and riddles count mismatch: ${orderedQuestions.length} Questions vs ${orderedRiddles.length} Riddles.`);
-      setErrors(prev => ({ ...prev, questions: true, riddles: true }));
-      return false;
+      return `Questions and riddles count mismatch.`;
     }
 
-    setValidationError('');
-    return true;
+    return null; // No errors
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const errorMsg = validateForm();
+
+    if (errorMsg) {
+      toast.error(errorMsg);
+      return;
+    }
 
     setIsSubmitting(true);
-    setValidationError('');
 
     try {
       const sendAtUTC = emailData.sendAtLocal
@@ -236,7 +230,6 @@ export default function CreateCompetition() {
         errorMsg = detail;
       }
 
-      setValidationError(errorMsg);
       toast.error(errorMsg); // Immediate error feedback via sonner
 
       logFrontend({
@@ -275,13 +268,6 @@ export default function CreateCompetition() {
             </Button>
           </div>
         </div>
-
-        {validationError && (
-          <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
-            <X className="h-4 w-4" />
-            <span className="font-medium text-xs">{validationError}</span>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

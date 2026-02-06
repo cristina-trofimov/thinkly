@@ -245,14 +245,6 @@ export default function EditCompetitionDialog({
     return "bg-red-100 text-red-700";
   };
 
-  const onGlobalDragEnd = (result: DropResult) => {
-    if (result.type === "questions") {
-      handleDragEndQuestions(result);
-    } else if (result.type === "riddles") {
-      handleDragEndRiddles(result);
-    }
-  };
-
   if (loading) return null; // Or your loading dialog
 
   return (
