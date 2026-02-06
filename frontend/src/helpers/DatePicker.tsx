@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import * as React from "react";
+import { useState } from "react"; // Added this
+import { format, parseISO, isValid } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DatePickerProps {
   value?: string;
@@ -15,68 +16,59 @@ interface DatePickerProps {
   className?: string;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, id, placeholder, min, className }) => {
+export default function DatePicker({ value, onChange, min, className, placeholder }: DatePickerProps) {
+  // 1. Define the state to control the popover
   const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState(value ? new Date(value + "T00:00:00") : new Date());
 
-  const selected = value ? new Date(value + "T00:00:00") : undefined;
-  const minDate = min ? new Date(min + "T00:00:00") : new Date(new Date().setHours(0, 0, 0, 0));
+  const date = React.useMemo(() => {
+    if (!value) return undefined;
+    const parsed = parseISO(value);
+    return isValid(parsed) ? parsed : undefined;
+  }, [value]);
+
+  const minDate = React.useMemo(() => {
+    if (!min) return undefined;
+    const parsed = parseISO(min);
+    return isValid(parsed) ? parsed : undefined;
+  }, [min]);
 
   return (
-    <div className="relative">
-      <Input
-        id={id}
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "YYYY-MM-DD"}
-        className={className}
-      />
+    <div className="relative w-full">
+      {/* 2. 'open' and 'onOpenChange' now point to our state above */}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            id={id ? `${id}-picker` : "date-picker"}
-            variant="ghost"
-            className=" absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0 cursor-pointer"
+            type="button"
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal border-input bg-background",
+              !date && "text-muted-foreground",
+              className
+            )}
           >
-            <CalendarIcon className="size-3.5" />
-            <span className="sr-only">Select date</span>
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {date ? format(date, "PPP") : <span>{placeholder || "Pick a date"}</span>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto overflow-hidden p-0" align="end" alignOffset={-8} sideOffset={10}>
+        <PopoverContent
+          className="w-auto p-0 z-[110]"
+          align="start"
+          side="bottom"
+        >
           <Calendar
             mode="single"
-            selected={selected}
-            captionLayout="dropdown"
-            month={month}
-            onMonthChange={setMonth}
-            startMonth={new Date(2024, 0, 1)}
-            endMonth={new Date(2050, 11, 31)}
-            disabled={(date) => date < minDate}
+            selected={date}
             onSelect={(selectedDate) => {
               if (selectedDate) {
                 onChange(format(selectedDate, "yyyy-MM-dd"));
+                setOpen(false); // Successfully closes the popover
               }
-              setOpen(false);
             }}
-            modifiers={{ today: new Date() }}
-            modifiersClassNames={{
-              today:
-                value && value !== format(new Date(), "yyyy-MM-dd")
-                  ? "bg-accent text-accent-foreground font-normal rounded-md"
-                  : "",
-            }}
-            classNames={{
-              day_button: "hover:bg-primary/10",
-              day_selected: "bg-primary text-white hover:bg-primary hover:text-white rounded-md",
-              month_caption: "text-primary",
-              day_disabled: "text-muted-foreground/30 opacity-30",
-            }}
+            disabled={(d) => (minDate ? d < minDate : false)}
+            initialFocus
           />
         </PopoverContent>
       </Popover>
     </div>
   );
-};
-
-export default DatePicker;
+}

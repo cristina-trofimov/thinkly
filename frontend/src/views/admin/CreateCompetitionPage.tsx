@@ -290,8 +290,9 @@ export default function CreateCompetition() {
                 <DatePicker
                   id="date"
                   value={formData.date}
-                  onChange={(v) => setFormData({ ...formData, date: v })}
+                  onChange={(v: string) => setFormData({ ...formData, date: v })}
                   min={new Date().toISOString().split('T')[0]}
+                  placeholder="Select competition date"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
