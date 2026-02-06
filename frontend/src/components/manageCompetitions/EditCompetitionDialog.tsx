@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TimeInput } from "@/helpers/TimeInput";
 import {
   Plus,
   Search,
@@ -29,6 +30,7 @@ import { type Riddle } from "../../types/riddle/Riddle.type";
 import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
+import DatePicker from "@/helpers/DatePicker";
 
 function findById<T extends { id: number }>(items: T[], id: number): T | undefined {
   return items.find(item => item.id === id);
@@ -177,11 +179,7 @@ export default function EditCompetitionDialog({
       setEmailData((prev) => ({ ...prev, body: autoText }));
     }
   }, [
-    formData.name,
-    formData.date,
-    formData.startTime,
-    formData.endTime,
-    formData.location,
+    formData,
     emailManuallyEdited,
     initialLoadComplete,
     emailEnabled
@@ -336,10 +334,18 @@ export default function EditCompetitionDialog({
                 <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
-                  <div className="space-y-2"><Label htmlFor="date">Event Date</Label><Input id="date" type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Event Date</Label>
+                    <DatePicker
+                      id="date"
+                      value={formData.date}
+                      onChange={(v) => setFormData({ ...formData, date: v })}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2"><Label htmlFor="startTime">Start</Label><Input id="startTime" type="time" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} /></div>
-                    <div className="space-y-2"><Label htmlFor="endTime">End</Label><Input id="endTime" type="time" value={formData.endTime} onChange={e => setFormData({ ...formData, endTime: e.target.value })} /></div>
+                    <div className="space-y-2"><Label htmlFor="startTime">Start</Label><TimeInput id="startTime" value={formData.startTime} onChange={value => setFormData({ ...formData, startTime: value })} /></div>
+                    <div className="space-y-2"><Label htmlFor="endTime">End</Label><TimeInput id="endTime" value={formData.endTime} onChange={value => setFormData({ ...formData, endTime: value })} /></div>
                   </div>
                   <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
                 </CardContent>

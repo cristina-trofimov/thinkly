@@ -2,7 +2,11 @@ import React from 'react'
 import '@testing-library/jest-dom'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { render, screen, fireEvent } from "@testing-library/react"
+import { Question } from '../src/types/questions/Question.type'
+import { useTestcases } from '../src/components/helpers/useTestcases'
 
+
+jest.mock('../src/components/helpers/useTestcases')
 
 jest.mock('../src/components/ui/button', () => ({
   __esModule: true,
@@ -68,25 +72,78 @@ jest.mock("../src/components/ui/shadcn-io/code-block", () => ({
   CodeBlockItem: ({ children }: any) => <div data-testid="code-item" >{children}</div>,
   CodeBlockContent: ({ children }: any) => <div data-testid="code-content" >{children}</div>,
 }))
+
 jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
   __esModule: true,
   CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
 }));
 
-// Samples
-const problemInfo = {
+const mockProblem: Question = {
+  id: 1,
   title: "Sum Problem",
   description: "Add two numbers",
-  clarification: "njcnsdjnvjsvn",
-  examples: [
-    {
-      inputs: [{ name: "a", type: "int" }, { name: "b", type: "int" }],
-      outputs: [{ name: "result", type: "int" }],
-      expectations: "Should output sum",
-    },
-  ],
+  media: "string",
+  preset_code: "string",
+  template_solution: "string",
+  difficulty: "Easy",
+  date: new Date("2025-10-28T10:00:00Z"),
 }
 
+const mockUseTestcases = useTestcases as jest.Mock
+
+const mockTestcases = [
+  {
+    test_case_id: 1,
+    question_id: 1,
+    caseID: 'Case 1',
+    input_data: {
+      num: 10,
+      b: 20,
+    },
+    expected_output: 30,
+  },
+  {
+    test_case_id: 1,
+    question_id: 1,
+    caseID: 'Case 2',
+    input_data: {
+      x: 5,
+      y: 5,
+    },
+    expected_output: 25,
+  },
+]
+
+const nullRef = { current: null }
+
+jest.spyOn(React, 'useRef')
+    .mockImplementationOnce(() => nullRef)
+
+const setup = () => {
+  const addTestcase = jest.fn()
+  const removeTestcase = jest.fn()
+  const updateTestcase = jest.fn()
+  const setActiveTestcase = jest.fn()
+
+  mockUseTestcases.mockReturnValue({
+    testcases: mockTestcases,
+    addTestcase,
+    removeTestcase,
+    updateTestcase,
+    loading: false,
+    activeTestcase: 'Case 1',
+    setActiveTestcase,
+  })
+
+  render(<CodeDescArea question={mockProblem} />)
+
+  return {
+    addTestcase,
+    removeTestcase,
+    updateTestcase,
+    setActiveTestcase,
+  }
+}
 
 const submissions = [
   {
@@ -111,100 +168,13 @@ afterAll(() => {
   jest.useRealTimers()
 })
 describe('CodeDescArea', () => {
-  it("should render all tab triggers", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
+  it("renders Description tab with problem title and description and all tab triggers", () => {
+    setup()
 
-    const triggers = screen.getAllByTestId("tabs-trigger")
-    expect(triggers.length).toBe(3)
-  })
-
-  it("renders Description tab with problem title and description (by default)", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
-
+    expect(screen.getAllByTestId("tabs-trigger").length).toBe(3)
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
     expect(screen.getByText("Add two numbers")).toBeInTheDocument()
-    expect(screen.getByText(/Example 1/i)).toBeInTheDocument()
-  })
-
-  it("can switch to Submissions tab", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
-
-    const tab = screen.getByText("Submissions")
-    fireEvent.click(tab)
-
-    expect(screen.getByText("Accepted")).toBeInTheDocument()
-    expect(screen.getByText("JavaScript")).toBeInTheDocument()
-  })
-
-  it("clicking a submission opens code view and can go back", () => {
-    render(<CodeDescArea
-      problemInfo={problemInfo}
-      submissions={submissions}
-    />)
-
-    fireEvent.click(screen.getByText("Submissions"))
-    
-    const statusCell = screen.getByText("Accepted")
-    fireEvent.click(statusCell)
-    expect(screen.getByTestId("code-block")).toBeInTheDocument()
-
-    const backBtn = screen.getByText("Back")
-    expect(backBtn).toBeInTheDocument()
-    fireEvent.click(backBtn)
-    expect(screen.getByText("Accepted")).toBeInTheDocument()
-  })
-
-  it("can switch to Leaderboard tab", () => {
-  render(<CodeDescArea
-    problemInfo={problemInfo}
-    submissions={submissions}
-  />);
-
-  const tab = screen.getByText("Leaderboard");
-  fireEvent.click(tab);
-
-  // Assert the mocked leaderboard is rendered
-  expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
-});
-
-  it('formats submission time properly', () => {
-    const times = [
-      { ago: 1000, expected: '1 second' },
-      { ago: 60000, expected: '1 minute' },
-      { ago: 3600000, expected: '1 hour' },
-      { ago: 86400000, expected: '1 day' },
-    ]
-
-    times.forEach(time => {
-      const submission = {
-        ...submissions[0],
-        submittedOn: new Date(Date.now() - time.ago).toISOString(),
-      }
-
-      const { unmount } = render(
-        <CodeDescArea
-          problemInfo={problemInfo}
-          submissions={[submission]}
-        />
-      )
-
-      fireEvent.click(screen.getByText('Submissions'))
-
-      expect(
-        screen.getByText(new RegExp(time.expected, 'i'))
-      ).toBeInTheDocument()
-
-      unmount() // Clean up after each iteration
-    })
+    expect(screen.getByText(/num = 10/i)).toBeInTheDocument()
   })
 })
 

@@ -26,7 +26,7 @@ export function SearchAndFilterBar({
   setSortAsc,
 }: SearchAndFilterBarProps) {
   return (
-    <div className="flex items-center ">
+    <div className="flex items-center gap-3">
       {/* 🔍 Search Input */}
       <div className="flex-1 max-w-md">
         <Input
@@ -36,7 +36,6 @@ export function SearchAndFilterBar({
           className="w-full"
         />
       </div>
-
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

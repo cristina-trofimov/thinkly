@@ -1,21 +1,19 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import type { QuestionInfo } from '../../types/questions/QuestionsInfo.type'
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState, } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
-import type { BundledLanguage } from 'shiki'
-import { CodeBlock, CodeBlockBody, CodeBlockItem, CodeBlockContent } from '../ui/shadcn-io/code-block'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
+import type { Question } from '@/types/questions/Question.type'
+import { useTestcases } from '../helpers/useTestcases'
 
 
 const CodeDescArea = (
-    { problemInfo, submissions }:
-        {
-            problemInfo: QuestionInfo, submissions: SubmissionType[]
-        }) => {
+    { question }:
+    { question: Question }
+    ) => {
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -23,32 +21,8 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const code = [
-        {
-            language: 'jsx',
-            filename: 'MyComponent.jsx',
-            code: `function MyComponent(props) {
-    return (
-        <div>
-        <h1>Hello, {props.name}!</h1>
-        <p>This is an example React component.</p>
-        </div>
-    );
-      }`,
-        },
-        {
-            language: 'tsx',
-            filename: 'MyComponent.tsx',
-            code: `function MyComponent(props: { name: string }) {
-    return (
-        <div>
-        <h1>Hello, {props.name}!</h1>
-        <p>This is an example React component.</p>
-        </div>
-    );
-      }`,
-        },
-    ];
+    const { testcases } = useTestcases(question?.id)
+
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -78,29 +52,6 @@ const CodeDescArea = (
         quarterSize = fullSize / 4
     }
 
-    const timeDiff = (submittedOn: string) => {
-        const diffMs = Date.now() - Date.parse(submittedOn)
-
-        const seconds = Math.floor(diffMs / 1000)
-        const minutes = Math.floor(diffMs / (1000 * 60))
-        const hours = Math.floor(diffMs / (1000 * 60 * 60))
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-        let displayTime = ''
-        if (days > 0) {
-            displayTime = `${days} day${days > 1 ? "s" : ""} ago`
-        } else if (hours > 0) {
-            displayTime = `${hours} hour${hours > 1 ? "s" : ""} ago`
-        } else if (minutes > 0) {
-            displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
-        } else {
-            displayTime = `${seconds} second${seconds > 1 ? "s" : ""} ago`
-        }
-
-        return displayTime
-    }
-
-
     return (
         <Tabs data-testid="tabs" defaultValue='description'
             value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
@@ -117,15 +68,16 @@ const CodeDescArea = (
 
                     return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
                         className={`bg-muted rounded-none
-                            data-[state=active]:border-primary
-                            data-[state=active]:text-primary
-                            data-[state=active]:bg-muted
-                            data-[state=active]:shadow-none
-                            data-[state=active]:border-b-[2.5px]
-                            data-[state=active]:border-x-0
-                            data-[state=active]:border-t-0
-                            dark:data-[state=active]:border-primary
-                            flex items-center gap-2 transition-all
+                        hover:border-t-2 hover:border-primary/40
+                        data-[state=active]:border-primary
+                        data-[state=active]:text-primary
+                        data-[state=active]:bg-muted
+                        data-[state=active]:shadow-none
+                        data-[state=active]:border-b-[2.5px]
+                        data-[state=active]:border-x-0
+                        data-[state=active]:border-t-0
+                        dark:data-[state=active]:border-primary
+                        flex items-center gap-2 transition-all
                             ${showText ? 'px-4' : 'px-2'}
                         `}
                     >
@@ -139,29 +91,26 @@ const CodeDescArea = (
             <TabsContent value='description' data-testid="tabs-content-description" >
                 <div className='h-full p-6' >
                     <h1 className='font-bold mb-3 '>
-                        {problemInfo.title}
+                        {question.title}
                     </h1>
 
-                    <p className='max-h-[500px] text-left leading-6 break-words overflow-scroll whitespace-normal' >
-                        {problemInfo.description}
+                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre' >
+                        {question.description}
                     </p>
-                    {problemInfo.examples.map((e, idx) => {
+                    {testcases?.map((t, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1' >
                                 <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {e.inputs.map((i, i_idx) => {
-                                        const separator = i_idx < e.inputs.length - 1 ? `, ` : `\n`
-                                        return `${i.name}: ${i.type}${separator}`
+                                    {Object.entries(t.input_data).map(([key, val], idx) => {
+                                        const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
+                                        return `${key} = ${val}${separator}`
                                     })}
                                 </span></p>
-                                <p className='font-bold'>Outputs <span className='font-normal'>
-                                    {e.outputs.map((o, o_idx) => {
-                                        const separator = o_idx < e.outputs.length - 1 ? `, ` : `\n`
-                                        return `${o.name}: ${o.type}${separator}`
-                                    })}
-                                </span></p>
-                                <p className='font-bold'>Expectations <span className='font-normal'>{e.expectations}</span></p>
+                                <p className='font-bold'>Outputs: <span className='font-normal'>
+                                    {t.expected_output}</span>
+                                </p>
+                                {/* <p className='font-bold'>Explanation <span className='font-normal'>{t.explanation}</span></p> */}
                             </div>
                         </div>
                     })}
@@ -182,26 +131,7 @@ const CodeDescArea = (
                                 </TableRow>
                             </TableHeader>
 
-                            <TableBody>
-                                {submissions.map((s, idx) => {
-                                    return (
-                                        <TableRow key={`submission ${idx + 1}`} >
-                                            <TableCell className='grid grid-rows-2' onClick={() => setSelectedSubmission(s)} >
-                                                <span>{s.status}</span>
-                                                <span className='text-gray-500' >{timeDiff(s.submittedOn)}</span>
-                                            </TableCell>
-                                            <TableCell className="" >{s.language}</TableCell>
-                                            <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
-                                            <TableCell className="text-right text-gray-500" >{s.runtime}</TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-
-                            <TableFooter className='mt-3' >
-                                <TableRow><TableCell colSpan={4} className='text-gray-500' >{submissions.length} attempt{submissions.length > 1 ? 's' : ''}</TableCell>
-                                </TableRow>
-                            </TableFooter>
+                            
                         </Table>
                         : (<div>
                             <div className='flex flex-row gap-6 items-center mb-4' >
@@ -213,18 +143,6 @@ const CodeDescArea = (
                                     {selectedSubmission.status}
                                 </h1>
                             </div>
-
-                            <CodeBlock data-testid="code-block" data={code} defaultValue={code[0].language}>
-                                <CodeBlockBody data-testid="code-body" >
-                                    {(item) => (
-                                        <CodeBlockItem data-testid="code-item" key={item.language} value={item.language}>
-                                            <CodeBlockContent data-testid="code-content" language={item.language as BundledLanguage}>
-                                                {item.code}
-                                            </CodeBlockContent>
-                                        </CodeBlockItem>
-                                    )}
-                                </CodeBlockBody>
-                            </CodeBlock>
                         </div>
                         )}
                 </div>

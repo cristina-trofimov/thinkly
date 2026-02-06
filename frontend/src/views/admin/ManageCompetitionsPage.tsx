@@ -146,8 +146,8 @@ const ManageCompetitions = () => {
 
   const filteredCompetitions = competitions
     .filter((comp) => {
-      const matchesSearch = comp.competitionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        comp.competitionLocation.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (comp.competitionTitle?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (comp.competitionLocation?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
       const status = getCompetitionStatus(comp.startDate);
       const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
@@ -273,13 +273,13 @@ const ManageCompetitions = () => {
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
                 <div className="relative z-10 text-center">
-                  <div className="text-5xl font-bold text-primary/80 mb-2">{comp.competitionTitle.charAt(0).toUpperCase()}</div>
+                  <div className="text-5xl font-bold text-primary/80 mb-2">{(comp.competitionTitle || 'C').charAt(0).toUpperCase()}</div>
                   <div className="text-xs font-medium text-primary/60 uppercase tracking-wider">Competition</div>
                 </div>
               </div>
               <CardContent className="p-4 pb-0 space-y-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle}</h3>
+                  <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle || 'Untitled Competition'}</h3>
                   <span
                     className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${getStatusClasses(status)}`}
                   >
@@ -287,7 +287,7 @@ const ManageCompetitions = () => {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation || 'Location TBD'}</p>
                   <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
                 </div>
                 <div className="flex items-center justify-end pt-2 border-t">
@@ -296,7 +296,7 @@ const ManageCompetitions = () => {
                     size="sm"
                     className="text-destructive hover:bg-destructive/10"
                     onClick={(e) =>
-                      handleDeleteClick(comp.id, comp.competitionTitle, e)
+                      handleDeleteClick(comp.id, comp.competitionTitle || 'Untitled Competition', e)
                     }
                   >
                     Delete <Trash2 className="h-4 w-4 ml-1" />
@@ -376,4 +376,5 @@ const ManageCompetitions = () => {
 };
 
 export default ManageCompetitions;
+
 

@@ -22,13 +22,11 @@ jest.mock('@/api/QuestionsAPI', () => ({
   getQuestions: jest.fn(() => Promise.resolve([
     {
       id: 1,
-      questionTitle: 'Test Question 1',
       title: 'Test Question 1',
       difficulty: 'Easy',
     },
     {
       id: 2,
-      questionTitle: 'Test Question 2',
       title: 'Test Question 2',
       difficulty: 'Medium',
     },
@@ -49,6 +47,23 @@ jest.mock('../src/api/EmailAPI', () => ({
 jest.mock('../src/api/LoggerAPI', () => ({
   logFrontend: jest.fn(),
 }));
+
+// Mock TimeInput to render a simple controlled input (the real component uses a read-only input + popover)
+jest.mock('../src/helpers/TimeInput', () => {
+  const React = require('react');
+  return {
+    TimeInput: React.forwardRef(
+      ({ value, onChange, id, placeholder }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }, ref: React.Ref<HTMLInputElement>) =>
+        React.createElement('input', {
+          ref,
+          id,
+          value: value || '',
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+          placeholder: placeholder || 'Select time',
+        })
+    ),
+  };
+});
 
 describe('AlgoTimeSessionForm', () => {
   beforeAll(() => {

@@ -9,7 +9,23 @@ import { logFrontend } from '../src/api/LoggerAPI';
 jest.mock('../src/api/CompetitionAPI');
 jest.mock('../src/api/QuestionsAPI');
 jest.mock('../src/api/LoggerAPI');
-jest.mock('../src/api/LoggerAPI');
+
+// Mock TimeInput to render a simple controlled input (the real component uses a read-only input + popover)
+jest.mock('../src/helpers/TimeInput', () => {
+  const React = require('react');
+  return {
+    TimeInput: React.forwardRef(
+      ({ value, onChange, id, placeholder }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }, ref: React.Ref<HTMLInputElement>) =>
+        React.createElement('input', {
+          ref,
+          id,
+          value: value || '',
+          onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
+          placeholder: placeholder || 'Select time',
+        })
+    ),
+  };
+});
 
 const mockUpdateCompetition = updateCompetition as jest.MockedFunction<typeof updateCompetition>;
 const mockGetCompetitionById = getCompetitionById as jest.MockedFunction<typeof getCompetitionById>;
@@ -23,9 +39,35 @@ describe('EditCompetitionDialog', () => {
   const competitionId = 2;
 
   const mockQuestions = [
-    { id: 1, title: 'Two Sum', difficulty: 'Easy' as const, date: new Date('2024-01-01') },
-    { id: 2, title: 'Binary Search', difficulty: 'Medium' as const, date: new Date('2024-01-02') },
-    { id: 3, title: 'Graph Traversal', difficulty: 'Hard' as const, date: new Date('2024-01-03') },
+    { 
+      id: 1, 
+      title: 'Two Sum', 
+      difficulty: 'Easy' as const, 
+      date: new Date('2024-01-01'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
+    { 
+      id: 2,
+      title: 'Binary Search',
+      difficulty: 'Medium' as const,
+      date: new Date('2024-01-02'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
+    { id: 3,
+      title: 'Graph Traversal',
+      difficulty: 'Hard' as const,
+      date: new Date('2024-01-03'),
+      description: "string",
+      media: "string",
+      preset_code: "string",
+      template_solution: "string"
+    },
   ];
 
   const mockRiddles = [

@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -52,16 +53,18 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  const nav = useNavigate()
+
   return (
     <div>
       <div className="flex items-center mb-3 gap-3">
         <Input
           placeholder="Search questions..."
           value={
-            (table.getColumn("questionTitle")?.getFilterValue() as string) ?? ""
+            (table.getColumn("title")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table.getColumn("questionTitle")?.setFilterValue(event.target.value)
+            table.getColumn("title")?.setFilterValue(event.target.value)
           }
           className="max-w-sm w-[250px]"
         />
@@ -138,6 +141,14 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  onClick={() => {
+                    nav(`/app/code/${row.getValue('title')}`, {
+                      state: {
+                        fromFeed: true,
+                        problem: row.original,
+                      }
+                    })
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="text-left">
