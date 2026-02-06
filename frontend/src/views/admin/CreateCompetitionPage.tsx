@@ -1,18 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { type DropResult } from "@hello-pangea/dnd";
-import {
-  X, Trophy, Mail, Clock, MapPin, ArrowLeft
-} from "lucide-react";
-
+import { X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TimeInput } from "@/helpers/TimeInput";
-import DatePicker from "@/helpers/DatePicker";
 import { toast } from "sonner";
 import { createCompetition } from "@/api/CompetitionAPI";
 import { logFrontend } from "@/api/LoggerAPI";
@@ -22,6 +12,9 @@ import { type CreateCompetitionProps } from "@/types/competition/CreateCompetiti
 import { type Question } from "@/types/questions/Question.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
 import { SelectionCard } from "@/components/createActivity/SelectionCard";
+import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
+import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
+import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
 
 interface PydanticError {
   loc: (string | number)[];
@@ -264,10 +257,6 @@ export default function CreateCompetition() {
     return "bg-red-100 text-red-700";
   };
 
-  // Helper to get class names for invalid inputs
-  const getInputClass = (isInvalid: boolean) => isInvalid ? "border-destructive focus-visible:ring-destructive" : "";
-  const getLabelClass = (isInvalid: boolean) => isInvalid ? "text-destructive" : "";
-
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
@@ -297,110 +286,27 @@ export default function CreateCompetition() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-8">
-          <Card>
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name" className={getLabelClass(errors.name)}>Name<Required /></Label>
-                <Input 
-                  id="name" 
-                  className={getInputClass(errors.name)}
-                  value={formData.name} 
-                  onChange={e => setFormData({ ...formData, name: e.target.value })} 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="date" className={getLabelClass(errors.date)}>Date<Required /></Label>
-                <div className={errors.date ? "rounded-md ring-1 ring-destructive" : ""}>
-                   <DatePicker
-                    id="date"
-                    value={formData.date}
-                    onChange={(v: string) => setFormData({ ...formData, date: v })}
-                    min={new Date().toISOString().split('T')[0]}
-                    placeholder="Select competition date"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start Time (EST)<Required /></Label>
-                  <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
-                    <TimeInput id="startTime" value={formData.startTime} onChange={v => setFormData({ ...formData, startTime: v })} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End Time (EST)<Required /></Label>
-                  <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
-                    <TimeInput id="endTime" value={formData.endTime} onChange={v => setFormData({ ...formData, endTime: v })} />
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
-            </CardContent>
-          </Card>
+          <GeneralInfoCard
+            data={formData}
+            errors={errors}
+            onChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+          />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" /> Gameplay Logic
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="qCool">Question Cooldown (s)</Label>
-                <Input
-                  id="qCool"
-                  type="number"
-                  min="0" // Prevents arrows from going below 0
-                  value={formData.questionCooldownTime}
-                  onChange={(e) => {
-                    const val = Math.max(0, Number(e.target.value)).toString();
-                    setFormData({ ...formData, questionCooldownTime: val });
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rCool">Riddle Cooldown (s)</Label>
-                <Input
-                  id="rCool"
-                  type="number"
-                  min="0" // Prevents arrows from going below 0
-                  value={formData.riddleCooldownTime}
-                  onChange={(e) => {
-                    const val = Math.max(0, Number(e.target.value)).toString();
-                    setFormData({ ...formData, riddleCooldownTime: val });
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <GameplayLogicCard
+            questionCooldown={formData.questionCooldownTime}
+            riddleCooldown={formData.riddleCooldownTime}
+            onChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+          />
 
-          <Card>
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Mail className="h-5 w-5 text-primary" /> Notifications</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between"><Label htmlFor="enEmail">Enable Emails</Label><Switch id="enEmail" checked={emailEnabled} onCheckedChange={setEmailEnabled} /></div>
-              {emailEnabled && (
-                <div className="space-y-4 pt-2 border-t mt-2">
-                  <div className="flex items-center justify-between"><Label htmlFor="allPart" className="text-xs">Send to all participants</Label><Switch id="allPart" checked={emailToAll} onCheckedChange={setEmailToAll} /></div>
-                  {!emailToAll && (
-                    <div className="space-y-1"><Label className="text-xs font-semibold">To (comma-separated)</Label><Input placeholder="alice@example.com" value={emailData.to} onChange={e => setEmailData({ ...emailData, to: e.target.value })} /></div>
-                  )}
-                  <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({ ...emailData, subject: e.target.value })} /></div>
-                  <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.text} onChange={e => { setEmailManuallyEdited(true); setEmailData({ ...emailData, text: e.target.value }); }} /></div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
-                    <Input
-                      id="sendAtLocal"
-                      type="datetime-local"
-                      step="1"
-                      value={emailData.sendAtLocal}
-                      onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
-                    />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <NotificationsCard
+            emailEnabled={emailEnabled}
+            setEmailEnabled={setEmailEnabled}
+            emailToAll={emailToAll}
+            setEmailToAll={setEmailToAll}
+            emailData={emailData}
+            onEmailDataChange={(updates) => setEmailData(prev => ({ ...prev, ...updates }))}
+            onManualEdit={() => setEmailManuallyEdited(true)}
+          />
         </div>
 
         <div className="lg:col-span-2 space-y-8">
