@@ -20,6 +20,8 @@ interface SelectionCardProps<T> {
     renderItemTitle: (item: T) => string;
     renderExtraInfo?: (item: T) => React.ReactNode;
     droppableIdPrefix: string;
+    onClearAll: () => void;
+    onSelectAll: () => void;
 }
 
 export function SelectionCard<T extends { id: string | number }>({
@@ -36,20 +38,24 @@ export function SelectionCard<T extends { id: string | number }>({
     onDragEnd,
     renderItemTitle,
     renderExtraInfo,
-    droppableIdPrefix
+    droppableIdPrefix,
+    onClearAll,
+    onSelectAll
 }: SelectionCardProps<T>) {
     return (
         <DragDropContext onDragEnd={onDragEnd}>
             <Card>
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                        <div>
+                        <div className="flex-1">
                             <CardTitle className="text-xl">{title}</CardTitle>
                             <CardDescription>{description}</CardDescription>
                         </div>
-                        <div className="text-right">
-                            <span className="text-2xl font-bold text-primary">{orderedItems.length}</span>
-                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
+                        <div className="flex items-center gap-4">
+                            <div className="text-right border-l pl-4">
+                                <span className="text-2xl font-bold text-primary">{orderedItems.length}</span>
+                                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -69,7 +75,19 @@ export function SelectionCard<T extends { id: string | number }>({
                         <Droppable droppableId={`${droppableIdPrefix}-available`}>
                             {(provided) => (
                                 <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-slate-50/50 p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
-                                    <Label className="text-[10px] uppercase mb-2 block text-muted-foreground font-bold">Available</Label>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">Available</Label>
+                                        {availableItems.length > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={onSelectAll}
+                                                className="h-6 px-2 text-[10px] uppercase font-bold text-primary hover:bg-primary/10"
+                                            >
+                                                Select All
+                                            </Button>
+                                        )}
+                                    </div>
                                     {availableItems.map((item, idx) => (
                                         <Draggable key={`avail-${item.id}`} draggableId={`avail-${item.id}`} index={idx}>
                                             {(p, snapshot) => (
@@ -94,7 +112,21 @@ export function SelectionCard<T extends { id: string | number }>({
                         <Droppable droppableId={`${droppableIdPrefix}-ordered`}>
                             {(provided) => (
                                 <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-primary/5 p-4 border-primary/20 min-h-[200px] max-h-[400px] overflow-y-auto">
-                                    <Label className="text-[10px] uppercase mb-2 block text-primary font-bold">Sequence</Label>
+                                    {/* Header Flex Container for Alignment */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        <Label className="text-[10px] uppercase text-primary font-bold">Sequence</Label>
+                                        {orderedItems.length > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={onClearAll}
+                                                className="h-6 px-2 text-[10px] uppercase text-muted-foreground font-bold hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                Deselect All
+                                            </Button>
+                                        )}
+                                    </div>
+
                                     {orderedItems.map((item, idx) => (
                                         <Draggable key={`ordered-${item.id}`} draggableId={`ordered-${item.id}`} index={idx}>
                                             {(p, snapshot) => (
@@ -104,7 +136,6 @@ export function SelectionCard<T extends { id: string | number }>({
 
                                                     <div className="flex-1 overflow-hidden flex flex-col gap-0.5">
                                                         <p className="text-sm font-bold truncate">{renderItemTitle(item)}</p>
-                                                        {/* ADD THIS LINE BELOW TO SHOW DIFFICULTY IN THE ORDERED LIST */}
                                                         {renderExtraInfo?.(item)}
                                                     </div>
 

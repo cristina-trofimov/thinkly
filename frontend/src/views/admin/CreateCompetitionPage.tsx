@@ -21,7 +21,7 @@ import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
 import { type CreateCompetitionProps } from "@/types/competition/CreateCompetition.type";
 import { type Question } from "@/types/questions/Question.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
-import { SelectionCard } from "@/components/questionsAndRiddles/SelectionCard";
+import { SelectionCard } from "@/components/createActivity/SelectionCard";
 
 interface PydanticError {
   loc: (string | number)[];
@@ -333,8 +333,6 @@ export default function CreateCompetition() {
                     />
                   </div>
                 </div>
-
-
               )}
             </CardContent>
           </Card>
@@ -361,6 +359,10 @@ export default function CreateCompetition() {
               </span>
             )}
             droppableIdPrefix="questions"
+            onClearAll={() => setOrderedQuestions([])}
+            onSelectAll={() => {
+              setOrderedQuestions(prev => [...prev, ...availableQuestions]);
+            }}
           />
 
           {/* Riddles Section */}
@@ -378,6 +380,10 @@ export default function CreateCompetition() {
             onDragEnd={(res) => handleDragEnd(res, 'riddles')}
             renderItemTitle={(r) => r.question}
             droppableIdPrefix="riddles"
+            onClearAll={() => setOrderedRiddles([])}
+            onSelectAll={() => {
+              setOrderedRiddles(prev => [...prev, ...availableRiddles]);
+            }}
           />
         </div>
       </div>
