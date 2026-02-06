@@ -10,7 +10,16 @@ const mockAccount: Account = {
   email: "john@example.com",
   accountType: "Admin",
 };
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 const createMockTable = (overrides = {}) => ({
   getIsAllRowsSelected: jest.fn(() => false),
   getIsSomeRowsSelected: jest.fn(() => false),

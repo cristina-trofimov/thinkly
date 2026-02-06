@@ -11,7 +11,16 @@ import { type Competition } from '../src/types/competition/Competition.type';
 // FIX: Define mock hooks outside the describe block
 const mockNavigate = jest.fn();
 const mockLocation = { key: 'test-key', state: null };
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 // Mocking react-router-dom to provide context for useNavigate, useLocation and useOutlet
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),

@@ -17,6 +17,7 @@ export default {
     'import.meta': {
       env: {
         VITE_BACKEND_URL: 'http://localhost:8000'
+       // VITE_BACKEND_URL: 'https://thinkly-production.up.railway.app'
       }
     },
     'ts-jest': {
