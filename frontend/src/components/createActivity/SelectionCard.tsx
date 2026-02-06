@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SelectionCardProps<T> {
-    title: string;
+    title: React.ReactNode;
     description: string;
     searchPlaceholder: string;
     searchQuery: string;

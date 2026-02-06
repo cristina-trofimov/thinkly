@@ -29,6 +29,8 @@ interface PydanticError {
   type: string;
 }
 
+const Required = () => <span className="text-destructive ml-1">*</span>;
+
 export default function CreateCompetition() {
   const navigate = useNavigate();
 
@@ -284,9 +286,9 @@ export default function CreateCompetition() {
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Name</Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
+              <div className="space-y-2"><Label htmlFor="name">Name<Required /></Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
               <div className="space-y-2">
-                <Label htmlFor="date">Event Date</Label>
+                <Label htmlFor="date">Date<Required /></Label>
                 <DatePicker
                   id="date"
                   value={formData.date}
@@ -296,18 +298,46 @@ export default function CreateCompetition() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="startTime">Start</Label><TimeInput id="startTime" value={formData.startTime} onChange={value => setFormData({ ...formData, startTime: value })} /></div>
-                <div className="space-y-2"><Label htmlFor="endTime">End</Label><TimeInput id="endTime" value={formData.endTime} onChange={value => setFormData({ ...formData, endTime: value })} /></div>
+                <div className="space-y-2"><Label htmlFor="startTime">Start<Required /></Label><TimeInput id="startTime" value={formData.startTime} onChange={value => setFormData({ ...formData, startTime: value })} /></div>
+                <div className="space-y-2"><Label htmlFor="endTime">End<Required /></Label><TimeInput id="endTime" value={formData.endTime} onChange={value => setFormData({ ...formData, endTime: value })} /></div>
               </div>
               <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Gameplay Logic</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" /> Gameplay Logic
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="qCool">Question Cooldown (s)</Label><Input id="qCool" type="number" value={formData.questionCooldownTime} onChange={e => setFormData({ ...formData, questionCooldownTime: e.target.value })} /></div>
-              <div className="space-y-2"><Label htmlFor="rCool">Riddle Cooldown (s)</Label><Input id="rCool" type="number" value={formData.riddleCooldownTime} onChange={e => setFormData({ ...formData, riddleCooldownTime: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label htmlFor="qCool">Question Cooldown (s)</Label>
+                <Input
+                  id="qCool"
+                  type="number"
+                  min="0" // Prevents arrows from going below 0
+                  value={formData.questionCooldownTime}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value)).toString();
+                    setFormData({ ...formData, questionCooldownTime: val });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rCool">Riddle Cooldown (s)</Label>
+                <Input
+                  id="rCool"
+                  type="number"
+                  min="0" // Prevents arrows from going below 0
+                  value={formData.riddleCooldownTime}
+                  onChange={(e) => {
+                    const val = Math.max(0, Number(e.target.value)).toString();
+                    setFormData({ ...formData, riddleCooldownTime: val });
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -342,7 +372,7 @@ export default function CreateCompetition() {
         <div className="lg:col-span-2 space-y-8">
           {/* Questions Section */}
           <SelectionCard<Question>
-            title="Coding Questions"
+            title={<span>Coding Questions<Required /></span>}
             description="Drag and drop to select and reorder."
             searchPlaceholder="Search available problems..."
             searchQuery={searchQuery}
@@ -368,7 +398,7 @@ export default function CreateCompetition() {
 
           {/* Riddles Section */}
           <SelectionCard<Riddle>
-            title="Riddles"
+            title={<span>Riddles<Required /></span>}
             description="Drag riddles into the sequence."
             searchPlaceholder="Search riddles..."
             searchQuery={riddleSearchQuery}
