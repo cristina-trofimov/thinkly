@@ -23,7 +23,7 @@ import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
 import type { Account } from "@/types/account/Account.type"
-import { logFrontend } from '../../api/LoggerAPI'; 
+import { logFrontend } from '../../api/LoggerAPI';
 
 interface NavUserProps {
   user: Account | null;
@@ -40,11 +40,11 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       navigate('/');
     } catch (err: unknown) {
       logFrontend({
-        level: 'ERROR', 
+        level: 'ERROR',
         message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
         component: 'NavUser',
         url: globalThis.location.href,
-    });
+      });
 
       // Narrow the type
       if (err instanceof Error) {
@@ -61,10 +61,10 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
   const handleProfileClick = () => {
     navigate('/app/profile');
     logFrontend({
-        level: 'INFO', 
-        message: `Navigated to the user profile page.`,
-        component: 'NavUser',
-        url: globalThis.location.href,
+      level: 'INFO',
+      message: `Navigated to the user profile page.`,
+      component: 'NavUser',
+      url: globalThis.location.href,
     });
   };
 
@@ -73,21 +73,25 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <AvatarInitials
-                firstName={user?.firstName ?? ""}
-                lastName={user?.lastName ?? ""}
-                size="md"
-              />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
-                <span className="truncate text-xs">{user?.email}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
+            <div role="button" className="w-full outline-none">
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <AvatarInitials
+                  firstName={user?.firstName ?? ""}
+                  lastName={user?.lastName ?? ""}
+                  size="md"
+                />
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">
+                    {user?.firstName} {user?.lastName}
+                  </span>
+                  <span className="truncate text-xs">{user?.email}</span>
+                </div>
+                <ChevronsUpDown className="ml-auto size-4" />
+              </SidebarMenuButton>
+            </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
