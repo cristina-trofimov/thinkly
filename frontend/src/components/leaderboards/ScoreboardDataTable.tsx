@@ -135,7 +135,7 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
         <TableBody>
           {table.getRowModel().rows.length ? (
             <>
-              {table.getRowModel().rows.map((row, idx) => {
+              {table.getRowModel().rows.map((row) => {
                 const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
                 const rank = row.original.rank;
 
