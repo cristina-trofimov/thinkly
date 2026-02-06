@@ -15,6 +15,7 @@
   "dependencies": {
     "@code-editor/console-feed": "^3.3.1",
     "@codesandbox/sandpack-react": "^2.20.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^5.2.2",
     "@icons-pack/react-simple-icons": "^13.8.0",
     "@monaco-editor/react": "^4.7.0",

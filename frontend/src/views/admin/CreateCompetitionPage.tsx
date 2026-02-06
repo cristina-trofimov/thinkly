@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { type DropResult } from "@hello-pangea/dnd";
 import {
-  Plus,
-  Search,
-  X,
-  ArrowUp,
-  ArrowDown,
-  Trophy,
-  Mail,
-  Clock,
-  MapPin,
-  ArrowLeft,
+  X, Trophy, Mail, Clock, MapPin, ArrowLeft
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TimeInput } from "@/helpers/TimeInput";
 import DatePicker from "@/helpers/DatePicker";
 import { toast } from "sonner";
@@ -29,6 +21,7 @@ import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
 import { type CreateCompetitionProps } from "@/types/competition/CreateCompetition.type";
 import { type Question } from "@/types/questions/Question.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
+import { SelectionCard } from "@/components/questionsAndRiddles/SelectionCard";
 
 interface PydanticError {
   loc: (string | number)[];
@@ -70,7 +63,6 @@ export default function CreateCompetition() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [riddles, setRiddles] = useState<Riddle[]>([]);
 
-  // Build automated email body based on form changes
   useEffect(() => {
     if (emailManuallyEdited) return;
     const autoText = buildCompetitionEmail(formData);
@@ -79,7 +71,6 @@ export default function CreateCompetition() {
     }
   }, [formData, emailManuallyEdited]);
 
-  // Load selection data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -89,7 +80,7 @@ export default function CreateCompetition() {
       } catch (err) {
         logFrontend({
           level: 'ERROR',
-          message: `Failed to load selection data for CreateCompetitionPage: ${(err as Error).message}`,
+          message: `Failed to load selection data: ${(err as Error).message}`,
           component: 'CreateCompetitionPage',
           url: globalThis.location.href,
         });
@@ -98,22 +89,57 @@ export default function CreateCompetition() {
     loadData();
   }, []);
 
-  const filteredQuestions = (questions || []).filter((q) =>
+  // Filter available items (excluding those already in the ordered lists)
+  const availableQuestions = questions.filter(q =>
     q.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
     !orderedQuestions.some(oq => oq.id === q.id)
   );
 
-  const filteredRiddles = (riddles || []).filter((r) =>
+  const availableRiddles = riddles.filter(r =>
     r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) &&
     !orderedRiddles.some(or => or.id === r.id)
   );
 
-  const moveItem = <T,>(
-    list: T[],
-    setList: React.Dispatch<React.SetStateAction<T[]>>,
-    index: number,
-    direction: 'up' | 'down'
-  ) => {
+  const handleDragEnd = (result: DropResult, type: 'questions' | 'riddles') => {
+    const { source, destination } = result;
+    if (!destination) return;
+
+    const isQuestion = type === 'questions';
+
+    // We explicitly tell TS these are arrays of the union type to allow shared methods
+    const sourceList = (source.droppableId.includes('available')
+      ? (isQuestion ? availableQuestions : availableRiddles)
+      : (isQuestion ? orderedQuestions : orderedRiddles)) as (Question | Riddle)[];
+
+    const currentOrdered = (isQuestion ? orderedQuestions : orderedRiddles) as (Question | Riddle)[];
+
+    // Create a mutable copy with a clear type
+    let newList = [...currentOrdered];
+
+    // 1. Moving from Available to Ordered
+    if (source.droppableId.includes('available') && destination.droppableId.includes('ordered')) {
+      const itemToAdd = sourceList[source.index];
+      newList.splice(destination.index, 0, itemToAdd);
+    }
+    // 2. Reordering within Ordered
+    else if (source.droppableId.includes('ordered') && destination.droppableId.includes('ordered')) {
+      const [reorderedItem] = newList.splice(source.index, 1);
+      newList.splice(destination.index, 0, reorderedItem);
+    }
+    // 3. Removing (Moving from Ordered back to Available)
+    else if (source.droppableId.includes('ordered') && destination.droppableId.includes('available')) {
+      newList = newList.filter((_, idx) => idx !== source.index);
+    }
+
+    // Final update: cast back to the specific expected state type
+    if (isQuestion) {
+      setOrderedQuestions(newList as Question[]);
+    } else {
+      setOrderedRiddles(newList as Riddle[]);
+    }
+  };
+
+  const moveItem = <T,>(list: T[], setList: React.Dispatch<React.SetStateAction<T[]>>, index: number, direction: 'up' | 'down') => {
     const newList = [...list];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     if (newIndex >= 0 && newIndex < newList.length) {
@@ -315,120 +341,44 @@ export default function CreateCompetition() {
         </div>
 
         <div className="lg:col-span-2 space-y-8">
-          <Card>
-            <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-xl">Coding Questions</CardTitle><CardDescription>Select and order the problems.</CardDescription></div><div className="text-right"><span className="text-2xl font-bold text-primary">{orderedQuestions.length}</span><p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p></div></div></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search available problems..." className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[400px] overflow-y-auto">
-                  {filteredQuestions.map(q => (
-                    <div key={q.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
-                      <div className="flex flex-col gap-1"><span className="text-sm font-semibold">{q.title}</span><span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>{q.difficulty}</span></div>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedQuestions([...orderedQuestions, q])}><Plus className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
-                </div>
-                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[400px] overflow-y-auto">
-                  {orderedQuestions.map((q, idx) => (
-                    <div key={q.id} className="bg-white p-3 rounded-lg border flex items-center gap-3">
-                      <span className="text-lg font-black text-slate-200">{idx + 1}</span>
-                      <div className="flex-1 overflow-hidden"><p className="text-sm font-bold truncate">{q.title}</p></div>
-                      <div className="flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === 0} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'up')}><ArrowUp className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={idx === orderedQuestions.length - 1} onClick={() => moveItem(orderedQuestions, setOrderedQuestions, idx, 'down')}><ArrowDown className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setOrderedQuestions(orderedQuestions.filter(x => x.id !== q.id))}><X className="h-3.5 w-3.5" /></Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Questions Section */}
+          <SelectionCard<Question>
+            title="Coding Questions"
+            description="Drag and drop to select and reorder."
+            searchPlaceholder="Search available problems..."
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            availableItems={availableQuestions}
+            orderedItems={orderedQuestions}
+            onAdd={(q) => setOrderedQuestions([...orderedQuestions, q])}
+            onRemove={(id) => setOrderedQuestions(orderedQuestions.filter(q => q.id !== id))}
+            onMove={(idx, dir) => moveItem(orderedQuestions, setOrderedQuestions, idx, dir)}
+            onDragEnd={(res) => handleDragEnd(res, 'questions')}
+            renderItemTitle={(q) => q.title}
+            renderExtraInfo={(q) => (
+              <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>
+                {q.difficulty}
+              </span>
+            )}
+            droppableIdPrefix="questions"
+          />
 
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl">Riddles</CardTitle>
-                  <CardDescription>Players solve these to unlock coding challenges.</CardDescription>
-                </div>
-                <div className="text-right">
-                  <span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>
-                    {orderedRiddles.length}
-                  </span>
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search riddles..."
-                  className="pl-9"
-                  value={riddleSearchQuery}
-                  onChange={e => setRiddleSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Available Riddles */}
-                <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[300px] overflow-y-auto">
-                  {filteredRiddles.map(r => (
-                    <div key={r.id} className="group mb-2 bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
-                      <span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedRiddles([...orderedRiddles, r])}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Ordered (Selected) Riddles */}
-                <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[300px] overflow-y-auto">
-                  {orderedRiddles.map((r, idx) => (
-                    <div key={r.id} className="mb-2 bg-white p-3 rounded-lg border flex items-center gap-3">
-                      <span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span>
-                      <p className="text-xs truncate flex-1">{r.question}</p>
-
-                      <div className="flex gap-0.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          disabled={idx === 0}
-                          onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'up')}
-                        >
-                          <ArrowUp className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          disabled={idx === orderedRiddles.length - 1}
-                          onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'down')}
-                        >
-                          <ArrowDown className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive"
-                          onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {orderedRiddles.length === 0 && (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs italic">
-                      No riddles selected yet.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Riddles Section */}
+          <SelectionCard<Riddle>
+            title="Riddles"
+            description="Drag riddles into the sequence."
+            searchPlaceholder="Search riddles..."
+            searchQuery={riddleSearchQuery}
+            onSearchChange={setRiddleSearchQuery}
+            availableItems={availableRiddles}
+            orderedItems={orderedRiddles}
+            onAdd={(r) => setOrderedRiddles([...orderedRiddles, r])}
+            onRemove={(id) => setOrderedRiddles(orderedRiddles.filter(r => r.id !== id))}
+            onMove={(idx, dir) => moveItem(orderedRiddles, setOrderedRiddles, idx, dir)}
+            onDragEnd={(res) => handleDragEnd(res, 'riddles')}
+            renderItemTitle={(r) => r.question}
+            droppableIdPrefix="riddles"
+          />
         </div>
       </div>
     </div>
