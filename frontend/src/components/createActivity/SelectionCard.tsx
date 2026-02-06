@@ -22,6 +22,7 @@ interface SelectionCardProps<T> {
     droppableIdPrefix: string;
     onClearAll: () => void;
     onSelectAll: () => void;
+    isInvalid?: boolean;
 }
 
 export function SelectionCard<T extends { id: string | number }>({
@@ -40,11 +41,12 @@ export function SelectionCard<T extends { id: string | number }>({
     renderExtraInfo,
     droppableIdPrefix,
     onClearAll,
-    onSelectAll
+    onSelectAll,
+    isInvalid
 }: SelectionCardProps<T>) {
     return (
         <DragDropContext onDragEnd={onDragEnd}>
-            <Card>
+            <Card className={isInvalid ? "border-destructive ring-1 ring-destructive" : ""}>
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div className="flex-1">

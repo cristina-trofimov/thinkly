@@ -56,6 +56,7 @@ export default function CreateCompetition() {
   });
 
   const [validationError, setValidationError] = useState('');
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
@@ -151,24 +152,33 @@ export default function CreateCompetition() {
   };
 
   const validateForm = () => {
-    if (!formData.name.trim() || !formData.date || !formData.startTime || !formData.endTime) {
-      setValidationError("Please fill in all general information fields.");
+    const newErrors: Record<string, boolean> = {
+      name: !formData.name.trim(),
+      date: !formData.date,
+      startTime: !formData.startTime,
+      endTime: !formData.endTime,
+      questions: orderedQuestions.length === 0,
+      riddles: orderedRiddles.length === 0,
+    };
+
+    setErrors(newErrors);
+
+    if (Object.values(newErrors).some(v => v)) {
+      setValidationError("Please fill in all mandatory fields.");
       return false;
     }
 
+    // Secondary validation: Logic errors (not missing fields)
     const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
     if (competitionDateTime.getTime() <= Date.now()) {
       setValidationError("Competition must be scheduled for a future date/time.");
-      return false;
-    }
-
-    if (orderedQuestions.length === 0 || orderedRiddles.length === 0) {
-      setValidationError("Select at least one question and one riddle.");
+      setErrors(prev => ({ ...prev, date: true, startTime: true }));
       return false;
     }
 
     if (orderedQuestions.length !== orderedRiddles.length) {
-      setValidationError(`Count mismatch: ${orderedQuestions.length} Questions vs ${orderedRiddles.length} Riddles.`);
+      setValidationError(`Questions and riddles count mismatch: ${orderedQuestions.length} Questions vs ${orderedRiddles.length} Riddles.`);
+      setErrors(prev => ({ ...prev, questions: true, riddles: true }));
       return false;
     }
 
@@ -254,6 +264,10 @@ export default function CreateCompetition() {
     return "bg-red-100 text-red-700";
   };
 
+  // Helper to get class names for invalid inputs
+  const getInputClass = (isInvalid: boolean) => isInvalid ? "border-destructive focus-visible:ring-destructive" : "";
+  const getLabelClass = (isInvalid: boolean) => isInvalid ? "text-destructive" : "";
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 border-b -mx-6 px-6 pb-6 pt-2 mb-8">
@@ -286,20 +300,40 @@ export default function CreateCompetition() {
           <Card>
             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Trophy className="h-5 w-5 text-primary" /> General Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2"><Label htmlFor="name">Name<Required /></Label><Input id="name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Winter Hackathon 2024" /></div>
               <div className="space-y-2">
-                <Label htmlFor="date">Date<Required /></Label>
-                <DatePicker
-                  id="date"
-                  value={formData.date}
-                  onChange={(v: string) => setFormData({ ...formData, date: v })}
-                  min={new Date().toISOString().split('T')[0]}
-                  placeholder="Select competition date"
+                <Label htmlFor="name" className={getLabelClass(errors.name)}>Name<Required /></Label>
+                <Input 
+                  id="name" 
+                  className={getInputClass(errors.name)}
+                  value={formData.name} 
+                  onChange={e => setFormData({ ...formData, name: e.target.value })} 
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="date" className={getLabelClass(errors.date)}>Date<Required /></Label>
+                <div className={errors.date ? "rounded-md ring-1 ring-destructive" : ""}>
+                   <DatePicker
+                    id="date"
+                    value={formData.date}
+                    onChange={(v: string) => setFormData({ ...formData, date: v })}
+                    min={new Date().toISOString().split('T')[0]}
+                    placeholder="Select competition date"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="startTime">Start<Required /></Label><TimeInput id="startTime" value={formData.startTime} onChange={value => setFormData({ ...formData, startTime: value })} /></div>
-                <div className="space-y-2"><Label htmlFor="endTime">End<Required /></Label><TimeInput id="endTime" value={formData.endTime} onChange={value => setFormData({ ...formData, endTime: value })} /></div>
+                <div className="space-y-2">
+                  <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start<Required /></Label>
+                  <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
+                    <TimeInput id="startTime" value={formData.startTime} onChange={v => setFormData({ ...formData, startTime: v })} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End<Required /></Label>
+                  <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
+                    <TimeInput id="endTime" value={formData.endTime} onChange={v => setFormData({ ...formData, endTime: v })} />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2"><Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label><Input id="location" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Online or Physical Address" /></div>
             </CardContent>
@@ -394,6 +428,7 @@ export default function CreateCompetition() {
             onSelectAll={() => {
               setOrderedQuestions(prev => [...prev, ...availableQuestions]);
             }}
+            isInvalid={errors.questions}
           />
 
           {/* Riddles Section */}
@@ -415,6 +450,7 @@ export default function CreateCompetition() {
             onSelectAll={() => {
               setOrderedRiddles(prev => [...prev, ...availableRiddles]);
             }}
+            isInvalid={errors.riddles}
           />
         </div>
       </div>
