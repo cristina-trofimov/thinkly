@@ -4,7 +4,16 @@ import HomePage from "../src/views/HomePage"
 import * as compApi from '../src/api/CompetitionAPI';
 import * as questionsApi from '../src/api/QuestionsAPI';
 import { logFrontend } from '../src/api/LoggerAPI'; // Import logFrontend
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 // Mock the logFrontend utility
 jest.mock('../src/api/LoggerAPI', () => ({
     logFrontend: jest.fn(),

@@ -1,7 +1,16 @@
 import axiosClient from "../src/lib/axiosClient"
 import { submitToJudge0, getOutput } from "../src/api/Judge0API"
 
-jest.mock("../src/lib/axiosClient")
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 

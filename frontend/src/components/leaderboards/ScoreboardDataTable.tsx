@@ -62,11 +62,11 @@ const TotalTimeHeader = () => (
   </div>
 );
 
-// --- Helper for row background color ---
-const getRowBgClass = (idx: number) => {
-  if (idx === 0) return "bg-yellow-100";
-  if (idx === 1) return "bg-gray-100";
-  if (idx === 2) return "bg-orange-100";
+// --- Helper for row background color based on rank ---
+const getRowBgClass = (rank: number) => {
+  if (rank === 1) return "bg-yellow-100";
+  if (rank === 2) return "bg-gray-100";
+  if (rank === 3) return "bg-orange-100";
   return "";
 };
 
@@ -135,15 +135,18 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
         <TableBody>
           {table.getRowModel().rows.length ? (
             <>
-              {table.getRowModel().rows.map((row, idx) => {
+              {table.getRowModel().rows.map((row) => {
                 const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
-                // If current user, use purple highlight, otherwise use podium colors
+                const rank = row.original.rank;
+
+                // If current user, use purple highlight, otherwise use podium colors based on rank
                 const rowClass = isCurrentUser
                   ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
-                  : getRowBgClass(idx);
+                  : getRowBgClass(rank);
 
-                // Insert separator after rank 10 (index 9) if needed
-                const shouldShowSeparator = showSeparator && idx === 9;
+                // Insert separator after rank 10 (when we transition from top 10 to user context)
+                // This happens when showSeparator is true and current row has rank 10
+                const shouldShowSeparator = showSeparator && rank === 10;
 
                 return (
                   <>

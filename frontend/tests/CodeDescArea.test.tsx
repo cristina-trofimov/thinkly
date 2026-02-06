@@ -7,7 +7,16 @@ import { useTestcases } from '../src/components/helpers/useTestcases'
 
 
 jest.mock('../src/components/helpers/useTestcases')
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock('../src/components/ui/button', () => ({
   __esModule: true,
   Button: ({ children, ...props }: any) => (

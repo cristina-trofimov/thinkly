@@ -1,20 +1,15 @@
 import axios from "axios";
 
-// Get API URL - works in both Vite and Jest environments
 const getApiUrl = (): string => {
-  // Check if we're in a Vite environment
-  if (typeof globalThis.window !== 'undefined' && (globalThis.window as any).VITE_BACKEND_URL) {
-    return (globalThis.window as any).VITE_BACKEND_URL;
+  // 1. Check for Vite environment variables (Local .env or Netlify Build settings)
+  if (import.meta.env.VITE_BACKEND_URL) {
+    return import.meta.env.VITE_BACKEND_URL;
   }
 
-  // Try process.env for Jest/Node environments
-  if (globalThis.window && (globalThis.window as any).VITE_BACKEND_URL) {
-  return (globalThis.window as any).VITE_BACKEND_URL;
-    }
-
-  // Default fallback
+  // 2. Fallback for production if everything else fails
   return "https://thinkly-production.up.railway.app/";
 };
+
 
 const API_URL = getApiUrl();
 

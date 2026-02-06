@@ -6,7 +6,17 @@ import {
 
 import axiosClient from "../src/lib/axiosClient";
 
-jest.mock("@/lib/axiosClient");
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 

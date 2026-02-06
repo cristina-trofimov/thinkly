@@ -13,7 +13,16 @@ import { toast } from "sonner";
  */
 
 // --- Mocks ---
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock("../src/api/AuthAPI", () => ({
     getProfile: jest.fn(),
     isGoogleAccount: jest.fn(),

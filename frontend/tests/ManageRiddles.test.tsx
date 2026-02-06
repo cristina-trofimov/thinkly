@@ -6,6 +6,16 @@ import { toast } from 'sonner';
 // --- MOCKS ---
 
 // 1. Mock API
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock('@/api/RiddlesAPI', () => ({
   getRiddles: jest.fn(),
 }));

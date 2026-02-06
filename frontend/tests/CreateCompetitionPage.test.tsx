@@ -10,7 +10,16 @@ import * as QuestionsAPI from "../src/api/QuestionsAPI";
 
 // FIX: Define the mock function outside so it can be verified in assertions
 const mockNavigate = jest.fn();
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 // Mocking react-router-dom so that calling useNavigate() returns our mock function
 jest.mock("react-router-dom", () => ({
   ...jest.requireActual("react-router-dom"),
