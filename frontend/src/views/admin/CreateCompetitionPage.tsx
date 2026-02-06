@@ -323,13 +323,13 @@ export default function CreateCompetition() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start<Required /></Label>
+                  <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start Time (EST)<Required /></Label>
                   <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
                     <TimeInput id="startTime" value={formData.startTime} onChange={v => setFormData({ ...formData, startTime: v })} />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End<Required /></Label>
+                  <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End Time (EST)<Required /></Label>
                   <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
                     <TimeInput id="endTime" value={formData.endTime} onChange={v => setFormData({ ...formData, endTime: v })} />
                   </div>
