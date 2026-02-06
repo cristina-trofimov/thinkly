@@ -297,15 +297,15 @@ export default function CreateCompetition() {
                   <div className="space-y-1"><Label className="text-xs font-semibold">Subject</Label><Input value={emailData.subject} onChange={e => setEmailData({ ...emailData, subject: e.target.value })} /></div>
                   <div className="space-y-1"><Label className="text-xs font-semibold">Message Content</Label><Textarea rows={4} className="text-xs" value={emailData.text} onChange={e => { setEmailManuallyEdited(true); setEmailData({ ...emailData, text: e.target.value }); }} /></div>
                   <div className="grid gap-2">
-                  <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
-                  <Input
-                    id="sendAtLocal"
-                    type="datetime-local"
-                    step="1"
-                    value={emailData.sendAtLocal}
-                    onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
-                  />
-                </div>
+                    <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
+                    <Input
+                      id="sendAtLocal"
+                      type="datetime-local"
+                      step="1"
+                      value={emailData.sendAtLocal}
+                      onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
+                    />
+                  </div>
                 </div>
 
 
@@ -346,19 +346,85 @@ export default function CreateCompetition() {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3"><div className="flex items-center justify-between"><div><CardTitle className="text-xl">Riddles</CardTitle><CardDescription>Players solve these to unlock coding challenges.</CardDescription></div><div className="text-right"><span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>{orderedRiddles.length}</span></div></div></CardHeader>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Riddles</CardTitle>
+                  <CardDescription>Players solve these to unlock coding challenges.</CardDescription>
+                </div>
+                <div className="text-right">
+                  <span className={`text-2xl font-bold ${orderedRiddles.length === orderedQuestions.length ? 'text-primary' : 'text-orange-500'}`}>
+                    {orderedRiddles.length}
+                  </span>
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Selected</p>
+                </div>
+              </div>
+            </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input placeholder="Search riddles..." className="pl-9" value={riddleSearchQuery} onChange={e => setRiddleSearchQuery(e.target.value)} /></div>
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search riddles..."
+                  className="pl-9"
+                  value={riddleSearchQuery}
+                  onChange={e => setRiddleSearchQuery(e.target.value)}
+                />
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Available Riddles */}
                 <div className="border rounded-xl bg-slate-50/50 p-4 max-h-[300px] overflow-y-auto">
                   {filteredRiddles.map(r => (
-                    <div key={r.id} className="group bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary"><span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span><Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedRiddles([...orderedRiddles, r])}><Plus className="h-4 w-4" /></Button></div>
+                    <div key={r.id} className="group mb-2 bg-white p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all">
+                      <span className="text-sm line-clamp-1 flex-1 pr-2">{r.question}</span>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={() => setOrderedRiddles([...orderedRiddles, r])}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
+
+                {/* Ordered (Selected) Riddles */}
                 <div className="border rounded-xl bg-primary/5 p-4 border-primary/20 max-h-[300px] overflow-y-auto">
                   {orderedRiddles.map((r, idx) => (
-                    <div key={r.id} className="bg-white p-3 rounded-lg border flex items-center gap-3"><span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span><p className="text-xs truncate flex-1">{r.question}</p><Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}><X className="h-3.5 w-3.5" /></Button></div>
+                    <div key={r.id} className="mb-2 bg-white p-3 rounded-lg border flex items-center gap-3">
+                      <span className="text-xs font-bold text-primary px-1.5 py-0.5 bg-primary/10 rounded">Q{idx + 1}</span>
+                      <p className="text-xs truncate flex-1">{r.question}</p>
+
+                      <div className="flex gap-0.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={idx === 0}
+                          onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'up')}
+                        >
+                          <ArrowUp className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={idx === orderedRiddles.length - 1}
+                          onClick={() => moveItem(orderedRiddles, setOrderedRiddles, idx, 'down')}
+                        >
+                          <ArrowDown className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive"
+                          onClick={() => setOrderedRiddles(orderedRiddles.filter(x => x.id !== r.id))}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
                   ))}
+                  {orderedRiddles.length === 0 && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-xs italic">
+                      No riddles selected yet.
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
