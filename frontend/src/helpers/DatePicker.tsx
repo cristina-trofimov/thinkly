@@ -65,7 +65,7 @@ export default function DatePicker({ value, onChange, min, className, placeholde
               }
             }}
             disabled={(d) => (minDate ? d < minDate : false)}
-            initialFocus
+            autoFocus
           />
         </PopoverContent>
       </Popover>

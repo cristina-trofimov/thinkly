@@ -28,7 +28,7 @@ interface SelectionCardProps<T> {
 // 1. Extracted Available Item Component
 function AvailableItem<T extends { id: string | number }>({
     item, index, onAdd, renderItemTitle, renderExtraInfo
-}: { item: T, index: number, onAdd: (item: T) => void, renderItemTitle: (item: T) => string, renderExtraInfo?: (item: T) => React.ReactNode }) {
+}: Readonly<{ item: T, index: number, onAdd: (item: T) => void, renderItemTitle: (item: T) => string, renderExtraInfo?: (item: T) => React.ReactNode }>) {
     return (
         <Draggable draggableId={`avail-${item.id}`} index={index}>
             {(p, snapshot) => (
@@ -56,7 +56,7 @@ function OrderedItem<T extends { id: string | number }>({
     onRemove,
     renderItemTitle,
     renderExtraInfo
-}: {
+}: Readonly<{
     item: T;
     index: number;
     total: number;
@@ -64,7 +64,7 @@ function OrderedItem<T extends { id: string | number }>({
     onRemove: (id: string | number) => void;
     renderItemTitle: (item: T) => string;
     renderExtraInfo?: (item: T) => React.ReactNode;
-}) {
+}>) {
     return (
         <Draggable draggableId={`ordered-${item.id}`} index={index}>
             {(p, snapshot) => (
@@ -93,7 +93,7 @@ function OrderedItem<T extends { id: string | number }>({
     );
 }
 
-export function SelectionCard<T extends { id: string | number }>(props: SelectionCardProps<T>) {
+export function SelectionCard<T extends { id: string | number }>(props: Readonly<SelectionCardProps<T>>) {
     return (
         <DragDropContext onDragEnd={props.onDragEnd}>
             <Card className={props.isInvalid ? "border-destructive ring-1 ring-destructive" : ""}>

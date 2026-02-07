@@ -30,7 +30,7 @@ const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[
         .filter((item): item is T => !!item);
 };
 
-export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }: CompetitionFormProps) {
+export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }: Readonly<CompetitionFormProps>) {
     const [formData, setFormData] = useState({
         name: initialData?.competitionTitle || initialData?.name || "",
         date: initialData?.date || "",
@@ -86,7 +86,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                     level: 'ERROR',
                     message: `Failed load: ${err}`,
                     component: 'CompetitionForm',
-                    url: window.location.href
+                    url: globalThis.location.href
                 });
             }
         };
@@ -117,9 +117,14 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         if (!destination) return;
 
         const isQuestion = type === 'questions';
-        const sourceList = source.droppableId.includes('available')
-            ? (isQuestion ? availableQuestions : availableRiddles)
-            : (isQuestion ? orderedQuestions : orderedRiddles);
+        const isFromAvailable = source.droppableId.includes('available');
+        let sourceList: (Question | Riddle)[];
+
+        if (isFromAvailable) {
+            sourceList = isQuestion ? availableQuestions : availableRiddles;
+        } else {
+            sourceList = isQuestion ? orderedQuestions : orderedRiddles;
+        }
 
         let newList = [...(isQuestion ? orderedQuestions : orderedRiddles)] as (Question | Riddle)[];
 
@@ -149,7 +154,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             riddles: orderedRiddles.length === 0,
         };
 
-        if (Object.values(newErrors).some(v => v)) {
+        if (Object.values(newErrors).some(Boolean)) {
             setErrors(newErrors);
             return "Please fill in all mandatory fields.";
         }
