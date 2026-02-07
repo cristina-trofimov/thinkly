@@ -151,18 +151,46 @@ export default function CreateCompetition() {
       riddles: orderedRiddles.length === 0,
     };
 
-    setErrors(newErrors);
-
     if (Object.values(newErrors).some(v => v)) {
+      setErrors(newErrors);
       return "Please fill in all mandatory fields.";
     }
 
-    const competitionDateTime = new Date(`${formData.date}T${formData.startTime}`);
-    if (competitionDateTime.getTime() <= Date.now()) {
+    const competitionStartDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const competitionEndDateTime = new Date(`${formData.date}T${formData.endTime}`);
+    if (competitionStartDateTime.getTime() <= Date.now()) {
+      setErrors({
+        name: false,
+        date: true,
+        startTime: true,
+        endTime: true,
+        questions: false,
+        riddles: false,
+      });
       return "Competition must be scheduled for a future date/time.";
     }
 
+    if (competitionEndDateTime.getTime() <= competitionStartDateTime.getTime()) {
+      setErrors({
+        name: false,
+        date: false,
+        startTime: true,
+        endTime: true,
+        questions: false,
+        riddles: false,
+      });
+      return "Competition end time must be after the start time.";
+    }
+
     if (orderedQuestions.length !== orderedRiddles.length) {
+      setErrors({
+        name: false,
+        date: false,
+        startTime: false,
+        endTime: false,
+        questions: true,
+        riddles: true,
+      });
       return `Questions and riddles count mismatch.`;
     }
 

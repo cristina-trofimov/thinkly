@@ -206,19 +206,59 @@ export default function EditCompetitionDialog({
   };
 
   const validateForm = () => {
-    const newErrors: Record<string, boolean> = {};
-    if (!generalInfo.name.trim()) newErrors.name = true;
-    if (!generalInfo.date) newErrors.date = true;
-    if (!generalInfo.startTime) newErrors.startTime = true;
-    if (!generalInfo.endTime) newErrors.endTime = true;
-    if (orderedQuestions.length === 0) newErrors.questions = true;
-    if (orderedRiddles.length === 0) newErrors.riddles = true;
+     const newErrors: Record<string, boolean> = {
+      name: !generalInfo.name.trim(),
+      date: !generalInfo.date,
+      startTime: !generalInfo.startTime,
+      endTime: !generalInfo.endTime,
+      questions: orderedQuestions.length === 0,
+      riddles: orderedRiddles.length === 0,
+    };
     
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return "Please fill in all required fields.";
-    if (orderedQuestions.length !== orderedRiddles.length) return "Questions and riddles count mismatch.";
+    if (Object.values(newErrors).some(v => v)) {
+      setErrors(newErrors);
+      return "Please fill in all mandatory fields.";
+    }
 
-    return null;
+    const competitionStartDateTime = new Date(`${generalInfo.date}T${generalInfo.startTime}`);
+    const competitionEndDateTime = new Date(`${generalInfo.date}T${generalInfo.endTime}`);
+    if (competitionStartDateTime.getTime() <= Date.now()) {
+      setErrors({
+        name: false,
+        date: true,
+        startTime: true,
+        endTime: true,
+        questions: false,
+        riddles: false,
+      });
+      return "Competition must be scheduled for a future date/time.";
+    }
+
+    if (competitionEndDateTime.getTime() <= competitionStartDateTime.getTime()) {
+      setErrors({
+        name: false,
+        date: false,
+        startTime: true,
+        endTime: true,
+        questions: false,
+        riddles: false,
+      });
+      return "Competition end time must be after the start time.";
+    }
+
+    if (orderedQuestions.length !== orderedRiddles.length) {
+      setErrors({
+        name: false,
+        date: false,
+        startTime: false,
+        endTime: false,
+        questions: true,
+        riddles: true,
+      });
+      return `Questions and riddles count mismatch.`;
+    }
+
+    return null; // No errors
   };
 
   const handleSubmit = async () => {

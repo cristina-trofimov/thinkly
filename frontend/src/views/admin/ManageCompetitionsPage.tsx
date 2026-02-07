@@ -264,39 +264,52 @@ const ManageCompetitions = () => {
         {/* Competition Cards */}
         {filteredCompetitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate);
+          const title = comp.competitionTitle || 'Untitled Competition';
+
           return (
             <Card
               key={comp.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer"
+              className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col"
               onClick={() => handleCardClick(comp.id)}
             >
-              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden">
+              {/* Banner Area */}
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
-                <div className="relative z-10 text-center">
-                  <div className="text-5xl font-bold text-primary/80 mb-2">{(comp.competitionTitle || 'C').charAt(0).toUpperCase()}</div>
-                  <div className="text-xs font-medium text-primary/60 uppercase tracking-wider">Competition</div>
-                </div>
-              </div>
-              <CardContent className="p-4 pb-0 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-base mb-1 line-clamp-1 flex-1">{comp.competitionTitle || 'Untitled Competition'}</h3>
+
+                {/* Status Badge */}
+                <div className="absolute top-3 right-3 z-20">
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${getStatusClasses(status)}`}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
                   >
                     {status}
                   </span>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground line-clamp-1">{comp.competitionLocation || 'Location TBD'}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatCompetitionDate(comp.startDate)}</p>
+
+                {/* Title */}
+                <div className="relative z-10 text-center w-full">
+                  <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                    {title}
+                  </div>
                 </div>
+              </div>
+
+              <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {comp.competitionLocation || 'Location TBD'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatCompetitionDate(comp.startDate)}
+                  </p>
+                </div>
+
                 <div className="flex items-center justify-end pt-2 border-t">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:bg-destructive/10"
+                    className="text-destructive hover:bg-destructive/10 h-8"
                     onClick={(e) =>
-                      handleDeleteClick(comp.id, comp.competitionTitle || 'Untitled Competition', e)
+                      handleDeleteClick(comp.id, title, e)
                     }
                   >
                     Delete <Trash2 className="h-4 w-4 ml-1" />
