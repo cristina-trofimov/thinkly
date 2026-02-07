@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from datetime import datetime, timezone
 from DB_Methods.database import get_db
 from models.schema import (
@@ -135,7 +135,10 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 
 @leaderboards_router.get("/competitions")
-def get_leaderboards(current_user_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_leaderboards(
+    db: Annotated[str, Depends(get_db)],
+    current_user_id: Optional[int] = None
+):
     logger.info("=== /leaderboards/competitions endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
 
@@ -205,7 +208,10 @@ def get_leaderboards(current_user_id: Optional[int] = None, db: Session = Depend
 
 
 @leaderboards_router.get("/competitions/current")
-def get_current_competition_leaderboard(current_user_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_current_competition_leaderboard(
+    db: Annotated[str, Depends(get_db)],
+    current_user_id: Optional[int] = None
+):
     logger.info("=== /leaderboards/competitions/current endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
 
@@ -288,7 +294,7 @@ def get_current_competition_leaderboard(current_user_id: Optional[int] = None, d
 
 
 @leaderboards_router.get("/algotime")
-def get_all_algotime_leaderboard_entries(db: Session = Depends(get_db)):
+def get_all_algotime_leaderboard_entries(db: Annotated[str, Depends(get_db)]):
     """
     Returns all entries in the AlgoTime leaderboard table.
     Ranks are calculated based on total_score (highest score = rank 1).

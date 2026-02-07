@@ -5,7 +5,7 @@ from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
 from pydantic import BaseModel, validator
-from typing import List, Optional
+from typing import Annotated, List, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -107,8 +107,8 @@ def generate_unique_series_name(name: str) -> str:
 @algotime_router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_algotime(
     request: CreateAlgoTimeRequest,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     logger.info(f"Creating AlgoTime series '{request.seriesName}'")
 
@@ -210,7 +210,7 @@ def create_algotime(
         )
 
 @algotime_router.get("/", response_model=List[AlgoTimeSessionResponse])
-def get_all_algotime_sessions(db: Session = Depends(get_db)):
+def get_all_algotime_sessions(db: Annotated[str, Depends(get_db)]):
     try:
         sessions = db.query(AlgoTimeSession).all()
         logger.info(f"Fetched {len(sessions)} AlgoTime sessions.")

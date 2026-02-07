@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from models.schema import UserAccount
 from DB_Methods.database import get_db
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Annotated, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,13 +19,16 @@ class UpdateAccountRequest(BaseModel):
     user_type: Optional[str] = None
 
 @accounts_router.get("/users")
-def get_all_accounts(db: Session = Depends(get_db)):
+def get_all_accounts(db: Annotated[str, Depends(get_db)]):
     accounts = db.query(UserAccount).all()
     logger.info(f"Fetched {len(accounts)} accounts from the database.")
     return accounts
 
-@accounts_router.delete("/users/batch-delete")
-def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Session = Depends(get_db)):
+@accounts_router.delete(
+    "/users/batch-delete",
+    responses={ 500: { "description": "Error deleting accounts." } }
+)
+def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[str, Depends(get_db)]):
     try:
         requested_ids = list(dict.fromkeys(payload.user_ids))
         existing_ids = [
@@ -60,8 +63,14 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Session = Depen
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error deleting accounts.")
 
-@accounts_router.patch("/users/{user_id}")
-def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Session = Depends(get_db)):
+@accounts_router.patch(
+    "/users/{user_id}",
+    responses={ 
+               400: { "description": "No fields to update." },
+               404: { "description": "Account not found." }
+            }
+)
+def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[str, Depends(get_db)]):
     account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
     if not account:
         logger.warning(f"Account with ID {user_id} not found.")

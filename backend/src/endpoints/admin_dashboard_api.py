@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
 import logging
+from typing import Annotated
 
 logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])
@@ -154,8 +155,10 @@ def get_chart_colors():
 
 @admin_dashboard_router.get("/overview", response_model=DashboardOverviewResponse)
 async def get_dashboard_overview(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
+    # db: Session = Depends(get_db),
+    # current_user: dict = Depends(role_required("admin"))
 ):
     """
     Get dashboard overview with 2 most recent items for each category.
@@ -248,9 +251,13 @@ async def get_dashboard_overview(
 
 @admin_dashboard_router.get("/stats/new-accounts", response_model=NewAccountsStatsResponse)
 async def get_new_accounts_stats(
-    time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    # time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
+    # db: Session = Depends(get_db),
+    # current_user: dict = Depends(role_required("admin"))
+    
+    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     """
     Get new accounts statistics for the specified time range.
@@ -299,9 +306,9 @@ async def get_new_accounts_stats(
 
 @admin_dashboard_router.get("/stats/questions-solved", response_model=List[QuestionsSolvedItem])
 async def get_questions_solved_stats(
-    time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     """
     Get questions solved by difficulty for the specified time range.
@@ -350,9 +357,9 @@ async def get_questions_solved_stats(
 
 @admin_dashboard_router.get("/stats/time-to-solve", response_model=List[TimeToSolveItem])
 async def get_time_to_solve_stats(
-    time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     """
     Get average time to solve questions by difficulty.
@@ -406,9 +413,9 @@ async def get_time_to_solve_stats(
 
 @admin_dashboard_router.get("/stats/logins", response_model=List[LoginsDataPoint])
 async def get_logins_stats(
-    time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     """
     Get login counts over time.
@@ -490,10 +497,10 @@ async def get_logins_stats(
 
 @admin_dashboard_router.get("/stats/participation", response_model=List[ParticipationDataPoint])
 async def get_participation_stats(
-    time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    event_type: Literal["algotime", "competitions"] = Query(default="algotime"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(role_required("admin"))
+    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+    event_type: Annotated[Literal["algotime", "competitions"], Query(default="algotime")],
+    db: Annotated[str, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     """
     Get participation over time filtered by event type.

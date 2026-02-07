@@ -4,7 +4,7 @@ from models.schema import Riddle
 from DB_Methods.database import get_db, _commit_or_rollback
 import logging
 from pydantic import BaseModel, validator
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 logger = logging.getLogger(__name__)
 riddles_router = APIRouter(tags=["Riddles"])
@@ -31,7 +31,7 @@ class RiddleResponse(BaseModel):
     riddle_id: int
     riddle_question: str
     riddle_answer: str
-    riddle_file: Optional[str]
+    riddle_file: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -43,9 +43,13 @@ def check_riddle_exists(db: Session, question: str) -> bool:
 
 # ---------------- Routes ----------------
 
-@riddles_router.get("/", response_model=List[RiddleResponse])
+@riddles_router.get(
+    "/",
+    response_model=List[RiddleResponse],
+    responses={ 500: { "description": "Failed to retrieve riddles." } }
+)
 async def list_riddles(
-        db: Session = Depends(get_db)  
+    db: Annotated[str, Depends(get_db)]
 ):
     logger.info("Public user requesting full riddles list")
     try:
@@ -56,10 +60,17 @@ async def list_riddles(
         raise HTTPException(status_code=500, detail="Failed to retrieve riddles")
 
 
-@riddles_router.get("/{riddle_id}", response_model=RiddleResponse)
+@riddles_router.get(
+    "/{riddle_id}",
+    response_model=RiddleResponse,
+    responses={ 
+               404: { "description": "Riddle not found." },
+               500: { "description": "Failed to retrieve riddle." }
+            }
+)
 async def get_riddle(
-        riddle_id: int,
-        db: Session = Depends(get_db)  
+    riddle_id: int,
+    db: Annotated[str, Depends(get_db)]
 ):
     try:
         riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
@@ -73,10 +84,18 @@ async def get_riddle(
         raise HTTPException(status_code=500, detail="Failed to retrieve riddle")
 
 
-@riddles_router.post("/create", response_model=RiddleResponse, status_code=status.HTTP_201_CREATED)
+@riddles_router.post(
+    "/create",
+    response_model=RiddleResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={ 
+               400: { "description": "A riddle with this question already exists." },
+               500: { "description": "Internal server error." }
+            }
+)
 async def create_riddle(
-        request: CreateRiddleRequest,
-        db: Session = Depends(get_db)  
+    request: CreateRiddleRequest,
+    db: Annotated[str, Depends(get_db)]
 ):
     
     logger.info("Anonymous user attempting to create new riddle")
@@ -103,11 +122,22 @@ async def create_riddle(
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
+#     event_type: Annotated[Literal["algotime", "competitions"], Query(default="algotime")],
+#     db: Annotated[str, Depends(get_db)],
+#     current_user: Annotated[dict, Depends(role_required("admin"))]
 
-@riddles_router.delete("/{riddle_id}", status_code=status.HTTP_204_NO_CONTENT)
+@riddles_router.delete(
+    "/{riddle_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={ 
+               404: { "description": "Riddle not found." },
+               500: { "description": "Failed to delete riddle." }
+            }
+)
 async def delete_riddle(
-        riddle_id: int,
-        db: Session = Depends(get_db)
+    riddle_id: int,
+    db: Annotated[str, Depends(get_db)]
 ):
     
     logger.info(f"Anonymous user attempting to delete riddle ID: {riddle_id}")
