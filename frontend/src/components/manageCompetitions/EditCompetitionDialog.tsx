@@ -20,6 +20,7 @@ import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
 import { toast } from "sonner";
+import { logFrontend } from "@/api/LoggerAPI";
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
@@ -127,6 +128,14 @@ export default function EditCompetitionDialog({
         }
       } catch (err) {
         toast.error("Failed to load competition data.");
+
+        logFrontend({
+          level: 'ERROR',
+          message: `An error occurred. Reason: ${err}`,
+          component: 'SomePage',
+          url: window.location.href,
+          stack: (err as Error).stack,
+        });
       } finally {
         setLoading(false);
         setInitialLoadComplete(true);
@@ -206,7 +215,7 @@ export default function EditCompetitionDialog({
   };
 
   const validateForm = () => {
-     const newErrors: Record<string, boolean> = {
+    const newErrors: Record<string, boolean> = {
       name: !generalInfo.name.trim(),
       date: !generalInfo.date,
       startTime: !generalInfo.startTime,
@@ -214,7 +223,7 @@ export default function EditCompetitionDialog({
       questions: orderedQuestions.length === 0,
       riddles: orderedRiddles.length === 0,
     };
-    
+
     if (Object.values(newErrors).some(v => v)) {
       setErrors(newErrors);
       return "Please fill in all mandatory fields.";
@@ -297,6 +306,14 @@ export default function EditCompetitionDialog({
       onSuccess?.();
     } catch (error) {
       toast.error("An error occurred while updating.");
+
+      logFrontend({
+        level: 'ERROR',
+        message: `An error occurred. Reason: ${error}`,
+        component: 'SomePage',
+        url: window.location.href,
+        stack: (error as Error).stack,
+      });
     } finally {
       setIsSubmitting(false);
     }
