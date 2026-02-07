@@ -13,10 +13,11 @@ import { SelectionCard } from "@/components/createActivity/SelectionCard";
 import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
+import type { CompetitionFormPayload } from "@/types/competition/Competition.type";
 
 interface CompetitionFormProps {
-  initialData?: any;
-  onSubmit: (payload: any) => Promise<void>;
+  initialData?: CompetitionFormPayload;
+  onSubmit: (payload: CompetitionFormPayload) => Promise<void>;
   onCancel: () => void;
   submitLabel: string;
 }
@@ -63,10 +64,16 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         setRiddles(rData || []);
 
         if (initialData?.selectedQuestions) {
-          setOrderedQuestions(initialData.selectedQuestions.map((id: number) => qData.find((q: any) => q.id === id)).filter(Boolean));
+          const mappedQs = initialData.selectedQuestions
+            .map((id) => qData.find((q: Question) => q.id === id))
+            .filter((q): q is Question => !!q);
+          setOrderedQuestions(mappedQs);
         }
         if (initialData?.selectedRiddles) {
-          setOrderedRiddles(initialData.selectedRiddles.map((id: number) => rData.find((r: any) => r.id === id)).filter(Boolean));
+          const mappedRs = initialData.selectedRiddles
+            .map((id) => rData.find((r: Riddle) => r.id === id))
+            .filter((r): r is Riddle => !!r);
+          setOrderedRiddles(mappedRs);
         }
       } catch (err) {
         logFrontend({ level: 'ERROR', message: `Failed load: ${err}`, component: 'CompetitionForm', url: window.location.href });
@@ -84,7 +91,6 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
   const availableQuestions = questions.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()) && !orderedQuestions.some(oq => oq.id === q.id));
   const availableRiddles = riddles.filter(r => r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) && !orderedRiddles.some(or => or.id === r.id));
 
-  // Shared Helper for Manual Reordering
   const moveItem = <T,>(list: T[], setList: React.Dispatch<React.SetStateAction<T[]>>, index: number, direction: 'up' | 'down') => {
     const newList = [...list];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -97,22 +103,28 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
   const handleDragEnd = (result: DropResult, type: 'questions' | 'riddles') => {
     const { source, destination } = result;
     if (!destination) return;
+    
     const isQuestion = type === 'questions';
     const sourceList = source.droppableId.includes('available') 
       ? (isQuestion ? availableQuestions : availableRiddles) 
       : (isQuestion ? orderedQuestions : orderedRiddles);
     
-    let newList = [...(isQuestion ? orderedQuestions : orderedRiddles)];
+    let newList = [...(isQuestion ? orderedQuestions : orderedRiddles)] as (Question | Riddle)[];
 
     if (source.droppableId.includes('available') && destination.droppableId.includes('ordered')) {
-      newList.splice(destination.index, 0, sourceList[source.index] as any);
+      newList.splice(destination.index, 0, sourceList[source.index]);
     } else if (source.droppableId.includes('ordered') && destination.droppableId.includes('ordered')) {
       const [reorderedItem] = newList.splice(source.index, 1);
       newList.splice(destination.index, 0, reorderedItem);
     } else if (source.droppableId.includes('ordered') && destination.droppableId.includes('available')) {
       newList = newList.filter((_, idx) => idx !== source.index);
     }
-    isQuestion ? setOrderedQuestions(newList as Question[]) : setOrderedRiddles(newList as Riddle[]);
+
+    if (isQuestion) {
+      setOrderedQuestions(newList as Question[]);
+    } else {
+      setOrderedRiddles(newList as Riddle[]);
+    }
   };
 
   const validate = () => {
@@ -132,43 +144,23 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
 
     const competitionStartDateTime = new Date(`${formData.date}T${formData.startTime}`);
     const competitionEndDateTime = new Date(`${formData.date}T${formData.endTime}`);
+    
     if (competitionStartDateTime.getTime() <= Date.now()) {
-      setErrors({
-        name: false,
-        date: true,
-        startTime: true,
-        endTime: true,
-        questions: false,
-        riddles: false,
-      });
+      setErrors({ name: false, date: true, startTime: true, endTime: true, questions: false, riddles: false });
       return "Competition must be scheduled for a future date/time.";
     }
 
     if (competitionEndDateTime.getTime() <= competitionStartDateTime.getTime()) {
-      setErrors({
-        name: false,
-        date: false,
-        startTime: true,
-        endTime: true,
-        questions: false,
-        riddles: false,
-      });
+      setErrors({ name: false, date: false, startTime: true, endTime: true, questions: false, riddles: false });
       return "Competition end time must be after the start time.";
     }
 
     if (orderedQuestions.length !== orderedRiddles.length) {
-      setErrors({
-        name: false,
-        date: false,
-        startTime: false,
-        endTime: false,
-        questions: true,
-        riddles: true,
-      });
+      setErrors({ name: false, date: false, startTime: false, endTime: false, questions: true, riddles: true });
       return `Questions and riddles count mismatch.`;
     }
 
-    return null; // No errors
+    return null;
   };
 
   const handleInternalSubmit = async () => {
