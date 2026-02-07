@@ -101,6 +101,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
             -Dsonar.verbose=true
@@ -114,6 +115,32 @@ jobs:
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
+
+      - name: SonarQube Quality Gate check
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Fail on high severity issues
+        run: |
+          BLOCKER=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=BLOCKER" \
+            | jq '.total')
+      
+          CRITICAL=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=CRITICAL" \
+            | jq '.total')
+      
+          echo "BLOCKER: $BLOCKER"
+          echo "CRITICAL: $CRITICAL"
+      
+          if [ "$BLOCKER" -gt 0 ] || [ "$CRITICAL" -gt 3 ]; then
+            echo "Severity threshold exceeded"
+            exit 1
+          fi
 
       # ----------- CODECOV ------------
       - name: Upload frontend coverage to Codecov
