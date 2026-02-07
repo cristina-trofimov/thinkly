@@ -2,8 +2,8 @@ import axios from "axios";
 
 const getApiUrl = (): string => {
   // 1. Check for Vite environment variables (Local .env or Netlify Build settings)
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
+  if (typeof globalThis.window !== 'undefined' && (globalThis.window as any).VITE_BACKEND_URL) {
+    return (globalThis.window as any).VITE_BACKEND_URL;
   }
 
   // 2. Fallback for production if everything else fails
