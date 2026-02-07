@@ -30,6 +30,39 @@ const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[
         .filter((item): item is T => !!item);
 };
 
+const calculateNewList = <T,>(
+    source: { droppableId: string; index: number },
+    destination: { droppableId: string; index: number },
+    currentOrdered: T[],
+    sourcePool: T[]
+): T[] => {
+    const isFromAvailable = source.droppableId.includes('available');
+    const isToOrdered = destination.droppableId.includes('ordered');
+    const isFromOrdered = source.droppableId.includes('ordered');
+
+    // Scenario: Adding from Available to Ordered
+    if (isFromAvailable && isToOrdered) {
+        const newList = [...currentOrdered];
+        newList.splice(destination.index, 0, sourcePool[source.index]);
+        return newList;
+    }
+
+    // Scenario: Reordering within Ordered
+    if (isFromOrdered && isToOrdered) {
+        const newList = [...currentOrdered];
+        const [reorderedItem] = newList.splice(source.index, 1);
+        newList.splice(destination.index, 0, reorderedItem);
+        return newList;
+    }
+
+    // Scenario: Removing from Ordered (moving back to Available)
+    if (isFromOrdered && destination.droppableId.includes('available')) {
+        return currentOrdered.filter((_, idx) => idx !== source.index);
+    }
+
+    return currentOrdered;
+};
+
 export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }: Readonly<CompetitionFormProps>) {
     const [formData, setFormData] = useState({
         name: initialData?.competitionTitle || initialData?.name || "",
@@ -117,30 +150,23 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         if (!destination) return;
 
         const isQuestion = type === 'questions';
-        const isFromAvailable = source.droppableId.includes('available');
-        let sourceList: (Question | Riddle)[];
 
-        if (isFromAvailable) {
-            sourceList = isQuestion ? availableQuestions : availableRiddles;
-        } else {
-            sourceList = isQuestion ? orderedQuestions : orderedRiddles;
-        }
+        const currentOrdered = isQuestion ? orderedQuestions : orderedRiddles;
+        const sourcePool = source.droppableId.includes('available')
+            ? (isQuestion ? availableQuestions : availableRiddles)
+            : currentOrdered;
 
-        let newList = [...(isQuestion ? orderedQuestions : orderedRiddles)] as (Question | Riddle)[];
-
-        if (source.droppableId.includes('available') && destination.droppableId.includes('ordered')) {
-            newList.splice(destination.index, 0, sourceList[source.index]);
-        } else if (source.droppableId.includes('ordered') && destination.droppableId.includes('ordered')) {
-            const [reorderedItem] = newList.splice(source.index, 1);
-            newList.splice(destination.index, 0, reorderedItem);
-        } else if (source.droppableId.includes('ordered') && destination.droppableId.includes('available')) {
-            newList = newList.filter((_, idx) => idx !== source.index);
-        }
+        const updatedList = calculateNewList(
+            source,
+            destination,
+            currentOrdered,
+            sourcePool as (Question | Riddle)[]
+        );
 
         if (isQuestion) {
-            setOrderedQuestions(newList as Question[]);
+            setOrderedQuestions(updatedList as Question[]);
         } else {
-            setOrderedRiddles(newList as Riddle[]);
+            setOrderedRiddles(updatedList as Riddle[]);
         }
     };
 

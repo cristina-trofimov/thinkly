@@ -1,10 +1,10 @@
 import axios from "axios";
 
 const getApiUrl = (): string => {
-  // 1. Check if window exists and VITE_BACKEND_URL is explicitly not undefined
+  // 1. Safe access using optional chaining
   const win = globalThis.window as Window & { VITE_BACKEND_URL?: string };
 
-  if (win !== undefined && win.VITE_BACKEND_URL !== undefined) {
+  if (win?.VITE_BACKEND_URL !== undefined) {
     return win.VITE_BACKEND_URL;
   }
 
