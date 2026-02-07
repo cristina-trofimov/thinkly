@@ -13,7 +13,7 @@ interface NotificationsCardProps {
   emailData: {
     to: string;
     subject: string;
-    text: string;
+    body: string;
     sendAtLocal: string;
     sendInOneMinute: boolean;
   };
@@ -57,8 +57,8 @@ export function NotificationsCard({
               <Textarea 
                 rows={4} 
                 className="text-xs" 
-                value={emailData.text} 
-                onChange={e => { onManualEdit(); onEmailDataChange({ text: e.target.value }); }} 
+                value={emailData.body} 
+                onChange={e => { onManualEdit(); onEmailDataChange({ body: e.target.value }); }} 
               />
             </div>
             <div className="grid gap-2">

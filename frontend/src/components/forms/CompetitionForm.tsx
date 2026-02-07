@@ -41,7 +41,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
   const [emailData, setEmailData] = useState({
     to: initialData?.emailNotification?.to || "",
     subject: initialData?.emailNotification?.subject || "Upcoming Competition Reminder",
-    text: initialData?.emailNotification?.body || "",
+    body: initialData?.emailNotification?.body || "",
     sendAtLocal: initialData?.emailNotification?.sendAtLocal || "",
     sendInOneMinute: initialData?.emailNotification?.sendInOneMinute || false,
   });
@@ -182,7 +182,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
       emailNotification: emailEnabled ? {
         to: emailToAll ? "all participants" : emailData.to.trim(),
         subject: emailData.subject.trim(),
-        body: emailData.text.trim(),
+        body: emailData.body.trim(),
         sendInOneMinute: emailData.sendInOneMinute,
         sendAtLocal: emailData.sendAtLocal ? new Date(emailData.sendAtLocal).toISOString() : undefined,
       } : undefined,

@@ -5,7 +5,7 @@ describe('NotificationsCard', () => {
   const mockEmailData = {
     to: 'test@example.com',
     subject: 'Session Reminder',
-    text: 'Hello!',
+    body: 'Hello!',
     sendAtLocal: '2026-02-06T10:00',
     sendInOneMinute: false,
   };
