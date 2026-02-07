@@ -26,14 +26,14 @@ interface SelectionCardProps<T> {
 }
 
 // 1. Extracted Available Item Component
-function AvailableItem<T extends { id: string | number }>({ 
-    item, index, onAdd, renderItemTitle, renderExtraInfo 
+function AvailableItem<T extends { id: string | number }>({
+    item, index, onAdd, renderItemTitle, renderExtraInfo
 }: { item: T, index: number, onAdd: (item: T) => void, renderItemTitle: (item: T) => string, renderExtraInfo?: (item: T) => React.ReactNode }) {
     return (
         <Draggable draggableId={`avail-${item.id}`} index={index}>
             {(p, snapshot) => (
-                <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps} 
-                     className={`group bg-white mb-2 p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all ${snapshot.isDragging ? "opacity-50" : ""}`}>
+                <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
+                    className={`group bg-white mb-2 p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all ${snapshot.isDragging ? "opacity-50" : ""}`}>
                     <div className="flex flex-col gap-1 overflow-hidden">
                         <span className="text-sm font-semibold truncate">{renderItemTitle(item)}</span>
                         {renderExtraInfo?.(item)}
@@ -48,14 +48,28 @@ function AvailableItem<T extends { id: string | number }>({
 }
 
 // 2. Extracted Ordered Item Component
-function OrderedItem<T extends { id: string | number }>({ 
-    item, index, total, onMove, onRemove, renderItemTitle, renderExtraInfo 
-}: { item: T, index: number, total: number, onMove: any, onRemove: any, renderItemTitle: any, renderExtraInfo?: any }) {
+function OrderedItem<T extends { id: string | number }>({
+    item,
+    index,
+    total,
+    onMove,
+    onRemove,
+    renderItemTitle,
+    renderExtraInfo
+}: {
+    item: T;
+    index: number;
+    total: number;
+    onMove: (index: number, direction: 'up' | 'down') => void;
+    onRemove: (id: string | number) => void;
+    renderItemTitle: (item: T) => string;
+    renderExtraInfo?: (item: T) => React.ReactNode;
+}) {
     return (
         <Draggable draggableId={`ordered-${item.id}`} index={index}>
             {(p, snapshot) => (
-                <div ref={p.innerRef} {...p.draggableProps} 
-                     className={`bg-white mb-2 p-3 rounded-lg border flex items-center gap-2 ${snapshot.isDragging ? "shadow-lg ring-1 ring-primary" : ""}`}>
+                <div ref={p.innerRef} {...p.draggableProps}
+                    className={`bg-white mb-2 p-3 rounded-lg border flex items-center gap-2 ${snapshot.isDragging ? "shadow-lg ring-1 ring-primary" : ""}`}>
                     <div {...p.dragHandleProps}><GripVertical className="h-4 w-4 text-slate-300" /></div>
                     <span className="text-sm font-black text-slate-300 w-4">{index + 1}</span>
                     <div className="flex-1 overflow-hidden flex flex-col gap-0.5">

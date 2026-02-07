@@ -17,8 +17,9 @@ interface GeneralInfoCardProps {
   onChange: (updates: Partial<GeneralInfoCardProps["data"]>) => void;
 }
 
-export function GeneralInfoCard({ data, errors = {}, onChange }: GeneralInfoCardProps) {
-  const Required = () => <span className="text-destructive ml-1">*</span>;
+const Required = () => <span className="text-destructive ml-1">*</span>;
+
+export function GeneralInfoCard({ data, errors = {}, onChange }: Readonly<GeneralInfoCardProps>) {
   const getLabelClass = (isInvalid: boolean) => isInvalid ? "text-destructive" : "";
   const getInputClass = (isInvalid: boolean) => isInvalid ? "border-destructive focus-visible:ring-destructive" : "";
 

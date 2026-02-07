@@ -24,6 +24,12 @@ interface CompetitionFormProps {
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
+const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
+    return ids
+        .map(id => source.find(item => item.id === id))
+        .filter((item): item is T => !!item);
+};
+
 export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }: CompetitionFormProps) {
     const [formData, setFormData] = useState({
         name: initialData?.competitionTitle || initialData?.name || "",
@@ -61,12 +67,6 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
     const [riddles, setRiddles] = useState<Riddle[]>([]);
 
     useEffect(() => {
-        const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
-            return ids
-                .map(id => source.find(item => item.id === id))
-                .filter((item): item is T => !!item);
-        };
-
         const loadData = async () => {
             try {
                 const [qData, rData] = await Promise.all([getQuestions(), getRiddles()]);

@@ -23,7 +23,7 @@ interface NotificationsCardProps {
 
 export function NotificationsCard({
   emailEnabled, setEmailEnabled, emailToAll, setEmailToAll, emailData, onEmailDataChange, onManualEdit
-}: NotificationsCardProps) {
+}: Readonly<NotificationsCardProps>) {
   return (
     <Card>
       <CardHeader>

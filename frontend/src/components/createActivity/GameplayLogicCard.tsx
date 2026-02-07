@@ -9,7 +9,7 @@ interface GameplayLogicCardProps {
   onChange: (updates: { questionCooldownTime?: string; riddleCooldownTime?: string }) => void;
 }
 
-export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange }: GameplayLogicCardProps) {
+export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange }: Readonly<GameplayLogicCardProps>) {
   const handleNumericChange = (key: string, val: string) => {
     const cleanVal = Math.max(0, Number(val)).toString();
     onChange({ [key]: cleanVal });
