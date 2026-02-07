@@ -61,28 +61,36 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
     const [riddles, setRiddles] = useState<Riddle[]>([]);
 
     useEffect(() => {
+        const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
+            return ids
+                .map(id => source.find(item => item.id === id))
+                .filter((item): item is T => !!item);
+        };
+
         const loadData = async () => {
             try {
                 const [qData, rData] = await Promise.all([getQuestions(), getRiddles()]);
+
                 setQuestions(qData || []);
                 setRiddles(rData || []);
 
                 if (initialData?.selectedQuestions) {
-                    const mappedQs = initialData.selectedQuestions
-                        .map((id) => qData.find((q: Question) => q.id === id))
-                        .filter((q): q is Question => !!q);
-                    setOrderedQuestions(mappedQs);
+                    setOrderedQuestions(mapIdsToItems(initialData.selectedQuestions, qData));
                 }
+
                 if (initialData?.selectedRiddles) {
-                    const mappedRs = initialData.selectedRiddles
-                        .map((id) => rData.find((r: Riddle) => r.id === id))
-                        .filter((r): r is Riddle => !!r);
-                    setOrderedRiddles(mappedRs);
+                    setOrderedRiddles(mapIdsToItems(initialData.selectedRiddles, rData));
                 }
             } catch (err) {
-                logFrontend({ level: 'ERROR', message: `Failed load: ${err}`, component: 'CompetitionForm', url: window.location.href });
+                logFrontend({
+                    level: 'ERROR',
+                    message: `Failed load: ${err}`,
+                    component: 'CompetitionForm',
+                    url: window.location.href
+                });
             }
         };
+
         loadData();
     }, [initialData]);
 
