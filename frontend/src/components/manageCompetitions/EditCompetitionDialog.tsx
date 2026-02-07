@@ -6,20 +6,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle } from "lucide-react";
 import { updateCompetition, getCompetitionById } from "@/api/CompetitionAPI";
 import { type Question } from "../../types/questions/Question.type";
 import { type Riddle } from "../../types/riddle/Riddle.type";
 import { type UpdateCompetitionProps } from "../../types/competition/EditCompetition.type";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "./BuildEmail";
-import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
+import { type DropResult } from "@hello-pangea/dnd";
 
 // Specialized Card Components
 import { SelectionCard } from "@/components/createActivity/SelectionCard";
 import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
+import { toast } from "sonner";
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
@@ -69,7 +69,6 @@ export default function EditCompetitionDialog({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [validationError, setValidationError] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
   const [riddleSearchQuery, setRiddleSearchQuery] = useState("");
@@ -127,7 +126,7 @@ export default function EditCompetitionDialog({
           });
         }
       } catch (err) {
-        setValidationError("Failed to load competition data.");
+        toast.error("Failed to load competition data.");
       } finally {
         setLoading(false);
         setInitialLoadComplete(true);
@@ -169,21 +168,41 @@ export default function EditCompetitionDialog({
     setEmailData(prev => ({ ...prev, ...updates }));
   };
 
-  // Fixed the type mismatch by creating specific handlers
-  const handleDragEndQuestions = (result: DropResult) => {
-    if (!result.destination) return;
-    const items = [...orderedQuestions];
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setOrderedQuestions(items);
-  };
+  const handleDragEnd = (result: DropResult, type: 'questions' | 'riddles') => {
+    const { source, destination } = result;
+    if (!destination) return;
 
-  const handleDragEndRiddles = (result: DropResult) => {
-    if (!result.destination) return;
-    const items = [...orderedRiddles];
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setOrderedRiddles(items);
+    const isQuestion = type === 'questions';
+
+    const sourceList = (source.droppableId.includes('available')
+      ? (isQuestion ? availableQuestions : availableRiddles)
+      : (isQuestion ? orderedQuestions : orderedRiddles)) as (Question | Riddle)[];
+
+    const currentOrdered = (isQuestion ? orderedQuestions : orderedRiddles) as (Question | Riddle)[];
+
+    // Create a mutable copy with a clear type
+    let newList = [...currentOrdered];
+
+    // 1. Moving from Available to Ordered
+    if (source.droppableId.includes('available') && destination.droppableId.includes('ordered')) {
+      const itemToAdd = sourceList[source.index];
+      newList.splice(destination.index, 0, itemToAdd);
+    }
+    // 2. Reordering within Ordered
+    else if (source.droppableId.includes('ordered') && destination.droppableId.includes('ordered')) {
+      const [reorderedItem] = newList.splice(source.index, 1);
+      newList.splice(destination.index, 0, reorderedItem);
+    }
+    // 3. Removing (Moving from Ordered back to Available)
+    else if (source.droppableId.includes('ordered') && destination.droppableId.includes('available')) {
+      newList = newList.filter((_, idx) => idx !== source.index);
+    }
+
+    if (isQuestion) {
+      setOrderedQuestions(newList as Question[]);
+    } else {
+      setOrderedRiddles(newList as Riddle[]);
+    }
   };
 
   const validateForm = () => {
@@ -194,17 +213,22 @@ export default function EditCompetitionDialog({
     if (!generalInfo.endTime) newErrors.endTime = true;
     if (orderedQuestions.length === 0) newErrors.questions = true;
     if (orderedRiddles.length === 0) newErrors.riddles = true;
-
+    
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) {
-      setValidationError("Please fill in all required fields.");
-      return false;
-    }
-    return true;
+    if (Object.keys(newErrors).length > 0) return "Please fill in all required fields.";
+    if (orderedQuestions.length !== orderedRiddles.length) return "Questions and riddles count mismatch.";
+
+    return null;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    const errorMsg = validateForm();
+
+    if (errorMsg) {
+      toast.error(errorMsg);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload: UpdateCompetitionProps = {
@@ -232,7 +256,7 @@ export default function EditCompetitionDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      setValidationError("An error occurred while updating.");
+      toast.error("An error occurred while updating.");
     } finally {
       setIsSubmitting(false);
     }
@@ -264,12 +288,6 @@ export default function EditCompetitionDialog({
               <Button onClick={handleSubmit} disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Changes"}</Button>
             </div>
           </div>
-          {validationError && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-2 rounded-lg flex items-center gap-3 mt-3">
-              <AlertCircle className="h-4 w-4" />
-              <span className="font-medium text-xs">{validationError}</span>
-            </div>
-          )}
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-6 bg-slate-50/30">
@@ -308,7 +326,7 @@ export default function EditCompetitionDialog({
                 onAdd={(q) => setOrderedQuestions([...orderedQuestions, q])}
                 onRemove={(id) => setOrderedQuestions(orderedQuestions.filter(q => q.id !== id))}
                 onMove={(idx, dir) => moveItem(orderedQuestions, setOrderedQuestions, idx, dir)}
-                onDragEnd={handleDragEndQuestions}
+                onDragEnd={(res) => handleDragEnd(res, 'questions')}
                 renderItemTitle={(q) => q.title}
                 renderExtraInfo={(q) => (
                   <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>
@@ -332,7 +350,7 @@ export default function EditCompetitionDialog({
                 onAdd={(r) => setOrderedRiddles([...orderedRiddles, r])}
                 onRemove={(id) => setOrderedRiddles(orderedRiddles.filter(r => r.id !== id))}
                 onMove={(idx, dir) => moveItem(orderedRiddles, setOrderedRiddles, idx, dir)}
-                onDragEnd={handleDragEndRiddles}
+                onDragEnd={(res) => handleDragEnd(res, 'riddles')}
                 renderItemTitle={(r) => r.question}
                 droppableIdPrefix="riddles"
                 onClearAll={() => setOrderedRiddles([])}
