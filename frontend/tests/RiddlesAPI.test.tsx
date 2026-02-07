@@ -9,7 +9,16 @@ import {
 } from "../src/api/RiddlesAPI";
 import type { Riddle } from "../src/types/riddle/Riddle.type";
 
-jest.mock("@/lib/axiosClient");
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock("@/api/LoggerAPI");
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;

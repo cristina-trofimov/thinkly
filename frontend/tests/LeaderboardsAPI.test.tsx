@@ -6,7 +6,16 @@ import {
 } from "../src/api/LeaderboardsAPI";
 import { formatSecondsToTime } from "../src/utils/formatTime";
 
-jest.mock("@/lib/axiosClient");
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock("@/utils/formatTime");
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;

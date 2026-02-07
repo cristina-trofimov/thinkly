@@ -6,6 +6,16 @@ import { logFrontend } from '../src/api/LoggerAPI';
 import { toast } from 'sonner';
 
 // Mock the API modules
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock('../src/api/CompetitionAPI');
 jest.mock('../src/api/QuestionsAPI');
 jest.mock('../src/api/LoggerAPI');
