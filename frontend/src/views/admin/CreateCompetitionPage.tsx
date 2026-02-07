@@ -20,7 +20,7 @@ export default function CreateCompetitionPage() {
         level: 'ERROR',
         message: `An error occurred. Reason: ${err}`,
         component: 'CreateCompetitionPage',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
     }

@@ -16,7 +16,7 @@ interface DatePickerProps {
   className?: string;
 }
 
-export default function DatePicker({ value, onChange, min, className, placeholder }: DatePickerProps) {
+export default function DatePicker({ value, onChange, min, className, placeholder }: Readonly<DatePickerProps>) {
   // 1. Define the state to control the popover
   const [open, setOpen] = useState(false);
 

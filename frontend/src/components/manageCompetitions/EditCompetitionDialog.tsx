@@ -14,7 +14,7 @@ interface EditProps {
   onSuccess?: () => void;
 }
 
-export default function EditCompetitionDialog({ open, onOpenChange, competitionId, onSuccess }: EditProps) {
+export default function EditCompetitionDialog({ open, onOpenChange, competitionId, onSuccess }: Readonly<EditProps>) {
   const [initialData, setInitialData] = useState<CompetitionFormPayload>();
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +45,7 @@ export default function EditCompetitionDialog({ open, onOpenChange, competitionI
         level: 'ERROR',
         message: `An error occurred. Reason: ${err}`,
         component: 'EditCompetitionDialog',
-        url: window.location.href,
+        url: globalThis.location.href,
         stack: (err as Error).stack,
       });
     }
