@@ -19,11 +19,12 @@ export interface CompetitionFormPayload {
   riddleCooldownTime?: number;
   selectedQuestions?: number[];
   selectedRiddles?: number[];
+  emailEnabled: boolean;
   emailNotification?: {
     to: string;
     subject: string;
     body: string;
+    sendInOneMinute: boolean;
     sendAtLocal?: string;
-    sendInOneMinute?: boolean;
-  };
+  }
 }
