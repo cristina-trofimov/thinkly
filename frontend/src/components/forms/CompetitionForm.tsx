@@ -164,7 +164,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             source,
             destination,
             currentOrdered,
-            sourcePool as (Question | Riddle)[]
+            sourcePool
         );
 
         if (isQuestion) {
