@@ -9,7 +9,7 @@ const getApiUrl = (): string => {
   }
 
   // 2. Fallback for production
-  return "https://thinkly-production.up.railway.app/";
+  return "http://localhost:8000";
 };
 
 const API_URL = getApiUrl();

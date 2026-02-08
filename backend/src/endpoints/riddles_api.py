@@ -94,7 +94,61 @@ def _delete_from_supabase_by_public_url(public_url: str) -> None:
     res = supabase.storage.from_(BUCKET).remove([storage_path])
     if isinstance(res, dict) and res.get("error"):
         logger.warning(f"Supabase remove error: {res['error']} for path: {storage_path}")
+# ---------------- GET ONE ENDPOINT ----------------
 
+@riddles_router.get(
+    "/{riddle_id}",
+    status_code=status.HTTP_200_OK,
+)
+async def get_riddle_by_id(
+    riddle_id: int,
+    db: Annotated[Session, Depends(get_db)],
+):
+    logger.info(f"Public user requesting riddle ID {riddle_id}")
+
+    try:
+        riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
+        if not riddle:
+            raise HTTPException(status_code=404, detail="Riddle not found")
+
+        return {
+            "riddle_id": riddle.riddle_id,
+            "riddle_question": riddle.riddle_question,
+            "riddle_answer": riddle.riddle_answer,
+            "riddle_file": riddle.riddle_file,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error retrieving riddle {riddle_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve riddle")
+
+# ---------------- GET ALL ENDPOINT ----------------
+@riddles_router.get(
+    "/",
+    status_code=status.HTTP_200_OK,
+)
+async def list_riddles(
+    db: Annotated[Session, Depends(get_db)],
+):
+    logger.info("Public user requesting full riddles list")
+    try:
+        riddles = db.query(Riddle).all()
+
+        return [
+            {
+                "riddle_id": r.riddle_id,
+                "riddle_question": r.riddle_question,
+                "riddle_answer": r.riddle_answer,
+                "riddle_file": r.riddle_file,
+            }
+            for r in riddles
+        ]
+
+    except Exception as e:
+        logger.exception(f"Error retrieving riddles list: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve riddles")
 
 # ---------------- CREATE ENDPOINT ----------------
 

@@ -1,28 +1,41 @@
-import { Card, CardContent, CardHeader} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, FileText, Image as ImageIcon, HelpCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Plus, Search, FileText, Image as ImageIcon, HelpCircle, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import { logFrontend } from "../../api/LoggerAPI";
 
+// ✅ Reusable form (create + edit)
+import RiddleForm from "@/components/forms/FileUpload";
 
-import CreateRiddleForm from "@/components/forms/FileUpload"; 
-import { getRiddles } from "@/api/RiddlesAPI"; 
-import type { Riddle } from '@/types/riddle/Riddle.type';
+import { getRiddles, deleteRiddle } from "@/api/RiddlesAPI";
+import type { Riddle } from "@/types/riddle/Riddle.type";
 
 export default function ManageRiddles() {
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState("");
     const [riddles, setRiddles] = useState<Riddle[]>([]);
     const [loading, setLoading] = useState(false);
+
+    // Create dialog
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+    // Edit dialog
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editingRiddle, setEditingRiddle] = useState<Riddle | null>(null);
+
+    // Delete dialog
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
     const loadRiddles = async () => {
         setLoading(true);
@@ -31,11 +44,11 @@ export default function ManageRiddles() {
             setRiddles(data);
         } catch (err: unknown) {
             logFrontend({
-                level: 'ERROR',
-                message: `Failed to load riddles: ${(err as Error).message}`,
-                component: 'ManageRiddlesPage.tsx',
+                level: "ERROR",
+                message: `Failed to load riddles: ${err instanceof Error ? err.message : String(err)}`,
+                component: "ManageRiddlesPage.tsx",
                 url: globalThis.location.href,
-        });
+            });
             toast.error("Failed to load riddles");
         } finally {
             setLoading(false);
@@ -46,16 +59,53 @@ export default function ManageRiddles() {
         loadRiddles();
     }, []);
 
-    // Callback when a riddle is successfully created
     const handleRiddleCreated = () => {
-        setIsCreateOpen(false); 
-        loadRiddles(); 
+        setIsCreateOpen(false);
+        loadRiddles();
     };
 
-    const filteredRiddles = riddles.filter((r) =>
-        r.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.answer.toLowerCase().includes(searchQuery.toLowerCase())
+    const handleRiddleEdited = () => {
+        setIsEditOpen(false);
+        setEditingRiddle(null);
+        loadRiddles();
+    };
+
+    const filteredRiddles = useMemo(
+        () =>
+            riddles.filter(
+                (r) =>
+                    r.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    r.answer.toLowerCase().includes(searchQuery.toLowerCase())
+            ),
+        [riddles, searchQuery]
     );
+
+    function openEdit(r: Riddle) {
+        setEditingRiddle(r);
+        setIsEditOpen(true);
+    }
+
+    async function confirmDelete() {
+        if (deleteId == null) return;
+
+        setDeleteSubmitting(true);
+        try {
+            await deleteRiddle(deleteId);
+            toast.success("Riddle deleted!");
+            setDeleteId(null);
+            await loadRiddles();
+        } catch (err: unknown) {
+            logFrontend({
+                level: "ERROR",
+                message: `Failed to delete riddle: ${err instanceof Error ? err.message : String(err)}`,
+                component: "ManageRiddlesPage.tsx",
+                url: globalThis.location.href,
+            });
+            toast.error("Failed to delete riddle");
+        } finally {
+            setDeleteSubmitting(false);
+        }
+    }
 
     return (
         <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -78,8 +128,7 @@ export default function ManageRiddles() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
-                {/* Create New Riddle Card (Triggers Modal) */}
+                {/* Create New Riddle Card */}
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
                         <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
@@ -97,19 +146,20 @@ export default function ManageRiddles() {
                         <DialogHeader>
                             <DialogTitle>Create New Riddle</DialogTitle>
                         </DialogHeader>
-                        {/* Pass the callback to refresh list after creation */}
-                        <CreateRiddleForm onSuccess={handleRiddleCreated} />
+
+
+                        <RiddleForm mode="create" onSuccess={handleRiddleCreated} />
                     </DialogContent>
                 </Dialog>
 
-                {/* Loading State */}
+
                 {loading && riddles.length === 0 && (
                     <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
                         Loading riddles...
                     </div>
                 )}
 
-                {/* Riddle Cards */}
+
                 {filteredRiddles.map((riddle) => (
                     <Card key={riddle.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full">
                         <CardHeader className="bg-muted/30 pb-4">
@@ -117,27 +167,48 @@ export default function ManageRiddles() {
                                 <div className="p-2 bg-primary/10 rounded-lg">
                                     <HelpCircle className="w-5 h-5 text-primary" />
                                 </div>
-                                {riddle.file && (
-                                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                                        <ImageIcon className="w-3 h-3" /> Has Media
-                                    </span>
-                                )}
+
+                                <div className="flex items-center gap-2">
+                                    {riddle.file && (
+                                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
+                                            <ImageIcon className="w-3 h-3" /> Has Media
+                                        </span>
+                                    )}
+
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => openEdit(riddle)}
+                                        title="Edit"
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                    </Button>
+
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() => setDeleteId(riddle.id)}
+                                        title="Delete"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </CardHeader>
 
                         <CardContent className="p-4 flex-1 flex flex-col gap-4">
                             <div>
                                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Question</h4>
-                                <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                                    {riddle.question}
-                                </p>
+                                <p className="font-medium text-sm line-clamp-3 leading-relaxed">{riddle.question}</p>
                             </div>
 
                             <div className="mt-auto pt-4 border-t">
                                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Answer</h4>
-                                <p className="text-sm text-gray-700 italic">
-                                    {riddle.answer}
-                                </p>
+                                <p className="text-sm text-gray-700 italic">{riddle.answer}</p>
                             </div>
 
                             {riddle.file && (
@@ -153,6 +224,56 @@ export default function ManageRiddles() {
                     </Card>
                 ))}
             </div>
+
+
+            <Dialog
+                open={isEditOpen}
+                onOpenChange={(open) => {
+                    setIsEditOpen(open);
+                    if (!open) setEditingRiddle(null);
+                }}
+            >
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit Riddle</DialogTitle>
+                    </DialogHeader>
+
+                    {editingRiddle && (
+                        <RiddleForm
+                            mode="edit"
+                            initial={{
+                                id: editingRiddle.id,
+                                question: editingRiddle.question,
+                                answer: editingRiddle.answer,
+                                file: editingRiddle.file ?? null,
+                            }}
+                            onSuccess={handleRiddleEdited}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+
+            <Dialog open={deleteId != null} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete riddle?</DialogTitle>
+                    </DialogHeader>
+
+                    <p className="text-sm text-muted-foreground">
+                        This will permanently delete the riddle (and its attachment if it has one).
+                    </p>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteId(null)} disabled={deleteSubmitting}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDelete} disabled={deleteSubmitting}>
+                            {deleteSubmitting ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
