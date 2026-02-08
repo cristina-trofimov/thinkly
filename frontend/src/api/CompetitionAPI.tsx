@@ -1,8 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Competition } from "@/types/competition/Competition.type";
+import type { Competition, CompetitionFormPayload } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { type CreateCompetitionProps, type CompetitionResponse} from "../types/competition/CreateCompetition.type";
-import { type UpdateCompetitionProps } from "../types/competition/EditCompetition.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -60,10 +58,10 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
  * Requires owner authentication
  */
 export async function createCompetition(
-  payload: CreateCompetitionProps
-): Promise<CompetitionResponse> {
+  payload: CompetitionFormPayload
+): Promise<CompetitionFormPayload> {
   try {
-    const response = await axiosClient.post<CompetitionResponse>(
+    const response = await axiosClient.post<CompetitionFormPayload>(
       `/competitions/create`,
       payload
     );
@@ -79,9 +77,9 @@ export async function createCompetition(
  * Get all competitions with detailed information
  * Requires authentication
  */
-export async function listCompetitions(): Promise<CompetitionResponse[]> {
+export async function listCompetitions(): Promise<CompetitionFormPayload[]> {
   try {
-    const response = await axiosClient.get<CompetitionResponse[]>(
+    const response = await axiosClient.get<CompetitionFormPayload[]>(
       `/competitions/list`
     );
     return response.data;
@@ -126,7 +124,7 @@ export async function deleteCompetition(competitionId: number): Promise<void> {
  * Update an existing competition
  * Requires owner authentication
  */
-export const updateCompetition = async (payload: UpdateCompetitionProps) => {
+export const updateCompetition = async (payload: CompetitionFormPayload) => {
   try {
     const response = await axiosClient.put(
       `/competitions/${payload.id}`,

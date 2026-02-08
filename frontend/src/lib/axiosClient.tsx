@@ -1,15 +1,16 @@
 import axios from "axios";
 
 const getApiUrl = (): string => {
-  // 1. Check for Vite environment variables (Local .env or Netlify Build settings)
-  if (import.meta.env.VITE_BACKEND_URL) {
-    return import.meta.env.VITE_BACKEND_URL;
+  // 1. Safe access using optional chaining
+  const win = globalThis.window as Window & { VITE_BACKEND_URL?: string };
+
+  if (win?.VITE_BACKEND_URL !== undefined) {
+    return win.VITE_BACKEND_URL;
   }
 
-  // 2. Fallback for production if everything else fails
+  // 2. Fallback for production
   return "https://thinkly-production.up.railway.app/";
 };
-
 
 const API_URL = getApiUrl();
 

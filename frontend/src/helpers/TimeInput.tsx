@@ -77,8 +77,8 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
           id={id}
           type="text"
           readOnly
-          value={currentParsed.display}
-          placeholder={placeholder || "Select time"}
+          value={value ? currentParsed.display : ""} 
+          placeholder={placeholder || "hh:mm"}
           className="pr-10 cursor-pointer"
           onClick={() => setOpen(true)}
         />
