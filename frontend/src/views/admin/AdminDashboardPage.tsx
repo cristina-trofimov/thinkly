@@ -8,17 +8,15 @@ import { NumberOfLoginsChart } from "@/components/dashboardCharts/NumberOfLogins
 import { ParticipationOverTimeChart } from "@/components/dashboardCharts/ParticipationOverTimeChart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ManageItem } from "../../components/dashboardCards/ManageCard";
 import type { TimeRange } from "@/types/adminDashboard/Analytics.type";
 import {
-  getDashboardOverview,
   getNewAccountsStats,
   getQuestionsSolvedStats,
   getTimeToSolveStats,
   getLoginsStats,
   getParticipationStats,
 } from "@/api/AdminDashboardAPI";
-import { FileText, Lightbulb, MessageCircleQuestion, MessageSquare, Puzzle, Timer, Trophy, Users } from "lucide-react";
+import { FileText, Puzzle, Timer, Trophy, Users } from "lucide-react";
 
 const TIME_RANGE_LABELS: Record<TimeRange, string> = {
   "3months": "Last 3 months",
@@ -30,26 +28,11 @@ function getTimeRangeLabel(timeRange: TimeRange): string {
   return TIME_RANGE_LABELS[timeRange];
 }
 
-function getLoadingPlaceholder(type: "account" | "competition" | "default"): ManageItem[] {
-  if (type === "account") {
-    return [{ avatarUrl: undefined, name: "Loading...", info: "" }];
-  }
-  if (type === "competition") {
-    return [{ color: "var(--color-chart-1)", name: "Loading...", info: "" }];
-  }
-  return [{ name: "Loading...", info: "" }];
-}
-
 export function AdminDashboard() {
   const location = useLocation();
   const [timeRange, setTimeRange] = useState<TimeRange>("3months");
   const [activeTab, setActiveTab] = useState<"algotime" | "competitions">("algotime");
 
-  // State for API data
-  const [recentAccounts, setRecentAccounts] = useState<ManageItem[]>([]);
-  const [recentCompetitions, setRecentCompetitions] = useState<ManageItem[]>([]);
-  const [recentQuestions, setRecentQuestions] = useState<ManageItem[]>([]);
-  const [recentAlgoTimeSessions, setRecentAlgoTimeSessions] = useState<ManageItem[]>([]);
   const [newAccountStats, setNewAccountStats] = useState({ value: 0, subtitle: "", trend: "", description: "" });
   const [questionsSolvedData, setQuestionsSolvedData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [timeToSolveData, setTimeToSolveData] = useState<{ type: string; time: number; color: string }[]>([]);
@@ -60,51 +43,6 @@ export function AdminDashboard() {
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
     location.pathname === "/app/dashboard/";
-
-  // Fetch overview data on mount
-  useEffect(() => {
-    async function fetchOverview() {
-      try {
-        const overview = await getDashboardOverview();
-
-        setRecentAccounts(
-          overview.recent_accounts.map((acc) => ({
-            name: acc.name,
-            info: acc.info,
-            avatarUrl: acc.avatarUrl || undefined,
-          }))
-        );
-
-        setRecentCompetitions(
-          overview.recent_competitions.map((comp) => ({
-            name: comp.name,
-            info: comp.info,
-            color: comp.color,
-          }))
-        );
-
-        setRecentQuestions(
-          overview.recent_questions.map((q) => ({
-            name: q.name,
-            info: q.info,
-          }))
-        );
-
-        setRecentAlgoTimeSessions(
-          overview.recent_algotime_sessions.map((session) => ({
-            name: session.name,
-            info: session.info,
-          }))
-        );
-      } catch (error) {
-        console.error("Error fetching dashboard overview:", error);
-      }
-    }
-
-    if (isRootDashboard) {
-      fetchOverview();
-    }
-  }, [isRootDashboard]);
 
   // Fetch stats data when timeRange or activeTab changes
   useEffect(() => {
