@@ -157,8 +157,6 @@ def get_chart_colors():
 async def get_dashboard_overview(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(role_required("admin"))]
-    # db: Session = Depends(get_db),
-    # current_user: dict = Depends(role_required("admin"))
 ):
     """
     Get dashboard overview with 2 most recent items for each category.
