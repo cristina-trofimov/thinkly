@@ -18,6 +18,7 @@ import {
   getLoginsStats,
   getParticipationStats,
 } from "@/api/AdminDashboardAPI";
+import { FileText, Lightbulb, MessageCircleQuestion, MessageSquare, Puzzle, Timer, Trophy, Users } from "lucide-react";
 
 const TIME_RANGE_LABELS: Record<TimeRange, string> = {
   "3months": "Last 3 months",
@@ -148,14 +149,14 @@ export function AdminDashboard() {
           </div>
 
           {/* Management Cards Row */}
-          <div className="flex gap-4 mt-6 px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 px-6 ">
             <Link
               to="/app/dashboard/manageAccounts"
               className="cursor-pointer block flex-1 min-w-0"
             >
               <ManageCard
                 title="Manage Accounts"
-                items={recentAccounts.length > 0 ? recentAccounts : getLoadingPlaceholder("account")}
+                icon={Users}
               />
             </Link>
             <Link
@@ -164,13 +165,13 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Competitions"
-                items={recentCompetitions.length > 0 ? recentCompetitions : getLoadingPlaceholder("competition")}
+                icon={Trophy}
               />
             </Link>
             <div className="flex-1 min-w-0">
               <ManageCard
                 title="Manage Questions"
-                items={recentQuestions.length > 0 ? recentQuestions : getLoadingPlaceholder("default")}
+                icon={FileText}
               />
             </div>
             <Link
@@ -179,7 +180,7 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Algotime Sessions"
-                items={recentAlgoTimeSessions.length > 0 ? recentAlgoTimeSessions : getLoadingPlaceholder("default")}
+                icon={Timer}
               />
             </Link>
             <Link
@@ -188,10 +189,7 @@ export function AdminDashboard() {
             >
               <ManageCard
                 title="Manage Riddles"
-                items={[
-                  { name: "Riddle 1", info: "Date added: 08/11/25" },
-                  { name: "Riddle 2", info: "Date added: 06/12/25" },
-                ]}
+                icon={Puzzle}
               />
             </Link>
           </div>
