@@ -7,7 +7,7 @@ from endpoints.send_email_api import send_email_via_brevo
 import logging
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
-from typing import List, Optional
+from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
 
 TIMEZONE_NEW_YORK = "America/New_York"
@@ -97,7 +97,7 @@ class CreateCompetitionRequest(BaseModel):
 class CompetitionResponse(BaseModel):
     event_id: int
     event_name: str
-    event_location: Optional[str]
+    event_location: Optional[str] = None
     event_start_date: datetime
     event_end_date: datetime
     question_cooldown: int
@@ -114,7 +114,7 @@ class DetailedCompetitionResponse(BaseModel):
     """Response model for editing competitions - includes all necessary details"""
     id: int
     competitionTitle: str
-    competitionLocation: Optional[str]
+    competitionLocation: Optional[str] = None
     date: str  # ISO date string
     startTime: str  # HH:MM format
     endTime: str  # HH:MM format
@@ -270,7 +270,7 @@ def send_competition_emails(
 
 # ---------------- Routes ----------------
 @competitions_router.get("/")
-def get_all_competitions(db: Session = Depends(get_db)):
+def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
     """Get all competitions (existing endpoint kept for compatibility)"""
     try:
         competitions = db.query(Competition).join(BaseEvent).all()
@@ -296,8 +296,8 @@ def get_all_competitions(db: Session = Depends(get_db)):
 
 @competitions_router.get("/list", response_model=List[CompetitionResponse])
 async def list_competitions(
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     List all competitions with detailed information.
@@ -352,9 +352,9 @@ async def list_competitions(
 
 @competitions_router.post("/create", response_model=CompetitionResponse, status_code=status.HTTP_201_CREATED)
 async def create_competition(
-        request: CreateCompetitionRequest,
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+    request: CreateCompetitionRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
@@ -431,9 +431,9 @@ async def create_competition(
 
 @competitions_router.get("/{competition_id}", response_model=DetailedCompetitionResponse)
 async def get_competition_detailed(
-        competition_id: int,
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+    competition_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Get full details of a competition for editing purposes.
@@ -538,10 +538,10 @@ async def get_competition_detailed(
 
 @competitions_router.put("/{competition_id}", response_model=CompetitionResponse)
 async def update_competition(
-        competition_id: int,
-        request: CreateCompetitionRequest,
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+    competition_id: int,
+    request: CreateCompetitionRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
 
     user_email = current_user.get("sub")
@@ -645,9 +645,9 @@ async def update_competition(
 
 @competitions_router.delete("/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_competition(
-        competition_id: int,
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+    competition_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Delete a competition.

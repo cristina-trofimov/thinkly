@@ -1,3 +1,4 @@
+from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])
 
 @questions_router.get("/get-all-questions")
-def get_all_questions(db: Session = Depends(get_db)):
+def get_all_questions(db: Annotated[str, Depends(get_db)]):
     try:
         questions = db.query(Question).all()
         logger.info(f"Fetched {len(questions)} questions from the database.")
@@ -30,7 +31,7 @@ class CreateQuestionRequest(BaseModel):
     tags: list[str] = []
     testcases: list[tuple[str, str]] = []  # input-output pairs
 
-def get_question_from_request(db: Session,request: CreateQuestionRequest) -> Question:
+def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Question:
     existing_tags = db.query(Tag).filter(Tag.tag_name.in_(request.tags)).all()
     new_tags = [Tag(tag_name=tag_name) for tag_name in request.tags if tag_name not in [tag.tag_name for tag in existing_tags]]
     return Question(
@@ -46,8 +47,11 @@ def get_question_from_request(db: Session,request: CreateQuestionRequest) -> Que
         test_cases=[TestCase(input_data=tc[0], expected_output=tc[1]) for tc in request.testcases]
     )
 
-@questions_router.post("/upload-question", status_code=201)
-def upload_question(question_request: CreateQuestionRequest, db: Session = Depends(get_db)):
+@questions_router.post(
+    "/upload-question", status_code=201,
+    responses={ 500: { "description": "Failed to upload question." } }
+)
+def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, Depends(get_db)]):
     try:
         question = get_question_from_request(db, question_request)
         db.add(question)
@@ -60,8 +64,10 @@ def upload_question(question_request: CreateQuestionRequest, db: Session = Depen
         logger.error(f"Error uploading question: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload question. Exception: {str(e)}")  
 
-@questions_router.post("/upload-question-batch", status_code=201)
-def upload_question_batch(question_request: list[CreateQuestionRequest], db: Session = Depends(get_db)):
+@questions_router.post("/upload-question-batch", status_code=201,
+    responses={ 500: { "description": "Failed to upload question batch." } }
+)
+def upload_question_batch(question_request: list[CreateQuestionRequest], db: Annotated[str, Depends(get_db)]):
     try:
         questions = [
             get_question_from_request(db, q) for q in question_request
@@ -75,8 +81,11 @@ def upload_question_batch(question_request: list[CreateQuestionRequest], db: Ses
         logger.error(f"Error uploading question batch: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload question batch. Exception: {str(e)}")
         
-@questions_router.get("/get-all-riddles")
-def get_all_riddles(db: Session = Depends(get_db)):
+@questions_router.get(
+    "/get-all-riddles",
+    responses={ 500: { "description": "Failed to retrieve questions." } }
+)
+def get_all_riddles(db: Annotated[str, Depends(get_db)]):
     try:
         riddles = db.query(Riddle).all()
         logger.info(f"Fetched {len(riddles)} riddles from the database.")
@@ -86,8 +95,11 @@ def get_all_riddles(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
 
 
-@questions_router.get("/get-all-testcases/{question_id}")
-def get_all_testcases(question_id: int, db: Session = Depends(get_db)):
+@questions_router.get(
+    "/get-all-testcases/{question_id}",
+    responses={ 500: { "description": "Failed to upload test cases." } }
+)
+def get_all_testcases(question_id: int, db: Annotated[str, Depends(get_db)]):
     try:
         testcases = db.query(TestCase).filter_by(question_id = question_id).all()
         logger.info(f"Fetched {len(testcases)} test cases from the database.")
@@ -95,5 +107,3 @@ def get_all_testcases(question_id: int, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve test cases. Exception: {str(e)}")
-        logger.error(f"Error fetching riddles: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve riddles. Exception: {str(e)}")

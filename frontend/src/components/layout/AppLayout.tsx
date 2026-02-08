@@ -12,8 +12,8 @@ interface RouteHandle {
 }
 
 function getSidebarCookie(): boolean {
-  const match = document.cookie.match(/(?:^|; )sidebar_state=([^;]*)/);
-  return match ? match[1] === "true" : true;
+  const match = /(?:^|; )sidebar_state=([^;]*)/.exec(document.cookie)
+  return match ? match[1] === "true" : true
 }
 
 export function Layout() {
