@@ -59,7 +59,7 @@ import {
 import { toast } from "sonner";
 import type { Question } from "@/types/questions/Question.type";
 import { deleteQuestions } from "@/api/QuestionsAPI";
-import UploadQuestionsJSONButton from "./uploadQuestionsJSONButton";
+import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 
 interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
