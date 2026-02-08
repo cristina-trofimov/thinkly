@@ -152,9 +152,13 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         const isQuestion = type === 'questions';
 
         const currentOrdered = isQuestion ? orderedQuestions : orderedRiddles;
-        const sourcePool = source.droppableId.includes('available')
-            ? (isQuestion ? availableQuestions : availableRiddles)
-            : currentOrdered;
+        let sourcePool: (Question | Riddle)[];
+
+        if (source.droppableId.includes('available')) {
+            sourcePool = isQuestion ? availableQuestions : availableRiddles;
+        } else {
+            sourcePool = currentOrdered;
+        }
 
         const updatedList = calculateNewList(
             source,
