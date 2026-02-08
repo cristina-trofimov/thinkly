@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { columns } from "../../components/manageQuestions/manageQuestionsColumns";
+import { columns } from "../../components/manageQuestions/ManageQuestionsColumns";
 import { logFrontend } from '../../api/LoggerAPI';
 import { getQuestions } from "@/api/QuestionsAPI";
 import type { Question } from "@/types/questions/Question.type";
-import { ManageQuestionsDataTable } from "@/components/manageQuestions/manageQuestionsDataTable";
+import { ManageQuestionsDataTable } from "@/components/manageQuestions/ManageQuestionsDataTable";
 
 export default function ManageQuestionsPage() {
   const [data, setData] = useState<Question[]>([]);
