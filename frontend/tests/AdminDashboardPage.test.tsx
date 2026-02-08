@@ -225,15 +225,16 @@ describe('AdminDashboard', () => {
     expect(manageCompetitionsLink).toHaveAttribute('href', '/app/dashboard/competitions');
   });
 
-  it('manage questions card is not a link', () => {
+  it('renders link to manage questions with correct href', () => {
     renderWithRouter();
 
     // Find the Manage Questions card
     const manageQuestionsCard = screen.getByText('Manage Questions');
 
     // Verify it's not inside a link
-    const closestLink = manageQuestionsCard.closest('a');
-    expect(closestLink).not.toBeInTheDocument();
+    const manageQuestionsLink = manageQuestionsCard.closest('a');
+    expect(manageQuestionsLink).toBeInTheDocument();
+    expect(manageQuestionsLink).toHaveAttribute('href', '/app/dashboard/manageQuestions');
   });
 
   describe('Time range filter', () => {
