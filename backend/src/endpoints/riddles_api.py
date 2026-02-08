@@ -1,145 +1,226 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from models.schema import Riddle 
+from models.schema import Riddle
 from DB_Methods.database import get_db, _commit_or_rollback
 import logging
-from pydantic import BaseModel, validator
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
+import os
+import time
+import re
+from urllib.parse import urlparse
+
+from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
 riddles_router = APIRouter(tags=["Riddles"])
 
-# ---------------- Models ----------------
-class CreateRiddleRequest(BaseModel):
-    question: str
-    answer: str
-    file: Optional[str] = None
+# Supabase (server-side)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-    @validator('question')
-    def validate_question(cls, v):
-        if not v or not v.strip():
-            raise ValueError('Riddle question cannot be empty')
-        return v.strip()
+BUCKET = "uploads"
+FOLDER = "public"
+MAX_MB = 100
 
-    @validator('answer')
-    def validate_answer(cls, v):
-        if not v or not v.strip():
-            raise ValueError('Riddle answer cannot be empty')
-        return v.strip()
-
-class RiddleResponse(BaseModel):
-    riddle_id: int
-    riddle_question: str
-    riddle_answer: str
-    riddle_file: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-# ---------------- Helper Functions ----------------
 def check_riddle_exists(db: Session, question: str) -> bool:
-    existing = db.query(Riddle).filter(Riddle.riddle_question == question).first()
-    return existing is not None
+    return db.query(Riddle).filter(Riddle.riddle_question == question).first() is not None
 
-# ---------------- Routes ----------------
+def _validate_upload(file: UploadFile) -> None:
+    allowed = (
+        (file.content_type or "").startswith("image/")
+        or (file.content_type or "").startswith("audio/")
+        or (file.content_type or "").startswith("video/")
+        or file.content_type == "application/pdf"
+    )
+    if not allowed:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use image/audio/video/pdf.")
 
-@riddles_router.get(
-    "/",
-    response_model=List[RiddleResponse],
-    responses={ 500: { "description": "Failed to retrieve riddles." } }
-)
-async def list_riddles(
-    db: Annotated[Session, Depends(get_db)]
-):
-    logger.info("Public user requesting full riddles list")
+def _extract_storage_path_from_public_url(public_url: str) -> Optional[str]:
+    """
+    Expected public URL shape:
+    .../storage/v1/object/public/{bucket}/{path}
+    Returns "{path}" (without bucket) or None if cannot parse.
+    """
+    if not public_url:
+        return None
+
     try:
-        riddles = db.query(Riddle).all()
-        return riddles
-    except Exception as e:
-        logger.exception(f"Error retrieving riddles list: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve riddles")
+        p = urlparse(public_url)
+        # split on "/storage/v1/object/public/"
+        marker = "/storage/v1/object/public/"
+        idx = p.path.find(marker)
+        if idx == -1:
+            return None
+
+        tail = p.path[idx + len(marker):]  # "{bucket}/{path}"
+        if not tail.startswith(f"{BUCKET}/"):
+            return None
+
+        return tail[len(f"{BUCKET}/"):]  # "{path}"
+    except Exception:
+        return None
+
+async def _upload_to_supabase(file: UploadFile) -> str:
+    content = await file.read()
+    if len(content) > MAX_MB * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"File too large. Max {MAX_MB}MB.")
+
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", file.filename or "upload")
+    path = f"{FOLDER}/{int(time.time() * 1000)}_{safe_name}"
+
+    res = supabase.storage.from_(BUCKET).upload(
+        path=path,
+        file=content,
+        file_options={
+            "content-type": file.content_type or "application/octet-stream",
+            "cache-control": "3600",
+            "upsert": "false",
+        },
+    )
+
+    if isinstance(res, dict) and res.get("error"):
+        raise HTTPException(status_code=500, detail=f"Upload failed: {res['error']}")
+
+    public_url = supabase.storage.from_(BUCKET).get_public_url(path)
+    return public_url
+
+def _delete_from_supabase_by_public_url(public_url: str) -> None:
+    storage_path = _extract_storage_path_from_public_url(public_url)
+    if not storage_path:
+        logger.warning(f"Could not parse Supabase storage path from URL: {public_url}")
+        return
+
+    res = supabase.storage.from_(BUCKET).remove([storage_path])
+    if isinstance(res, dict) and res.get("error"):
+        logger.warning(f"Supabase remove error: {res['error']} for path: {storage_path}")
 
 
-@riddles_router.get(
-    "/{riddle_id}",
-    response_model=RiddleResponse,
-    responses={ 
-               404: { "description": "Riddle not found." },
-               500: { "description": "Failed to retrieve riddle." }
-            }
+# ---------------- CREATE ENDPOINT ----------------
+
+@riddles_router.post(
+    "/create",
+    status_code=status.HTTP_201_CREATED,
 )
-async def get_riddle(
+async def create_riddle(
+    question: Annotated[str, Form()],
+    answer: Annotated[str, Form()],
+    file: Annotated[Optional[UploadFile], File()] = None,
+    db: Annotated[Session, Depends(get_db)] = None,  # see note below
+):
+    logger.info("Anonymous user attempting to create new riddle")
+
+    q = question.strip()
+    a = answer.strip()
+
+    if not q or not a:
+        raise HTTPException(status_code=400, detail="Question and Answer are required.")
+
+    if check_riddle_exists(db, q):
+        raise HTTPException(status_code=400, detail="A riddle with this question already exists")
+
+    try:
+        file_url: Optional[str] = None
+
+        if file is not None:
+            _validate_upload(file)
+            file_url = await _upload_to_supabase(file)
+
+        new_riddle = Riddle(
+            riddle_question=q,
+            riddle_answer=a,
+            riddle_file=file_url,
+        )
+
+        db.add(new_riddle)
+        _commit_or_rollback(db)
+        db.refresh(new_riddle)
+
+        return {
+            "riddle_id": new_riddle.riddle_id,
+            "riddle_question": new_riddle.riddle_question,
+            "riddle_answer": new_riddle.riddle_answer,
+            "riddle_file": new_riddle.riddle_file,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"FATAL error during riddle creation: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Internal server error")
+# ---------------- EDIT ENDPOINT ----------------
+@riddles_router.put("/{riddle_id}", status_code=status.HTTP_200_OK)
+async def edit_riddle(
     riddle_id: int,
-    db: Annotated[Session, Depends(get_db)]
+    question: Annotated[Optional[str], Form()] = None,
+    answer: Annotated[Optional[str], Form()] = None,
+    file: Annotated[Optional[UploadFile], File()] = None,
+    remove_file: Annotated[bool, Form()] = False,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     try:
         riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
         if not riddle:
             raise HTTPException(status_code=404, detail="Riddle not found")
-        return riddle
+
+        # Update question/answer if provided
+        if question is not None:
+            q = question.strip()
+            if not q:
+                raise HTTPException(status_code=400, detail="Riddle question cannot be empty")
+            if q != riddle.riddle_question and check_riddle_exists(db, q):
+                raise HTTPException(status_code=400, detail="A riddle with this question already exists")
+            riddle.riddle_question = q
+
+        if answer is not None:
+            a = answer.strip()
+            if not a:
+                raise HTTPException(status_code=400, detail="Riddle answer cannot be empty")
+            riddle.riddle_answer = a
+
+        # Remove existing file if requested
+        if remove_file and riddle.riddle_file:
+            _delete_from_supabase_by_public_url(riddle.riddle_file)
+            riddle.riddle_file = None
+
+        # Replace file if a new one is provided
+        if file is not None:
+            _validate_upload(file)
+
+            if riddle.riddle_file:
+                _delete_from_supabase_by_public_url(riddle.riddle_file)
+
+            new_url = await _upload_to_supabase(file)
+            riddle.riddle_file = new_url
+
+        _commit_or_rollback(db)
+        db.refresh(riddle)
+
+        return {
+            "riddle_id": riddle.riddle_id,
+            "riddle_question": riddle.riddle_question,
+            "riddle_answer": riddle.riddle_answer,
+            "riddle_file": riddle.riddle_file,
+        }
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error retrieving riddle {riddle_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve riddle")
-
-
-@riddles_router.post(
-    "/create",
-    response_model=RiddleResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={ 
-               400: { "description": "A riddle with this question already exists." },
-               500: { "description": "Internal server error." }
-            }
-)
-async def create_riddle(
-    request: CreateRiddleRequest,
-    db: Annotated[Session, Depends(get_db)]
-):
-    
-    logger.info("Anonymous user attempting to create new riddle")
-
-    if check_riddle_exists(db, request.question):
-        raise HTTPException(status_code=400, detail="A riddle with this question already exists")
-
-    try:
-        new_riddle = Riddle(
-            riddle_question=request.question,
-            riddle_answer=request.answer,
-            riddle_file=request.file
-        )
-        
-        db.add(new_riddle)
-        _commit_or_rollback(db)
-        db.refresh(new_riddle)
-
-        logger.info(f"Riddle created successfully with ID: {new_riddle.riddle_id}")
-        return new_riddle
-
-    except Exception as e:
-        logger.exception(f"FATAL error during riddle creation: {str(e)}")
+        logger.exception(f"Error editing riddle {riddle_id}: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-#     event_type: Annotated[Literal["algotime", "competitions"], Query(default="algotime")],
-#     db: Annotated[Session, Depends(get_db)],
-#     current_user: Annotated[dict, Depends(role_required("admin"))]
 
+# ---------------- DELETE ENDPOINT (with file deletion) ----------------
 @riddles_router.delete(
     "/{riddle_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses={ 
-               404: { "description": "Riddle not found." },
-               500: { "description": "Failed to delete riddle." }
-            }
 )
 async def delete_riddle(
     riddle_id: int,
-    db: Annotated[Session, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)],
 ):
-    
     logger.info(f"Anonymous user attempting to delete riddle ID: {riddle_id}")
 
     try:
@@ -147,11 +228,12 @@ async def delete_riddle(
         if not riddle:
             raise HTTPException(status_code=404, detail="Riddle not found")
 
+        # delete file from storage first
+        if riddle.riddle_file:
+            _delete_from_supabase_by_public_url(riddle.riddle_file)
+
         db.delete(riddle)
         _commit_or_rollback(db)
-
-        
-        logger.info(f"SUCCESSFUL DELETION: Riddle ID {riddle_id} deleted")
 
     except HTTPException:
         raise
