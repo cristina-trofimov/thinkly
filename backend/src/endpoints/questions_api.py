@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from models.schema import Question, Riddle, Tag, TestCase
@@ -70,7 +70,8 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
 @questions_router.post("/upload-question-batch", status_code=201,
     responses={ 500: { "description": "Failed to upload question batch." } }
 )
-def upload_question_batch(question_request: list[CreateQuestionRequest], db: Annotated[str, Depends(get_db)]):
+def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
+                          db: Annotated[str, Depends(get_db)] = None):
     try:
         questions = [
             get_question_from_request(db, q) for q in question_request
@@ -110,3 +111,44 @@ def get_all_testcases(question_id: int, db: Annotated[str, Depends(get_db)]):
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve test cases. Exception: {str(e)}")
+
+class BatchDeleteQuestionsRequest(BaseModel):
+    question_ids: list[int]
+
+@questions_router.delete(
+    "/batch-delete"
+)
+def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        requested_ids = list(dict.fromkeys(payload.question_ids))
+        existing_ids = [
+            row.question_id
+            for row in db.query(Question.question_id)
+            .filter(Question.question_id.in_(requested_ids))
+            .all()
+        ]
+        if existing_ids:
+            deleted_count = (
+                db.query(Question)
+                .filter(Question.question_id.in_(existing_ids))
+                .delete(synchronize_session=False)
+            )
+        else:
+            deleted_count = 0
+        db.commit()
+        logger.info(f"Deleted {deleted_count} questions from the database.")
+
+        existing_set = set(existing_ids)
+        missing_ids = [question_id for question_id in requested_ids if question_id not in existing_set]
+        errors = [{"question_id": question_id, "error": "Question not found."} for question_id in missing_ids]
+
+        return {
+            "deleted_count": deleted_count,
+            "deleted_questions": [{"question_id": question_id} for question_id in existing_ids],
+            "total_requested": len(requested_ids),
+            "errors": errors,
+        }
+    except Exception as e:
+        logger.error(f"Error deleting questions: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error deleting questions.")
