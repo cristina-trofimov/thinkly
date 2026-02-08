@@ -34,6 +34,25 @@ export async function getQuestions(): Promise<Question[]> {
   }
 }
 
+export async function deleteQuestions(questionIds: number[]): Promise<{
+  status_code: number;
+  deleted_count: number;
+  deleted_questions: Array<{ question_id: number }>;
+  total_requested: number;
+  errors?: Array<{ question_id: number; error: string }>;
+}> {
+  try {
+    const response = await axiosClient.delete(`/questions/batch-delete`, {
+      data: { question_ids: questionIds },
+    });
+    console.log(`Questions ${questionIds.join(", ")} deleted successfully`);
+    return response.data;
+  } catch (err) {
+    console.error("Error deleting questions:", err);
+    throw err;
+  }
+}
+
 export async function getRiddles(): Promise<Riddle[]> {
   try {
     const response = await axiosClient.get<{
@@ -88,6 +107,16 @@ export async function deleteCompetition(competitionId: string): Promise<void> {
     console.log(`Competition ${competitionId} deleted successfully`);
   } catch (err) {
     console.error("Error deleting competition:", err);
+    throw err;
+  }
+}
+
+export async function uploadQuestions(questions: Question[]): Promise<void> {
+  try {
+    await axiosClient.post(`/questions/upload-question-batch`, questions);
+    console.log(`Questions uploaded successfully`);
+  } catch (err) {
+    console.error("Error uploading questions:", err);
     throw err;
   }
 }

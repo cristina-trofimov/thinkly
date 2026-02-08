@@ -31,6 +31,7 @@ import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
+import ManageQuestionsPage from "./views/admin/ManageQuestionsPage.tsx";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
 
@@ -147,6 +148,11 @@ const router = createBrowserRouter([
                 path: "manageRiddles",
                 element: <ManageRiddles />,
                 handle: { crumb: { title: "Manage Riddles" } },
+              },
+              {
+                path: "manageQuestions",
+                element: <ManageQuestionsPage />,
+                handle: { crumb: { title: "Manage Questions" } },
               },
               {
                 path: "algoTimeSessions",

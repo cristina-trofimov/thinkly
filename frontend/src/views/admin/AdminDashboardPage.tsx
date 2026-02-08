@@ -167,12 +167,17 @@ export function AdminDashboard() {
                 items={recentCompetitions.length > 0 ? recentCompetitions : getLoadingPlaceholder("competition")}
               />
             </Link>
-            <div className="flex-1 min-w-0">
-              <ManageCard
-                title="Manage Questions"
-                items={recentQuestions.length > 0 ? recentQuestions : getLoadingPlaceholder("default")}
-              />
-            </div>
+            <Link
+              to="/app/dashboard/manageQuestions"
+              className="cursor-pointer block flex-1 min-w-0"
+            >  
+              <div className="flex-1 min-w-0">
+                <ManageCard
+                  title="Manage Questions"
+                  items={recentQuestions.length > 0 ? recentQuestions : getLoadingPlaceholder("default")}
+                  />
+              </div>
+            </Link>
             <Link
               to="/app/dashboard/algoTimeSessions"
               className="cursor-pointer block flex-1 min-w-0"
