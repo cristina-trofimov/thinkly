@@ -107,7 +107,7 @@ def generate_unique_series_name(name: str) -> str:
 @algotime_router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_algotime(
     request: CreateAlgoTimeRequest,
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     logger.info(f"Creating AlgoTime series '{request.seriesName}'")
@@ -210,7 +210,7 @@ def create_algotime(
         )
 
 @algotime_router.get("/", response_model=List[AlgoTimeSessionResponse])
-def get_all_algotime_sessions(db: Annotated[str, Depends(get_db)]):
+def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
     try:
         sessions = db.query(AlgoTimeSession).all()
         logger.info(f"Fetched {len(sessions)} AlgoTime sessions.")

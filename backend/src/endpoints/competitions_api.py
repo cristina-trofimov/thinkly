@@ -270,7 +270,7 @@ def send_competition_emails(
 
 # ---------------- Routes ----------------
 @competitions_router.get("/")
-def get_all_competitions(db: Annotated[str, Depends(get_db)]):
+def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
     """Get all competitions (existing endpoint kept for compatibility)"""
     try:
         competitions = db.query(Competition).join(BaseEvent).all()
@@ -296,7 +296,7 @@ def get_all_competitions(db: Annotated[str, Depends(get_db)]):
 
 @competitions_router.get("/list", response_model=List[CompetitionResponse])
 async def list_competitions(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
@@ -353,7 +353,7 @@ async def list_competitions(
 @competitions_router.post("/create", response_model=CompetitionResponse, status_code=status.HTTP_201_CREATED)
 async def create_competition(
     request: CreateCompetitionRequest,
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
@@ -432,7 +432,7 @@ async def create_competition(
 @competitions_router.get("/{competition_id}", response_model=DetailedCompetitionResponse)
 async def get_competition_detailed(
     competition_id: int,
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
@@ -540,7 +540,7 @@ async def get_competition_detailed(
 async def update_competition(
     competition_id: int,
     request: CreateCompetitionRequest,
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
 
@@ -646,7 +646,7 @@ async def update_competition(
 @competitions_router.delete("/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_competition(
     competition_id: int,
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """

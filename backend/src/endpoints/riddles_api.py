@@ -49,7 +49,7 @@ def check_riddle_exists(db: Session, question: str) -> bool:
     responses={ 500: { "description": "Failed to retrieve riddles." } }
 )
 async def list_riddles(
-    db: Annotated[str, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)]
 ):
     logger.info("Public user requesting full riddles list")
     try:
@@ -70,7 +70,7 @@ async def list_riddles(
 )
 async def get_riddle(
     riddle_id: int,
-    db: Annotated[str, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)]
 ):
     try:
         riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
@@ -95,7 +95,7 @@ async def get_riddle(
 )
 async def create_riddle(
     request: CreateRiddleRequest,
-    db: Annotated[str, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)]
 ):
     
     logger.info("Anonymous user attempting to create new riddle")
@@ -124,7 +124,7 @@ async def create_riddle(
 
 # time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
 #     event_type: Annotated[Literal["algotime", "competitions"], Query(default="algotime")],
-#     db: Annotated[str, Depends(get_db)],
+#     db: Annotated[Session, Depends(get_db)],
 #     current_user: Annotated[dict, Depends(role_required("admin"))]
 
 @riddles_router.delete(
@@ -137,7 +137,7 @@ async def create_riddle(
 )
 async def delete_riddle(
     riddle_id: int,
-    db: Annotated[str, Depends(get_db)]
+    db: Annotated[Session, Depends(get_db)]
 ):
     
     logger.info(f"Anonymous user attempting to delete riddle ID: {riddle_id}")

@@ -155,7 +155,7 @@ def get_chart_colors():
 
 @admin_dashboard_router.get("/overview", response_model=DashboardOverviewResponse)
 async def get_dashboard_overview(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(role_required("admin"))]
     # db: Session = Depends(get_db),
     # current_user: dict = Depends(role_required("admin"))
@@ -255,9 +255,12 @@ async def get_new_accounts_stats(
     # db: Session = Depends(get_db),
     # current_user: dict = Depends(role_required("admin"))
     
-    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-    db: Annotated[str, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))],
+    time_range: Annotated[
+            Literal["7days", "30days", "3months"],
+            Query()
+        ] = "3months",
 ):
     """
     Get new accounts statistics for the specified time range.
@@ -306,9 +309,12 @@ async def get_new_accounts_stats(
 
 @admin_dashboard_router.get("/stats/questions-solved", response_model=List[QuestionsSolvedItem])
 async def get_questions_solved_stats(
-    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-    db: Annotated[str, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))],
+    time_range: Annotated[
+            Literal["7days", "30days", "3months"],
+            Query()
+        ] = "3months",
 ):
     """
     Get questions solved by difficulty for the specified time range.
@@ -357,9 +363,12 @@ async def get_questions_solved_stats(
 
 @admin_dashboard_router.get("/stats/time-to-solve", response_model=List[TimeToSolveItem])
 async def get_time_to_solve_stats(
-    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-    db: Annotated[str, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))],
+    time_range: Annotated[
+            Literal["7days", "30days", "3months"],
+            Query()
+        ] = "3months",
 ):
     """
     Get average time to solve questions by difficulty.
@@ -413,9 +422,12 @@ async def get_time_to_solve_stats(
 
 @admin_dashboard_router.get("/stats/logins", response_model=List[LoginsDataPoint])
 async def get_logins_stats(
-    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-    db: Annotated[str, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))],
+    time_range: Annotated[
+            Literal["7days", "30days", "3months"],
+            Query()
+        ] = "3months",
 ):
     """
     Get login counts over time.
@@ -497,10 +509,16 @@ async def get_logins_stats(
 
 @admin_dashboard_router.get("/stats/participation", response_model=List[ParticipationDataPoint])
 async def get_participation_stats(
-    time_range: Annotated[Literal["7days", "30days", "3months"], Query(default="3months")],
-    event_type: Annotated[Literal["algotime", "competitions"], Query(default="algotime")],
-    db: Annotated[str, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))],
+    time_range: Annotated[
+            Literal["7days", "30days", "3months"],
+            Query()
+        ] = "3months",
+    event_type: Annotated[
+            Literal["algotime", "competitions"],
+            Query()
+        ] = "algotime",
 ):
     """
     Get participation over time filtered by event type.

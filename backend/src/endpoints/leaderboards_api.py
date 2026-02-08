@@ -136,7 +136,7 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 @leaderboards_router.get("/competitions")
 def get_leaderboards(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions endpoint ===")
@@ -209,7 +209,7 @@ def get_leaderboards(
 
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions/current endpoint ===")
@@ -294,7 +294,7 @@ def get_current_competition_leaderboard(
 
 
 @leaderboards_router.get("/algotime")
-def get_all_algotime_leaderboard_entries(db: Annotated[str, Depends(get_db)]):
+def get_all_algotime_leaderboard_entries(db: Annotated[Session, Depends(get_db)]):
     """
     Returns all entries in the AlgoTime leaderboard table.
     Ranks are calculated based on total_score (highest score = rank 1).

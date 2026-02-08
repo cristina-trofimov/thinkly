@@ -48,7 +48,7 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
     )
 
 @questions_router.post(
-    "/upload-question",
+    "/upload-question", status_code=201,
     responses={ 500: { "description": "Failed to upload question." } }
 )
 def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, Depends(get_db)]):
@@ -64,7 +64,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
         logger.error(f"Error uploading question: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to upload question. Exception: {str(e)}")  
 
-@questions_router.post("/upload-question-batch",
+@questions_router.post("/upload-question-batch", status_code=201,
     responses={ 500: { "description": "Failed to upload question batch." } }
 )
 def upload_question_batch(question_request: list[CreateQuestionRequest], db: Annotated[str, Depends(get_db)]):

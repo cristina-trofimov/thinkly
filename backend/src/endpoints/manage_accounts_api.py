@@ -19,7 +19,7 @@ class UpdateAccountRequest(BaseModel):
     user_type: Optional[str] = None
 
 @accounts_router.get("/users")
-def get_all_accounts(db: Annotated[str, Depends(get_db)]):
+def get_all_accounts(db: Annotated[Session, Depends(get_db)]):
     accounts = db.query(UserAccount).all()
     logger.info(f"Fetched {len(accounts)} accounts from the database.")
     return accounts
@@ -28,7 +28,7 @@ def get_all_accounts(db: Annotated[str, Depends(get_db)]):
     "/users/batch-delete",
     responses={ 500: { "description": "Error deleting accounts." } }
 )
-def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[str, Depends(get_db)]):
+def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         requested_ids = list(dict.fromkeys(payload.user_ids))
         existing_ids = [
@@ -70,7 +70,7 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[str, 
                404: { "description": "Account not found." }
             }
 )
-def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[str, Depends(get_db)]):
+def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[Session, Depends(get_db)]):
     account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
     if not account:
         logger.warning(f"Account with ID {user_id} not found.")

@@ -306,7 +306,7 @@ class TestGetLeaderboards:
         mock_query = mock_db.query.return_value
         mock_query.join.return_value.all.return_value = []
 
-        result = get_leaderboards(None, mock_db)
+        result = get_leaderboards(mock_db, None)
 
         assert result == []
 
@@ -316,7 +316,7 @@ class TestGetLeaderboards:
         mock_query = mock_db.query.return_value
         mock_query.join.return_value.all.return_value = [sample_competition]
 
-        result = get_leaderboards(None, mock_db)
+        result = get_leaderboards(mock_db, None)
 
         assert len(result) == 1
         assert result[0]["id"] == "1"
@@ -333,7 +333,7 @@ class TestGetLeaderboards:
         mock_query = mock_db.query.return_value
         mock_query.join.return_value.all.return_value = [sample_competition]
 
-        result = get_leaderboards(None, mock_db)
+        result = get_leaderboards(mock_db, None)
 
         assert result[0]["participants"][0]["name"] == "Fallback Name"
 
@@ -342,7 +342,7 @@ class TestGetLeaderboards:
         mock_db.query.side_effect = Exception("Database error")
 
         with pytest.raises(HTTPException) as exc_info:
-            get_leaderboards(None, mock_db)
+            get_leaderboards(mock_db, None)
 
         assert exc_info.value.status_code == 500
         assert exc_info.value.detail == "Failed to retrieve leaderboards."
@@ -359,7 +359,7 @@ class TestGetCurrentCompetitionLeaderboard:
 
         mock_db.query.return_value = competition_query
 
-        result = get_current_competition_leaderboard(None, mock_db)
+        result = get_current_competition_leaderboard(mock_db, None)
 
         assert result["message"] == "No competition is currently active."
         assert result["competition"] is None
@@ -390,7 +390,7 @@ class TestGetCurrentCompetitionLeaderboard:
 
         mock_db.query.side_effect = [competition_query, entries_query]
 
-        result = get_current_competition_leaderboard(None, mock_db)
+        result = get_current_competition_leaderboard(mock_db, None)
 
         assert result["competition"]["id"] == 1
         assert result["competition"]["name"] == "Test Competition"

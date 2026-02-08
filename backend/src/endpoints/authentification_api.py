@@ -160,7 +160,7 @@ def role_required(required_role: str):
 
 # ---------------- Routes ----------------
 @auth_router.post("/signup")
-async def signup(request: SignupRequest, db: Annotated[str, Depends(get_db)]):
+async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Attempting signup for email: {request.email}")
     if get_user_by_email(db, request.email):
         logger.warning(f"Signup denied: User already exists with email: {request.email}")
@@ -176,7 +176,7 @@ async def signup(request: SignupRequest, db: Annotated[str, Depends(get_db)]):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during signup")
 
 @auth_router.post("/login")
-async def login(request: LoginRequest, db: Annotated[str, Depends(get_db)]):
+async def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Attempting password login for email: {request.email}")
     user = get_user_by_email(db, request.email)
 
@@ -203,7 +203,7 @@ async def login(request: LoginRequest, db: Annotated[str, Depends(get_db)]):
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 @auth_router.post("/google-auth")
-async def google_login(request: GoogleAuthRequest, db: Annotated[str, Depends(get_db)]):
+async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info("Attempting Google OAuth login.")
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
@@ -249,7 +249,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[str, Depends(ge
 
 @auth_router.get("/profile")
 async def profile(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
@@ -293,7 +293,7 @@ async def logout(request: Request, current_user: Annotated[dict, Depends(get_cur
 
 @auth_router.get("/admin/dashboard")
 async def admin_dashboard(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     user_email = current_user.get("sub", "N/A")
@@ -302,7 +302,7 @@ async def admin_dashboard(
 
 
 @auth_router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, db: Annotated[str, Depends(get_db)]):
+async def forgot_password(request: ForgotPasswordRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Password reset requested for email: {request.email}")
 
     # Check if user exists (but don't reveal this to the client)
@@ -352,7 +352,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: Annotated[str, Dep
         400: { "description": "Invalid or expired reset token" }
     }
 )
-async def reset_password(request: ResetPasswordRequest, db: Annotated[str, Depends(get_db)]):
+async def reset_password(request: ResetPasswordRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         # Verify the token
         payload = jwt.decode(request.token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
@@ -388,7 +388,7 @@ async def reset_password(request: ResetPasswordRequest, db: Annotated[str, Depen
 )
 async def change_password(
     request: ChangePasswordRequest, 
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
@@ -416,7 +416,7 @@ async def change_password(
     }
 )
 async def is_google_account(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
