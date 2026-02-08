@@ -151,4 +151,4 @@ def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[S
     except Exception as e:
         logger.error(f"Error deleting questions: {e}")
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error deleting questions.")
+        raise HTTPException(status_code=500, detail="Error deleting questions.")
