@@ -9,7 +9,10 @@ import logging
 logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])
 
-@questions_router.get("/get-all-questions")
+@questions_router.get(
+    "/get-all-questions",
+    responses={ 500: { "description": "Failed to retrieve questions." } }
+)
 def get_all_questions(db: Annotated[str, Depends(get_db)]):
     try:
         questions = db.query(Question).all()
