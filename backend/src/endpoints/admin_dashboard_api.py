@@ -251,10 +251,6 @@ async def get_dashboard_overview(
 
 @admin_dashboard_router.get("/stats/new-accounts", response_model=NewAccountsStatsResponse)
 async def get_new_accounts_stats(
-    # time_range: Literal["7days", "30days", "3months"] = Query(default="3months"),
-    # db: Session = Depends(get_db),
-    # current_user: dict = Depends(role_required("admin"))
-    
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(role_required("admin"))],
     time_range: Annotated[
