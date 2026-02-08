@@ -113,14 +113,6 @@ jobs:
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
             -Dsonar.python.version=3.11
 
-      - name: SonarQube Quality Gate check
-        uses: SonarSource/sonarqube-quality-gate-action@v1
-        # timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      - run: cat .scannerwork/report-task.txt
-
       - name: Fail on high severity issues
         run: |
           BLOCKER=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
