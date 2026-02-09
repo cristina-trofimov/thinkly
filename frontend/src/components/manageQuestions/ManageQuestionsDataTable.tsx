@@ -56,9 +56,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { Question } from "@/types/questions/Question.type";
-import { deleteQuestions } from "@/api/QuestionsAPI";
+import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
+import { deleteQuestion, deleteQuestions, updateQuestion } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
+import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 
 interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -94,6 +95,10 @@ export function ManageQuestionsDataTable<TData, TValue>({
       columnFilters,
       rowSelection,
     },
+    meta: {
+      handleQuestionUpdate,
+      handleQuestionDelete,
+    } as any
   });
 
   const handleDelete = async () => {
@@ -332,4 +337,28 @@ export function ManageQuestionsDataTable<TData, TValue>({
       </div>
     </div>
   );
+}
+
+async function handleQuestionUpdate(questionId: number, updatedQuestionFields: EditableQuestionFields): boolean {
+  try {
+    await updateQuestion(questionId, updatedQuestionFields);
+    toast.success(`Question ${questionId} updated successfully!`);
+    return true;
+  } catch (error) {
+    const message = parseAxiosErrorMessage(error);
+    toast.error(`Failed to update question ${questionId}: ${message}`);
+    console.error(`Error updating question ${questionId}:`, error);
+    return false;
+  }
+}
+
+function handleQuestionDelete(questionId: number): void {
+  try {
+    deleteQuestion(questionId);
+    toast.success(`Question ${questionId} deleted successfully!`);
+  } catch (error) {
+    const message = parseAxiosErrorMessage(error);
+    console.error("Error deleting questions:", error);
+    toast.error(`Failed to delete question ${questionId}: ${message}`);
+  }
 }

@@ -166,3 +166,36 @@ def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[S
         logger.error(f"Error deleting questions: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Error deleting questions.")
+    
+@questions_router.put('/update-question/{question_id}')
+def update_question(question_id: int, question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        db_question = db.query(Question).filter(Question.question_id == int(question_id)).first()
+        if not db_question:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Question with id {question_id} not found"
+            )
+        updated_question: Question = get_question_from_request(db, question_request)
+        db_question.question_name=updated_question.question_name
+        db_question.question_description=updated_question.question_description
+        db_question.media=updated_question.media
+        db_question.difficulty=updated_question.difficulty
+        db_question.preset_code=updated_question.preset_code
+        db_question.from_string_function=updated_question.from_string_function
+        db_question.to_string_function=updated_question.to_string_function
+        db_question.template_solution=updated_question.template_solution
+        db_question.tags=updated_question.tags
+        for old_tc in db_question.test_cases:
+            db.delete(old_tc)
+        for tc in updated_question.test_cases:
+            tc.question_id = question_id
+        db_question.test_cases=updated_question.test_cases
+        db.commit()
+        db.refresh(db_question)
+        logger.info(f"Updated question: {question_id}")
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Error updating question: {question_id}")
+        raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
+

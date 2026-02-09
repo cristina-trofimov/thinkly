@@ -4,7 +4,8 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Question } from "@/types/questions/Question.type";
+import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
+import ActionsCell from "./QuestionActionsCell";
 
 const difficultyOrder: Record<string, number> = {
   "easy": 1,
@@ -13,6 +14,11 @@ const difficultyOrder: Record<string, number> = {
   "Medium": 2,
   "hard": 3,
   "Hard": 3,
+}
+
+interface TableMeta {
+  handleQuestionUpdate?: (questionId: number, updatedQuestionFields: EditableQuestionFields) => boolean;
+  handleQuestionDelete?: (questionId: number) => void;
 }
 
 export const columns: ColumnDef<Question>[] = [
@@ -137,5 +143,19 @@ export const columns: ColumnDef<Question>[] = [
         {(row.getValue<string>("difficulty")).replace(/^\w/, (c) => c.toUpperCase())}
       </div>
     ),
-  }
+  },
+  {
+      id: "actions",
+      cell: ({ row, table }) => {
+        const question = row.original;
+        const meta = table.options.meta as TableMeta;
+        const { handleQuestionUpdate, handleQuestionDelete } = meta;
+  
+        return (
+          <div className="flex justify-center">
+            <ActionsCell question={question} onUpdate={handleQuestionUpdate} onDelete={handleQuestionDelete} />
+          </div>
+        );
+      },
+    },
 ];

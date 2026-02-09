@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Question } from "../types/questions/Question.type";
+import type { EditableQuestionFields, Question } from "../types/questions/Question.type";
 import type { Riddle } from "../types/riddle/Riddle.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 
@@ -14,6 +14,9 @@ export async function getQuestions(): Promise<Question[]> {
       template_solution: string;
       difficulty: "Easy" | "Medium" | "Hard",
       last_modified_at: string;
+      tags: string[];
+      from_string_function: string;
+      to_string_function: string;
     }[]>(`/questions/get-all-questions`);
 
     const formatted: Question[] = response.data.map(q => ({
@@ -25,6 +28,10 @@ export async function getQuestions(): Promise<Question[]> {
       template_solution: q.template_solution,
       difficulty: q.difficulty,
       date: new Date(q.last_modified_at),
+      from_string_function: "",
+      to_string_function: "",
+      tags: q.tags,
+      testcases: [],
     }));
 
     return formatted;
@@ -51,6 +58,10 @@ export async function deleteQuestions(questionIds: number[]): Promise<{
     console.error("Error deleting questions:", err);
     throw err;
   }
+}
+
+export async function deleteQuestion(questionId: number): Promise<void> {
+  await deleteQuestions([questionId]);
 }
 
 export async function getRiddles(): Promise<Riddle[]> {
@@ -117,6 +128,17 @@ export async function uploadQuestions(questions: Question[]): Promise<void> {
     console.log(`Questions uploaded successfully`);
   } catch (err) {
     console.error("Error uploading questions:", err);
+    throw err;
+  }
+}
+
+export async function updateQuestion(questionId: number, updatedFields: EditableQuestionFields): Promise<void> {
+  try {
+    const response = await axiosClient.put(`/questions/update-question/${questionId}`, updatedFields);
+    console.log(response);
+    console.log(`Question ${questionId} updated successfully`);
+  } catch (err) {
+    console.error(`Error updating question ${questionId}:`, err);
     throw err;
   }
 }
