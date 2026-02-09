@@ -1,11 +1,16 @@
 import { uploadQuestions } from "@/api/QuestionsAPI";
-import { useRef, useState } from "react";
+import { useRef, useState, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 
-const UploadQuestionsJSONButton: React.FC = () => {
+interface UploadQuestionsJSONButtonProps extends Omit<ComponentProps<typeof Button>, "onClick"> {
+    textWhileUploading?: ReactNode;
+}
+
+const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONButtonProps>> = (props) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const { children, textWhileUploading } = props;
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -41,11 +46,12 @@ const UploadQuestionsJSONButton: React.FC = () => {
             className="hidden"
         />
         <Button
-            variant="default"
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
+            {...props}
+            onClick={() => {
+                fileInputRef.current?.click()
+            }}
         >
-            {isUploading ? "Uploading..." : "Upload JSON"}
+            {(isUploading && textWhileUploading) ? textWhileUploading : children }
         </Button>
     </>
 }

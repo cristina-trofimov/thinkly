@@ -77,7 +77,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
     []
   );
   const [rowSelection, setRowSelection] = React.useState({});
-  const [isEditMode, setIsEditMode] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -95,11 +94,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
       rowSelection,
     },
   });
-
-  const handleCancel = () => {
-    setIsEditMode(false);
-    setRowSelection({});
-  };
 
   const handleDelete = async () => {
     const selectedRows = table
@@ -142,7 +136,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
 
       toast.error(errorMessage);
     } finally {
-      setIsEditMode(false);
       setRowSelection({});
     }
   };
@@ -208,19 +201,15 @@ export function ManageQuestionsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <UploadQuestionsJSONButton />
-        {isEditMode ? (
           <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  className="cursor-pointer"
-                  variant="destructive"
-                  disabled={Object.keys(rowSelection).length === 0}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
+              {Object.keys(rowSelection).length > 0 && <Button
+                className="cursor-pointer"
+                variant="softDestructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>}
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -242,23 +231,14 @@ export function ManageQuestionsDataTable<TData, TValue>({
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
-            </AlertDialog>
-            <Button variant="outline" onClick={handleCancel}>
-              <span className="hidden md:inline-flex items-center cursor-pointer">
-                Cancel
-              </span>
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="secondary"
-            className="ml-auto cursor-pointer"
-            onClick={() => setIsEditMode(true)}
+          </AlertDialog>
+          <UploadQuestionsJSONButton
+            variant="default"
+            textWhileUploading={<>Uploading...</>}
           >
-            <SquarePen className="text-primary" />
-            <span className="hidden md:inline-flex">Edit</span>
-          </Button>
-        )}
+              Upload JSON
+        </UploadQuestionsJSONButton>
+          </div>
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -266,9 +246,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  if (header.id === "select" && !isEditMode) {
-                    return null;
-                  }
                   return (
                     <TableHead key={header.id}>
                       {header.isPlaceholder
@@ -291,9 +268,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    if (cell.column.id === "select" && !isEditMode) {
-                      return null;
-                    }
                     return (
                       <TableCell key={cell.id}>
                         {flexRender(
@@ -320,12 +294,10 @@ export function ManageQuestionsDataTable<TData, TValue>({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1">
-          {isEditMode ? (
-            <div className="text-sm text-muted-foreground">
+          {Object.keys(rowSelection).length > 0 && (<div className="text-sm text-muted-foreground">
               {Object.keys(rowSelection).length} of{" "}
               {table.getFilteredRowModel().rows.length} row(s) selected
-            </div>
-          ) : null}
+            </div>)}
         </div>
         <div className="flex items-center space-x-2">
           <Button
