@@ -16,6 +16,7 @@ jest.mock("recharts", () => {
   return {
     PieChart: ({ children }: any) => <div data-testid="piechart">{children}</div>,
     Pie: ({ children }: any) => <div data-testid="pie">{children}</div>,
+    Label: () => <div data-testid="pie-label" />,
     Cell: ({ fill }: any) => <div data-testid="pie-cell" data-fill={fill} />,
     LineChart: ({ children }: any) => <div data-testid="linechart">{children}</div>,
     Line: ({ children }: any) => <div data-testid="line">{children}</div>,
@@ -99,5 +100,6 @@ describe("DashboardCharts", () => {
     expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("barchart")).toBeInTheDocument();
     expect(screen.getByTestId("bar")).toBeInTheDocument();
+    expect(screen.getByText(/Participation over time/i)).toBeInTheDocument();
   });
 });
