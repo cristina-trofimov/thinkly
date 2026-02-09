@@ -17,6 +17,16 @@ interface QuestionsSolvedChartProps {
   loading?: boolean;
 }
 
+interface LabelViewBox {
+  cx?: number;
+  cy?: number;
+}
+
+interface CenterLabelProps {
+  totalQuestions: number;
+  viewBox?: LabelViewBox;
+}
+
 const DIFFICULTY_COLORS = {
   Easy: "#10b981",
   Medium: "#f59e0b",
@@ -46,6 +56,31 @@ function getDifficultyColor(name: string): string {
     default:
       return DIFFICULTY_COLORS.Hard;
   }
+}
+
+function CenterLabel({ totalQuestions, viewBox }: CenterLabelProps) {
+  if (!viewBox || typeof viewBox.cx !== "number" || typeof viewBox.cy !== "number") {
+    return null;
+  }
+
+  return (
+    <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
+      <tspan
+        x={viewBox.cx}
+        y={viewBox.cy}
+        className="fill-foreground text-3xl font-bold"
+      >
+        {totalQuestions.toLocaleString()}
+      </tspan>
+      <tspan
+        x={viewBox.cx}
+        y={viewBox.cy + 24}
+        className="fill-muted-foreground text-sm"
+      >
+        Questions
+      </tspan>
+    </text>
+  );
 }
 
 export const QuestionsSolvedChart = ({
@@ -89,35 +124,7 @@ export const QuestionsSolvedChart = ({
               fill={entry.color}
             />
           ))}
-          <Label
-            content={({ viewBox }) => {
-              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                return (
-                  <text
-                    x={viewBox.cx}
-                    y={viewBox.cy}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    <tspan
-                      x={viewBox.cx}
-                      y={viewBox.cy}
-                      className="fill-foreground text-3xl font-bold"
-                    >
-                      {totalQuestions.toLocaleString()}
-                    </tspan>
-                    <tspan
-                      x={viewBox.cx}
-                      y={(viewBox.cy || 0) + 24}
-                      className="fill-muted-foreground text-sm"
-                    >
-                      Questions
-                    </tspan>
-                  </text>
-                );
-              }
-            }}
-          />
+          <Label content={<CenterLabel totalQuestions={totalQuestions} />} />
         </Pie>
         {totalQuestions > 0 && <ChartTooltip content={<ChartTooltipContent />} />}
       </PieChart>
