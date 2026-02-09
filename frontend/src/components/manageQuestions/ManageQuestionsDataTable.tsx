@@ -39,7 +39,6 @@ import { Input } from "@/components/ui/input";
 import {
   Filter,
   Search,
-  SquarePen,
   ChevronLeft,
   ChevronRight,
   Trash2,

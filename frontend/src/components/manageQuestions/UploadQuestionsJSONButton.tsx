@@ -1,9 +1,6 @@
 import { uploadQuestions } from "@/api/QuestionsAPI";
 import { useRef, useState, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import { Button } from "../ui/button";
-import { toast } from "sonner";
-import axios from "axios";
-import { parse } from "date-fns";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 
 interface UploadQuestionsJSONButtonProps extends Omit<ComponentProps<typeof Button>, "onClick"> {
