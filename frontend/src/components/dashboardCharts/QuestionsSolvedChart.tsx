@@ -1,11 +1,15 @@
-import { PieChart, Pie, Cell } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { useMemo } from "react";
+import { PieChart, Pie, Cell, Label } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
-interface QuestionsSolvedData {
+interface QuestionsSolvedData extends Record<string, unknown> {
   name: string;
   value: number;
-  color: string;
-  [key: string]: string | number; // Index signature for recharts compatibility
+  color?: string;
 }
 
 interface QuestionsSolvedChartProps {
@@ -13,60 +17,65 @@ interface QuestionsSolvedChartProps {
   loading?: boolean;
 }
 
-export const QuestionsSolvedChart = ({ data, loading = false }: QuestionsSolvedChartProps) => {
-  // Show empty state if loading or no data
-  if (loading || data.length === 0) {
-    const placeholderData: QuestionsSolvedData[] = [
-      { name: "Easy", value: 1, color: "var(--chart-1)" },
-      { name: "Medium", value: 1, color: "var(--chart-2)" },
-      { name: "Hard", value: 1, color: "var(--chart-3)" },
-    ];
+const DIFFICULTY_COLORS = {
+  Easy: "#10b981",
+  Medium: "#f59e0b",
+  Hard: "#ef4444",
+} as const;
 
-    return (
-      <ChartContainer
-        config={{
-          Easy: { color: "var(--chart-1)" },
-          Medium: { color: "var(--chart-2)" },
-          Hard: { color: "var(--chart-3)" },
-        }}
-        style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
-      >
-        <PieChart>
-          <Pie
-            data={placeholderData}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={90}
-            paddingAngle={0}
-            dataKey="value"
-          >
-            {placeholderData.map((entry) => (
-              <Cell key={`${entry.name}-${entry.value}`} fill={entry.color} />
-            ))}
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-    );
+const CHART_CONFIG = {
+  Easy: { color: DIFFICULTY_COLORS.Easy },
+  Medium: { color: DIFFICULTY_COLORS.Medium },
+  Hard: { color: DIFFICULTY_COLORS.Hard },
+} as const;
+
+const PLACEHOLDER_DATA: QuestionsSolvedData[] = [
+  { name: "Easy", value: 1, color: DIFFICULTY_COLORS.Easy },
+  { name: "Medium", value: 1, color: DIFFICULTY_COLORS.Medium },
+  { name: "Hard", value: 1, color: DIFFICULTY_COLORS.Hard },
+];
+
+function getDifficultyColor(name: string): string {
+  switch (name.toLowerCase()) {
+    case "easy":
+      return DIFFICULTY_COLORS.Easy;
+    case "medium":
+      return DIFFICULTY_COLORS.Medium;
+    case "hard":
+      return DIFFICULTY_COLORS.Hard;
+    default:
+      return DIFFICULTY_COLORS.Hard;
   }
+}
 
-  // Add index signature to data for recharts compatibility
-  const chartData: QuestionsSolvedData[] = data.map(item => ({
-    ...item,
+export const QuestionsSolvedChart = ({
+  data,
+  loading = false,
+}: QuestionsSolvedChartProps) => {
+  const hasData = data.length > 0;
+  
+  // Calculate total questions from actual data
+  const totalQuestions = useMemo(() => {
+    if (!hasData) return 0;
+    return data.reduce((acc, curr) => acc + curr.value, 0);
+  }, [data, hasData]);
+
+  // Use placeholder data if no data or total is 0
+  const chartData = hasData && totalQuestions > 0 ? data : PLACEHOLDER_DATA;
+
+  const resolvedData = chartData.map((entry) => ({
+    ...entry,
+    color: getDifficultyColor(entry.name),
   }));
 
   return (
     <ChartContainer
-      config={{
-        Easy: { color: "var(--chart-1)" },
-        Medium: { color: "var(--chart-2)" },
-        Hard: { color: "var(--chart-3)" },
-      }}
-      style={{ width: "100%", height: 180 }}
+      config={CHART_CONFIG}
+      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
     >
       <PieChart>
         <Pie
-          data={chartData}
+          data={resolvedData}
           cx="50%"
           cy="50%"
           innerRadius={60}
@@ -74,11 +83,43 @@ export const QuestionsSolvedChart = ({ data, loading = false }: QuestionsSolvedC
           paddingAngle={0}
           dataKey="value"
         >
-          {chartData.map((entry) => (
-              <Cell key={`${entry.name}-${entry.value}`} fill={entry.color} />
+          {resolvedData.map((entry) => (
+            <Cell
+              key={`${entry.name}-${entry.value}`}
+              fill={entry.color}
+            />
           ))}
+          <Label
+            content={({ viewBox }) => {
+              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                return (
+                  <text
+                    x={viewBox.cx}
+                    y={viewBox.cy}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                  >
+                    <tspan
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      className="fill-foreground text-3xl font-bold"
+                    >
+                      {totalQuestions.toLocaleString()}
+                    </tspan>
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy || 0) + 24}
+                      className="fill-muted-foreground text-sm"
+                    >
+                      Questions
+                    </tspan>
+                  </text>
+                );
+              }
+            }}
+          />
         </Pie>
-        <ChartTooltip content={<ChartTooltipContent />} />
+        {totalQuestions > 0 && <ChartTooltip content={<ChartTooltipContent />} />}
       </PieChart>
     </ChartContainer>
   );
