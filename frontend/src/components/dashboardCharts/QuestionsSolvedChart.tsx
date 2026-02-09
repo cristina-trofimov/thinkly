@@ -58,7 +58,7 @@ function getDifficultyColor(name: string): string {
   }
 }
 
-function CenterLabel({ totalQuestions, viewBox }: CenterLabelProps) {
+function CenterLabel({ totalQuestions, viewBox }: Readonly<CenterLabelProps>) {
   if (!viewBox || typeof viewBox.cx !== "number" || typeof viewBox.cy !== "number") {
     return null;
   }
