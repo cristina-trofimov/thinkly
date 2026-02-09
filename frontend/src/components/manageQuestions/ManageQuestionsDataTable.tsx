@@ -65,12 +65,14 @@ interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onDeleteQuestions?: (deletedQuestionIds: number[]) => void;
+  onUploadQuestions?: () => void;
 }
 
 export function ManageQuestionsDataTable<TData, TValue>({
   columns,
   data,
-  onDeleteQuestions
+  onDeleteQuestions,
+  onUploadQuestions
 }: Readonly<ManageQuestionsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -235,6 +237,13 @@ export function ManageQuestionsDataTable<TData, TValue>({
           <UploadQuestionsJSONButton
             variant="default"
             textWhileUploading={<>Uploading...</>}
+            onSuccess={() => {
+              onUploadQuestions?.();
+              toast.success("Questions uploaded successfully!");
+            }}
+            onFailure={(errorMessage) => {
+              toast.error(`Questions failed to upload: ${errorMessage}`)
+            }}
           >
               Upload JSON
         </UploadQuestionsJSONButton>

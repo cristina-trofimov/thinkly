@@ -2,6 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, DataError
 from models.schema import Question, Riddle, Tag, TestCase
 from DB_Methods.database import get_db
 import logging
@@ -26,7 +27,7 @@ class CreateQuestionRequest(BaseModel):
     question_name: str
     question_description: str
     media: str | None = None
-    difficulty: str = "Easy"
+    difficulty: str = "easy"
     preset_code: str = ""
     from_string_function: str = ""
     to_string_function: str = ""
@@ -72,6 +73,8 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
 )
 def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
                           db: Annotated[str, Depends(get_db)] = None):
+    error_message = None
+    error_code = 500
     try:
         questions = [
             get_question_from_request(db, q) for q in question_request
@@ -80,10 +83,21 @@ def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(.
         db.commit()
         logger.info(f"Uploaded batch of {len(questions)} questions.")
         return {"message": f"Successfully uploaded {len(questions)} questions."}
+    except IntegrityError as e:
+        error_message = getattr(e.orig, 'diag', {}).message_detail or "Duplicate entry found."
+        error_code = 409
+        logger.warning(f"Integrity Error: {e}")
+    except DataError as e:
+        error_message = str(e.orig).split('\n')[0]
+        error_code = 400
+        logger.warning(f"Data validation error: {e}")
     except Exception as e:
-        db.rollback()
+        error_message = str(e)
+        error_code = 500
         logger.error(f"Error uploading question batch: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question batch. Exception: {str(e)}")
+
+    db.rollback()
+    raise HTTPException(status_code=error_code, detail=f"Failed to upload question batch: {error_message}")
         
 @questions_router.get(
     "/get-all-riddles",

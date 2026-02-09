@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Question } from "@/types/questions/Question.type";
 
+const difficultyOrder: Record<string, number> = {
+  "easy": 1,
+  "Easy": 1,
+  "medium": 2,
+  "Medium": 2,
+  "hard": 3,
+  "Hard": 3,
+}
+
 export const columns: ColumnDef<Question>[] = [
   {
     id: "select",
@@ -39,6 +48,31 @@ export const columns: ColumnDef<Question>[] = [
     enableSorting: false,
   },
   {
+    accessorKey: "id",
+    header: ({ column }) => {
+      return (
+        <div className="text-left">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            ID
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      );
+    },
+     cell: ({ row }) => {
+      const id: number = row.original.id;
+
+      return (
+        <div className="text-left font-medium italic">
+            {id}
+        </div>
+      );
+    }
+  },
+  {
       accessorKey: "title",
       header: ({ column }) => {
       return (
@@ -47,7 +81,7 @@ export const columns: ColumnDef<Question>[] = [
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Name
+            Title
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -88,6 +122,15 @@ export const columns: ColumnDef<Question>[] = [
                 </Button>
             </div>
         );
+    },
+    sortingFn: (rowA, rowB, columnId) => {
+      const difficultyA = rowA.getValue<string>(columnId);
+      const difficultyB = rowB.getValue<string>(columnId);
+
+      const orderA = difficultyOrder[difficultyA] || Number.POSITIVE_INFINITY;
+      const orderB = difficultyOrder[difficultyB] || Number.POSITIVE_INFINITY;
+
+      return orderA - orderB;
     },
     cell: ({ row }) => (
       <div className="text-left font-medium italic">

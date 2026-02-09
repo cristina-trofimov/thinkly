@@ -2,15 +2,20 @@ import { uploadQuestions } from "@/api/QuestionsAPI";
 import { useRef, useState, type ComponentProps, type PropsWithChildren, type ReactNode } from "react";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
+import axios from "axios";
+import { parse } from "date-fns";
+import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 
 interface UploadQuestionsJSONButtonProps extends Omit<ComponentProps<typeof Button>, "onClick"> {
     textWhileUploading?: ReactNode;
+    onSuccess?: () => void;
+    onFailure?: (errorMessage: string) => void;
 }
 
 const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONButtonProps>> = (props) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const { children, textWhileUploading } = props;
+    const { children, textWhileUploading, onSuccess, onFailure } = props;
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -23,10 +28,11 @@ const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONB
                 setIsUploading(true);
 
                 await uploadQuestions(jsonData);
-                toast.success("Questions uploaded successfully!");
+                onSuccess?.();
             } catch (error) {
                 console.error("Error uploading questions:", error);
-                toast.error("Failed to upload questions. Please check the console for details.");
+                const errorMessage = parseAxiosErrorMessage(error);
+                onFailure?.(errorMessage);
             } finally {
                 setIsUploading(false);
                 if (fileInputRef.current) {

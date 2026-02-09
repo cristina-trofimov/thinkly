@@ -10,45 +10,46 @@ export default function ManageQuestionsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const getAllQuestions = async () => {
-      setLoading(true); // Ensure loading is reset on mount
+  const getAllQuestions = async () => {
+    setLoading(true); // Ensure loading is reset on mount
+    logFrontend({
+      level: 'INFO',
+      message: `Attempting to fetch all questions.`,
+      component: 'ManageQuestionsPage',
+      url: globalThis.location.href,
+    });
+
+    try {
+      const questions = await getQuestions();
+      setData(questions);
+
+      // Log successful fetch
       logFrontend({
         level: 'INFO',
-        message: `Attempting to fetch all questions.`,
+        message: `Successfully loaded ${questions.length} questions.`,
         component: 'ManageQuestionsPage',
         url: globalThis.location.href,
       });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred during question fetch.";
 
-      try {
-        const questions = await getQuestions();
-        setData(questions);
+      // Log fetch failure to the backend
+      logFrontend({
+        level: 'ERROR',
+        message: `Data fetch failure: ${errorMessage}`,
+        component: 'ManageQuestionsPage',
+        url: globalThis.location.href,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
 
-        // Log successful fetch
-        logFrontend({
-          level: 'INFO',
-          message: `Successfully loaded ${questions.length} questions.`,
-          component: 'ManageQuestionsPage',
-          url: globalThis.location.href,
-        });
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : "An unknown error occurred during question fetch.";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // Log fetch failure to the backend
-        logFrontend({
-          level: 'ERROR',
-          message: `Data fetch failure: ${errorMessage}`,
-          component: 'ManageQuestionsPage',
-          url: globalThis.location.href,
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
     getAllQuestions();
   }, []);
 
@@ -79,6 +80,7 @@ export default function ManageQuestionsPage() {
         columns={columns}
         data={data}
         onDeleteQuestions={handleDeleteQuestions}
+        onUploadQuestions={getAllQuestions}
       />
     </div>
   );

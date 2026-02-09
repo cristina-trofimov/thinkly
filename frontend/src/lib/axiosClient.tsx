@@ -58,5 +58,17 @@ axiosClient.interceptors.response.use(
   }
 );
 
+export function parseAxiosErrorMessage(error: unknown): string {
+  console.log("BRANDON");
+  console.log(error);
+  if (axios.isAxiosError(error)) {
+    return JSON.stringify(error.response?.data?.detail) || error.message;
+  } else if (error instanceof Error) {
+    return error.message;
+  } else {
+    return JSON.stringify(error);
+  }
+}
+
 export default axiosClient;
 export { API_URL };
