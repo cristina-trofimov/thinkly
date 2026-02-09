@@ -8,7 +8,6 @@ export interface StatsCardProps {
   subtitle?: string;
   description?: string;
   trend?: string;
-  className?: string;
   children?: ReactNode;
   dateSubtitle?: string;
 }
