@@ -4,7 +4,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 interface TimeToSolveData {
   type: string;
   time: number;
-  color: string;
 }
 
 interface TimeToSolveChartProps {
@@ -12,20 +11,34 @@ interface TimeToSolveChartProps {
   loading?: boolean;
 }
 
+const DIFFICULTY_COLORS = {
+  Easy: "#10b981",
+  Medium: "#f59e0b",
+  Hard: "#ef4444",
+} as const;
+
+const PLACEHOLDER_DATA: TimeToSolveData[] = [
+  { type: "Easy", time: 0 },
+  { type: "Medium", time: 0 },
+  { type: "Hard", time: 0 },
+];
+
 export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProps) => {
-  // Show placeholder if loading or no data
-  const displayData = data.length > 0 ? data : [
-    { type: "Easy", time: 0, color: "var(--chart-1)" },
-    { type: "Medium", time: 0, color: "var(--chart-2)" },
-    { type: "Hard", time: 0, color: "var(--chart-3)" },
-  ];
+  const baseData = data.length > 0 ? data : PLACEHOLDER_DATA;
+
+  const displayData = baseData.map((item) => ({
+    ...item,
+    color:
+      DIFFICULTY_COLORS[item.type as keyof typeof DIFFICULTY_COLORS] ??
+      "var(--chart-3)",
+  }));
 
   return (
     <ChartContainer
       config={{
-        Easy: { color: "var(--chart-1)" },
-        Medium: { color: "var(--chart-2)" },
-        Hard: { color: "var(--chart-3)" },
+        Easy: { color: DIFFICULTY_COLORS.Easy },
+        Medium: { color: DIFFICULTY_COLORS.Medium },
+        Hard: { color: DIFFICULTY_COLORS.Hard },
       }}
       style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
     >
