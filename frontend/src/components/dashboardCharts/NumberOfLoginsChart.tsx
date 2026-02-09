@@ -30,7 +30,7 @@ export const NumberOfLoginsChart = ({ data, loading = false }: NumberOfLoginsCha
     >
       <LineChart
         data={displayData}
-        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
+        margin={{ top: 5, right: 15, left: -35, bottom: 0 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
         <XAxis

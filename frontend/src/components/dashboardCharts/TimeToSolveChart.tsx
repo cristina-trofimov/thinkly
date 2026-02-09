@@ -32,7 +32,7 @@ export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProp
       <BarChart
         data={displayData}
         layout="vertical"
-        margin={{ top: 0, right: 5, left: 0, bottom: 5 }}
+        margin={{ top: 0, right: 15, left: -5, bottom: 0 }}
       >
         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--color-border)" />
         <XAxis type="number" stroke="var(--color-muted-foreground)" />
@@ -40,7 +40,6 @@ export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProp
           type="category"
           dataKey="type"
           stroke="var(--color-muted-foreground)"
-          width={100}
           tick={{ fontSize: 12 }}
         />
         <ChartTooltip content={<ChartTooltipContent />} />
