@@ -139,7 +139,7 @@ export function AdminDashboard() {
             </Link>
           </div>
 
-          <div className="my-6 mx-6 rounded-2xl shadow-md border">
+          <div className="m-6 rounded-lg shadow-md border">
             {/* Tabs for Algotime/Competitions and Time Range Filter */}
             <div className="flex justify-between items-center gap-2 mt-6 px-6">
               <div className="flex items-center">
@@ -149,7 +149,7 @@ export function AdminDashboard() {
                     setActiveTab(v as "algotime" | "competitions")
                   }
                 >
-                  <TabsList className="space-x-1">
+                  <TabsList>
                     <TabsTrigger
                       value="algotime"
                       className="rounded-md text-primary"
@@ -190,7 +190,7 @@ export function AdminDashboard() {
             </div>
 
             {/* Stats Cards Row - Metrics and Charts */}
-            <div className="flex gap-4 mt-6 px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6">
               <StatsCard
                 title="New Accounts"
                 value={newAccountStats.value}
@@ -209,7 +209,7 @@ export function AdminDashboard() {
                 />
               </StatsCard>
 
-              <StatsCard title="Time to solve per type of question">
+              <StatsCard title="Avg. Question Solve Time">
                 <TimeToSolveChart data={timeToSolveData} loading={loading} />
               </StatsCard>
 
