@@ -147,7 +147,7 @@ def create_algotime(
 
             validate_competition_times(start_dt, end_dt)
 
-            event_name = session.name
+            event_name = f"{request.seriesName} - {session.name}"
             
             # Check if event name already exists - throw 409
             existing_event = db.query(BaseEvent).filter(
@@ -163,7 +163,7 @@ def create_algotime(
 
 
             base_event = BaseEvent(
-                event_name=session.name,
+                event_name=f"{request.seriesName} - {session.name}",
                 question_cooldown=request.questionCooldown,
                 event_start_date=start_dt,
                 event_end_date=end_dt,

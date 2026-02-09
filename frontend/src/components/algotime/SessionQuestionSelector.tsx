@@ -4,10 +4,12 @@ import type { Question } from "../../types/questions/Question.type";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns"
+
 import {
     Accordion,
     AccordionContent,
     AccordionItem,
+    AccordionTrigger,
 } from "@/components/ui/accordion"
 import {
     DropdownMenu,
@@ -30,8 +32,6 @@ interface SessionQuestionSelectorProps {
     setDifficultyFilters: (filters: { [key: number]: string | undefined }) => void;
     toggleQuestionForSession: (sessionNum: number, questionId: number) => void;
     getDifficultyColor: (difficulty: string) => string;
-    sessionNames: { [key: number]: string };
-    setSessionNames: React.Dispatch<React.SetStateAction<{ [key: number]: string }>>;
 }
 
 export const SessionQuestionSelector = ({
@@ -44,16 +44,12 @@ export const SessionQuestionSelector = ({
     difficultyFilters,
     setDifficultyFilters,
     toggleQuestionForSession,
-    getDifficultyColor,
-    sessionNames,
-    setSessionNames
-
+    getDifficultyColor
 }: SessionQuestionSelectorProps) => {
 
 
     const sessionSearch = searchQueries[sessionNumber] || "";
     const sessionDifficulty = difficultyFilters[sessionNumber];
-
 
     const sessionFilteredQuestions = questions.filter((q) => {
         const matchesSearch = q.title?.toLowerCase().includes(sessionSearch.toLowerCase()) ?? false;
@@ -63,32 +59,11 @@ export const SessionQuestionSelector = ({
 
     return (
         <div key={sessionNumber} className="mb-6 border rounded-lg p-4">
-            <Accordion type="single" value="item-1">
+            <Accordion type="single" collapsible>
                 <AccordionItem value="item-1">
-                    <div className="mb-4">
-                        {/* Date */}
-                        {sessionDate && (
-                            <p className="text-lg font-semibold mb-2">
-                                {format(new Date(sessionDate + "T00:00:00"), "PPP")}
-                            </p>
-                        )}
-                        {/* Session Name Input */}
-                        <Input
-                            type="text"
-                            value={sessionNames[sessionNumber] || ""}
-                            onChange={(e) =>
-                                setSessionNames({
-                                    ...sessionNames,
-                                    [sessionNumber]: e.target.value
-                                })
-                            }
-                            placeholder="Enter session name..."
-                            className="w-100 px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:primary focus:border-transparent text-lg font-semibold"
-                        />
-                        
-
-                        
-                    </div>
+                    <AccordionTrigger className="text-lg font-semibold mb-2 cursor-pointer">
+                        Session {sessionNumber}{sessionDate ? ` - ${format(new Date(sessionDate + 'T00:00:00'), 'PPP')}` : ''}
+                    </AccordionTrigger>
                     <AccordionContent>
 
                         <p className="text-sm text-gray-500 mb-3">

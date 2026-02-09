@@ -57,7 +57,7 @@ export const AlgoTimeSessionForm = () => {
     1: []
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
-  const [sessionNames, setSessionNames] = useState<{ [key: number]: string }>({});
+ 
   
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -267,7 +267,7 @@ export const AlgoTimeSessionForm = () => {
     }
     try {
       const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
-        name: sessionNames[session.sessionNumber],
+        name: `${format (new Date (session.date + "T00:00:00"), "MMM d, yyyy")} - Session ${session.sessionNumber}`,
         date: session.date,
         startTime: formData.startTime,
         endTime: formData.endTime,
@@ -482,8 +482,6 @@ export const AlgoTimeSessionForm = () => {
                   setDifficultyFilters={setDifficultyFilters}
                   toggleQuestionForSession={toggleQuestionForSession}
                   getDifficultyColor={getDifficultyColor}
-                  sessionNames={sessionNames}
-                  setSessionNames={setSessionNames}
                 />
               ))
             ) : (
@@ -498,8 +496,6 @@ export const AlgoTimeSessionForm = () => {
                 setDifficultyFilters={setDifficultyFilters}
                 toggleQuestionForSession={toggleQuestionForSession}
                 getDifficultyColor={getDifficultyColor}
-                sessionNames={sessionNames}
-                setSessionNames={setSessionNames}
               />
             )
             }
