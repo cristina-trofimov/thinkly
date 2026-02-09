@@ -66,6 +66,7 @@ export function AdminDashboard() {
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
     location.pathname === "/app/dashboard/";
+  const chartAnimationKey = `tab-${activeTab}`;
 
   // Fetch stats data when timeRange or activeTab changes
   useEffect(() => {
@@ -152,13 +153,13 @@ export function AdminDashboard() {
                   <TabsList>
                     <TabsTrigger
                       value="algotime"
-                      className="rounded-md text-primary"
+                      className="rounded-md font-semibold text-muted-foreground cursor-pointer p-4 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
                     >
                       Algotime
                     </TabsTrigger>
                     <TabsTrigger
                       value="competitions"
-                      className="rounded-md text-primary"
+                      className="rounded-md font-semibold text-muted-foreground cursor-pointer p-3 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
                     >
                       Competitions
                     </TabsTrigger>
@@ -204,21 +205,31 @@ export function AdminDashboard() {
                 dateSubtitle={getTimeRangeLabel(timeRange)}
               >
                 <QuestionsSolvedChart
+                  key={`questions-${chartAnimationKey}`}
                   data={questionsSolvedData}
                   loading={loading}
                 />
               </StatsCard>
 
               <StatsCard title="Avg. Question Solve Time">
-                <TimeToSolveChart data={timeToSolveData} loading={loading} />
+                <TimeToSolveChart
+                  key={`time-${chartAnimationKey}`}
+                  data={timeToSolveData}
+                  loading={loading}
+                />
               </StatsCard>
 
               <StatsCard title="Number of logins">
-                <NumberOfLoginsChart data={loginsData} loading={loading} />
+                <NumberOfLoginsChart
+                  key={`logins-${chartAnimationKey}`}
+                  data={loginsData}
+                  loading={loading}
+                />
               </StatsCard>
             </div>
 
             <ParticipationOverTimeChart
+              key={`participation-${chartAnimationKey}`}
               data={participationData}
               timeRange={timeRange}
               loading={loading}
