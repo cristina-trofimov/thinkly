@@ -210,3 +210,107 @@ def test_delete_riddle(client):
 
     get_resp = client.get(f"/riddles/{rid}")
     assert get_resp.status_code == 404
+def test_create_requires_question_and_answer(client):
+    # empty question
+    r1 = client.post("/riddles/create", data={"question": "   ", "answer": "A"})
+    assert r1.status_code == 400
+    assert "required" in r1.json()["detail"].lower()
+
+    # empty answer
+    r2 = client.post("/riddles/create", data={"question": "Q", "answer": "   "})
+    assert r2.status_code == 400
+    assert "required" in r2.json()["detail"].lower()
+
+
+def test_get_riddle_not_found(client):
+    resp = client.get("/riddles/9999")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Riddle not found"
+
+
+def test_edit_riddle_not_found(client):
+    resp = client.put("/riddles/9999", data={"question": "X"})
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Riddle not found"
+
+
+def test_delete_riddle_not_found(client):
+    resp = client.delete("/riddles/9999")
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Riddle not found"
+
+
+def test_edit_rejects_empty_question_or_answer(client):
+    create = client.post("/riddles/create", data={"question": "Q1", "answer": "A1"})
+    rid = create.json()["riddle_id"]
+
+    # empty question
+    r1 = client.put(f"/riddles/{rid}", data={"question": "   "})
+    assert r1.status_code == 400
+    assert "cannot be empty" in r1.json()["detail"].lower()
+
+    # empty answer
+    r2 = client.put(f"/riddles/{rid}", data={"answer": "   "})
+    assert r2.status_code == 400
+    assert "cannot be empty" in r2.json()["detail"].lower()
+
+
+def test_edit_duplicate_question_rejected(client):
+    client.post("/riddles/create", data={"question": "Q1", "answer": "A1"})
+    b = client.post("/riddles/create", data={"question": "Q2", "answer": "A2"})
+    rid_b = b.json()["riddle_id"]
+
+    # try to change Q2 -> Q1 (duplicate)
+    resp = client.put(f"/riddles/{rid_b}", data={"question": "Q1"})
+    assert resp.status_code == 400
+    assert "already exists" in resp.json()["detail"].lower()
+
+
+def test_create_with_file_sets_url(client):
+    resp = client.post(
+        "/riddles/create",
+        data={"question": "QF", "answer": "AF"},
+        files={"file": ("x.png", b"123", "image/png")},
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["riddle_file"] is not None
+    assert "storage" in body["riddle_file"]
+
+
+def test_edit_replace_file_updates_url_and_keeps_other_fields(client):
+    # create with initial file
+    create = client.post(
+        "/riddles/create",
+        data={"question": "Q", "answer": "A"},
+        files={"file": ("a.png", b"a", "image/png")},
+    )
+    rid = create.json()["riddle_id"]
+    old_url = create.json()["riddle_file"]
+
+    # Replace with new file
+    resp = client.put(
+        f"/riddles/{rid}",
+        files={"file": ("b.png", b"b", "image/png")},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["riddle_question"] == "Q"
+    assert body["riddle_answer"] == "A"
+    assert body["riddle_file"] is not None
+    assert body["riddle_file"] == old_url  # because our fake upload returns same URL
+
+
+def test_remove_file_true_when_no_file_is_noop(client):
+    create = client.post("/riddles/create", data={"question": "Q", "answer": "A"})
+    rid = create.json()["riddle_id"]
+    assert create.json()["riddle_file"] is None
+
+    resp = client.put(f"/riddles/{rid}", data={"remove_file": "true"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["riddle_file"] is None
+
+
+
+
+
