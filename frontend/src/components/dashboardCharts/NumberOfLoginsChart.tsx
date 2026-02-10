@@ -1,19 +1,11 @@
 import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-
-interface LoginsData {
-  month: string;
-  logins: number;
-}
-
-interface NumberOfLoginsChartProps {
-  data: LoginsData[];
-  loading?: boolean;
-}
+import type { LoginsDataPoint } from "@/types/adminDashboard/Analytics.type";
+import type { NumberOfLoginsChartProps } from "@/types/adminDashboard/DashboardCharts.type";
 
 const LOGIN_LINE_COLOR = "var(--chart-2)";
 const LOGIN_DOT_COLOR = "var(--chart-3)";
-const PLACEHOLDER_DATA: LoginsData[] = [
+const PLACEHOLDER_DATA: LoginsDataPoint[] = [
   { month: "Mon", logins: 0 },
   { month: "Tue", logins: 0 },
   { month: "Wed", logins: 0 },

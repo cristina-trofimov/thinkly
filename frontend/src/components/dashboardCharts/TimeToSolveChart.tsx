@@ -1,15 +1,6 @@
 import { BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-
-interface TimeToSolveData {
-  type: string;
-  time: number;
-}
-
-interface TimeToSolveChartProps {
-  data: TimeToSolveData[];
-  loading?: boolean;
-}
+import type { TimeToSolveChartProps, TimeToSolveData } from "@/types/adminDashboard/DashboardCharts.type";
 
 const DIFFICULTY_COLORS = {
   Easy: "#10b981",

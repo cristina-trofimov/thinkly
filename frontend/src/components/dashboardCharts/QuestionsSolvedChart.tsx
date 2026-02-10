@@ -5,27 +5,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-
-interface QuestionsSolvedData extends Record<string, unknown> {
-  name: string;
-  value: number;
-  color?: string;
-}
-
-interface QuestionsSolvedChartProps {
-  data: QuestionsSolvedData[];
-  loading?: boolean;
-}
-
-interface LabelViewBox {
-  cx?: number;
-  cy?: number;
-}
-
-interface CenterLabelProps {
-  totalQuestions: number;
-  viewBox?: LabelViewBox;
-}
+import type {
+  CenterLabelProps,
+  QuestionsSolvedChartProps,
+  QuestionsSolvedData,
+} from "@/types/adminDashboard/DashboardCharts.type";
 
 const DIFFICULTY_COLORS = {
   Easy: "#10b981",
