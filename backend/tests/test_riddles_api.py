@@ -3,6 +3,7 @@ import importlib
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 
 
 # ----------------------------
@@ -39,7 +40,6 @@ class FakeQuery:
         self.predicates = []
 
     def filter(self, expr):
-        # expr is like ("eq","riddle_id",3)
         self.predicates.append(expr)
         return self
 
@@ -68,7 +68,6 @@ class FakeSession:
         self._next_id = 1
 
     def query(self, _model):
-        # ignore model; we only have one table in this fake
         return FakeQuery(self)
 
     def add(self, obj):
@@ -91,32 +90,32 @@ class FakeSession:
 
 
 # ----------------------------
+# Helpers to build a fake UploadFile-like object for internal function tests
+# ----------------------------
+class FakeUploadFile:
+    def __init__(self, filename: str, content_type: str, content: bytes):
+        self.filename = filename
+        self.content_type = content_type
+        self._content = content
+
+    async def read(self):
+        return self._content
+
+
+# ----------------------------
 # Test client fixture
 # ----------------------------
 @pytest.fixture()
-def client(monkeypatch):
-    # Ensure these exist BEFORE router import (supabase client created at import time)
+def app_and_module(monkeypatch):
+    # Ensure env exist BEFORE router import (supabase client created at import time)
     os.environ.setdefault("SUPABASE_URL", "http://localhost:54321")
     os.environ.setdefault("SUPABASE_ANON_KEY", "test-anon-key")
 
-    # CHANGE THIS import path to your router file
     riddles_module = importlib.import_module("src.endpoints.riddles_api")
 
-    # Patch the module's Riddle to our fake constructible+filterable model
+    # Patch model + commit helper
     monkeypatch.setattr(riddles_module, "Riddle", FakeRiddle)
-
-    # Patch commit helper so it doesn't touch anything real
     monkeypatch.setattr(riddles_module, "_commit_or_rollback", lambda db: None)
-
-    # Patch Supabase helpers so no real network calls happen
-    async def fake_upload(_file):
-        return "https://example.com/storage/v1/object/public/uploads/public/test.png"
-
-    def fake_delete(_public_url: str):
-        return None
-
-    monkeypatch.setattr(riddles_module, "_upload_to_supabase", fake_upload)
-    monkeypatch.setattr(riddles_module, "_delete_from_supabase_by_public_url", fake_delete)
 
     # Override get_db to return fake db session
     fake_db = FakeSession()
@@ -128,11 +127,18 @@ def client(monkeypatch):
     app = FastAPI()
     app.dependency_overrides[get_db] = override_get_db
     app.include_router(riddles_module.riddles_router, prefix="/riddles")
+
+    return app, riddles_module, fake_db
+
+
+@pytest.fixture()
+def client(app_and_module):
+    app, _, _ = app_and_module
     return TestClient(app)
 
 
 # ----------------------------
-# Tests
+# Core endpoint tests (existing + stronger)
 # ----------------------------
 def test_create_riddle_no_file(client):
     resp = client.post(
@@ -186,21 +192,6 @@ def test_edit_riddle_update_question_answer(client):
     assert resp.json()["riddle_answer"] == "NewA"
 
 
-def test_edit_riddle_remove_file_flag(client):
-    create = client.post(
-        "/riddles/create",
-        data={"question": "HasFile", "answer": "Yes"},
-        files={"file": ("x.png", b"fake-bytes", "image/png")},
-    )
-    assert create.status_code == 201, create.text
-    rid = create.json()["riddle_id"]
-    assert create.json()["riddle_file"] is not None
-
-    resp = client.put(f"/riddles/{rid}", data={"remove_file": "true"})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["riddle_file"] is None
-
-
 def test_delete_riddle(client):
     create = client.post("/riddles/create", data={"question": "DelQ", "answer": "DelA"})
     rid = create.json()["riddle_id"]
@@ -210,13 +201,16 @@ def test_delete_riddle(client):
 
     get_resp = client.get(f"/riddles/{rid}")
     assert get_resp.status_code == 404
+
+
+# ----------------------------
+# Validation / Not found coverage
+# ----------------------------
 def test_create_requires_question_and_answer(client):
-    # empty question
     r1 = client.post("/riddles/create", data={"question": "   ", "answer": "A"})
     assert r1.status_code == 400
     assert "required" in r1.json()["detail"].lower()
 
-    # empty answer
     r2 = client.post("/riddles/create", data={"question": "Q", "answer": "   "})
     assert r2.status_code == 400
     assert "required" in r2.json()["detail"].lower()
@@ -244,12 +238,10 @@ def test_edit_rejects_empty_question_or_answer(client):
     create = client.post("/riddles/create", data={"question": "Q1", "answer": "A1"})
     rid = create.json()["riddle_id"]
 
-    # empty question
     r1 = client.put(f"/riddles/{rid}", data={"question": "   "})
     assert r1.status_code == 400
     assert "cannot be empty" in r1.json()["detail"].lower()
 
-    # empty answer
     r2 = client.put(f"/riddles/{rid}", data={"answer": "   "})
     assert r2.status_code == 400
     assert "cannot be empty" in r2.json()["detail"].lower()
@@ -260,57 +252,203 @@ def test_edit_duplicate_question_rejected(client):
     b = client.post("/riddles/create", data={"question": "Q2", "answer": "A2"})
     rid_b = b.json()["riddle_id"]
 
-    # try to change Q2 -> Q1 (duplicate)
     resp = client.put(f"/riddles/{rid_b}", data={"question": "Q1"})
     assert resp.status_code == 400
     assert "already exists" in resp.json()["detail"].lower()
 
 
-def test_create_with_file_sets_url(client):
-    resp = client.post(
+# ----------------------------
+# Supabase upload / delete path coverage
+# ----------------------------
+def test_extract_storage_path_from_public_url_good(app_and_module):
+    _, mod, _ = app_and_module
+    url = "https://x.supabase.co/storage/v1/object/public/uploads/public/a.png"
+    assert mod._extract_storage_path_from_public_url(url) == "public/a.png"
+
+
+def test_extract_storage_path_from_public_url_bad(app_and_module):
+    _, mod, _ = app_and_module
+    assert mod._extract_storage_path_from_public_url("") is None
+    assert mod._extract_storage_path_from_public_url("https://x.com/not-matching") is None
+    # wrong bucket
+    url = "https://x.supabase.co/storage/v1/object/public/otherbucket/public/a.png"
+    assert mod._extract_storage_path_from_public_url(url) is None
+
+
+def test_validate_upload_rejects_unsupported_type(app_and_module):
+    _, mod, _ = app_and_module
+    bad = FakeUploadFile("x.txt", "text/plain", b"hi")
+    with pytest.raises(HTTPException) as e:
+        mod._validate_upload(bad)
+    assert e.value.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_upload_to_supabase_oversize_raises_413(app_and_module, monkeypatch):
+    _, mod, _ = app_and_module
+    # shrink MAX_MB for the test so we don't allocate huge bytes
+    monkeypatch.setattr(mod, "MAX_MB", 1)  # 1MB
+    big = FakeUploadFile("big.bin", "application/pdf", b"x" * (1 * 1024 * 1024 + 1))
+
+    with pytest.raises(HTTPException) as e:
+        await mod._upload_to_supabase(big)
+    assert e.value.status_code == 413
+
+
+@pytest.mark.anyio
+async def test_upload_to_supabase_error_dict_raises_500(app_and_module, monkeypatch):
+    _, mod, _ = app_and_module
+
+    class FakeStorageBucket:
+        def upload(self, **kwargs):
+            return {"error": "boom"}
+
+        def get_public_url(self, path):
+            return "https://example.com/should-not-happen"
+
+    class FakeStorage:
+        def from_(self, bucket):
+            return FakeStorageBucket()
+
+    class FakeSupabase:
+        storage = FakeStorage()
+
+    monkeypatch.setattr(mod, "supabase", FakeSupabase())
+
+    f = FakeUploadFile("x.png", "image/png", b"123")
+    with pytest.raises(HTTPException) as e:
+        await mod._upload_to_supabase(f)
+    assert e.value.status_code == 500
+    assert "upload failed" in str(e.value.detail).lower()
+
+
+def test_delete_from_supabase_by_public_url_noop_on_bad_url(app_and_module, monkeypatch):
+    _, mod, _ = app_and_module
+
+    # If url can't be parsed, it should just return, not crash
+    mod._delete_from_supabase_by_public_url("https://example.com/not-supabase-shape")
+
+
+def test_delete_endpoint_calls_delete_helper_when_file_exists(app_and_module, monkeypatch):
+    app, mod, fake_db = app_and_module
+    c = TestClient(app)
+
+    called = {"n": 0}
+
+    def fake_delete(_url: str):
+        called["n"] += 1
+
+    monkeypatch.setattr(mod, "_delete_from_supabase_by_public_url", fake_delete)
+
+    # Create riddle directly in fake DB with a file
+    r = FakeRiddle("Q", "A", riddle_file="https://x.supabase.co/storage/v1/object/public/uploads/public/a.png")
+    fake_db.add(r)
+
+    resp = c.delete(f"/riddles/{r.riddle_id}")
+    assert resp.status_code == 204
+    assert called["n"] == 1
+
+
+# ----------------------------
+# Endpoint file flows (mock upload/delete helpers)
+# ----------------------------
+def test_create_with_file_sets_url(app_and_module, monkeypatch):
+    app, mod, _ = app_and_module
+    c = TestClient(app)
+
+    async def fake_upload(_file):
+        return "https://example.com/storage/v1/object/public/uploads/public/test.png"
+
+    monkeypatch.setattr(mod, "_upload_to_supabase", fake_upload)
+
+    resp = c.post(
         "/riddles/create",
         data={"question": "QF", "answer": "AF"},
         files={"file": ("x.png", b"123", "image/png")},
     )
     assert resp.status_code == 201, resp.text
-    body = resp.json()
-    assert body["riddle_file"] is not None
-    assert "storage" in body["riddle_file"]
+    assert resp.json()["riddle_file"] is not None
 
 
-def test_edit_replace_file_updates_url_and_keeps_other_fields(client):
-    # create with initial file
-    create = client.post(
-        "/riddles/create",
-        data={"question": "Q", "answer": "A"},
-        files={"file": ("a.png", b"a", "image/png")},
-    )
-    rid = create.json()["riddle_id"]
-    old_url = create.json()["riddle_file"]
+def test_edit_replace_file_deletes_old_and_uploads_new(app_and_module, monkeypatch):
+    app, mod, fake_db = app_and_module
+    c = TestClient(app)
 
-    # Replace with new file
-    resp = client.put(
-        f"/riddles/{rid}",
-        files={"file": ("b.png", b"b", "image/png")},
+    # set up existing riddle with old file
+    r = FakeRiddle("Q", "A", riddle_file="https://x.supabase.co/storage/v1/object/public/uploads/public/old.png")
+    fake_db.add(r)
+
+    called = {"delete": 0, "upload": 0}
+
+    def fake_delete(_url: str):
+        called["delete"] += 1
+
+    async def fake_upload(_file):
+        called["upload"] += 1
+        return "https://example.com/storage/v1/object/public/uploads/public/new.png"
+
+    monkeypatch.setattr(mod, "_delete_from_supabase_by_public_url", fake_delete)
+    monkeypatch.setattr(mod, "_upload_to_supabase", fake_upload)
+
+    resp = c.put(
+        f"/riddles/{r.riddle_id}",
+        files={"file": ("new.png", b"123", "image/png")},
     )
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["riddle_question"] == "Q"
-    assert body["riddle_answer"] == "A"
-    assert body["riddle_file"] is not None
-    assert body["riddle_file"] == old_url  # because our fake upload returns same URL
+    assert body["riddle_file"].endswith("new.png")
+    assert called["delete"] == 1
+    assert called["upload"] == 1
 
 
-def test_remove_file_true_when_no_file_is_noop(client):
-    create = client.post("/riddles/create", data={"question": "Q", "answer": "A"})
-    rid = create.json()["riddle_id"]
-    assert create.json()["riddle_file"] is None
+def test_remove_file_true_deletes_and_sets_none(app_and_module, monkeypatch):
+    app, mod, fake_db = app_and_module
+    c = TestClient(app)
 
-    resp = client.put(f"/riddles/{rid}", data={"remove_file": "true"})
+    r = FakeRiddle("Q", "A", riddle_file="https://x.supabase.co/storage/v1/object/public/uploads/public/a.png")
+    fake_db.add(r)
+
+    called = {"delete": 0}
+
+    def fake_delete(_url: str):
+        called["delete"] += 1
+
+    monkeypatch.setattr(mod, "_delete_from_supabase_by_public_url", fake_delete)
+
+    resp = c.put(f"/riddles/{r.riddle_id}", data={"remove_file": "true"})
     assert resp.status_code == 200, resp.text
     assert resp.json()["riddle_file"] is None
+    assert called["delete"] == 1
 
 
+def test_remove_file_true_when_no_file_is_noop(app_and_module, monkeypatch):
+    app, mod, fake_db = app_and_module
+    c = TestClient(app)
+
+    r = FakeRiddle("Q", "A", riddle_file=None)
+    fake_db.add(r)
+
+    called = {"delete": 0}
+
+    def fake_delete(_url: str):
+        called["delete"] += 1
+
+    monkeypatch.setattr(mod, "_delete_from_supabase_by_public_url", fake_delete)
+
+    resp = c.put(f"/riddles/{r.riddle_id}", data={"remove_file": "true"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["riddle_file"] is None
+    assert called["delete"] == 0
 
 
+def test_create_rejects_bad_file_type(app_and_module):
+    app, _, _ = app_and_module
+    c = TestClient(app)
 
+    resp = c.post(
+        "/riddles/create",
+        data={"question": "Q", "answer": "A"},
+        files={"file": ("x.txt", b"hi", "text/plain")},
+    )
+    assert resp.status_code == 400
+    assert "unsupported file type" in resp.json()["detail"].lower()
