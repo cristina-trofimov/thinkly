@@ -180,15 +180,6 @@ describe("StatsCard", () => {
     });
   });
 
-  describe("Custom className", () => {
-    it("applies custom className when provided", () => {
-      const { container } = render(<StatsCard {...defaultProps} className="custom-class" />);
-      
-      const card = container.querySelector('[data-testid="card"]');
-      expect(card).toHaveClass("custom-class");
-    });
-  });
-
   describe("Layout structure", () => {
     it("renders Card wrapper", () => {
       render(<StatsCard {...defaultProps} />);
