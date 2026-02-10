@@ -1,17 +1,7 @@
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import type { TimeRange } from "@/types/adminDashboard/Analytics.type";
-
-interface ParticipationData {
-  date: string;
-  participation: number;
-}
-
-interface ParticipationOverTimeChartProps {
-  data: ParticipationData[];
-  timeRange: TimeRange;
-  loading?: boolean;
-}
+import type { ParticipationDataPoint, TimeRange } from "@/types/adminDashboard/Analytics.type";
+import type { ParticipationOverTimeChartProps } from "@/types/adminDashboard/DashboardCharts.type";
 
 export const ParticipationOverTimeChart = ({
   data,
@@ -57,7 +47,7 @@ export const ParticipationOverTimeChart = ({
   );
 };
 
-function generatePlaceholderData(timeRange: TimeRange): ParticipationData[] {
+function generatePlaceholderData(timeRange: TimeRange): ParticipationDataPoint[] {
   if (timeRange === "7days") {
     return [
       { date: "Mon", participation: 0 },

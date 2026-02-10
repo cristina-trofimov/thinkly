@@ -12,11 +12,11 @@ interface TimeInputProps {
 }
 
 function to12h(time24: string): { display: string; period: "AM" | "PM" } {
-  if (!time24 || !time24.includes(":")) return { display: "", period: "AM" };
+  if (!time24?.includes(":")) return { display: "", period: "AM" };
   const [hStr, mStr] = time24.split(":");
-  let h = parseInt(hStr, 10);
+  let h = Number.parseInt(hStr, 10);
   const m = mStr.padStart(2, "0");
-  if (isNaN(h)) return { display: "", period: "AM" };
+  if (Number.isNaN(h)) return { display: "", period: "AM" };
   const period: "AM" | "PM" = h >= 12 ? "PM" : "AM";
   if (h === 0) h = 12;
   else if (h > 12) h -= 12;
@@ -33,7 +33,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
 
     // Sync viewPeriod when value changes externally
     useEffect(() => {
-      if (value && value.includes(":")) {
+      if (value?.includes(":")) {
         setViewPeriod(to12h(value).period);
       }
     }, [value]);

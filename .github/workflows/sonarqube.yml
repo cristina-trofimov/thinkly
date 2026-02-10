@@ -101,6 +101,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
             -Dsonar.verbose=true
@@ -111,9 +112,24 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
             -Dsonar.python.version=3.11
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
+
+      - name: Fail on high severity issues
+        run: |
+          BLOCKER=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=BLOCKER" \
+            | jq '.total')
+      
+          CRITICAL=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
+            "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=CRITICAL" \
+            | jq '.total')
+      
+          echo "BLOCKER: $BLOCKER"
+          echo "CRITICAL: $CRITICAL"
+      
+          if [ "$BLOCKER" -gt 0 ] || [ "$CRITICAL" -gt 3 ]; then
+            echo "Severity threshold exceeded"
+            exit 1
+          fi
 
       # ----------- CODECOV ------------
       - name: Upload frontend coverage to Codecov

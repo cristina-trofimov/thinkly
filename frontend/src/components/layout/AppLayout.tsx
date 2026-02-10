@@ -12,8 +12,8 @@ interface RouteHandle {
 }
 
 function getSidebarCookie(): boolean {
-  const match = document.cookie.match(/(?:^|; )sidebar_state=([^;]*)/);
-  return match ? match[1] === "true" : true;
+  const match = /(?:^|; )sidebar_state=([^;]*)/.exec(document.cookie)
+  return match ? match[1] === "true" : true
 }
 
 export function Layout() {
@@ -35,8 +35,8 @@ export function Layout() {
     <SidebarProvider defaultOpen={getSidebarCookie()}>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1">
-          <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <main className="flex-1 min-w-0">
+          <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60">
             <SidebarTrigger className="-ml-1 text-primary" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <AppBreadcrumbs items={breadcrumbItems} />

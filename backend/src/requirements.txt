@@ -61,3 +61,4 @@ charset-normalizer==3.3.2
 idna==3.6
 urllib3==2.2.1
 dnspython==2.8.0
+supabase>=2.0.0

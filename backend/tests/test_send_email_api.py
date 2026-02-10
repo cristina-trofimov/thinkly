@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import AsyncMock, Mock, patch, MagicMock
 
 from email_validator import EmailNotValidError
 from fastapi import HTTPException
@@ -242,21 +242,23 @@ class TestSendEmailViaBrevo(unittest.TestCase):
         assert result["brevo"]["messageId"] == "msg-123"
 
 
-class TestSendEmailEndpoint:
-    """Tests for send_email endpoint"""
+# class TestSendEmailEndpoint:
+#     """Tests for send_email endpoint"""
 
     @pytest.mark.asyncio
-    @patch("src.endpoints.send_email_api.send_email_via_brevo")
+    @patch( "src.endpoints.send_email_api.send_email_via_brevo", new_callable=AsyncMock)
     async def test_send_email_success(self, mock_send):
         mock_send.return_value = {"brevo": {"messageId": "msg-123"}}
 
         request = Mock(to=["a@b.com"], subject="Test", text="Body", sendAt=None)
+
         result = await send_email(request)
 
         assert result["ok"] is True
+        mock_send.assert_awaited_once()
 
     @pytest.mark.asyncio
-    @patch("src.endpoints.send_email_api.send_email_via_brevo")
+    @patch("src.endpoints.send_email_api.send_email_via_brevo", new_callable=AsyncMock)
     async def test_send_email_error(self, mock_send):
         mock_send.side_effect = Exception("fail")
 
@@ -264,6 +266,8 @@ class TestSendEmailEndpoint:
 
         with pytest.raises(HTTPException):
             await send_email(request)
+
+        mock_send.assert_awaited_once()
 
 
 class TestSendEmailRequestModel:

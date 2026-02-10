@@ -5,6 +5,21 @@ import { sendEmail } from '../src/api/EmailAPI';
 import { getQuestions } from '../src/api/QuestionsAPI';
 import { logFrontend } from '../src/api/LoggerAPI';
 import { toast } from 'sonner';
+import axiosClient from '../src/lib/axiosClient';
+
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
+
+const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 // Mock the navigate function
 const mockNavigate = jest.fn();

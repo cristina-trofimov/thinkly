@@ -26,6 +26,8 @@ jobs:
         env:
           PYTHONPATH: .
           BREVO_API_KEY: test-brevo-key
+          SUPABASE_URL: https://DEW.supabase.co/
+          SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
           DEFAULT_SENDER_EMAIL: test@example.com
           DATABASE_URL: "sqlite+pysqlite:///:memory:"
         run: pytest --maxfail=1 --disable-warnings -q

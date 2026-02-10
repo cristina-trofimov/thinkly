@@ -2,7 +2,7 @@ import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, constr
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Annotated, Optional
 from models.schema import UserAccount, UserPreferences, UserSession
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
@@ -159,7 +159,7 @@ def get_current_user(request: Request):
     return claims
 
 def role_required(required_role: str):
-    def role_checker(current_user: dict = Depends(get_current_user)):
+    def role_checker(current_user: Annotated[dict, Depends(get_current_user)]):
         if current_user.get("role") != required_role:
             logger.warning(f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
             raise HTTPException(status_code=403, detail="Forbidden")
@@ -168,7 +168,7 @@ def role_required(required_role: str):
 
 # ---------------- Routes ----------------
 @auth_router.post("/signup")
-async def signup(request: SignupRequest, db: Session = Depends(get_db)):
+async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Attempting signup for email: {request.email}")
     if get_user_by_email(db, request.email):
         logger.warning(f"Signup denied: User already exists with email: {request.email}")
@@ -221,7 +221,7 @@ async def login(request: LoginRequest, response: Response, db: Session = Depends
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 @auth_router.post("/google-auth")
-async def google_login(request: GoogleAuthRequest, db: Session = Depends(get_db)):
+async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info("Attempting Google OAuth login.")
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
@@ -293,7 +293,10 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 @auth_router.get("/profile")
-async def profile(db: Session = Depends(get_db),current_user: dict = Depends(get_current_user)):
+async def profile(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
+):
     user_email = current_user.get("sub")
     logger.info(f"Fetching profile for user: {user_email}")
     
@@ -351,14 +354,17 @@ async def logout(
     return {"msg": "Successfully logged out"}
 
 @auth_router.get("/admin/dashboard")
-async def admin_dashboard(db: Session = Depends(get_db),current_user: dict = Depends(role_required("admin"))):
+async def admin_dashboard(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
+):
     user_email = current_user.get("sub", "N/A")
     logger.info(f"Admin dashboard accessed successfully by user: {user_email}")
     return {"message": "Welcome to the admin dashboard"}
 
 
 @auth_router.post("/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+async def forgot_password(request: ForgotPasswordRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Password reset requested for email: {request.email}")
 
     # Check if user exists (but don't reveal this to the client)
@@ -402,8 +408,13 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
     return {"message": "If your account exists, a password reset email has been sent."}
 
 
-@auth_router.post("/reset-password")
-async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+@auth_router.post(
+    "/reset-password",
+    responses={
+        400: { "description": "Invalid or expired reset token" }
+    }
+)
+async def reset_password(request: ResetPasswordRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         # Verify the token
         payload = jwt.decode(request.token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
@@ -431,11 +442,16 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
         logger.error(f"Invalid reset token: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid reset token")
 
-@auth_router.post("/change-password")
+@auth_router.post(
+    "/change-password",
+    responses={
+        400: { "description": "User not found or incorrect old password" }
+    }
+)
 async def change_password(
     request: ChangePasswordRequest, 
-    db: Session = Depends(get_db), 
-    current_user: dict = Depends(get_current_user)
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     user = get_user_by_email(db, user_email)
@@ -455,10 +471,15 @@ async def change_password(
     logger.info(f"Password changed successfully for user: {user_email}")
     return {"message": "Password changed successfully."}
 
-@auth_router.get("/is-google-account")
+@auth_router.get(
+    "/is-google-account",
+    responses={
+        status.HTTP_404_NOT_FOUND: { "description": ERROR_USER_NOT_FOUND }
+    }
+)
 async def is_google_account(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     user = get_user_by_email(db, user_email)

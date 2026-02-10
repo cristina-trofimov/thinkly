@@ -73,7 +73,7 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div role="button" className="w-full outline-none">
+            <button className="w-full outline-none">
               <SidebarMenuButton
                 size="lg"
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
@@ -91,7 +91,7 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
                 </div>
                 <ChevronsUpDown className="ml-auto size-4" />
               </SidebarMenuButton>
-            </div>
+            </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"

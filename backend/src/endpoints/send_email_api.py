@@ -153,7 +153,10 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | 
 
 # Routes
 
-@email_router.post("/send")
+@email_router.post(
+    "/send",
+    responses={ 400: { "description": "Error sending email." } }
+)
 async def send_email(request: SendEmailRequest):
     try:
         result = send_email_via_brevo(
