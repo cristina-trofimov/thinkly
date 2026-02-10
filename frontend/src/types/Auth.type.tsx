@@ -1,7 +1,7 @@
 // types/Auth.type.ts
 
 export interface LoginResponse {
-    token: string;
+    access_token: string; // Add this line
 }
 
 export interface LoginRequest {
