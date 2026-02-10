@@ -1,11 +1,11 @@
 import axios from "axios";
 
 const getApiUrl = (): string => {
-  // 1. Safe access using optional chaining
-  const win = globalThis.window as Window & { VITE_BACKEND_URL?: string };
-
-  if (win?.VITE_BACKEND_URL !== undefined) {
-    return win.VITE_BACKEND_URL;
+  // retrieve .env VITE_BACKEND_URL variable if exists (for development)
+  // NOSONAR: import.meta is provided by Vite build system
+  const url = import.meta.env.VITE_BACKEND_URL
+  if (url) {
+    return url;
   }
 
   // 2. Fallback for production
