@@ -1,10 +1,24 @@
-// tests/ManageRiddles.test.tsx
+// tests/ManageRiddles.test.tsx.
 import React from "react";
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import ManageRiddles from "../src/views/admin/ManageRiddlePage";
-import { toast } from "sonner";
-
 import { getRiddles, createRiddle, updateRiddle, deleteRiddle } from "../src/api/RiddlesAPI";
+import axiosClient from "../src/lib/axiosClient";
+
+
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
+jest.mock("@/api/LoggerAPI");
+
+const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 // -------------------- MOCKS --------------------
 

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])
 
 
-# ---------------- Response Models ----------------
+# ---------------- Response Models -----------------
 
 class RecentAccountItem(BaseModel):
     name: str
