@@ -2,7 +2,6 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-// ✅ change this import to your real page path
 import ManageRiddles from "../src/views/admin/ManageRiddlePage";
 
 // ---- Mocks ----
@@ -38,14 +37,67 @@ jest.mock("@/components/forms/FileUpload", () => ({
 }));
 
 /**
- * shadcn Dialog renders via portals; mock to simple conditional rendering for stable tests.
+ * ✅ FIXED Dialog mock:
+ * - supports controlled open + onOpenChange
+ * - DialogTrigger asChild opens it
+ * - DialogContent only renders when open (prevents duplicate create/edit DOM)
  */
 jest.mock("@/components/ui/dialog", () => {
     const React = require("react");
+
+    const Ctx = React.createContext({
+        open: false,
+        setOpen: (_v: boolean) => { },
+    });
+
+    function Dialog({ open, onOpenChange, children }: any) {
+        const [internalOpen, setInternalOpen] = React.useState(!!open);
+
+        React.useEffect(() => {
+            if (typeof open === "boolean") setInternalOpen(open);
+        }, [open]);
+
+        const setOpen = (v: boolean) => {
+            setInternalOpen(v);
+            onOpenChange?.(v);
+        };
+
+        return (
+            <Ctx.Provider value={{ open: internalOpen, setOpen }}>
+                <div>{children}</div>
+            </Ctx.Provider>
+        );
+    }
+
+    function DialogTrigger({ asChild, children }: any) {
+        const { setOpen } = React.useContext(Ctx);
+
+        if (asChild && React.isValidElement(children)) {
+            return React.cloneElement(children, {
+                onClick: (e: any) => {
+                    children.props?.onClick?.(e);
+                    setOpen(true);
+                },
+            });
+        }
+
+        return (
+            <button type="button" onClick={() => setOpen(true)}>
+                {children}
+            </button>
+        );
+    }
+
+    function DialogContent({ children }: any) {
+        const { open } = React.useContext(Ctx);
+        if (!open) return null;
+        return <div data-testid="dialog-content">{children}</div>;
+    }
+
     return {
-        Dialog: ({ open, children }: any) => (open ? <div data-testid="dialog">{children}</div> : <div>{children}</div>),
-        DialogTrigger: ({ children }: any) => <>{children}</>,
-        DialogContent: ({ children }: any) => <div data-testid="dialog-content">{children}</div>,
+        Dialog,
+        DialogTrigger,
+        DialogContent,
         DialogHeader: ({ children }: any) => <div>{children}</div>,
         DialogTitle: ({ children }: any) => <div>{children}</div>,
         DialogFooter: ({ children }: any) => <div>{children}</div>,
@@ -63,7 +115,6 @@ const sampleRiddles = [
 
 beforeEach(() => {
     jest.clearAllMocks();
-    // ✅ don't redefine location; just set path
     window.history.pushState({}, "Test", "/test");
 });
 
@@ -78,7 +129,6 @@ describe("ManageRiddles", () => {
         expect(await screen.findByText("Alpha question")).toBeInTheDocument();
         expect(screen.getByText("Bravo")).toBeInTheDocument();
 
-        // attachment badge + link for file
         expect(screen.getByText(/Has Media/i)).toBeInTheDocument();
         expect(screen.getByRole("link", { name: /View Attachment/i })).toHaveAttribute(
             "href",
@@ -89,7 +139,7 @@ describe("ManageRiddles", () => {
     });
 
     test("shows loading state when loading and no riddles yet", async () => {
-        let resolveFn: (v: any) => void = () => {};
+        let resolveFn: (v: any) => void = () => { };
         (getRiddles as jest.Mock).mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
@@ -135,4 +185,106 @@ describe("ManageRiddles", () => {
         expect(typeof logArg.url).toBe("string");
     });
 
+    test("create dialog opens and onSuccess closes + reloads riddles", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+
+        render(<ManageRiddles />);
+        await screen.findByText("Alpha question");
+
+        fireEvent.click(screen.getByText(/Create New Riddle/i));
+        expect(screen.getByTestId("riddle-form-mode")).toHaveTextContent("create");
+
+        fireEvent.click(screen.getByTestId("riddle-form-success-create"));
+
+        await waitFor(() => {
+            expect(getRiddles).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    test("edit dialog opens and onSuccess closes + reloads riddles", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+
+        render(<ManageRiddles />);
+        await screen.findByText("Alpha question");
+
+        fireEvent.click(screen.getAllByTitle("Edit")[0]);
+
+        expect(screen.getByText("Edit Riddle")).toBeInTheDocument();
+        expect(screen.getByTestId("riddle-form-mode")).toHaveTextContent("edit");
+
+        fireEvent.click(screen.getByTestId("riddle-form-success-edit"));
+
+        await waitFor(() => {
+            expect(getRiddles).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    test("delete flow success: confirm delete calls API, shows toast, reloads", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+        (deleteRiddle as jest.Mock).mockResolvedValueOnce(undefined);
+
+        render(<ManageRiddles />);
+        await screen.findByText("Alpha question");
+
+        fireEvent.click(screen.getAllByTitle("Delete")[0]);
+        expect(screen.getByText(/Delete riddle\?/i)).toBeInTheDocument();
+
+        // ✅ ensure we click the confirm button inside the dialog, not trash icons
+        const dialog = screen.getByTestId("dialog-content");
+        const confirmBtn = (await screen.findByText(/^Delete$/i)).closest("button")!;
+        // (or: within(dialog).getByText(/^Delete$/i).closest("button")!)
+        fireEvent.click(confirmBtn);
+
+        await waitFor(() => expect(deleteRiddle).toHaveBeenCalledWith(1));
+        expect(toast.success).toHaveBeenCalledWith("Riddle deleted!");
+        expect(getRiddles).toHaveBeenCalledTimes(2);
+    });
+
+    test("delete flow failure: logs + toast error", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+        (deleteRiddle as jest.Mock).mockRejectedValueOnce(new Error("nope"));
+
+        render(<ManageRiddles />);
+        await screen.findByText("Alpha question");
+
+        fireEvent.click(screen.getAllByTitle("Delete")[0]);
+
+        const confirmBtn = (await screen.findByText(/^Delete$/i)).closest("button")!;
+        fireEvent.click(confirmBtn);
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Failed to delete riddle"));
+        expect(logFrontend).toHaveBeenCalled();
+
+        const logArg = (logFrontend as jest.Mock).mock.calls[0][0];
+        expect(logArg.level).toBe("ERROR");
+        expect(logArg.component).toBe("ManageRiddlesPage.tsx");
+    });
+
+    // ✅ Added: cancel delete closes dialog
+    test("cancel delete closes dialog", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+
+        render(<ManageRiddles />);
+        await screen.findByText("Alpha question");
+
+        fireEvent.click(screen.getAllByTitle("Delete")[0]);
+        expect(screen.getByText(/Delete riddle\?/i)).toBeInTheDocument();
+
+        // click Cancel in the dialog
+        fireEvent.click(screen.getByText(/Cancel/i).closest("button")!);
+
+        await waitFor(() => {
+            expect(screen.queryByText(/Delete riddle\?/i)).not.toBeInTheDocument();
+        });
+    });
+
+    // ✅ Added: no attachment link if file is null
+    test("renders no attachment button when file is null", async () => {
+        (getRiddles as jest.Mock).mockResolvedValueOnce([{ id: 1, question: "Q", answer: "A", file: null }]);
+
+        render(<ManageRiddles />);
+
+        await screen.findByText("Q");
+        expect(screen.queryByRole("link", { name: /View Attachment/i })).not.toBeInTheDocument();
+    });
 });
