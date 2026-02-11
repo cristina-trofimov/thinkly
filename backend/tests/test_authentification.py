@@ -262,23 +262,25 @@ def test_role_required_wrong_role(client, mock_user):
     
 def test_decode_token_revoked(client, mock_user, mock_db_session):
     """Test that a blocked JTI results in a 401."""
+    from src.DB_Methods.database import get_db
     jti = "revoked-id"
     token = authentification_api.create_access_token({
         "sub": mock_user.email, 
         "id": mock_user.user_id, 
         "jti": jti
     })
-    mock_query = mock_db_session.query.return_value
-    mock_filter = mock_query.filter.return_value
-    mock_filter.first.side_effect = [MagicMock(is_active=True), mock_user]
+    def override_get_db():
+        try:
+            yield mock_db_session
+        finally:
+            pass
     authentification_api.token_blocklist.add(jti)
     try:
-        from src.DB_Methods.database import get_db
-        app.dependency_overrides[get_db] = lambda: mock_db_session
+        app.dependency_overrides[get_db] = override_get_db
         response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 404
     finally:
-        authentification_api.token_blocklist.remove(jti)
+        authentification_api.token_blocklist.discard(jti)
         app.dependency_overrides.clear()
     
     
