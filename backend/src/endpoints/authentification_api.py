@@ -346,7 +346,7 @@ async def logout(
     if user_id:
         db.query(UserSession).filter(
             UserSession.user_id == user_id, 
-            UserSession.is_active == True
+            UserSession.is_active
         ).update({"is_active": False})
         db.commit()
 

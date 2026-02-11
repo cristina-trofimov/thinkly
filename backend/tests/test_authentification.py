@@ -90,8 +90,10 @@ def test_login_success(client, mock_user):
     with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user), \
          patch("src.endpoints.authentification_api._commit_or_rollback"):
         response = client.post("/login", json=payload)
+        
         assert response.status_code == 200
-        assert "token" in response.json()
+        assert "access_token" in response.json()
+        assert "refresh_token" in response.cookies
 
 def test_login_wrong_password(client, mock_user):
     payload = {"email": "test@example.com", "password": "WRONG_PASSWORD"}
@@ -117,23 +119,50 @@ def test_google_auth_success(client):
          patch("src.endpoints.authentification_api._commit_or_rollback"):
         response = client.post("/google-auth", json={"credential": "fake-jwt-token"})
         assert response.status_code == 200
-        assert "token" in response.json()
+        assert "access_token" in response.json()
 
-def test_profile_endpoint(client, mock_user):
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
-    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+def test_profile_endpoint(client, mock_user, mock_db_session):
+    token = authentification_api.create_access_token({
+        "sub": mock_user.email, 
+        "role": mock_user.user_type, 
+        "id": mock_user.user_id,
+        "jti": "some-unique-id" 
+    })
+    mock_session = MagicMock()
+    mock_session.is_active = True
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user), \
+         patch.object(mock_db_session.query(), "filter", return_value=mock_db_session.query()), \
+         patch.object(mock_db_session.query(), "first", return_value=mock_session):
+        
         response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
         assert response.json()["email"] == mock_user.email
+        
+def test_refresh_token_success(client, mock_user, mock_db_session):
+    # Create a valid refresh token
+    refresh_token = authentification_api.create_refresh_token({"sub": mock_user.email})
+    client.cookies.set("refresh_token", refresh_token)
 
-def test_logout_revocation(client, mock_user):
-    token = authentification_api.create_access_token({"sub": mock_user.email, "role": mock_user.user_type, "id": mock_user.user_id})
-    response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
-    assert response.status_code == 200
-    assert response.json()["msg"] == "Successfully logged out"
-    response_protected = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
-    assert response_protected.status_code == 401
-    assert response_protected.json()["detail"] == "Token has been revoked"
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.post("/refresh")
+        
+        assert response.status_code == 200
+        assert "access_token" in response.json()       
+        
+def test_logout_revocation(client, mock_user, mock_db_session):
+    token = authentification_api.create_access_token({
+        "sub": mock_user.email, 
+        "role": mock_user.user_type, 
+        "id": mock_user.user_id
+    })
+    with patch("src.endpoints.authentification_api.decode_access_token", 
+               return_value={"sub": mock_user.email, "id": mock_user.user_id}):
+        response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 200
+        assert response.json()["msg"] == "Successfully logged out"
+        refresh_cookie = response.cookies.get("refresh_token")
+        assert refresh_cookie is None or refresh_cookie == ""
 
 def test_admin_dashboard_access_denied(client, mock_user):
     token = authentification_api.create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})

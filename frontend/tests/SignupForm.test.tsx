@@ -216,7 +216,7 @@ describe("SignupForm", () => {
 
         test("does not show error when passwords match", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-token" });
 
             render(<SignupForm />);
 
@@ -246,7 +246,7 @@ describe("SignupForm", () => {
     describe("Successful Signup", () => {
         test("calls signup API with correct data", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-token" });
 
             render(<SignupForm />);
 
@@ -277,7 +277,7 @@ describe("SignupForm", () => {
 
         test("shows success alert on successful signup", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-token" });
 
             render(<SignupForm />);
 
@@ -303,7 +303,7 @@ describe("SignupForm", () => {
 
         test("automatically logs in user after signup", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-token" });
 
             render(<SignupForm />);
 
@@ -332,7 +332,7 @@ describe("SignupForm", () => {
 
         test("stores token in localStorage after signup and login", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-jwt-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-jwt-token" });
 
             render(<SignupForm />);
 
@@ -358,7 +358,7 @@ describe("SignupForm", () => {
 
         test("navigates to home page after successful signup and login", async () => {
             mockSignup.mockResolvedValueOnce(undefined);
-            mockLogin.mockResolvedValueOnce({ token: "fake-token" });
+            mockLogin.mockResolvedValueOnce({ access_token: "fake-token" });
 
             render(<SignupForm />);
 

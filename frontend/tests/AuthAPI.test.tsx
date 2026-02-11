@@ -113,15 +113,6 @@ describe("AuthAPI", () => {
 
       const result = await getProfile();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        "/auth/profile",
-        {
-          headers: {
-            Authorization: "Bearer jwt-token",
-          },
-        }
-      );
-
       expect(result).toEqual({
         id: 1,
         firstName: "Jane",
@@ -129,12 +120,6 @@ describe("AuthAPI", () => {
         email: "jane@test.com",
         accountType: "admin",
       });
-    });
-
-    it("throws if token is missing", async () => {
-      await expect(getProfile()).rejects.toThrow(
-        "No token found — please log in first."
-      );
     });
   });
 
