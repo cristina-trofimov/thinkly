@@ -261,6 +261,7 @@ def test_role_required_wrong_role(client, mock_user):
     assert response.json()["detail"] == "Forbidden"
     
 def test_decode_token_revoked(client, mock_user, mock_db_session):
+    """Test that a blocked JTI results in a 401."""
     jti = "revoked-id"
     token = authentification_api.create_access_token({
         "sub": mock_user.email, 
@@ -272,11 +273,14 @@ def test_decode_token_revoked(client, mock_user, mock_db_session):
     mock_filter.first.side_effect = [MagicMock(is_active=True), mock_user]
     authentification_api.token_blocklist.add(jti)
     try:
+        from src.DB_Methods.database import get_db
+        app.dependency_overrides[get_db] = lambda: mock_db_session
         response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 401
         assert "revoked" in response.json()["detail"].lower()
     finally:
         authentification_api.token_blocklist.remove(jti)
+        app.dependency_overrides.clear()
     
     
 def test_create_user_owner_already_exists(mock_db_session):
