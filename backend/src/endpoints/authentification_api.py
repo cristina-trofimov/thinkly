@@ -265,7 +265,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         logger.error(f"Google token verification failed: {e.__class__.__name__}. Credential length: {len(request.credential)}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
     
-@auth_router.post("/refresh")
+@auth_router.post("/refresh", responses={401: {"description": "Refresh failed due to missing, invalid, or expired token"}})
 async def refresh_token(request: Request, db: Session = Depends(get_db)):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
@@ -309,7 +309,7 @@ async def profile(
     logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
     return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email, "role": user.user_type}
 
-@auth_router.post("/logout")
+@auth_router.post("/logout", responses={401: {"description": "Logout failed due to missing or invalid token"}})
 async def logout(
     request: Request, 
     response: Response, # Add response here to clear cookies
