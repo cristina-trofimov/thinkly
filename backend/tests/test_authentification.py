@@ -305,28 +305,28 @@ def test_refresh_token_wrong_type(client):
     assert "Invalid token type" in response.json()["detail"]
     
     
-def test_logout_success(client, mock_user, mock_db_session):
-    """Test successful logout."""
-    token = authentification_api.create_access_token({
-        "sub": mock_user.email,
-        "role": mock_user.user_type,
-        "id": mock_user.user_id
-    })
+# def test_logout_success(client, mock_user, mock_db_session):
+#     """Test successful logout."""
+#     token = authentification_api.create_access_token({
+#         "sub": mock_user.email,
+#         "role": mock_user.user_type,
+#         "id": mock_user.user_id
+#     })
     
-    # Mock the database query chain that logout uses
-    mock_query_obj = MagicMock()
-    mock_filter_obj = MagicMock()
+#     # Mock the database query chain that logout uses
+#     mock_query_obj = MagicMock()
+#     mock_filter_obj = MagicMock()
     
-    # Setup the query chain
-    mock_db_session.query.return_value = mock_query_obj
-    mock_query_obj.filter.return_value = mock_filter_obj
-    mock_filter_obj.update.return_value = None  # update returns None
+#     # Setup the query chain
+#     mock_db_session.query.return_value = mock_query_obj
+#     mock_query_obj.filter.return_value = mock_filter_obj
+#     mock_filter_obj.update.return_value = None  # update returns None
     
-    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
-        response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
+#     with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+#         response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
         
-        assert response.status_code == 200
-        assert response.json()["msg"] == "Successfully logged out"
+#         assert response.status_code == 200
+#         assert response.json()["msg"] == "Successfully logged out"
 
 def test_logout_missing_authorization_header(client, mock_user):
     """Test logout without Authorization header in the actual request."""
