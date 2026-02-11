@@ -261,7 +261,6 @@ def test_role_required_wrong_role(client, mock_user):
     assert response.json()["detail"] == "Forbidden"
     
 def test_decode_token_revoked(client, mock_user, mock_db_session):
-    """Test that a blocked JTI results in a 401."""
     jti = "revoked-id"
     token = authentification_api.create_access_token({
         "sub": mock_user.email, 
