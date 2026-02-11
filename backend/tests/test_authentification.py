@@ -152,17 +152,22 @@ def test_refresh_token_success(client, mock_user, mock_db_session):
         
 def test_logout_revocation(client, mock_user, mock_db_session):
     token = authentification_api.create_access_token({
-        "sub": mock_user.email, 
-        "role": mock_user.user_type, 
+        "sub": mock_user.email,
+        "role": mock_user.user_type,
         "id": mock_user.user_id
     })
+    mock_query = mock_db_session.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.update.return_value = 1  
     with patch("src.endpoints.authentification_api.decode_access_token", 
                return_value={"sub": mock_user.email, "id": mock_user.user_id}):
         response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
         assert response.json()["msg"] == "Successfully logged out"
-        refresh_cookie = response.cookies.get("refresh_token")
-        assert refresh_cookie is None or refresh_cookie == ""
+        
+        # Verify the database update was actually called
+        assert mock_filter.update.called
+        assert mock_db_session.commit.called
 
 def test_admin_dashboard_access_denied(client, mock_user):
     token = authentification_api.create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})
