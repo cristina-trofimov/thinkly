@@ -39,7 +39,10 @@ def client(mock_db_session):
             pass
     
     app.dependency_overrides[database.get_db] = override_get_db
-    return TestClient(app)
+    test_client = TestClient(app)
+    yield test_client
+    # Clean up after each test
+    app.dependency_overrides.clear()
 
 @pytest.fixture
 def mock_user():
@@ -310,13 +313,20 @@ def test_logout_success(client, mock_user, mock_db_session):
         "id": mock_user.user_id
     })
     
+    # Mock the database query chain that logout uses
+    mock_query_obj = MagicMock()
+    mock_filter_obj = MagicMock()
+    
+    # Setup the query chain
+    mock_db_session.query.return_value = mock_query_obj
+    mock_query_obj.filter.return_value = mock_filter_obj
+    mock_filter_obj.update.return_value = None  # update returns None
+    
     with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
         response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
         
         assert response.status_code == 200
         assert response.json()["msg"] == "Successfully logged out"
-        # Note: The actual implementation revokes the token via blocklist
-        # and updates db session status, so we just verify the response
 
 def test_logout_missing_authorization_header(client, mock_user):
     """Test logout without Authorization header in the actual request."""
@@ -328,7 +338,6 @@ def test_logout_missing_authorization_header(client, mock_user):
 
 def test_decode_token_revoked(client, mock_user, mock_db_session):
     """Test that a blocked JTI is added to blocklist during logout."""
-    from src.DB_Methods.database import get_db
     from jose import jwt
     
     # Create token - the JTI will be auto-generated
@@ -342,27 +351,19 @@ def test_decode_token_revoked(client, mock_user, mock_db_session):
     payload = jwt.decode(token, authentification_api.JWT_SECRET_KEY, algorithms=[authentification_api.JWT_ALGORITHM])
     actual_jti = payload.get("jti")
     
-    # Configure mock to return the session as a generator
-    def override_get_db():
-        try:
-            yield mock_db_session
-        finally:
-            pass
+    # Mock the database query chain for both profile and logout
+    mock_session = MagicMock()
+    mock_session.is_active = True
+    mock_query = MagicMock()
+    mock_filter = MagicMock()
+    mock_filter.first.return_value = mock_session
+    mock_filter.update.return_value = None
+    mock_query.filter.return_value = mock_filter
+    mock_db_session.query.return_value = mock_query
     
     try:
-        app.dependency_overrides[get_db] = override_get_db
-        
         # First verify the token works
         with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
-            # Create a mock session for the profile check
-            mock_session = MagicMock()
-            mock_session.is_active = True
-            mock_query = MagicMock()
-            mock_filter = MagicMock()
-            mock_filter.first.return_value = mock_session
-            mock_query.filter.return_value = mock_filter
-            mock_db_session.query.return_value = mock_query
-            
             response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
             assert response.status_code == 200
             
@@ -376,7 +377,6 @@ def test_decode_token_revoked(client, mock_user, mock_db_session):
     finally:
         if actual_jti:
             authentification_api.token_blocklist.discard(actual_jti)
-        app.dependency_overrides.clear()
 
 
 def test_get_current_user_missing_token(client):
