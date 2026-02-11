@@ -213,7 +213,7 @@ async def login(request: LoginRequest, response: Response, db: Session = Depends
         httponly=True,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
         samesite="lax",
-        secure=False
+        secure=True # Set to True in production when using HTTPS
     )
 
     return {"access_token": access_token}

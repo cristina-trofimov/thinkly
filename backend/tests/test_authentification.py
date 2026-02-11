@@ -252,3 +252,63 @@ def test_is_google_account_false(client, mock_user):
         response = client.get("/is-google-account", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 200
         assert response.json()["isGoogleUser"] is False
+        
+def test_role_required_wrong_role(client, mock_user):
+    """Test accessing an admin route with a participant role."""
+    token = authentification_api.create_access_token({"sub": mock_user.email, "role": "participant", "id": mock_user.user_id})
+    response = client.get("/admin/dashboard", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Forbidden"
+    
+def test_decode_token_revoked(client, mock_user):
+    """Test that a blocked JTI results in a 401."""
+    jti = "revoked-id"
+    token = authentification_api.create_access_token({"sub": mock_user.email, "id": mock_user.user_id, "jti": jti})
+    
+    # Manually add to blocklist
+    authentification_api.token_blocklist.add(jti)
+    
+    response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 404
+    
+    # Cleanup for other tests
+    authentification_api.token_blocklist.remove(jti)
+    
+    
+def test_create_user_owner_already_exists(mock_db_session):
+    """Test the logic that prevents multiple owners."""
+    existing_owner = MagicMock()
+    # Mock query to return an existing owner
+    mock_db_session.query().filter().first.return_value = existing_owner
+    
+    with pytest.raises(ValueError, match="Only one owner is allowed"):
+        authentification_api.create_user(mock_db_session, "o@a.com", "hash", "f", "l", type="owner")
+
+def test_signup_fatal_error(client):
+    """Test the 'except Exception' block in signup."""
+    payload = {"firstName": "f", "lastName": "l", "email": "err@a.com", "password": "p"}
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None), \
+         patch("src.endpoints.authentification_api.create_user", side_effect=Exception("DB Down")):
+        response = client.post("/signup", json=payload)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
+        
+def test_refresh_token_expired(client):
+    """Test the ExpiredSignatureError block in refresh."""
+    # Create a token that expired 1 hour ago
+    token = authentification_api.create_access_token({"sub": "a@a.com"}, expires_delta=timedelta(hours=-1))
+    client.cookies.set("refresh_token", token)
+    
+    response = client.post("/refresh")
+    assert response.status_code == 401
+    assert "expired" in response.json()["detail"].lower()
+
+def test_refresh_token_wrong_type(client):
+    """Test passing an access token to the refresh endpoint."""
+    access_token = authentification_api.create_access_token({"sub": "a@a.com"})
+    client.cookies.set("refresh_token", access_token)
+    
+    response = client.post("/refresh")
+    assert response.status_code == 401
+    assert "Invalid token type" in response.json()["detail"]
+    
