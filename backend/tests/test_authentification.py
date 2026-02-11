@@ -1,7 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 from unittest.mock import MagicMock, patch
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 
 import sys
 import os
@@ -300,3 +301,292 @@ def test_refresh_token_wrong_type(client):
     assert response.status_code == 401
     assert "Invalid token type" in response.json()["detail"]
     
+    
+def test_logout_success(client, mock_user, mock_db_session):
+    """Test successful logout."""
+    token = authentification_api.create_access_token({
+        "sub": mock_user.email,
+        "role": mock_user.user_type,
+        "id": mock_user.user_id
+    })
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
+        
+        assert response.status_code == 200
+        assert response.json()["msg"] == "Successfully logged out"
+        # Note: The actual implementation revokes the token via blocklist
+        # and updates db session status, so we just verify the response
+
+def test_logout_missing_authorization_header(client, mock_user):
+    """Test logout without Authorization header in the actual request."""
+    # The get_current_user dependency will reject requests without proper auth
+    response = client.post("/logout")  # No headers
+    assert response.status_code == 401
+    # The actual error is "Missing token" from get_current_user
+    assert "Missing token" in response.json()["detail"]
+
+def test_decode_token_revoked(client, mock_user, mock_db_session):
+    """Test that a blocked JTI is added to blocklist during logout."""
+    from src.DB_Methods.database import get_db
+    from jose import jwt
+    
+    # Create token - the JTI will be auto-generated
+    token = authentification_api.create_access_token({
+        "sub": mock_user.email, 
+        "id": mock_user.user_id,
+        "role": mock_user.user_type,
+    })
+    
+    # Extract the actual JTI from the token
+    payload = jwt.decode(token, authentification_api.JWT_SECRET_KEY, algorithms=[authentification_api.JWT_ALGORITHM])
+    actual_jti = payload.get("jti")
+    
+    # Configure mock to return the session as a generator
+    def override_get_db():
+        try:
+            yield mock_db_session
+        finally:
+            pass
+    
+    try:
+        app.dependency_overrides[get_db] = override_get_db
+        
+        # First verify the token works
+        with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+            # Create a mock session for the profile check
+            mock_session = MagicMock()
+            mock_session.is_active = True
+            mock_query = MagicMock()
+            mock_filter = MagicMock()
+            mock_filter.first.return_value = mock_session
+            mock_query.filter.return_value = mock_filter
+            mock_db_session.query.return_value = mock_query
+            
+            response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
+            assert response.status_code == 200
+            
+            # Now logout (which should add JTI to blocklist)
+            logout_response = client.post("/logout", headers={"Authorization": f"Bearer {token}"})
+            assert logout_response.status_code == 200
+            
+            # Verify the actual JTI was added to blocklist
+            assert actual_jti in authentification_api.token_blocklist
+        
+    finally:
+        if actual_jti:
+            authentification_api.token_blocklist.discard(actual_jti)
+        app.dependency_overrides.clear()
+
+
+def test_get_current_user_missing_token(client):
+    """Test accessing protected endpoint without token."""
+    response = client.get("/profile")
+    assert response.status_code == 401
+    assert "Missing token" in response.json()["detail"]
+
+def test_get_current_user_invalid_token_format(client):
+    """Test with malformed Authorization header."""
+    response = client.get("/profile", headers={"Authorization": "InvalidFormat"})
+    assert response.status_code == 401
+    assert "Missing token" in response.json()["detail"]
+
+def test_verify_token_no_email(client):
+    """Test verify_token when email is None in payload."""
+    from jose import jwt
+    
+    # Create token without 'sub' claim
+    bad_token = jwt.encode({"jti": "test"}, authentification_api.JWT_SECRET_KEY, algorithm=authentification_api.JWT_ALGORITHM)
+    
+    # NOTE: The source code has a bug - it uses jwt.PyJWTError but jose uses jwt.JWTError
+    # Python evaluates the exception handler when the function runs, causing AttributeError
+    # This test documents the current buggy behavior - see BUG_REPORT.md
+    with pytest.raises(AttributeError) as exc_info:
+        authentification_api.verify_token(bad_token)
+    assert "PyJWTError" in str(exc_info.value)
+
+def test_verify_token_expired(client):
+    """Test verify_token with expired token."""
+    from jose import jwt
+    
+    # Create expired token
+    payload = {
+        "sub": "test@example.com",
+        "exp": datetime.now(timezone.utc) - timedelta(hours=1)
+    }
+    expired_token = jwt.encode(payload, authentification_api.JWT_SECRET_KEY, algorithm=authentification_api.JWT_ALGORITHM)
+    
+    with pytest.raises(HTTPException) as exc_info:
+        authentification_api.verify_token(expired_token)
+    assert exc_info.value.status_code == 400
+    assert "expired" in exc_info.value.detail.lower()
+
+def test_verify_token_invalid_jwt(client):
+    """Test verify_token with completely invalid token."""
+    # Note: The actual code has a bug - it uses jwt.PyJWTError but jose library uses jwt.JWTError
+    # This causes an AttributeError when an invalid token is passed
+    # For now, we test the actual behavior (which is a bug that should be fixed)
+    with pytest.raises(AttributeError) as exc_info:
+        authentification_api.verify_token("completely-invalid-token")
+    assert "PyJWTError" in str(exc_info.value)
+
+def test_decode_access_token_invalid(client):
+    """Test decode_access_token with invalid token."""
+    with pytest.raises(HTTPException) as exc_info:
+        authentification_api.decode_access_token("invalid-token")
+    assert exc_info.value.status_code == 401
+
+def test_profile_user_not_found(client, mock_user):
+    """Test profile endpoint when user is not in database."""
+    token = authentification_api.create_access_token({
+        "sub": "nonexistent@example.com",
+        "role": "participant",
+        "id": 999
+    })
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 404
+        assert "User not found" in response.json()["detail"]
+
+def test_google_auth_user_creation_failure(client):
+    """Test Google auth when user creation fails."""
+    mock_google_data = {
+        "email": "googleuser@example.com",
+        "given_name": "Google",
+        "family_name": "User"
+    }
+    
+    with patch("google.oauth2.id_token.verify_oauth2_token", return_value=mock_google_data), \
+         patch("src.endpoints.authentification_api.get_user_by_email", return_value=None), \
+         patch("src.endpoints.authentification_api.create_user"):
+        response = client.post("/google-auth", json={"credential": "fake-jwt-token"})
+        assert response.status_code == 500
+        assert "Failed to create or retrieve user" in response.json()["detail"]
+
+def test_google_auth_invalid_token(client):
+    """Test Google auth with invalid credential."""
+    with patch("google.oauth2.id_token.verify_oauth2_token", side_effect=ValueError("Invalid token")):
+        response = client.post("/google-auth", json={"credential": "invalid-token"})
+        assert response.status_code == 401
+        assert "Invalid Google token" in response.json()["detail"]
+
+def test_refresh_token_missing(client):
+    """Test refresh endpoint without refresh token."""
+    response = client.post("/refresh")
+    assert response.status_code == 401
+    assert "Refresh token missing" in response.json()["detail"]
+
+def test_refresh_token_invalid_jwt(client):
+    """Test refresh endpoint with malformed token."""
+    client.cookies.set("refresh_token", "invalid-token")
+    response = client.post("/refresh")
+    assert response.status_code == 401
+    assert "Invalid refresh token" in response.json()["detail"]
+
+def test_refresh_token_user_not_found(client):
+    """Test refresh when user no longer exists."""
+    refresh_token = authentification_api.create_refresh_token({"sub": "deleted@example.com"})
+    client.cookies.set("refresh_token", refresh_token)
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.post("/refresh")
+        assert response.status_code == 401
+        assert "User not found" in response.json()["detail"]
+
+def test_reset_password_wrong_purpose(client, mock_user):
+    """Test reset password with token that has wrong purpose."""
+    # Create token without password_reset purpose
+    token = authentification_api.create_access_token(
+        data={"sub": mock_user.email, "purpose": "other"},
+        expires_delta=timedelta(hours=1)
+    )
+    payload = {"token": token, "new_password": "newpassword123"}
+    
+    response = client.post("/reset-password", json=payload)
+    assert response.status_code == 400
+    assert "Invalid or expired reset token" in response.json()["detail"]
+
+def test_reset_password_no_email_in_token(client):
+    """Test reset password with token missing email."""
+    from jose import jwt
+    
+    # Create token without sub
+    token = jwt.encode(
+        {"purpose": "password_reset", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+        authentification_api.JWT_SECRET_KEY,
+        algorithm=authentification_api.JWT_ALGORITHM
+    )
+    payload = {"token": token, "new_password": "newpassword123"}
+    
+    response = client.post("/reset-password", json=payload)
+    assert response.status_code == 400
+    assert "Invalid or expired reset token" in response.json()["detail"]
+
+def test_reset_password_expired_token(client):
+    """Test reset password with expired token."""
+    from jose import jwt
+    
+    expired_payload = {
+        "sub": "test@example.com",
+        "purpose": "password_reset",
+        "exp": datetime.now(timezone.utc) - timedelta(hours=1)
+    }
+    expired_token = jwt.encode(expired_payload, authentification_api.JWT_SECRET_KEY, algorithm=authentification_api.JWT_ALGORITHM)
+    payload = {"token": expired_token, "new_password": "newpassword123"}
+    
+    response = client.post("/reset-password", json=payload)
+    assert response.status_code == 400
+    assert "expired" in response.json()["detail"].lower()
+
+def test_reset_password_user_not_found(client):
+    """Test reset password when user doesn't exist."""
+    reset_token = authentification_api.create_access_token(
+        data={"sub": "nonexistent@example.com", "purpose": "password_reset"},
+        expires_delta=timedelta(hours=1)
+    )
+    payload = {"token": reset_token, "new_password": "newpassword123"}
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.post("/reset-password", json=payload)
+        assert response.status_code == 400
+        assert "Invalid or expired reset token" in response.json()["detail"]
+
+def test_change_password_user_not_found(client):
+    """Test change password when user doesn't exist."""
+    token = authentification_api.create_access_token({"sub": "deleted@example.com", "role": "participant", "id": 999})
+    payload = {"old_password": "oldpass", "new_password": "newpass123"}
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.post(
+            "/change-password",
+            json=payload,
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        assert response.status_code == 404
+        assert "User not found" in response.json()["detail"]
+
+def test_is_google_account_user_not_found(client):
+    """Test is_google_account when user doesn't exist."""
+    token = authentification_api.create_access_token({"sub": "deleted@example.com", "role": "participant", "id": 999})
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.get("/is-google-account", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 404
+        assert "User not found" in response.json()["detail"]
+
+def test_update_user_password_user_not_found(mock_db_session):
+    """Test update_user_password when user doesn't exist."""
+    mock_db_session.query().filter().first.return_value = None
+    
+    with pytest.raises(ValueError, match="User not found"):
+        authentification_api.update_user_password(mock_db_session, "nonexistent@example.com", "newhash")
+
+def test_login_user_not_found(client):
+    """Test login with non-existent user."""
+    payload = {"email": "nonexistent@example.com", "password": "password123"}
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.post("/login", json=payload)
+        assert response.status_code == 401
+        assert "Invalid credentials" in response.json()["detail"]
