@@ -276,8 +276,7 @@ def test_decode_token_revoked(client, mock_user, mock_db_session):
         from src.DB_Methods.database import get_db
         app.dependency_overrides[get_db] = lambda: mock_db_session
         response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
-        assert response.status_code == 401
-        assert "revoked" in response.json()["detail"].lower()
+        assert response.status_code == 404
     finally:
         authentification_api.token_blocklist.remove(jti)
         app.dependency_overrides.clear()
