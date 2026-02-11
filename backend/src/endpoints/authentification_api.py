@@ -107,7 +107,7 @@ def verify_token(token: str):
         return email
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token expired")
-    except jwt.PyJWTError:
+    except jwt.JWTError:
         raise HTTPException(status_code=400, detail=ERROR_INVALID_TOKEN)
 
 def hash_password(password: str) -> str:
