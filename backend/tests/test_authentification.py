@@ -260,19 +260,24 @@ def test_role_required_wrong_role(client, mock_user):
     assert response.status_code == 403
     assert response.json()["detail"] == "Forbidden"
     
-def test_decode_token_revoked(client, mock_user):
+def test_decode_token_revoked(client, mock_user, mock_db_session):
     """Test that a blocked JTI results in a 401."""
     jti = "revoked-id"
-    token = authentification_api.create_access_token({"sub": mock_user.email, "id": mock_user.user_id, "jti": jti})
-    
-    # Manually add to blocklist
+    token = authentification_api.create_access_token({
+        "sub": mock_user.email, 
+        "id": mock_user.user_id, 
+        "jti": jti
+    })
+    mock_query = mock_db_session.query.return_value
+    mock_filter = mock_query.filter.return_value
+    mock_filter.first.side_effect = [MagicMock(is_active=True), mock_user]
     authentification_api.token_blocklist.add(jti)
-    
-    response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
-    assert response.status_code == 404
-    
-    # Cleanup for other tests
-    authentification_api.token_blocklist.remove(jti)
+    try:
+        response = client.get("/profile", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 401
+        assert "revoked" in response.json()["detail"].lower()
+    finally:
+        authentification_api.token_blocklist.remove(jti)
     
     
 def test_create_user_owner_already_exists(mock_db_session):
