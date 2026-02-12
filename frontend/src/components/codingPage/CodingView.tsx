@@ -10,10 +10,13 @@ import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
-import { submitToJudge0 } from '@/api/Judge0API';
+import { judge0, submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
+import { useTestcases } from '../helpers/useTestcases';
+import Console from "@code-editor/console-feed";
+
 
 const CodingView = () => {
   const location = useLocation()
@@ -30,7 +33,17 @@ const CodingView = () => {
   const logs: Response[] = []
 
   const runCode = async () => {
-    const response = await submitToJudge0("64.58.46.96:2358", code, judgeID, "Judge0", null)    
+    const response = await submitToJudge0("172.93.24.127:2358", code, judgeID, "Judge0", null)    
+    logs.push(response)
+
+    console.log("log")
+    console.log(logs)
+  }
+
+  const runCode_be = async () => {
+    console.log("runCode_be")
+
+    const response = await judge0('print("hello world")', "71", "Judge0", "hello world")
     logs.push(response)
 
     console.log("log")
@@ -128,13 +141,18 @@ const CodingView = () => {
                     border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium" >Code</span>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-5 gap-1">
                     {/* Size buttons */}
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-red-500" 
+                      onClick={runCode_be}
+                    >
+                      <Play size={22} color="green" className='fill-red' />
+                    </Button>
+                    {/* <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={runCode}
                     >
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
-                    </Button>
+                    </Button> */}
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={() => { setCode(templateCode) } } >
                       <RotateCcw size={22} color="black" />
@@ -251,6 +269,7 @@ const CodingView = () => {
                       {log.text()}
                     </p>
                   ))}
+                  {/* <Console logs={logs} variant="dark" />  */}
                 </TabsContent>
               </Tabs>
             </Panel>

@@ -1,11 +1,35 @@
 import axiosClient from "@/lib/axiosClient";
 
+export async function judge0(
+    source_code: string,
+    language_id: string,
+    stdin: string | "Judge0",
+    expected_output: string | null,
+): Promise<any> {
+    try {
+        const response = await axiosClient.post(
+            "/judge0",
+            {
+                source_code: source_code,
+                language_id: language_id,
+                stdin: stdin,
+                expected_output: expected_output,
+            }
+        );
+  
+        return response
+
+      } catch (err) {
+        console.error("Error running the code:", err);
+        throw err;
+      }
+}
 
 export async function submitToJudge0(
     ip: string,
     code: string,
     language_id: string,
-    stdin: string,
+    stdin: string | "Judge0",
     expected_output: string | null,
 ): Promise<Response> {
     const controller = new AbortController()
@@ -31,6 +55,9 @@ export async function submitToJudge0(
         )
 
         const getResponse = await getOutput(ip, postResponse.data.token, controller.signal)
+        // print("hellooo")
+        console.log("getResponse")
+        console.log(getResponse)
 
         return getResponse
     } catch (err) {
