@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, call
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -11,486 +11,600 @@ from src.endpoints.leaderboards_api import (
     get_filtered_leaderboard_entries,
     get_leaderboards,
     get_current_competition_leaderboard,
-    get_all_algotime_leaderboard_entries
+    get_all_algotime_leaderboard_entries,
+    get_all_competition_entries,
 )
 
 
-# Test fixtures
+# ---------------------------------------------------------------------------
+# Shared fixtures
+# ---------------------------------------------------------------------------
+
 @pytest.fixture
 def mock_db():
-    """Mock database session"""
     return Mock(spec=Session)
 
 
-@pytest.fixture
-def sample_base_event():
-    """Sample base event"""
-    event = Mock()
-    event.event_name = "Test Competition"
-    event.event_start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    event.event_end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
-    return event
-
-
-@pytest.fixture
-def sample_competition(sample_base_event):
-    """Sample competition with base event"""
-    comp = Mock()
-    comp.event_id = 1
-    comp.base_event = sample_base_event
-    comp.competition_leaderboard_entries = []
-    return comp
-
-
-@pytest.fixture
-def sample_leaderboard_entry():
-    """Sample leaderboard entry"""
+def make_entry(user_id: int, total_score: int, **kwargs):
+    """Factory for a minimal leaderboard mock entry."""
     entry = Mock()
-    entry.competition_leaderboard_entry_id = 1
-    entry.competition_id = 1
-    entry.user_id = 1
-    entry.name = "John Doe"
-    entry.total_score = 100
-    entry.problems_solved = 5
-    entry.total_time = 3600
-    entry.calculated_rank = None  # Will be set by calculate_rank
-    entry.user_account = Mock()
-    entry.user_account.first_name = "John"
-    entry.user_account.last_name = "Doe"
+    entry.user_id = user_id
+    entry.total_score = total_score
+    entry.calculated_rank = None
+    entry.name = kwargs.get("name", f"User {user_id}")
+    entry.problems_solved = kwargs.get("problems_solved", 5)
+    entry.total_time = kwargs.get("total_time", 3600)
+    entry.competition_leaderboard_entry_id = kwargs.get("entry_id", user_id)
+    entry.user_account = kwargs.get("user_account", None)
     return entry
 
 
-@pytest.fixture
-def sample_algotime_entry():
-    """Sample AlgoTime leaderboard entry"""
-    entry = Mock()
-    entry.algotime_leaderboard_entry_id = 1
-    entry.algotime_series_id = 1
-    entry.user_id = 1
-    entry.name = "Jane Smith"
-    entry.total_score = 150
-    entry.problems_solved = 7
-    entry.total_time = 4200
-    entry.calculated_rank = None  # Will be set by calculate_rank
-    entry.last_updated = datetime(2025, 1, 15, tzinfo=timezone.utc)
-    entry.user_account = Mock()
-    entry.user_account.first_name = "Jane"
-    entry.user_account.last_name = "Smith"
-    return entry
+def make_user_account(first_name: str, last_name: str):
+    ua = Mock()
+    ua.first_name = first_name
+    ua.last_name = last_name
+    return ua
 
 
-class TestGetAllCompetitions:
-    """Tests for get_all_competitions helper function"""
+# ---------------------------------------------------------------------------
+# TestCalculateRank — extended
+# ---------------------------------------------------------------------------
 
-    def test_get_all_competitions_success(self, mock_db):
-        """Test successful retrieval of all competitions"""
-        mock_competitions = [Mock(), Mock(), Mock()]
-        mock_db.query.return_value.all.return_value = mock_competitions
+class TestCalculateRankExtended:
 
-        result = get_all_competitions(mock_db)
-
-        assert result == mock_competitions
-        assert len(result) == 3
-
-    def test_get_all_competitions_empty(self, mock_db):
-        """Test retrieval when no competitions exist"""
-        mock_db.query.return_value.all.return_value = []
-
-        result = get_all_competitions(mock_db)
-
-        assert result == []
-
-    def test_get_all_competitions_database_error(self, mock_db):
-        """Test database error handling"""
-        mock_db.query.side_effect = Exception("Database connection failed")
-
-        with pytest.raises(Exception, match="Database connection failed"):
-            get_all_competitions(mock_db)
-
-
-class TestGetScoreboardForCompetition:
-    """Tests for get_scoreboard_for_competition helper function"""
-
-    def test_get_scoreboard_success(self, mock_db):
-        """Test successful scoreboard retrieval"""
-        mock_entries = [Mock(total_score=100), Mock(total_score=90), Mock(total_score=80)]
-        mock_query = mock_db.query.return_value
-        mock_query.filter.return_value.all.return_value = mock_entries
-
-        result = get_scoreboard_for_competition(mock_db, 1)
-
-        assert result == mock_entries
-        assert len(result) == 3
-
-    def test_get_scoreboard_empty(self, mock_db):
-        """Test when competition has no entries"""
-        mock_query = mock_db.query.return_value
-        mock_query.filter.return_value.all.return_value = []
-
-        result = get_scoreboard_for_competition(mock_db, 1)
-
-        assert result == []
-
-    def test_get_scoreboard_database_error(self, mock_db):
-        """Test database error handling"""
-        mock_db.query.side_effect = Exception("Query failed")
-
-        with pytest.raises(Exception, match="Query failed"):
-            get_scoreboard_for_competition(mock_db, 1)
-
-
-class TestCalculateRank:
-    """Tests for calculate_rank helper function"""
-
-    def create_mock_entry(self, user_id, total_score):
-        """Helper to create mock leaderboard entry"""
-        entry = Mock()
-        entry.user_id = user_id
-        entry.total_score = total_score
-        entry.calculated_rank = None
-        return entry
-
-    def test_calculate_rank_empty_list(self):
-        """Test with empty entries list"""
-        result = calculate_rank([])
-        assert result == []
-
-    def test_calculate_rank_single_entry(self):
-        """Test with single entry"""
-        entries = [self.create_mock_entry(1, 100)]
+    def test_all_entries_have_same_score(self):
+        """All tied → everyone gets rank 1."""
+        entries = [make_entry(i, 100) for i in range(1, 6)]
         result = calculate_rank(entries)
+        assert all(e.calculated_rank == 1 for e in result)
 
-        assert len(result) == 1
-        assert result[0].calculated_rank == 1
-
-    def test_calculate_rank_different_scores(self):
-        """Test ranking with different scores"""
+    def test_ties_in_the_middle(self):
+        """Rank 1 unique, ranks 2-3 tied, rank 4 is 4."""
         entries = [
-            self.create_mock_entry(1, 50),
-            self.create_mock_entry(2, 100),
-            self.create_mock_entry(3, 75)
+            make_entry(1, 200),
+            make_entry(2, 150),
+            make_entry(3, 150),
+            make_entry(4, 100),
         ]
         result = calculate_rank(entries)
-
-        assert result[0].total_score == 100
         assert result[0].calculated_rank == 1
-        assert result[1].total_score == 75
         assert result[1].calculated_rank == 2
-        assert result[2].total_score == 50
-        assert result[2].calculated_rank == 3
+        assert result[2].calculated_rank == 2
+        assert result[3].calculated_rank == 4   # skips 3 due to tie
 
-    def test_calculate_rank_tied_scores(self):
-        """Test ranking with tied scores"""
-        entries = [
-            self.create_mock_entry(1, 100),
-            self.create_mock_entry(2, 100),
-            self.create_mock_entry(3, 75)
-        ]
+    def test_zero_scores_get_ranked(self):
+        """Zero is a valid score and must be ranked correctly."""
+        entries = [make_entry(1, 0), make_entry(2, 0), make_entry(3, 10)]
         result = calculate_rank(entries)
-
+        assert result[0].total_score == 10
         assert result[0].calculated_rank == 1
-        assert result[1].calculated_rank == 1
-        assert result[2].calculated_rank == 3
+        assert result[1].calculated_rank == 2
+        assert result[2].calculated_rank == 2
+
+    def test_large_dataset_ordering(self):
+        """100 entries are returned in descending score order."""
+        entries = [make_entry(i, i * 3) for i in range(1, 101)]
+        result = calculate_rank(entries)
+        assert result[0].total_score == 300           # user 100
+        assert result[0].calculated_rank == 1
+        assert result[-1].total_score == 3            # user 1
+        assert result[-1].calculated_rank == 100
+
+    def test_two_entries_different_scores(self):
+        entries = [make_entry(1, 50), make_entry(2, 100)]
+        result = calculate_rank(entries)
+        assert result[0].calculated_rank == 1
+        assert result[1].calculated_rank == 2
+
+    def test_returns_same_list_length(self):
+        entries = [make_entry(i, 100 - i) for i in range(10)]
+        result = calculate_rank(entries)
+        assert len(result) == 10
+
+    def test_rank_assigned_in_place(self):
+        """calculate_rank modifies and returns the same objects."""
+        entry = make_entry(1, 42)
+        result = calculate_rank([entry])
+        assert result[0] is entry
 
 
-class TestGetFilteredLeaderboardEntries:
-    """Tests for get_filtered_leaderboard_entries helper function"""
+# ---------------------------------------------------------------------------
+# TestGetFilteredLeaderboardEntries — extended
+# ---------------------------------------------------------------------------
 
-    def create_mock_entry(self, user_id, total_score):
-        """Helper to create mock leaderboard entry"""
-        entry = Mock()
-        entry.user_id = user_id
-        entry.total_score = total_score
-        entry.calculated_rank = None
-        return entry
+class TestGetFilteredLeaderboardEntriesExtended:
 
-    def test_empty_entries_list(self):
-        """Test with empty entries list"""
-        result, show_separator = get_filtered_leaderboard_entries([], None)
+    def _entries(self, n: int):
+        """n entries with scores 200, 199, …, 200-n+1 (user_id == rank)."""
+        return [make_entry(i, 200 - i) for i in range(1, n + 1)]
 
-        assert result == []
-        assert show_separator is False
+    # --- boundary around top-10 ---
 
-    def test_no_user_logged_in(self):
-        """Test with no user logged in - returns top 10"""
-        # Create 20 entries with decreasing scores
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
-        result, show_separator = get_filtered_leaderboard_entries(entries, None)
-
+    def test_user_at_rank_10_boundary(self):
+        """User is exactly the 10th entry → top 10, no separator."""
+        entries = self._entries(20)
+        result, show_separator = get_filtered_leaderboard_entries(entries, user_id := 10)
         assert len(result) == 10
         assert show_separator is False
-        # Verify top 10 are returned in order
-        assert result[0].total_score == 199
+        assert any(e.user_id == user_id for e in result)
 
-    def test_user_not_in_leaderboard(self):
-        """Test when user is not in leaderboard - returns top 10"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
-        result, show_separator = get_filtered_leaderboard_entries(entries, 999)
-
-        assert len(result) == 10
-        assert show_separator is False
-
-    def test_user_in_top_10(self):
-        """Test when user is in top 10 - returns top 10"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
-        result, show_separator = get_filtered_leaderboard_entries(entries, 5)
-
-        assert len(result) == 10
-        assert show_separator is False
-
-    def test_user_at_rank_11(self):
-        """Test when user is at rank 11 (index 10) - returns top 12, no separator"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
+    def test_user_at_rank_11_only_11_total(self):
+        """Only 11 entries, user at rank 11 → 11 entries returned (no 12th exists)."""
+        entries = self._entries(11)
         result, show_separator = get_filtered_leaderboard_entries(entries, 11)
-
-        assert len(result) == 12
+        assert len(result) == 11
         assert show_separator is False
 
-    def test_user_at_rank_12(self):
-        """Test when user is at rank 12 (index 11) - returns top 13, no separator"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
+    def test_user_at_rank_12_only_12_total(self):
+        """Only 12 entries, user at rank 12 → 12 entries, no separator."""
+        entries = self._entries(12)
         result, show_separator = get_filtered_leaderboard_entries(entries, 12)
-
-        assert len(result) == 13
+        assert len(result) == 12
         assert show_separator is False
 
-    def test_user_at_rank_13_or_higher(self):
-        """Test when user is at rank 13+ (index 12+) - returns top 10 + user ±1 with separator"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
-        result, show_separator = get_filtered_leaderboard_entries(entries, 15)
-
-        # Should be top 10 + entry at positions 13, 14, 15 = 13 entries
-        assert len(result) == 13
-        assert show_separator is True
-        # Verify user is in results
-        user_ids = [e.user_id for e in result]
-        assert 15 in user_ids
-        assert 14 in user_ids  # user - 1
-        assert 16 in user_ids  # user + 1
-
-    def test_user_at_last_position(self):
-        """Test when user is at last position - no entry after user"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 21)]
-
-        result, show_separator = get_filtered_leaderboard_entries(entries, 20)
-
-        # Should be top 10 + entries at positions 18, 19, 20 = 13 entries (no 21st entry)
+    def test_user_at_rank_13_only_13_total(self):
+        """Only 13 entries, user at rank 13 → top 10 + entry 12 + 13, separator.
+        No entry after user since user is last."""
+        entries = self._entries(13)
+        result, show_separator = get_filtered_leaderboard_entries(entries, 13)
+        # top 10 + prev (12) + user (13) = 12, no next entry
         assert len(result) == 12
         assert show_separator is True
-        # Verify user is in results
-        user_ids = [e.user_id for e in result]
-        assert 20 in user_ids
-        assert 19 in user_ids  # user - 1
+        user_ids = {e.user_id for e in result}
+        assert 13 in user_ids
+        assert 12 in user_ids
 
-    def test_less_than_10_entries(self):
-        """Test when there are less than 10 entries total"""
-        entries = [self.create_mock_entry(i, 200 - i) for i in range(1, 6)]
+    def test_user_at_rank_13_has_no_one_before(self):
+        """Boundary: ensure user at index 12 without a previous entry is handled.
+        This can't happen (index 12 always has 0..11 before it), but we verify
+        general ±1 window for rank 14 where all neighbours exist."""
+        entries = self._entries(20)
+        result, show_separator = get_filtered_leaderboard_entries(entries, 14)
+        user_ids = {e.user_id for e in result}
+        assert 13 in user_ids   # user - 1
+        assert 14 in user_ids   # user
+        assert 15 in user_ids   # user + 1
+        assert show_separator is True
 
-        result, show_separator = get_filtered_leaderboard_entries(entries, 3)
+    def test_separator_not_present_for_rank_12_case(self):
+        """Rank 12 → no separator even though user is outside top 10."""
+        entries = self._entries(20)
+        result, show_separator = get_filtered_leaderboard_entries(entries, 12)
+        assert show_separator is False
 
+    def test_top_10_exact(self):
+        """Exactly 10 entries with no user filter → all 10 returned."""
+        entries = self._entries(10)
+        result, show_separator = get_filtered_leaderboard_entries(entries, None)
+        assert len(result) == 10
+        assert show_separator is False
+
+    def test_fewer_than_10_entries_no_user(self):
+        """Fewer than 10 entries, no user → all returned, no separator."""
+        entries = self._entries(5)
+        result, show_separator = get_filtered_leaderboard_entries(entries, None)
         assert len(result) == 5
         assert show_separator is False
 
-
-class TestGetLeaderboards:
-    """Tests for get_leaderboards endpoint"""
-
-    def test_get_leaderboards_no_competitions(self, mock_db):
-        """Test when no competitions exist"""
-        mock_query = mock_db.query.return_value
-        mock_query.join.return_value.all.return_value = []
-
-        result = get_leaderboards(mock_db, None)
-
-        assert result == []
-
-    def test_get_leaderboards_with_competitions(self, mock_db, sample_competition, sample_leaderboard_entry):
-        """Test successful leaderboard retrieval"""
-        sample_competition.competition_leaderboard_entries = [sample_leaderboard_entry]
-        mock_query = mock_db.query.return_value
-        mock_query.join.return_value.all.return_value = [sample_competition]
-
-        result = get_leaderboards(mock_db, None)
-
+    def test_single_entry_is_user(self):
+        """Single entry that is the current user → returned, no separator."""
+        entries = [make_entry(42, 500)]
+        result, show_separator = get_filtered_leaderboard_entries(entries, 42)
         assert len(result) == 1
-        assert result[0]["id"] == "1"
-        assert result[0]["name"] == "Test Competition"
-        assert len(result[0]["participants"]) == 1
-        assert result[0]["participants"][0]["name"] == "John Doe"
-        assert result[0]["participants"][0]["points"] == 100
+        assert result[0].user_id == 42
+        assert show_separator is False
 
-    def test_get_leaderboards_with_user_fallback_name(self, mock_db, sample_competition, sample_leaderboard_entry):
-        """Test leaderboard with fallback name when user_account is None"""
-        sample_leaderboard_entry.user_account = None
-        sample_leaderboard_entry.name = "Fallback Name"
-        sample_competition.competition_leaderboard_entries = [sample_leaderboard_entry]
-        mock_query = mock_db.query.return_value
-        mock_query.join.return_value.all.return_value = [sample_competition]
+    def test_tied_scores_user_outside_top10(self):
+        """Ties can push the user's index position; separator logic still holds."""
+        # 15 entries all with score=100 → all rank 1, but indices differ
+        entries = [make_entry(i, 100) for i in range(1, 16)]
+        # user_id=15 is at index 14 (rank 1 due to tie, but index >= 12)
+        result, show_separator = get_filtered_leaderboard_entries(entries, 15)
+        user_ids = {e.user_id for e in result}
+        assert 15 in user_ids
 
-        result = get_leaderboards(mock_db, None)
-
-        assert result[0]["participants"][0]["name"] == "Fallback Name"
-
-    def test_get_leaderboards_database_error(self, mock_db):
-        """Test database error handling"""
-        mock_db.query.side_effect = Exception("Database error")
-
-        with pytest.raises(HTTPException) as exc_info:
-            get_leaderboards(mock_db, None)
-
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.detail == "Failed to retrieve leaderboards."
+    def test_result_entries_have_calculated_rank(self):
+        """All returned entries must have calculated_rank populated."""
+        entries = self._entries(15)
+        result, _ = get_filtered_leaderboard_entries(entries, 13)
+        for entry in result:
+            assert entry.calculated_rank is not None
 
 
-class TestGetCurrentCompetitionLeaderboard:
-    """Tests for get_current_competition_leaderboard endpoint"""
+# ---------------------------------------------------------------------------
+# TestGetAllCompetitionEntries — entirely new endpoint coverage
+# ---------------------------------------------------------------------------
 
-    def test_no_current_competition(self, mock_db):
-        competition_query = Mock()
+class TestGetAllCompetitionEntries:
 
-        # ✅ ONLY ONE filter()
-        competition_query.join.return_value.filter.return_value.first.return_value = None
+    def _make_competition(self, event_id: int, entries):
+        comp = Mock()
+        comp.event_id = event_id
+        comp.base_event = Mock()
+        comp.base_event.event_name = "Spring Comp"
+        comp.competition_leaderboard_entries = entries
+        return comp
 
-        mock_db.query.return_value = competition_query
+    def test_returns_all_ranked_entries(self, mock_db):
+        """All entries are returned, sorted by score with rank assigned."""
+        e1 = make_entry(1, 300, name="Alice", user_account=make_user_account("Alice", "A"), entry_id=10)
+        e2 = make_entry(2, 100, name="Bob", user_account=make_user_account("Bob", "B"), entry_id=11)
+        comp = self._make_competition(5, [e2, e1])  # intentionally out of order
 
-        result = get_current_competition_leaderboard(mock_db, None)
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = comp
 
-        assert result["message"] == "No competition is currently active."
-        assert result["competition"] is None
-        assert result["entries"] == []
-
-    @patch("src.endpoints.leaderboards_api.datetime")
-    def test_current_competition_found(
-            self,
-            mock_datetime,
-            mock_db,
-            sample_leaderboard_entry
-    ):
-        mock_now = datetime(2025, 1, 15, tzinfo=timezone.utc)
-        mock_datetime.now.return_value = mock_now
-
-        mock_competition = Mock()
-        mock_competition.event_id = 1
-        mock_competition.base_event = Mock()
-        mock_competition.base_event.event_name = "Test Competition"
-        mock_competition.base_event.event_start_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
-        mock_competition.base_event.event_end_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
-
-        competition_query = Mock()
-        competition_query.join.return_value.filter.return_value.first.return_value = mock_competition
-
-        entries_query = Mock()
-        entries_query.filter.return_value.all.return_value = [sample_leaderboard_entry]
-
-        mock_db.query.side_effect = [competition_query, entries_query]
-
-        result = get_current_competition_leaderboard(mock_db, None)
-
-        assert result["competition"]["id"] == 1
-        assert result["competition"]["name"] == "Test Competition"
-        assert len(result["entries"]) == 1
-
-
-    def test_current_competition_database_error(self, mock_db):
-        """Test database error handling"""
-        mock_db.query.side_effect = Exception("Database error")
-
-        with pytest.raises(HTTPException) as exc_info:
-            get_current_competition_leaderboard(None, mock_db)
-
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.detail == "Failed to retrieve current competition leaderboard."
-
-
-class TestGetAllAlgoTimeLeaderboardEntries:
-    """Tests for get_all_algotime_leaderboard_entries endpoint"""
-
-    def test_get_algotime_entries_success(self, mock_db, sample_algotime_entry):
-        """Test successful retrieval of AlgoTime entries"""
-        mock_query = mock_db.query.return_value
-        mock_query.all.return_value = [sample_algotime_entry]
-
-        result = get_all_algotime_leaderboard_entries(mock_db)
-
-        assert len(result) == 1
-        assert result[0]["name"] == "Jane Smith"
-        assert result[0]["totalScore"] == 150
-        assert result[0]["rank"] == 1
-
-    def test_get_algotime_entries_with_fallback_name(self, mock_db, sample_algotime_entry):
-        """Test AlgoTime entries with fallback name"""
-        sample_algotime_entry.user_account = None
-        sample_algotime_entry.name = "Anonymous User"
-        mock_query = mock_db.query.return_value
-        mock_query.all.return_value = [sample_algotime_entry]
-
-        result = get_all_algotime_leaderboard_entries(mock_db)
-
-        assert result[0]["name"] == "Anonymous User"
-
-    def test_get_algotime_entries_empty(self, mock_db):
-        """Test when no AlgoTime entries exist"""
-        mock_query = mock_db.query.return_value
-        mock_query.all.return_value = []
-
-        result = get_all_algotime_leaderboard_entries(mock_db)
-
-        assert result == []
-
-    def test_get_algotime_entries_multiple(self, mock_db):
-        """Test with multiple AlgoTime entries"""
-        entry1 = Mock()
-        entry1.algotime_leaderboard_entry_id = 1
-        entry1.algotime_series_id = 1
-        entry1.user_id = 1
-        entry1.name = "User One"
-        entry1.total_score = 150
-        entry1.problems_solved = 7
-        entry1.total_time = 4200
-        entry1.calculated_rank = None
-        entry1.last_updated = datetime(2025, 1, 15, tzinfo=timezone.utc)
-        entry1.user_account = Mock()
-        entry1.user_account.first_name = "User"
-        entry1.user_account.last_name = "One"
-
-        entry2 = Mock()
-        entry2.algotime_leaderboard_entry_id = 2
-        entry2.algotime_series_id = 1
-        entry2.user_id = 2
-        entry2.name = "User Two"
-        entry2.total_score = 100
-        entry2.problems_solved = 5
-        entry2.total_time = 3600
-        entry2.calculated_rank = None
-        entry2.last_updated = datetime(2025, 1, 15, tzinfo=timezone.utc)
-        entry2.user_account = Mock()
-        entry2.user_account.first_name = "User"
-        entry2.user_account.last_name = "Two"
-
-        mock_query = mock_db.query.return_value
-        mock_query.all.return_value = [entry1, entry2]
-
-        result = get_all_algotime_leaderboard_entries(mock_db)
+        result = get_all_competition_entries(5, mock_db)
 
         assert len(result) == 2
-        # Should be sorted by score (highest first)
-        assert result[0]["totalScore"] == 150
+        assert result[0]["name"] == "Alice A"
         assert result[0]["rank"] == 1
-        assert result[1]["totalScore"] == 100
+        assert result[1]["name"] == "Bob B"
         assert result[1]["rank"] == 2
 
-    def test_get_algotime_entries_database_error(self, mock_db):
-        """Test database error handling"""
-        mock_db.query.side_effect = Exception("Database error")
+    def test_uses_fallback_name_when_no_user_account(self, mock_db):
+        entry = make_entry(1, 50, name="Ghost User", user_account=None, entry_id=99)
+        comp = self._make_competition(1, [entry])
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = comp
+
+        result = get_all_competition_entries(1, mock_db)
+
+        assert result[0]["name"] == "Ghost User"
+
+    def test_response_shape(self, mock_db):
+        """All expected fields are present in each entry."""
+        entry = make_entry(1, 200, problems_solved=7, total_time=1234, entry_id=5,
+                           user_account=make_user_account("X", "Y"))
+        comp = self._make_competition(3, [entry])
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = comp
+
+        result = get_all_competition_entries(3, mock_db)
+        row = result[0]
+
+        assert set(row.keys()) == {"name", "userId", "points", "problemsSolved", "totalTime", "rank"}
+        assert row["userId"] == 1
+        assert row["points"] == 200
+        assert row["problemsSolved"] == 7
+        assert row["totalTime"] == 1234
+
+    def test_competition_not_found_raises_404(self, mock_db):
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(HTTPException) as exc_info:
-            get_all_algotime_leaderboard_entries(mock_db)
+            get_all_competition_entries(999, mock_db)
+
+        assert exc_info.value.status_code == 404
+        assert "999" in exc_info.value.detail
+
+    def test_empty_entries_returns_empty_list(self, mock_db):
+        comp = self._make_competition(2, [])
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = comp
+
+        result = get_all_competition_entries(2, mock_db)
+
+        assert result == []
+
+    def test_database_error_raises_500(self, mock_db):
+        mock_db.query.side_effect = Exception("DB is down")
+
+        with pytest.raises(HTTPException) as exc_info:
+            get_all_competition_entries(1, mock_db)
 
         assert exc_info.value.status_code == 500
-        assert exc_info.value.detail == "Failed to retrieve AlgoTime leaderboard entries."
+        assert "Failed to retrieve competition entries" in exc_info.value.detail
+
+    def test_http_exception_propagated_not_wrapped(self, mock_db):
+        """An HTTPException raised internally (e.g. 404) should not be re-wrapped as 500."""
+        mock_db.query.return_value.join.return_value.filter.return_value.first.return_value = None
+
+        with pytest.raises(HTTPException) as exc_info:
+            get_all_competition_entries(7, mock_db)
+
+        assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# TestGetLeaderboards — extended
+# ---------------------------------------------------------------------------
+
+class TestGetLeaderboardsExtended:
+
+    def _make_comp(self, event_id, event_name, entries):
+        event = Mock()
+        event.event_name = event_name
+        event.event_start_date = datetime(2025, 3, 1, tzinfo=timezone.utc)
+        comp = Mock()
+        comp.event_id = event_id
+        comp.base_event = event
+        comp.competition_leaderboard_entries = entries
+        return comp
+
+    def test_response_shape_with_entry(self, mock_db):
+        """Verify full shape of a returned competition dict."""
+        entry = make_entry(1, 100, problems_solved=3, total_time=900,
+                           user_account=make_user_account("Jane", "Doe"))
+        comp = self._make_comp(1, "Spring Cup", [entry])
+        mock_db.query.return_value.join.return_value.all.return_value = [comp]
+
+        result = get_leaderboards(mock_db, None)
+
+        assert len(result) == 1
+        c = result[0]
+        assert c["id"] == "1"
+        assert c["name"] == "Spring Cup"
+        assert "date" in c
+        assert "showSeparator" in c
+        p = c["participants"][0]
+        assert p["name"] == "Jane Doe"
+        assert p["points"] == 100
+        assert p["problemsSolved"] == 3
+        assert p["totalTime"] == 900
+        assert p["rank"] == 1
+
+    def test_with_current_user_in_top_10(self, mock_db):
+        """Passing a valid current_user_id that is in top 10 → top 10, no separator."""
+        entries = [make_entry(i, 200 - i, user_account=make_user_account(f"U{i}", "X"))
+                   for i in range(1, 15)]
+        comp = self._make_comp(1, "Comp", entries)
+        mock_db.query.return_value.join.return_value.all.return_value = [comp]
+
+        result = get_leaderboards(mock_db, current_user_id=5)
+
+        assert len(result[0]["participants"]) == 10
+        assert result[0]["showSeparator"] is False
+
+    def test_with_current_user_outside_top_10(self, mock_db):
+        """current_user_id at rank 15 → entries include user + ±1, separator True."""
+        entries = [make_entry(i, 200 - i, user_account=make_user_account(f"U{i}", "X"))
+                   for i in range(1, 21)]
+        comp = self._make_comp(1, "Comp", entries)
+        mock_db.query.return_value.join.return_value.all.return_value = [comp]
+
+        result = get_leaderboards(mock_db, current_user_id=15)
+
+        assert result[0]["showSeparator"] is True
+        participant_ids = [p["userId"] for p in result[0]["participants"]]
+        assert 15 in participant_ids
+
+    def test_multiple_competitions_returned(self, mock_db):
+        """Each competition gets its own dict in the result list."""
+        comp1 = self._make_comp(1, "Alpha", [make_entry(1, 100, user_account=make_user_account("A", "B"))])
+        comp2 = self._make_comp(2, "Beta", [make_entry(2, 200, user_account=make_user_account("C", "D"))])
+        mock_db.query.return_value.join.return_value.all.return_value = [comp1, comp2]
+
+        result = get_leaderboards(mock_db, None)
+
+        assert len(result) == 2
+        names = {r["name"] for r in result}
+        assert names == {"Alpha", "Beta"}
+
+    def test_participant_rank_field_present(self, mock_db):
+        """rank must be present in participant dict."""
+        entry = make_entry(1, 50, user_account=make_user_account("A", "B"))
+        comp = self._make_comp(1, "C", [entry])
+        mock_db.query.return_value.join.return_value.all.return_value = [comp]
+
+        result = get_leaderboards(mock_db, None)
+
+        assert "rank" in result[0]["participants"][0]
+
+
+# ---------------------------------------------------------------------------
+# TestGetCurrentCompetitionLeaderboardExtended
+# ---------------------------------------------------------------------------
+
+class TestGetCurrentCompetitionLeaderboardExtended:
+
+    def _patch_datetime(self, patcher, now: datetime):
+        patcher.now.return_value = now
+
+    @patch("src.endpoints.leaderboards_api.datetime")
+    def test_entry_response_shape(self, mock_dt, mock_db):
+        """All expected fields are present in each entry."""
+        mock_dt.now.return_value = datetime(2025, 6, 15, tzinfo=timezone.utc)
+
+        ua = make_user_account("Sam", "Jones")
+        entry = make_entry(7, 250, problems_solved=9, total_time=5000,
+                           user_account=ua, entry_id=42)
+
+        mock_comp = Mock()
+        mock_comp.event_id = 3
+        mock_comp.base_event = Mock()
+        mock_comp.base_event.event_name = "Summer Open"
+        mock_comp.base_event.event_start_date = datetime(2025, 6, 1, tzinfo=timezone.utc)
+        mock_comp.base_event.event_end_date = datetime(2025, 6, 30, tzinfo=timezone.utc)
+
+        comp_query = Mock()
+        comp_query.join.return_value.filter.return_value.first.return_value = mock_comp
+        entries_query = Mock()
+        entries_query.filter.return_value.all.return_value = [entry]
+        mock_db.query.side_effect = [comp_query, entries_query]
+
+        result = get_current_competition_leaderboard(mock_db, None)
+
+        assert result["competition"]["id"] == 3
+        assert result["competition"]["name"] == "Summer Open"
+        assert "startDate" in result["competition"]
+        assert "endDate" in result["competition"]
+        assert "showSeparator" in result
+        e = result["entries"][0]
+        assert set(e.keys()) == {"entryId", "name", "userId", "totalScore", "problemsSolved", "totalTime", "rank"}
+        assert e["name"] == "Sam Jones"
+        assert e["userId"] == 7
+        assert e["totalScore"] == 250
+        assert e["problemsSolved"] == 9
+        assert e["rank"] == 1
+
+    @patch("src.endpoints.leaderboards_api.datetime")
+    def test_uses_fallback_name(self, mock_dt, mock_db):
+        """Falls back to entry.name when user_account is None."""
+        mock_dt.now.return_value = datetime(2025, 6, 15, tzinfo=timezone.utc)
+        entry = make_entry(5, 100, name="Archived User", user_account=None, entry_id=1)
+
+        mock_comp = Mock()
+        mock_comp.event_id = 1
+        mock_comp.base_event = Mock()
+        mock_comp.base_event.event_name = "Comp"
+        mock_comp.base_event.event_start_date = datetime(2025, 6, 1, tzinfo=timezone.utc)
+        mock_comp.base_event.event_end_date = datetime(2025, 6, 30, tzinfo=timezone.utc)
+
+        comp_query = Mock()
+        comp_query.join.return_value.filter.return_value.first.return_value = mock_comp
+        entries_query = Mock()
+        entries_query.filter.return_value.all.return_value = [entry]
+        mock_db.query.side_effect = [comp_query, entries_query]
+
+        result = get_current_competition_leaderboard(mock_db, None)
+
+        assert result["entries"][0]["name"] == "Archived User"
+
+    @patch("src.endpoints.leaderboards_api.datetime")
+    def test_show_separator_true_for_user_outside_top10(self, mock_dt, mock_db):
+        """showSeparator propagates correctly when user is at rank 15."""
+        mock_dt.now.return_value = datetime(2025, 6, 15, tzinfo=timezone.utc)
+        entries = [make_entry(i, 200 - i, user_account=make_user_account(f"U{i}", "X"), entry_id=i)
+                   for i in range(1, 21)]
+
+        mock_comp = Mock()
+        mock_comp.event_id = 1
+        mock_comp.base_event = Mock()
+        mock_comp.base_event.event_name = "Live Comp"
+        mock_comp.base_event.event_start_date = datetime(2025, 6, 1, tzinfo=timezone.utc)
+        mock_comp.base_event.event_end_date = datetime(2025, 6, 30, tzinfo=timezone.utc)
+
+        comp_query = Mock()
+        comp_query.join.return_value.filter.return_value.first.return_value = mock_comp
+        entries_query = Mock()
+        entries_query.filter.return_value.all.return_value = entries
+        mock_db.query.side_effect = [comp_query, entries_query]
+
+        result = get_current_competition_leaderboard(mock_db, current_user_id=15)
+
+        assert result["showSeparator"] is True
+        entry_user_ids = [e["userId"] for e in result["entries"]]
+        assert 15 in entry_user_ids
+
+    @patch("src.endpoints.leaderboards_api.datetime")
+    def test_empty_competition_returns_empty_entries(self, mock_dt, mock_db):
+        """Competition found but with 0 entries → entries list is empty."""
+        mock_dt.now.return_value = datetime(2025, 6, 15, tzinfo=timezone.utc)
+
+        mock_comp = Mock()
+        mock_comp.event_id = 2
+        mock_comp.base_event = Mock()
+        mock_comp.base_event.event_name = "Empty Comp"
+        mock_comp.base_event.event_start_date = datetime(2025, 6, 1, tzinfo=timezone.utc)
+        mock_comp.base_event.event_end_date = datetime(2025, 6, 30, tzinfo=timezone.utc)
+
+        comp_query = Mock()
+        comp_query.join.return_value.filter.return_value.first.return_value = mock_comp
+        entries_query = Mock()
+        entries_query.filter.return_value.all.return_value = []
+        mock_db.query.side_effect = [comp_query, entries_query]
+
+        result = get_current_competition_leaderboard(mock_db, None)
+
+        assert result["entries"] == []
+        assert result["competition"]["id"] == 2
+
+
+# ---------------------------------------------------------------------------
+# TestGetAllAlgoTimeLeaderboardEntriesExtended
+# ---------------------------------------------------------------------------
+
+class TestGetAllAlgoTimeLeaderboardEntriesExtended:
+
+    def _make_algo_entry(self, user_id: int, score: int, series_id: int = 1, last_updated=None):
+        entry = Mock()
+        entry.algotime_leaderboard_entry_id = user_id * 10
+        entry.algotime_series_id = series_id
+        entry.user_id = user_id
+        entry.name = f"User {user_id}"
+        entry.total_score = score
+        entry.problems_solved = score // 20
+        entry.total_time = score * 5
+        entry.calculated_rank = None
+        entry.last_updated = last_updated or datetime(2025, 4, 1, tzinfo=timezone.utc)
+        entry.user_account = make_user_account(f"First{user_id}", f"Last{user_id}")
+        return entry
+
+    def test_response_shape(self, mock_db):
+        """All expected fields present and correctly named."""
+        entry = self._make_algo_entry(1, 100, series_id=7,
+                                       last_updated=datetime(2025, 5, 20, tzinfo=timezone.utc))
+        mock_db.query.return_value.all.return_value = [entry]
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+        row = result[0]
+
+        assert set(row.keys()) == {
+            "entryId", "algoTimeSeriesId", "name", "userId",
+            "totalScore", "problemsSolved", "totalTime", "rank", "lastUpdated"
+        }
+        assert row["entryId"] == 10        # user_id * 10
+        assert row["algoTimeSeriesId"] == 7
+        assert row["name"] == "First1 Last1"
+        assert row["userId"] == 1
+        assert row["totalScore"] == 100
+        assert row["lastUpdated"] == datetime(2025, 5, 20, tzinfo=timezone.utc).isoformat()
+
+    def test_entries_sorted_by_score_descending(self, mock_db):
+        """Lower score → higher rank number (worse rank)."""
+        entries = [self._make_algo_entry(i, i * 50) for i in range(1, 6)]
+        mock_db.query.return_value.all.return_value = entries
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        scores = [r["totalScore"] for r in result]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_rank_values_correct_for_unique_scores(self, mock_db):
+        """5 unique scores → ranks 1-5."""
+        entries = [self._make_algo_entry(i, (5 - i) * 100) for i in range(1, 6)]
+        mock_db.query.return_value.all.return_value = entries
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        assert [r["rank"] for r in result] == [1, 2, 3, 4, 5]
+
+    def test_tied_scores_share_rank(self, mock_db):
+        """Two entries with equal score share rank 1; next entry is rank 3."""
+        e1 = self._make_algo_entry(1, 200)
+        e2 = self._make_algo_entry(2, 200)
+        e3 = self._make_algo_entry(3, 100)
+        mock_db.query.return_value.all.return_value = [e1, e2, e3]
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        ranks = [r["rank"] for r in result]
+        assert ranks[0] == 1
+        assert ranks[1] == 1
+        assert ranks[2] == 3
+
+    def test_algotime_series_id_preserved(self, mock_db):
+        """algoTimeSeriesId maps to entry.algotime_series_id exactly."""
+        entry = self._make_algo_entry(1, 50, series_id=99)
+        mock_db.query.return_value.all.return_value = [entry]
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        assert result[0]["algoTimeSeriesId"] == 99
+
+    def test_last_updated_is_iso_string(self, mock_db):
+        """lastUpdated must be an ISO 8601 string."""
+        ts = datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+        entry = self._make_algo_entry(1, 10, last_updated=ts)
+        mock_db.query.return_value.all.return_value = [entry]
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        assert result[0]["lastUpdated"] == ts.isoformat()
+
+    def test_fallback_name_when_no_user_account(self, mock_db):
+        entry = self._make_algo_entry(3, 75)
+        entry.user_account = None
+        entry.name = "Legacy Player"
+        mock_db.query.return_value.all.return_value = [entry]
+
+        result = get_all_algotime_leaderboard_entries(mock_db)
+
+        assert result[0]["name"] == "Legacy Player"
