@@ -16,7 +16,7 @@ interface Props {
 
 type CopyButtonState = "idle" | "exporting" | "copied";
 
-function CopyButtonContent({ state }: { state: CopyButtonState }) {
+function CopyButtonContent({ state }: { readonly state: CopyButtonState }) {
   if (state === "copied") {
     return (
       <>
@@ -41,7 +41,7 @@ function CopyButtonContent({ state }: { state: CopyButtonState }) {
   );
 }
 
-function DownloadButtonContent({ exporting }: { exporting: boolean }) {
+function DownloadButtonContent({ exporting }: { readonly exporting: boolean }) {
   if (exporting) {
     return (
       <>
@@ -109,6 +109,7 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
         textArea.focus();
         textArea.select();
         try {
+          // sonar error expected, its a fall back for older browsers
           const success = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
           if (!success) throw new Error("execCommand copy failed");
         } finally {
@@ -155,7 +156,12 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
     }
   };
 
-  const copyButtonState: CopyButtonState = copied ? "copied" : exporting ? "exporting" : "idle";
+  let copyButtonState: CopyButtonState = "idle";
+  if (copied) {
+    copyButtonState = "copied";
+  } else if (exporting) {
+    copyButtonState = "exporting";
+  }
 
   return (
     <Card className={`mb-6 shadow-sm border ${isCurrent ? "border-[#8065CD]" : "border-gray-200"} ${backgroundColor}`}>
