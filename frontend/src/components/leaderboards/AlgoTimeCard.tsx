@@ -32,15 +32,19 @@ export function AlgoTimeCard({ participants, currentUserId }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for environments where clipboard API is unavailable
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+      // Fallback for environments where the async Clipboard API is unavailable
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const success = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
+        if (!success) throw new Error("execCommand copy failed");
+      } finally {
+        textArea.remove();
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }

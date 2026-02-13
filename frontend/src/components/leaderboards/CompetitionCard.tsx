@@ -14,6 +14,50 @@ interface Props {
   readonly currentUserId?: number;
 }
 
+type CopyButtonState = "idle" | "exporting" | "copied";
+
+function CopyButtonContent({ state }: { state: CopyButtonState }) {
+  if (state === "copied") {
+    return (
+      <>
+        <Check className="w-4 h-4 text-green-500" />
+        <span className="text-green-500">Copied!</span>
+      </>
+    );
+  }
+  if (state === "exporting") {
+    return (
+      <>
+        <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />{" "}
+        Fetching...
+      </>
+    );
+  }
+  return (
+    <>
+      <Copy className="w-4 h-4" />
+      Copy
+    </>
+  );
+}
+
+function DownloadButtonContent({ exporting }: { exporting: boolean }) {
+  if (exporting) {
+    return (
+      <>
+        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{" "}
+        Fetching...
+      </>
+    );
+  }
+  return (
+    <>
+      <Download className="w-4 h-4" />
+      Download
+    </>
+  );
+}
+
 export function CompetitionCard({ competition, isCurrent = false, currentUserId }: Props) {
   const [open, setOpen] = useState(isCurrent);
   const [copied, setCopied] = useState(false);
@@ -57,14 +101,19 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
       try {
         await navigator.clipboard.writeText(text);
       } catch {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+        // Fallback for environments where the async Clipboard API is unavailable
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          const success = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
+          if (!success) throw new Error("execCommand copy failed");
+        } finally {
+          textArea.remove();
+        }
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -96,18 +145,20 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
       ];
 
       const workbook = XLSX.utils.book_new();
-      const sheetName = competition.competitionTitle.slice(0, 31).replace(/[\\/*?:[\]]/g, "");
+      const sheetName = competition.competitionTitle.slice(0, 31).replaceAll(/[\\/*?:[\]]/g, "");
       XLSX.utils.book_append_sheet(workbook, worksheet, sheetName || "Competition");
 
-      const fileName = `${competition.competitionTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-leaderboard.xlsx`;
+      const fileName = `${competition.competitionTitle.replaceAll(/[^a-z0-9]/gi, "-").toLowerCase()}-leaderboard.xlsx`;
       XLSX.writeFile(workbook, fileName);
     } finally {
       setExporting(false);
     }
   };
 
+  const copyButtonState: CopyButtonState = copied ? "copied" : exporting ? "exporting" : "idle";
+
   return (
-    <Card className={`mb-6 shadow-sm border ${isCurrent ? 'border-[#8065CD]' : 'border-gray-200'} ${backgroundColor}`}>
+    <Card className={`mb-6 shadow-sm border ${isCurrent ? "border-[#8065CD]" : "border-gray-200"} ${backgroundColor}`}>
       <CardHeader
         onClick={() => setOpen(!open)}
         className="flex flex-row items-center justify-between px-6 py-4 cursor-pointer"
@@ -137,22 +188,7 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
             title="Copy leaderboard to clipboard"
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-[#8065CD] hover:text-[#8065CD] transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-green-500">Copied!</span>
-              </>
-            ) : exporting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                Fetching...
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy
-              </>
-            )}
+            <CopyButtonContent state={copyButtonState} />
           </button>
 
           <button
@@ -161,17 +197,7 @@ export function CompetitionCard({ competition, isCurrent = false, currentUserId 
             title="Download as Excel file"
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-[#8065CD] text-white hover:bg-[#6a52b3] transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
-            {exporting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Fetching...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4" />
-                Download
-              </>
-            )}
+            <DownloadButtonContent exporting={exporting} />
           </button>
 
           {statusIndicator}
