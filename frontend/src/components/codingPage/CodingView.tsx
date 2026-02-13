@@ -290,17 +290,17 @@ const CodingView = () => {
                           {log.compile_output && (
                             <div>Compilation output: {log.compile_output}</div>
                           )}
+                          {log.message && (
+                            <p >
+                              {log.message}
+                            </p>
+                          )}
+                          {log.stderr && (
+                            <p className='text-red-600' >
+                              {log.stderr}
+                            </p>
+                          )}
                         </div>
-                        {log.message && (
-                          <p >
-                            {log.message}
-                          </p>
-                        )}
-                        {log.stderr && (
-                          <p className='text-red-600' >
-                            {log.stderr}
-                          </p>
-                        )}
                       </div>
                     })}
                   </div>
