@@ -15,7 +15,7 @@ import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
 import { useTestcases } from '../helpers/useTestcases';
-import Console from "@code-editor/console-feed";
+import type { Judge0Response } from '@/types/questions/Judge0Response';
 
 
 const CodingView = () => {
@@ -30,12 +30,12 @@ const CodingView = () => {
     console.log("submitting code")
   }
 
-  const logs: Response[] = []
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    const response = await submitToJudge0("172.93.24.127:2358", code, judgeID, "Judge0", null)    
-    logs.push(response)
-
+    const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
+    setLogs(prev => [...prev, response])
+    
     console.log("log")
     console.log(logs)
   }
@@ -43,7 +43,7 @@ const CodingView = () => {
   const runCode_be = async () => {
     console.log("runCode_be")
 
-    const response = await judge0('print("hello world")', "71", "Judge0", "hello world")
+    const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
     logs.push(response)
 
     console.log("log")
@@ -148,11 +148,11 @@ const CodingView = () => {
                     >
                       <Play size={22} color="green" className='fill-red' />
                     </Button>
-                    {/* <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={runCode}
                     >
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
-                    </Button> */}
+                    </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={() => { setCode(templateCode) } } >
                       <RotateCcw size={22} color="black" />
@@ -217,7 +217,7 @@ const CodingView = () => {
             <Panel data-testid="resizable-handle" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >
+              <Tabs data-testid="sandbox-tabs" className='border-none h-full' defaultValue='testcases' >
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"
@@ -262,14 +262,48 @@ const CodingView = () => {
                   <Testcases question_id={question.id} />
                 </TabsContent>
                 <TabsContent data-testid="code-output-tab" value="results"
-                  className='h-full'
+                  className='max-h-full p-2.5'
                 >
-                  {logs.map((log, idx) => (
-                    <p key={`log-${idx+1}`} >
-                      {log.text()}
-                    </p>
-                  ))}
-                  {/* <Console logs={logs} variant="dark" />  */}
+                  <div className='w-full h-full flex flex-col gap-2 overflow-y-scroll overscroll-x-contain'
+                  >
+                    {logs.map((log, idx) => {
+                      const stat = log.status.description !== "Accepted" ? "Failed" : "Passed"
+                      const text_color = log.status.description !== "Accepted" ? "bg-red-500" : "bg-green-500"
+
+                      return <div 
+                        key={`log-${idx+1}`}  
+                        className='flex columns-2 gap-1.5 items-start'
+                      >
+                        <div
+                          className={`flex flex-col py-0.5 px-1 text-sm ${text_color}`}
+                        >
+                          <div>{stat}</div>
+                          {log.time && ( <div>{log.time} s</div> )}
+
+                        </div>
+                        <div
+                          className={`flex flex-col gap-0.5`}
+                        >
+                          {log.stdout && (
+                            <div>stdout: {log.stdout.replace(/\n/g, "\\n")}</div>
+                          )}
+                          {log.compile_output && (
+                            <div>Compilation output: {log.compile_output}</div>
+                          )}
+                        </div>
+                        {log.message && (
+                          <p >
+                            {log.message}
+                          </p>
+                        )}
+                        {log.stderr && (
+                          <p className='text-red-600' >
+                            {log.stderr}
+                          </p>
+                        )}
+                      </div>
+                    })}
+                  </div>
                 </TabsContent>
               </Tabs>
             </Panel>

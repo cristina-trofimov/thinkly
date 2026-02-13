@@ -1,4 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
+import type { Judge0Response } from "@/types/questions/Judge0Response";
 
 export async function judge0(
     source_code: string,
@@ -31,7 +32,7 @@ export async function submitToJudge0(
     language_id: string,
     stdin: string | "Judge0",
     expected_output: string | null,
-): Promise<Response> {
+): Promise<Judge0Response> {
     const controller = new AbortController()
     try{
         const postResponse = await axiosClient.post(`http://${ip}/submissions`,
@@ -55,9 +56,6 @@ export async function submitToJudge0(
         )
 
         const getResponse = await getOutput(ip, postResponse.data.token, controller.signal)
-        // print("hellooo")
-        console.log("getResponse")
-        console.log(getResponse)
 
         return getResponse
     } catch (err) {
@@ -72,7 +70,7 @@ export async function getOutput(
     signal: AbortSignal,
     intervalMs = 500,
     maxAttempts = 30,
-): Promise<Response> {
+): Promise<Judge0Response> {
     try{
         if (signal.aborted) throw new Error("Judge0 polling aborted")
         if (maxAttempts === 0) throw new Error("Judge0 polling timed out")
@@ -80,7 +78,6 @@ export async function getOutput(
         const response = await axiosClient.get(`http://${ip}/submissions/` + token, {signal})
         const desc = response.data.status.description
 
-        console.log("getting")
         if (desc === "In Queue" || desc === "Processing") {
             await new Promise(r => setTimeout(r, intervalMs))
             return await getOutput(ip, token, signal, maxAttempts - 1)
