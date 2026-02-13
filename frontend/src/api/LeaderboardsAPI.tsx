@@ -123,6 +123,27 @@ export async function getCompetitionsDetails(currentUserId?: number): Promise<Co
     }));
 }
 
+// Get ALL entries for a specific competition (no top-10 filtering — used for export)
+export async function getAllCompetitionEntries(competitionId: number): Promise<CompetitionWithParticipants["participants"]> {
+    const response = await axiosClient.get<Array<{
+        name: string;
+        userId: number | null;
+        points: number;
+        problemsSolved: number;
+        rank: number;
+        totalTime: number;
+    }>>(`/leaderboards/competitions/${competitionId}/all`);
+
+    return response.data.map((p) => ({
+        name: p.name,
+        user_id: p.userId ?? 0,
+        total_score: p.points,
+        problems_solved: p.problemsSolved,
+        rank: p.rank,
+        total_time: formatSecondsToTime(p.totalTime),
+    }));
+}
+
 // Get all AlgoTime leaderboard entries
 export async function getAllAlgoTimeEntries(): Promise<AlgoTimeLeaderboardResponse[]>  {
     const response = await axiosClient.get<AlgoTimeLeaderboardBackendEntry[]>("/leaderboards/algotime");
