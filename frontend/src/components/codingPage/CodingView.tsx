@@ -16,15 +16,25 @@ import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
 import { useTestcases } from '../helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
+import Loader from '../helpers/Loader.tsx';
 
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
+  const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
+  const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
+  const [loadingMsg, setLoadingMsg] = useState<string>("")
 
-  if (!question?.id) {
-    console.log("Loading question")
-  }
+  useEffect(() => {
+    if (!question?.id) {
+      setIsQuestionLoading(true)
+      setLoadingMsg("Loading question")
+    } else {
+      setIsQuestionLoading(false)
+      setLoadingMsg("")
+    }
+  }, [question?.id])
 
   const submitCode = () => {
     console.log("submitting code")
@@ -33,21 +43,37 @@ const CodingView = () => {
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
-    setLogs(prev => [...prev, response])
-    
-    console.log("log")
-    console.log(logs)
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Running the code")
+      
+      const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
+      setLogs(prev => [...prev, response])
+      
+      console.log("log")
+      console.log(logs)
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
   }
 
   const runCode_be = async () => {
     console.log("runCode_be")
 
-    const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
-    logs.push(response)
-
-    console.log("log")
-    console.log(logs)
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Running the code")
+      
+      const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
+      setLogs(prev => [...prev, response])
+      
+      console.log("log")
+      console.log(logs)
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
   }
 
   const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
@@ -107,6 +133,8 @@ const CodingView = () => {
     <div data-testid="sandbox" key="sandbox"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
+      {/* Loading modal */}
+      <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
       <div className='flex items-center justify-center my-2 w-full' >
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn" >
           <CloudUpload size={16} />Submit
