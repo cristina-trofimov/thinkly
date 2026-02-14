@@ -22,6 +22,7 @@ import Loader from '../helpers/Loader.tsx';
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
+  const { testcases } = useTestcases(question.id)
   const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
   const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
   const [loadingMsg, setLoadingMsg] = useState<string>("")
@@ -29,10 +30,8 @@ const CodingView = () => {
   useEffect(() => {
     if (!question?.id) {
       setIsQuestionLoading(true)
-      setLoadingMsg("Loading question")
     } else {
       setIsQuestionLoading(false)
-      setLoadingMsg("")
     }
   }, [question?.id])
 
@@ -45,9 +44,10 @@ const CodingView = () => {
   const runCode = async () => {
     try {
       setIsAsyncLoading(true)
-      setLoadingMsg("Running the code")
+      setLoadingMsg("Running")
       
-      const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
+      const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", testcases)
+      // const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
       setLogs(prev => [...prev, response])
       
       console.log("log")
@@ -63,9 +63,10 @@ const CodingView = () => {
 
     try {
       setIsAsyncLoading(true)
-      setLoadingMsg("Running the code")
+      setLoadingMsg("Running")
       
-      const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
+      // const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
+      const response = await judge0("print('Hello world')", "71", testcases)
       setLogs(prev => [...prev, response])
       
       console.log("log")
