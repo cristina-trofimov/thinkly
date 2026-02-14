@@ -14,6 +14,7 @@ import uuid
 from DB_Methods.database import get_db, _commit_or_rollback
 import logging
 from .send_email_api import send_email_via_brevo
+from posthog_client import posthog
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
@@ -185,7 +186,11 @@ async def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
-
+    posthog.capture(
+        distinct_id=user.user_id,
+        event="user_signed_up",
+        properties={"example_property": "example_value"}
+    )
     # Create a session record for tracking logins
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     session = UserSession(
