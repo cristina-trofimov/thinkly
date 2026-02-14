@@ -47,7 +47,7 @@ export async function judge0(
             }
         );
   
-        return response
+        return response['data']
 
       } catch (err) {
         console.error("Error running the code:", err);

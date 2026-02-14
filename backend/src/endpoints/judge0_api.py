@@ -20,25 +20,25 @@ def judge0_get_output(
     interval_ms: int = 500,
     max_attempts: int = 300,
 ):
-    try:
-        if max_attempts == 0:
-            raise RuntimeError("Judge0 polling timed out")
-        
-        resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
-        resp.raise_for_status()
-        
-        data = resp.json()
-        status = data['status']['description']
-        
-        if status in ("In Queue", "Processing"):
+    for _ in range (max_attempts):
+        try:
+            logger.debug(f"Getting Judge0 submission outout...")
+            resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
+            resp.raise_for_status()
+            
+            data = resp.json()
+            status = data['status']['description']
+            
+            if status not in ("In Queue", "Processing"):
+                return data
+            
             time.sleep(interval_ms / 1000)
-            return judge0_get_output(token, interval_ms, max_attempts - 1)
-        # logger.info(f"SUCCESS: Email sent successfully. Message ID: {resp.json().get('messageId')}")
-        return data
-    
-    except Exception as e:
-        logger.exception("Network error when getting Judge0 output")
-        raise RuntimeError(f"Network error when getting Judge0 output: {e}")
+
+        except Exception as e:
+            logger.exception("Network error when getting Judge0 output")
+            raise RuntimeError(f"Network error when getting Judge0 output: {e}")
+
+    raise RuntimeError("Judge0 polling timed out")
 
 def submit_to_judge0(
     source_code: str,
@@ -63,6 +63,9 @@ def submit_to_judge0(
         "max_file_size": None,
         "enable_network": None
     }
+    
+    # Remove None fields, should be null
+    payload = {k: v for k, v in payload.items() if v is not None}
 
     try:
         logger.debug(f"Posting to Judge0...")
@@ -77,12 +80,12 @@ def submit_to_judge0(
         raise RuntimeError(f"Network error when running code with Judge0: {e}")
 
 # Routes
-@judge0_router.post("/",
+@judge0_router.post("",
     responses={ 400: { "description": "Error sending problem to Judge0." } }
 )
 async def judge0_run_code(request: dict):
     try:
-        response = await submit_to_judge0(
+        response = submit_to_judge0(
             source_code=request["source_code"],
             language_id=request['language_id'],
             stdin=request['stdin'],

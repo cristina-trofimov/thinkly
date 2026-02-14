@@ -64,8 +64,7 @@ const CodingView = () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
-      
-      // const response = await judge0("print('Hello world')", "71", "Judge0", "Hello world\n")
+
       const response = await judge0("print('Hello world')", "71", testcases)
       setLogs(prev => [...prev, response])
       
@@ -293,7 +292,7 @@ const CodingView = () => {
                 <TabsContent data-testid="code-output-tab" value="results"
                   className='max-h-full p-2.5'
                 >
-                  <div className='w-full h-full flex flex-col gap-2 overflow-y-scroll overscroll-x-contain'
+                  <div className='w-full h-full flex flex-col-reverse gap-2 overflow-y-scroll overscroll-x-contain'
                   >
                     {logs.map((log, idx) => {
                       const stat = log.status.description !== "Accepted" ? "Failed" : "Passed"
@@ -313,6 +312,7 @@ const CodingView = () => {
                         <div
                           className={`flex flex-col gap-0.5`}
                         >
+                          <div>Status: {log.status.description}</div>
                           {log.stdout && (
                             <div>stdout: {log.stdout.replace(/\n/g, "\\n")}</div>
                           )}

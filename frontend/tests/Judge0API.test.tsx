@@ -1,5 +1,6 @@
 import axiosClient from "../src/lib/axiosClient"
 import { submitToJudge0, getOutput } from "../src/api/Judge0API"
+import type { TestcaseType } from "../src/types/questions/Testcases.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -18,8 +19,20 @@ const IP = '127.0.0.1:2358'
 const TOKEN = 'abc123'
 const code = "print('Hello')";
 const language_id = "71";
-const stdin = "";
-const expected_output = "Hello\n";
+const testcases: TestcaseType[] = [
+  {
+    test_case_id: 1,
+    question_id: 1,
+    input_data: {
+      "nums": [2, 7, 11, 15], 
+      "target": 9
+      },
+    expected_output: "[0,1]",
+    caseID: ''
+  }
+]
+// const stdin = "";
+// const expected_output = "Hello\n";
 
 
 describe("Judge0API", () => {
@@ -44,7 +57,7 @@ describe("Judge0API", () => {
         },
       });
 
-      const result = await submitToJudge0(IP, code, language_id, stdin, expected_output);
+      const result = await submitToJudge0(IP, code, language_id, testcases);
 
       expect(mockedAxios.post).toHaveBeenCalledWith(`http://${IP}/submissions`, {
         source_code: code,
