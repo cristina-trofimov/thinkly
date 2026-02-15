@@ -91,8 +91,8 @@ def submit_to_judge0(
 
 # Routes
 @judge0_router.post("",
-                    responses={400: {"description": "Error sending problem to Judge0."}}
-                    )
+    responses={400: {"description": "Error sending problem to Judge0."}}
+)
 def judge0_run_code(request: dict):
     try:
         response = submit_to_judge0(
