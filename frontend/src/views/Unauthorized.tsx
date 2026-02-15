@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Unauthorized() {
     const navigate = useNavigate();
+    // put posthog
     return (
         <div className="flex flex-col items-center justify-center h-screen">
             <h1 className="text-4xl font-bold text-red-600">403 - Unauthorized</h1>

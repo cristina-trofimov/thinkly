@@ -10,6 +10,7 @@ from models.schema import (
     BaseEvent
 )
 import logging
+from posthog_analytics import track_custom_event
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
@@ -136,8 +137,8 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 @leaderboards_router.get("/competitions")
 def get_leaderboards(
-    db: Annotated[Session, Depends(get_db)],
-    current_user_id: Optional[int] = None
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
@@ -197,6 +198,18 @@ def get_leaderboards(
             })
 
         logger.info(f"Successfully returned {len(result)} leaderboards.")
+
+        # Track leaderboard view
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="competitions_leaderboard_viewed",
+            properties={
+                "competition_count": len(result),
+                "total_participants": sum(len(comp["participants"]) for comp in result),
+                "is_authenticated": current_user_id is not None,
+            }
+        )
+
         return result
 
     except Exception:
@@ -209,8 +222,8 @@ def get_leaderboards(
 
 @leaderboards_router.get("/competitions/{competition_id}/all")
 def get_all_competition_entries(
-    competition_id: int,
-    db: Annotated[Session, Depends(get_db)],
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
 ):
     """
     Returns ALL entries for a specific competition (no top-10 filtering).
@@ -251,6 +264,19 @@ def get_all_competition_entries(
             })
 
         logger.info(f"Returning {len(result)} total entries for competition {competition_id}.")
+
+        # Track full leaderboard export/view
+        track_custom_event(
+            user_id="anonymous",  # This endpoint doesn't require auth
+            event_name="competition_full_leaderboard_viewed",
+            properties={
+                "competition_id": competition_id,
+                "competition_name": competition.base_event.event_name,
+                "total_entries": len(result),
+                "is_export": True,  # This endpoint is typically used for exports
+            }
+        )
+
         return result
 
     except HTTPException:
@@ -265,8 +291,8 @@ def get_all_competition_entries(
 
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
-    db: Annotated[Session, Depends(get_db)],
-    current_user_id: Optional[int] = None
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions/current endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
@@ -330,6 +356,20 @@ def get_current_competition_leaderboard(
                 "rank": entry.calculated_rank
             })
 
+        # Track current competition leaderboard view
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="current_competition_leaderboard_viewed",
+            properties={
+                "competition_id": current_competition.event_id,
+                "competition_name": current_competition.base_event.event_name,
+                "entries_shown": len(result_entries),
+                "total_participants": len(all_entries),
+                "is_authenticated": current_user_id is not None,
+                "has_separator": show_separator,
+            }
+        )
+
         return {
             "competition": {
                 "id": current_competition.event_id,
@@ -381,6 +421,16 @@ def get_all_algotime_leaderboard_entries(db: Annotated[Session, Depends(get_db)]
                 "rank": entry.calculated_rank,
                 "lastUpdated": entry.last_updated.isoformat()
             })
+
+        # Track AlgoTime leaderboard view
+        track_custom_event(
+            user_id="anonymous",  # This endpoint doesn't require auth
+            event_name="algotime_leaderboard_viewed",
+            properties={
+                "total_entries": len(result),
+                "unique_series": len(set(entry.algotime_series_id for entry in entries)),
+            }
+        )
 
         return result
 

@@ -17,7 +17,7 @@ export default function ResetPasswordForm({ className, ...props }: React.Compone
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
-
+// put posthog
     useEffect(() => {
         const tokenFromUrl = searchParams.get("token");
         if (tokenFromUrl) {

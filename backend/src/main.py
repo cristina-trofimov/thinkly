@@ -11,10 +11,60 @@ from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
 from logging_config import setup_logging
+from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from contextlib import asynccontextmanager
 import os
+import time
 
 setup_logging()
-app = FastAPI(title="My Backend API")
+
+
+# Modern lifespan event handler (replaces deprecated on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 Starting up...")
+    init_posthog()
+    print("✓ PostHog analytics initialized")
+
+    yield  # Application runs here
+
+    # Shutdown
+    print("🛑 Shutting down...")
+    shutdown_posthog()
+    print("✓ PostHog analytics shut down")
+
+
+app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+
+# --- PostHog Analytics Middleware ---
+@app.middleware("http")
+async def analytics_middleware(request: Request, call_next):
+    """Track all API calls with PostHog analytics"""
+    start_time = time.time()
+    error = None
+    response = None
+
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        error = str(e)
+        raise
+    finally:
+        # Calculate response time
+        response_time_ms = (time.time() - start_time) * 1000
+
+        # Track the API call in PostHog
+        status_code = response.status_code if response else 500
+        await track_api_call(
+            request=request,
+            response_status=status_code,
+            response_time_ms=response_time_ms,
+            error=error
+        )
+
 
 # --- Request Logging Middleware ---
 @app.middleware("http")
@@ -23,10 +73,11 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 # --- Allow frontend requests (CORS setup) ---
 origins = [
     "https://thinklyscs.com",
-    "https://www.thinklyscs.com",  # Create React App
+    "https://www.thinklyscs.com",
     "http://localhost:5173"
 ]
 app.add_middleware(
@@ -39,16 +90,19 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+
 # Root route (for testing)
 @app.get("/")
 def root():
     return {"message": "Backend is running!"}
+
 
 @app.get("/config")
 def config():
     return {
         "allowed_origins": origins,
     }
+
 
 # Include routers
 try:
@@ -63,9 +117,10 @@ try:
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
 except AttributeError:
-    print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
+    print("⚠️ No router found. Make sure all routers are properly defined.")
 
-#  Run server
+# Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+
+    uvicorn.run("main:app",host="0.0.0.0",port=int(os.getenv("PORT", 8000)),reload=True,reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
