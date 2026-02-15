@@ -22,9 +22,9 @@ def _validate_judge0_url():
 
 
 def judge0_get_output(
-    token: str,
-    interval_ms: int = 500,
-    max_attempts: int = 300,
+        token: str,
+        interval_ms: int = 500,
+        max_attempts: int = 300,
 ):
     _validate_judge0_url()
     for _ in range(max_attempts):
@@ -47,11 +47,12 @@ def judge0_get_output(
 
     raise RuntimeError("Judge0 polling timed out")
 
+
 def submit_to_judge0(
-    source_code: str,
-    language_id: str,
-    stdin: str,
-    expected_output: str | None = None,
+        source_code: str,
+        language_id: str,
+        stdin: str,
+        expected_output: str | None = None,
 ):
     _validate_judge0_url()
     payload = {
