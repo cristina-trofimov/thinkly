@@ -1,4 +1,6 @@
-import os, time, requests
+import os
+import time
+import requests
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 import logging
@@ -22,7 +24,7 @@ def judge0_get_output(
 ):
     for _ in range (max_attempts):
         try:
-            logger.debug(f"Getting Judge0 submission outout...")
+            logger.debug("Getting Judge0 submission outout...")
             resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
             resp.raise_for_status()
             
@@ -68,7 +70,7 @@ def submit_to_judge0(
     payload = {k: v for k, v in payload.items() if v is not None}
 
     try:
-        logger.debug(f"Posting to Judge0...")
+        logger.debug("Posting to Judge0...")
         post_resp = requests.post(f"{JUDGE0_URL}/submissions", json=payload)
         post_resp.raise_for_status()
         
