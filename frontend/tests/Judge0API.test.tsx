@@ -1,5 +1,5 @@
 import axiosClient from "../src/lib/axiosClient"
-import { submitToJudge0, getOutput } from "../src/api/Judge0API"
+import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
@@ -14,9 +14,6 @@ jest.mock('../src/lib/axiosClient', () => ({
 }))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-
-const IP = '127.0.0.1:2358'
-const TOKEN = 'abc123'
 const code = "print('Hello')";
 const language_id = "71";
 const testcases: TestcaseType[] = [
@@ -24,114 +21,56 @@ const testcases: TestcaseType[] = [
     test_case_id: 1,
     question_id: 1,
     input_data: {
-      "nums": [2, 7, 11, 15], 
+      "nums": [2, 7, 11, 15],
+      "target": 19
+      },
+    expected_output: "[1,2]",
+    caseID: 'Case 1'
+  },
+  {
+    test_case_id: 2,
+    question_id: 1,
+    input_data: {
+      "nums": [2, 7],
       "target": 9
       },
     expected_output: "[0,1]",
-    caseID: ''
-  }
+    caseID: 'Case 2'
+  },
 ]
-// const stdin = "";
-// const expected_output = "Hello\n";
-
 
 describe("Judge0API", () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  describe("submitToJudge0", () => {
-    it("submit to judge0 and returns final output", async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { token: TOKEN },
-      });
+  it("properly parses stdin and expected outputs", async () => {
+    const { stdin, expected_output } = parse_input_output(testcases)
 
-      mockedAxios.get
-      .mockResolvedValueOnce({
-        data: { status: { description: "In Queue" } },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          status: { description: "Accepted" },
-          stdout: expected_output,
-        },
-      });
-
-      const result = await submitToJudge0(IP, code, language_id, testcases);
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(`http://${IP}/submissions`, {
-        source_code: code,
-        language_id: language_id,
-        number_of_runs: null,
-        stdin: stdin,
-        expected_output: expected_output,
-        cpu_time_limit: null,
-        cpu_extra_time: null,
-        wall_time_limit: null,
-        memory_limit: null,
-        stack_limit: null,
-        max_processes_and_or_threads: null,
-        enable_per_process_and_thread_time_limit: null,
-        enable_per_process_and_thread_memory_limit: null,
-        max_file_size: null,
-        enable_network: null,
-      });
-
-      expect(mockedAxios.get).toHaveBeenCalledTimes(2)
-    })
-
-    it("throws error if axios fails", async () => {
-      mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
-      await expect(submitToJudge0(
-        IP,
-        'print("Hello',
-        '71',
-        'input',
-        null
-      )).rejects.toThrow("Network error")
-    })
+    expect(stdin).toEqual("[2,7,11,15] 19\n[2,7] 9\n")
+    expect(expected_output).toEqual('[1,2]\n[0,1]\n')
   })
 
-  describe("getOutput", () => {
-    it("fetches output of a given token", async () => {
-      mockedAxios.get
-      .mockResolvedValueOnce({
-        data: { status: { description: 'In Queue' } }
-      } as any)
-      .mockResolvedValueOnce({
-        data: { status: { description: 'Processing' } }
-      } as any)
-      .mockResolvedValueOnce({
-        data: {
-          status: { description: 'Accepted' },
-          stdout: 'OK'
-        }
-      } as any)
-
-      const promise = await getOutput(
-        IP, TOKEN, new AbortController().signal, 100
-      );
-
-      await jest.advanceTimersByTimeAsync(300)
-
-      const result = await promise
-
-      expect(mockedAxios.get).toHaveBeenCalledTimes(3)
+  it("submit to judge0 and returns final output", async () => {
+    const { stdin, expected_output } = parse_input_output(testcases)
+    
+    mockedAxios.post.mockResolvedValueOnce({
+      data: { 
+        source_code: code,
+        language_id: language_id,
+        stdin: stdin,
+        expected_output: expected_output,
+       },
     })
 
-    it("throws error after maxAttempts", async () => {
-      mockedAxios.get.mockResolvedValue({
-        data: { status: { description: 'In Queue' } }
-      } as any)
-      expect(getOutput(IP, TOKEN, new AbortController().signal, 0, 1))
-        .rejects.toThrow('Judge0 polling timed out')
-    })
+    const result = await submitToJudge0(code, language_id, []);
 
-    it("throws error if aborted", async () => {
-      const con = new AbortController()
-      con.abort()
-      await expect(() => getOutput(IP, TOKEN, con.signal))
-        .rejects.toThrow('Judge0 polling aborted')
-    })
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+  })
+
+  it("throws error if axios fails", async () => {
+    mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
+    await expect(submitToJudge0('print("Hello', '71', testcases))
+      .rejects.toThrow("Network error")
   })
 })

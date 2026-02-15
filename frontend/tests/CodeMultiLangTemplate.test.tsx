@@ -1,5 +1,5 @@
-import { CodeMultiLangTemplate } from "../src/components/helpers/CodeMultiLangTemplate"; // adjust path
-import type { QuestionTemplate } from "../src/types/questions/QuestionTemplate.type";
+import { CodeMultiLangTemplate } from "../src/components/helpers/CodeMultiLangTemplate"
+import type { QuestionTemplate } from "../src/types/questions/QuestionTemplate.type"
 
 describe("CodeMultiLangTemplate", () => {
     const mockProblemName = "TestProblem";

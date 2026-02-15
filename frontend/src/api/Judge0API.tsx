@@ -2,7 +2,7 @@ import axiosClient from "@/lib/axiosClient";
 import type { Judge0Response } from "@/types/questions/Judge0Response";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 
-function input_output(testcases: TestcaseType[]) {
+export function parse_input_output(testcases: TestcaseType[]) {
     let stdin: string = ''
     let expected_output: string | null = ''
 
@@ -12,7 +12,7 @@ function input_output(testcases: TestcaseType[]) {
             inputs += ` ${JSON.stringify(v)}`
         })
         stdin += `${inputs.trim()}\n`
-        expected_output += `${JSON.stringify(t.expected_output)}\n`
+        expected_output += `${t.expected_output}\n`
     })
 
     stdin.trimStart()
@@ -35,7 +35,7 @@ export async function submitToJudge0(
     testcases: TestcaseType[],
 ): Promise<Judge0Response> {
     try {
-        const { stdin, expected_output } = input_output(testcases)
+        const { stdin, expected_output } = parse_input_output(testcases)
 
         const response = await axiosClient.post(
             "/judge0",
@@ -45,12 +45,12 @@ export async function submitToJudge0(
                 stdin: stdin,
                 expected_output: expected_output,
             }
-        );
+        )
   
         return response['data']
 
       } catch (err) {
-        console.error("Error running the code:", err);
-        throw err;
+        console.error("Error running the code:", err)
+        throw err
       }
 }

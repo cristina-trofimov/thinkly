@@ -16,7 +16,8 @@ import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
 import { useTestcases } from '../helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
-import Loader from '../helpers/Loader.tsx';
+import Loader from '../helpers/Loader';
+import ConsoleOutput from './ConsoleOutput';
 
 
 const CodingView = () => {
@@ -113,7 +114,7 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
-      <div className='flex items-center justify-center my-2 w-full' >
+      <div className='flex items-center justify-center mb-2 w-full' >
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn" >
           <CloudUpload size={16} />Submit
         </Button>
@@ -265,47 +266,7 @@ const CodingView = () => {
                 <TabsContent data-testid="code-output-tab" value="results"
                   className='max-h-full p-2.5'
                 >
-                  <div className='w-full h-full flex flex-col-reverse gap-2 overflow-y-scroll overscroll-x-contain'
-                  >
-                    {logs.map((log, idx) => {
-                      const stat = log.status.description !== "Accepted" ? "Failed" : "Passed"
-                      const text_color = log.status.description !== "Accepted" ? "bg-red-500" : "bg-green-500"
-
-                      return <div 
-                        key={`log-${idx+1}`}  
-                        className='flex columns-2 gap-1.5 items-start'
-                      >
-                        <div
-                          className={`flex flex-col py-0.5 px-1 text-sm ${text_color}`}
-                        >
-                          <div>{stat}</div>
-                          {log.time && ( <div>{log.time} s</div> )}
-
-                        </div>
-                        <div
-                          className={`flex flex-col gap-0.5`}
-                        >
-                          <div>Status: {log.status.description}</div>
-                          {log.stdout && (
-                            <div>stdout: {log.stdout.replace(/\n/g, "\\n")}</div>
-                          )}
-                          {log.compile_output && (
-                            <div>Compilation output: {log.compile_output}</div>
-                          )}
-                          {log.message && (
-                            <p >
-                              {log.message}
-                            </p>
-                          )}
-                          {log.stderr && (
-                            <p className='text-red-600' >
-                              {log.stderr}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    })}
-                  </div>
+                  <ConsoleOutput logs={logs} />
                 </TabsContent>
               </Tabs>
             </Panel>

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import CodingView from '../src/components/codingPage/CodingView'
 import { useLocation } from 'react-router-dom'
 import { Question } from '../src/types/questions/Question.type'
+import { useTestcases } from '../src/components/helpers/useTestcases'
 
 
 jest.mock('@monaco-editor/react', () => {
@@ -15,6 +16,33 @@ jest.mock('@monaco-editor/react', () => {
           value={props.value}
           onChange={(e) => props.onChange(e.target.value)}
         />
+      )
+    }
+})
+
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
+
+jest.mock('../src/components/helpers/Loader.tsx', () => {
+    return function Loader(props: any) {
+      return (
+        <div data-testid="Loader" />
+      )
+    }
+})
+
+jest.mock('../src/components/codingPage/ConsoleOutput.tsx', () => {
+    return function ConsoleOutput(props: any) {
+      return (
+        <div data-testid="ConsoleOutput" />
       )
     }
 })
@@ -63,7 +91,6 @@ jest.mock("../src/components/ui/dropdown-menu", () => {
 })
 
 jest.mock("react-resizable-panels", () => ({
-// jest.mock("../src/components/ui/resizable", () => ({
     __esModule: true,
     PanelGroup: React.forwardRef(({children}: any, ref) => {
         React.useImperativeHandle(ref, () => ({
@@ -101,6 +128,8 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
     },
 }))
 
+jest.mock('../src/components/helpers/useTestcases')
+
 const mockProblem: Question = {
     id: 1,
     title: "Sum Problem",
@@ -111,6 +140,18 @@ const mockProblem: Question = {
     difficulty: "Easy",
     date: new Date("2025-10-28T10:00:00Z"),
 }
+
+const mockUseTestcases = useTestcases as jest.Mock
+
+const mockTestcases = [
+  {
+    caseID: 'Case 1',
+    input_data: {
+      a: 10,
+      b: 20,
+    },
+  },
+]
 
 const nullRef = { current: null }
 
@@ -129,8 +170,20 @@ describe('CodingView Component', () => {
             state: { problem: mockProblem },
           })
 
-    // jest.spyOn(React, 'useRef')
-    //     .mockImplementation(() => nullRef as any)
+          const addTestcase = jest.fn()
+          const removeTestcase = jest.fn()
+          const updateTestcase = jest.fn()
+          const setActiveTestcase = jest.fn()
+        
+          mockUseTestcases.mockReturnValue({
+            testcases: mockTestcases,
+            addTestcase,
+            removeTestcase,
+            updateTestcase,
+            loading: false,
+            activeTestcase: 'Case 1',
+            setActiveTestcase,
+          })
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
