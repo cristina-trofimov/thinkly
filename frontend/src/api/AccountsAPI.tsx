@@ -3,7 +3,7 @@ import type { Account } from "@/types/account/Account.type";
 
 
 // Backend user type value for accountAPI.
-// this is because the backend uses lowercase values while frontend capitalizes the first letter
+// this is because the backend uses lowercase values while frontend capitalizes the first  letter
 type UserType = "participant" | "admin" | "owner";
 
 const formatAccountType = (userType: UserType): Account["accountType"] => {

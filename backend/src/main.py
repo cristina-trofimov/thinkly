@@ -10,11 +10,18 @@ from endpoints.send_email_api import email_router
 from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
+from endpoints.judge0_api import judge0_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
 import os
+from dotenv import load_dotenv
 import time
+
+
+load_dotenv()
+JUDGE0_URL = os.getenv("JUDGE0_URL")
+
 
 setup_logging()
 
@@ -73,12 +80,12 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
-
 # --- Allow frontend requests (CORS setup) ---
 origins = [
     "https://thinklyscs.com",
-    "https://www.thinklyscs.com",
-    "http://localhost:5173"
+    "https://www.thinklyscs.com",  # Create React App
+    "http://localhost:5173",
+    JUDGE0_URL
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -90,19 +97,16 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-
 # Root route (for testing)
 @app.get("/")
 def root():
     return {"message": "Backend is running!"}
-
 
 @app.get("/config")
 def config():
     return {
         "allowed_origins": origins,
     }
-
 
 # Include routers
 try:
@@ -116,11 +120,11 @@ try:
     app.include_router(riddles_router, prefix="/riddles")
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
+    app.include_router(judge0_router, prefix="/judge0")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
-# Run server
+#  Run server
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run("main:app",host="0.0.0.0",port=int(os.getenv("PORT", 8000)),reload=True,reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

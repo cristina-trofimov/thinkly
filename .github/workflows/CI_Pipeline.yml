@@ -30,6 +30,7 @@ jobs:
           SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJp
           DEFAULT_SENDER_EMAIL: test@example.com
           DATABASE_URL: "sqlite+pysqlite:///:memory:"
+          JUDGE0_URL: "http://172.93.24.27:2358"
         run: pytest --maxfail=1 --disable-warnings -q
 
   react-tests:

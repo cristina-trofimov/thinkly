@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 BUCKET = "uploads"
 FOLDER = "public"
 MAX_MB = 100
-
+RIDDLE_NOT_FOUND="Riddle not found"
 
 def check_riddle_exists(db: Session, question: str) -> bool:
     return db.query(Riddle).filter(Riddle.riddle_question == question).first() is not None
@@ -126,7 +126,7 @@ async def get_riddle_by_id(
         if not riddle:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Riddle not found",
+                detail=RIDDLE_NOT_FOUND,
             )
 
         return {
@@ -269,7 +269,7 @@ async def edit_riddle(
         if not riddle:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Riddle not found",
+                detail=RIDDLE_NOT_FOUND,
             )
 
         if question is not None:
@@ -358,7 +358,7 @@ async def delete_riddle(
         if not riddle:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Riddle not found",
+                detail=RIDDLE_NOT_FOUND,
             )
 
         if riddle.riddle_file:
