@@ -29,10 +29,10 @@ const CodingView = () => {
   const [loadingMsg, setLoadingMsg] = useState<string>("")
 
   useEffect(() => {
-    if (!question?.id) {
-      setIsQuestionLoading(true)
-    } else {
+    if (question?.id) {
       setIsQuestionLoading(false)
+    } else {
+      setIsQuestionLoading(true)
     }
   }, [question?.id])
 

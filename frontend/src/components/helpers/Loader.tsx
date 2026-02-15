@@ -2,8 +2,9 @@ import { Dialog, DialogContent, DialogOverlay } from '@radix-ui/react-dialog'
 import { Spinner } from '../ui/spinner'
 
 const Loader = ({ isOpen, msg }: { isOpen: boolean, msg: string } ) => {
-  if (!msg)
+  if (!msg) {
     msg  = "Loading"
+  }
 
     msg = `${msg}♥♥♥`
 

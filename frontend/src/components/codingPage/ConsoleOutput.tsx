@@ -4,8 +4,8 @@ const ConsoleOutput = ({logs}: {logs: Judge0Response[]}) => {
   return (
     <div data-testid="ConsoleOutput" className='w-full h-full flex flex-col-reverse gap-2 overflow-y-scroll overscroll-x-contain' >
         {logs.map((log, idx) => {
-            const stat = log.status.description !== "Accepted" ? "Failed" : "Passed"
-            const text_color = log.status.description !== "Accepted" ? "bg-red-500" : "bg-green-500"
+            const stat = log.status.description === "Accepted" ? "Passed" : "Failed"
+            const text_color = log.status.description === "Accepted" ? "bg-green-500" : "bg-red-500"
 
             return <div key={`log-${idx+1}`} className='flex columns-2 gap-1.5 items-start' >
                 <div className={`flex flex-col py-0.5 px-1 text-sm ${text_color}`} >
@@ -23,7 +23,7 @@ const ConsoleOutput = ({logs}: {logs: Judge0Response[]}) => {
                     </div>
                     {log.stdout && (
                         <div data-testid='log-stdout' >
-                            stdout: {log.stdout.replace(/\n/g, "\\n")}
+                            stdout: {log.stdout.replaceAll(/\n/g, String.raw`\n`)}
                         </div>
                     )}
                     {log.compile_output && (
