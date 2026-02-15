@@ -177,6 +177,8 @@ def categorize_endpoint(path: str) -> str:
         return "questions"
     elif "/riddles" in path:
         return "riddles"
+    elif "/judge0" in path:
+        return "code_execution"
     elif "/manage-accounts" in path or "/users" in path:
         return "user_management"
     elif "/email" in path:
@@ -305,6 +307,13 @@ def track_feature_event(user_id: str, path: str, method: str, base_properties: D
             posthog_client.capture(
                 distinct_id=user_id,
                 event="admin_dashboard_accessed",
+                properties=base_properties
+            )
+
+        elif "/judge0" in path and method == "POST":
+            posthog_client.capture(
+                distinct_id=user_id,
+                event="code_submitted",
                 properties=base_properties
             )
 

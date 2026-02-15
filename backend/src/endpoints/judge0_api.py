@@ -4,6 +4,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def submit_to_judge0(
         language_id: str,
         stdin: str,
         expected_output: str | None = None,
+        user_id: str = "anonymous",
 ):
     _validate_judge0_url()
     payload = {
@@ -78,29 +80,78 @@ def submit_to_judge0(
 
     try:
         logger.debug("Posting to Judge0...")
+
+        # Track code submission
+        track_custom_event(
+            user_id=user_id,
+            event_name="code_submitted",
+            properties={
+                "language_id": language_id,
+                "has_stdin": len(stdin) > 0,
+                "has_expected_output": expected_output is not None,
+                "code_length": len(source_code),
+            }
+        )
+
         post_resp = requests.post(f"{JUDGE0_URL}/submissions", json=payload)
         post_resp.raise_for_status()
 
         results = judge0_get_output(post_resp.json()['token'])
+
+        # Track execution completion
+        status_description = results.get('status', {}).get('description', 'Unknown')
+        track_custom_event(
+            user_id=user_id,
+            event_name="code_execution_completed",
+            properties={
+                "language_id": language_id,
+                "status": status_description,
+                "execution_time": results.get('time'),
+                "memory_used": results.get('memory'),
+                "is_accepted": status_description == "Accepted",
+                "is_correct": status_description == "Accepted",
+                "has_compile_error": "Compilation Error" in status_description,
+                "has_runtime_error": "Runtime Error" in status_description,
+                "token": results.get('token'),
+            }
+        )
+
         return results
 
     except Exception as e:
         logger.exception("Network error when running code with Judge0")
+
+        # Track execution error
+        track_custom_event(
+            user_id=user_id,
+            event_name="code_execution_error",
+            properties={
+                "language_id": language_id,
+                "error_message": str(e),
+                "error_type": "network_error",
+            }
+        )
+
         raise RuntimeError(f"Network error when running code with Judge0: {e}")
 
 
 # Routes
 @judge0_router.post("",
-    responses={400: {"description": "Error sending problem to Judge0."}}
-)
+                    responses={400: {"description": "Error sending problem to Judge0."}}
+                    )
 def judge0_run_code(request: dict):
+    # Extract user_id from request if available (set by frontend or auth middleware)
+    user_id = request.get("user_id", "anonymous")
+
     try:
         response = submit_to_judge0(
             source_code=request["source_code"],
             language_id=request['language_id'],
             stdin=request['stdin'],
-            expected_output=request["expected_output"]
+            expected_output=request.get("expected_output"),
+            user_id=str(user_id),
         )
         return {"ok": True, "status_code": 200, **response}
     except Exception as e:
+        # Error is already tracked in submit_to_judge0, just raise HTTP exception
         raise HTTPException(status_code=400, detail=str(e))
