@@ -22,10 +22,11 @@ const Loader = ({ isOpen, msg }: { isOpen: boolean, msg: string } ) => {
               <Spinner className='size-4 md:size-6 lg:size-8 animate-caret-fade' />
               {msg.split('').map((c, idx) => {
                 const startDelay = 0
-                const delay = 150
+                const delay = startDelay + (150 * idx)
                 const style = c === '.' ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-xl md:text-2xl lg:text-3xl'
 
-                return <span style={{ animationDelay: `${startDelay + delay * idx}ms` }}
+                return <span key={`k-${c}-${delay}`}
+                  style={{ animationDelay: `${delay}ms` }}
                   className={`${style} animate-[bounce_1s_infinite_ease-in-out,pulse_2s_infinite_ease-in-out]`}
                 >
                   {c}

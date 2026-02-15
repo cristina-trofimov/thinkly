@@ -23,7 +23,7 @@ const ConsoleOutput = ({logs}: {logs: Judge0Response[]}) => {
                     </div>
                     {log.stdout && (
                         <div data-testid='log-stdout' >
-                            stdout: {log.stdout.replaceAll(/\n/g, String.raw`\n`)}
+                            stdout: {log.stdout.replaceAll('\n', '\\n')}
                         </div>
                     )}
                     {log.compile_output && (
