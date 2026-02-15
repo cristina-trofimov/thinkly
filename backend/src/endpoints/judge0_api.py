@@ -83,7 +83,7 @@ def submit_to_judge0(
 @judge0_router.post("",
     responses={ 400: { "description": "Error sending problem to Judge0." } }
 )
-async def judge0_run_code(request: dict):
+def judge0_run_code(request: dict):
     try:
         response = submit_to_judge0(
             source_code=request["source_code"],
@@ -91,6 +91,6 @@ async def judge0_run_code(request: dict):
             stdin=request['stdin'],
             expected_output=request["expected_output"]
         )
-        return {"ok": True, **response}
+        return {"ok": True, "status_code": 200, **response}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
