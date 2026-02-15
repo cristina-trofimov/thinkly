@@ -42,19 +42,12 @@ const CodingView = () => {
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    console.log("runCode_be")
-
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
       const response = await submitToJudge0(code, judgeID, testcases)
-      // const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
-      // setLogs(prev => [...prev, response])
-      logs.push(response)
-
-      console.log("log")
-      console.log(logs)
+      setLogs(prev => [...prev, response])
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
