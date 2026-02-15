@@ -10,7 +10,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
-import { judge0, submitToJudge0 } from '@/api/Judge0API';
+import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
@@ -42,32 +42,17 @@ const CodingView = () => {
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    try {
-      setIsAsyncLoading(true)
-      setLoadingMsg("Running")
-      
-      const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", testcases)
-      // const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
-      setLogs(prev => [...prev, response])
-      
-      console.log("log")
-      console.log(logs)
-    } finally {
-      setIsAsyncLoading(false)
-      setLoadingMsg("")
-    }
-  }
-
-  const runCode_be = async () => {
     console.log("runCode_be")
 
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
-      const response = await judge0("print('Hello world')", "71", testcases)
-      setLogs(prev => [...prev, response])
-      
+      const response = await submitToJudge0(code, judgeID, testcases)
+      // const response = await submitToJudge0("172.93.24.127:2358", "print('Hello world')", "71", "Judge0", "Hello world\n")
+      // setLogs(prev => [...prev, response])
+      logs.push(response)
+
       console.log("log")
       console.log(logs)
     } finally {
@@ -171,11 +156,6 @@ const CodingView = () => {
                   <span className="text-lg font-medium" >Code</span>
                   <div className="grid grid-cols-5 gap-1">
                     {/* Size buttons */}
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-red-500" 
-                      onClick={runCode_be}
-                    >
-                      <Play size={22} color="green" className='fill-red' />
-                    </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={runCode}
                     >
