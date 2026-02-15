@@ -289,7 +289,7 @@ def test_create_competition_end_before_start(client, mock_db):
 
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2026-07-15",
         "startTime": "18:00",
         "endTime": "10:00",
         "questionCooldownTime": 300,
