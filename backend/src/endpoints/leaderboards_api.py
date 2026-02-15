@@ -207,6 +207,62 @@ def get_leaderboards(
         )
 
 
+@leaderboards_router.get("/competitions/{competition_id}/all")
+def get_all_competition_entries(
+    competition_id: int,
+    db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Returns ALL entries for a specific competition (no top-10 filtering).
+    Used for copy/download exports.
+    """
+    logger.info(f"=== /leaderboards/competitions/{competition_id}/all endpoint ===")
+
+    try:
+        competition = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(Competition.event_id == competition_id)
+            .first()
+        )
+
+        if not competition:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Competition {competition_id} not found."
+            )
+
+        all_entries = list(competition.competition_leaderboard_entries)
+        ranked_entries = calculate_rank(all_entries)
+
+        result = []
+        for entry in ranked_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "name": user_name,
+                "userId": entry.user_id,
+                "points": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(f"Returning {len(result)} total entries for competition {competition_id}.")
+        return result
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception(f"FATAL error fetching all entries for competition {competition_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve competition entries."
+        )
+
+
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
     db: Annotated[Session, Depends(get_db)],

@@ -94,18 +94,16 @@ function HomePage() {
   const competitionDates = competitions.map((c) => c.startDate);
 
   return (
-    <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-4">
-        <div className="flex w-full gap-4 items-start">
-          <div className="flex flex-col w-full gap-4">
+    <div className="flex flex-col w-full px-4">
+        <div className="flex w-full gap-6 items-start">
+          <div className="flex flex-col flex-1 min-w-0 gap-4">
             <HomePageBanner competitions={competitions} />
             <div className="flex flex-col gap-4">
-              <div className="container mx-auto">
-                <DataTable columns={columns} data={questions} />
-              </div>
+              <DataTable columns={columns} data={questions} />
             </div>
           </div>
 
-          <div className="flex flex-col w-[300px] gap-4 ml-auto">
+          <div className="flex flex-col w-[300px] shrink-0 gap-4 ml-auto">
             <Calendar
               mode="single"
               selected={date}
