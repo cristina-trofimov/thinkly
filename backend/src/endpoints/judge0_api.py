@@ -11,29 +11,34 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 JUDGE0_URL = os.getenv("JUDGE0_URL")
 
-if not JUDGE0_URL:
-    logger.critical("FATAL: Missing judge0 url.")
-    raise SystemExit("Missing judge0 url.")
-
 judge0_router = APIRouter(tags=["Judge0"])
+
+
+def _validate_judge0_url():
+    """Validate that JUDGE0_URL is configured. Called when actually needed."""
+    if not JUDGE0_URL:
+        logger.critical("FATAL: Missing judge0 url.")
+        raise RuntimeError("Missing JUDGE0_URL environment variable. Please configure it in your .env file.")
+
 
 def judge0_get_output(
     token: str,
     interval_ms: int = 500,
     max_attempts: int = 300,
 ):
-    for _ in range (max_attempts):
+    _validate_judge0_url()
+    for _ in range(max_attempts):
         try:
             logger.debug("Getting Judge0 submission outout...")
             resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
             resp.raise_for_status()
-            
+
             data = resp.json()
             status = data['status']['description']
-            
+
             if status not in ("In Queue", "Processing"):
                 return data
-            
+
             time.sleep(interval_ms / 1000)
 
         except Exception as e:
@@ -48,6 +53,7 @@ def submit_to_judge0(
     stdin: str,
     expected_output: str | None = None,
 ):
+    _validate_judge0_url()
     payload = {
         "source_code": source_code,
         "language_id": language_id,
@@ -65,7 +71,7 @@ def submit_to_judge0(
         "max_file_size": None,
         "enable_network": None
     }
-    
+
     # Remove None fields, should be null
     payload = {k: v for k, v in payload.items() if v is not None}
 
@@ -73,7 +79,7 @@ def submit_to_judge0(
         logger.debug("Posting to Judge0...")
         post_resp = requests.post(f"{JUDGE0_URL}/submissions", json=payload)
         post_resp.raise_for_status()
-        
+
         results = judge0_get_output(post_resp.json()['token'])
         return results
 
@@ -81,9 +87,10 @@ def submit_to_judge0(
         logger.exception("Network error when running code with Judge0")
         raise RuntimeError(f"Network error when running code with Judge0: {e}")
 
+
 # Routes
 @judge0_router.post("",
-    responses={ 400: { "description": "Error sending problem to Judge0." } }
+    responses={400: {"description": "Error sending problem to Judge0."}}
 )
 def judge0_run_code(request: dict):
     try:
