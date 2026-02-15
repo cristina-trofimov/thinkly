@@ -14,27 +14,45 @@ import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
+import { useTestcases } from '../helpers/useTestcases';
+import type { Judge0Response } from '@/types/questions/Judge0Response';
+import Loader from '../helpers/Loader';
+import ConsoleOutput from './ConsoleOutput';
+
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
+  const { testcases } = useTestcases(question.id)
+  const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
+  const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
+  const [loadingMsg, setLoadingMsg] = useState<string>("")
 
-  if (!question?.id) {
-    console.log("Loading question")
-  }
+  useEffect(() => {
+    if (question?.id) {
+      setIsQuestionLoading(false)
+    } else {
+      setIsQuestionLoading(true)
+    }
+  }, [question?.id])
 
   const submitCode = () => {
     console.log("submitting code")
   }
 
-  const logs: Response[] = []
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    const response = await submitToJudge0("64.58.46.96:2358", code, judgeID, "Judge0", null)    
-    logs.push(response)
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Running")
 
-    console.log("log")
-    console.log(logs)
+      const response = await submitToJudge0(code, judgeID, testcases)
+      setLogs(prev => [...prev, response])
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
   }
 
   const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
@@ -94,7 +112,9 @@ const CodingView = () => {
     <div data-testid="sandbox" key="sandbox"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
-      <div className='flex items-center justify-center my-2 w-full' >
+      {/* Loading modal */}
+      <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <div className='flex items-center justify-center mb-2 w-full' >
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn" >
           <CloudUpload size={16} />Submit
         </Button>
@@ -128,7 +148,7 @@ const CodingView = () => {
                     border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium" >Code</span>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="grid grid-cols-5 gap-1">
                     {/* Size buttons */}
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
                       onClick={runCode}
@@ -199,7 +219,7 @@ const CodingView = () => {
             <Panel data-testid="resizable-handle" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >
+              <Tabs data-testid="sandbox-tabs" className='border-none h-full' defaultValue='testcases' >
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"
@@ -244,13 +264,9 @@ const CodingView = () => {
                   <Testcases question_id={question.id} />
                 </TabsContent>
                 <TabsContent data-testid="code-output-tab" value="results"
-                  className='h-full'
+                  className='max-h-full p-2.5'
                 >
-                  {logs.map((log, idx) => (
-                    <p key={`log-${idx+1}`} >
-                      {log.text()}
-                    </p>
-                  ))}
+                  <ConsoleOutput logs={logs} />
                 </TabsContent>
               </Tabs>
             </Panel>

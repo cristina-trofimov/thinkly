@@ -10,8 +10,13 @@ from endpoints.send_email_api import email_router
 from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
+from endpoints.judge0_api import judge0_router
 from logging_config import setup_logging
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+JUDGE0_URL = os.getenv("JUDGE0_URL")
 
 setup_logging()
 app = FastAPI(title="My Backend API")
@@ -27,7 +32,8 @@ async def log_requests(request: Request, call_next):
 origins = [
     "https://thinklyscs.com",
     "https://www.thinklyscs.com",  # Create React App
-    "http://localhost:5173"
+    "http://localhost:5173",
+    JUDGE0_URL
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +68,7 @@ try:
     app.include_router(riddles_router, prefix="/riddles")
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
+    app.include_router(judge0_router, prefix="/judge0")
 except AttributeError:
     print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
 
