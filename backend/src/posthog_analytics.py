@@ -2,10 +2,11 @@
 PostHog Analytics Integration for FastAPI
 Tracks all API calls, user behavior, and feature usage
 """
+import asyncio
 import os
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import Request
 from posthog import Posthog
 import json
@@ -130,7 +131,7 @@ async def track_api_call(
             "status_code": response_status,
             "response_time_ms": round(response_time_ms, 2),
             "user_type": user_type,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "origin": request.headers.get("origin"),
             "user_agent": request.headers.get("user-agent"),
             "referer": request.headers.get("referer"),
@@ -148,14 +149,15 @@ async def track_api_call(
             properties["has_error"] = False
 
         # Track the event
-        posthog_client.capture(
+        await asyncio.to_thread(
+            posthog_client.capture,
             distinct_id=user_id,
             event="api_call",
             properties=properties
         )
 
         # Also track feature-specific events
-        track_feature_event(user_id, path, method, properties)
+        await asyncio.to_thread(track_feature_event, user_id, path, method, properties)
 
         logger.debug(f"PostHog tracked: {endpoint_name} (user: {user_id})")
 
@@ -191,132 +193,56 @@ def categorize_endpoint(path: str) -> str:
         return "other"
 
 
+def _resolve_feature_event(path: str, method: str) -> Optional[str]:
+    """
+    Return the PostHog event name for a given (path fragment, method) pair,
+    or None if the call should not produce a feature event.
+    """
+    # Ordered rules: (path_fragment, method_or_None) -> event_name
+    # method=None means the rule matches regardless of HTTP method.
+    rules: list[tuple[str, Optional[str], str]] = [
+        ("/competitions/create",      "POST",   "competition_created"),
+        ("/competitions/",            "PUT",    "competition_updated"),
+        ("/competitions/",            "DELETE",  "competition_deleted"),
+        ("/algotime/create",          "POST",   "algotime_created"),
+        ("/leaderboards",             "GET",    "leaderboard_viewed"),
+        ("/auth/login",               "POST",   "user_login"),
+        ("/auth/logout",              "POST",   "user_logout"),
+        ("/auth/signup",              "POST",   "user_signup"),
+        ("/auth/forgot-password",     "POST",   "password_reset_requested"),
+        ("/auth/reset-password",      "POST",   "password_reset_completed"),
+        ("/auth/change-password",     "POST",   "password_changed"),
+        ("/questions",                "GET",    "questions_viewed"),
+        ("/riddles",                  "POST",   "riddle_created"),
+        ("/email/send",               "POST",   "email_sent"),
+        ("/admin/dashboard",          None,     "admin_dashboard_accessed"),
+        ("/judge0",                   "POST",   "code_submitted"),
+    ]
+
+    for fragment, required_method, event_name in rules:
+        if fragment in path and (required_method is None or method == required_method):
+            return event_name
+
+    # Special case: batch-delete requires two independent path checks
+    if "/manage-accounts/users" in path and "batch-delete" in path:
+        return "users_deleted"
+
+    return None
+
+
 def track_feature_event(user_id: str, path: str, method: str, base_properties: Dict[str, Any]):
     """Track specific feature usage events"""
     if not posthog_client:
         return
 
     try:
-        # Track specific feature events based on endpoint
-        if "/competitions/create" in path and method == "POST":
+        event_name = _resolve_feature_event(path, method)
+        if event_name:
             posthog_client.capture(
                 distinct_id=user_id,
-                event="competition_created",
+                event=event_name,
                 properties=base_properties
             )
-
-        elif "/competitions/" in path and method == "PUT":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="competition_updated",
-                properties=base_properties
-            )
-
-        elif "/competitions/" in path and method == "DELETE":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="competition_deleted",
-                properties=base_properties
-            )
-
-        elif "/algotime/create" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="algotime_created",
-                properties=base_properties
-            )
-
-        elif "/leaderboards" in path and method == "GET":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="leaderboard_viewed",
-                properties=base_properties
-            )
-
-        elif "/auth/login" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="user_login",
-                properties=base_properties
-            )
-
-        elif "/auth/logout" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="user_logout",
-                properties=base_properties
-            )
-
-        elif "/auth/signup" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="user_signup",
-                properties=base_properties
-            )
-
-        elif "/auth/forgot-password" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="password_reset_requested",
-                properties=base_properties
-            )
-
-        elif "/auth/reset-password" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="password_reset_completed",
-                properties=base_properties
-            )
-
-        elif "/auth/change-password" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="password_changed",
-                properties=base_properties
-            )
-
-        elif "/questions" in path and method == "GET":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="questions_viewed",
-                properties=base_properties
-            )
-
-        elif "/riddles" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="riddle_created",
-                properties=base_properties
-            )
-
-        elif "/email/send" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="email_sent",
-                properties=base_properties
-            )
-
-        elif "/manage-accounts/users" in path and "batch-delete" in path:
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="users_deleted",
-                properties=base_properties
-            )
-
-        elif "/admin/dashboard" in path:
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="admin_dashboard_accessed",
-                properties=base_properties
-            )
-
-        elif "/judge0" in path and method == "POST":
-            posthog_client.capture(
-                distinct_id=user_id,
-                event="code_submitted",
-                properties=base_properties
-            )
-
     except Exception as e:
         logger.debug(f"Failed to track feature event: {e}")
 

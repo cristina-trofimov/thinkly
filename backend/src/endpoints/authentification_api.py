@@ -30,6 +30,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 ERROR_USER_NOT_FOUND = "User not found"
 ERROR_INVALID_TOKEN = "Invalid token"
 
+# ---------------- PostHog Property Keys ----------------
+POSTHOG_NAME_KEY = "$name"
+POSTHOG_EMAIL_KEY = "$email"
 
 # ---------------- Models ----------------
 class SignupRequest(BaseModel):
@@ -200,8 +203,8 @@ async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]
                 "last_name": new_user.last_name,
                 "user_type": new_user.user_type,
                 "signup_date": datetime.now(timezone.utc).isoformat(),
-                "$name": f"{new_user.first_name} {new_user.last_name}",
-                "$email": new_user.email,
+                POSTHOG_NAME_KEY: f"{new_user.first_name} {new_user.last_name}",
+                POSTHOG_EMAIL_KEY: new_user.email,
             }
         )
 
@@ -252,8 +255,8 @@ async def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
             "first_name": user.first_name,
             "last_name": user.last_name,
             "user_type": user.user_type,
-            "$name": f"{user.first_name} {user.last_name}",
-            "$email": user.email,
+            POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+            POSTHOG_EMAIL_KEY: user.email,
         }
     )
 
@@ -320,8 +323,8 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
                         "last_name": user.last_name,
                         "user_type": user.user_type,
                         "signup_date": datetime.now(timezone.utc).isoformat(),
-                        "$name": f"{user.first_name} {user.last_name}",
-                        "$email": user.email,
+                        POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+                        POSTHOG_EMAIL_KEY: user.email,
                     }
                 )
 
@@ -346,8 +349,8 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "user_type": user.user_type,
-                "$name": f"{user.first_name} {user.last_name}",
-                "$email": user.email,
+                POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+                POSTHOG_EMAIL_KEY: user.email,
             }
         )
 
