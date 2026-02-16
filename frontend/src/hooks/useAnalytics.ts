@@ -200,6 +200,153 @@ export function useAnalytics() {
     posthog.capture("current_leaderboard_viewed", { competition_name: competitionName });
   }
 
+  // ─── Admin dashboard ─────────────────────────────────────────────────────────
+
+  function trackAdminDashboardViewed() {
+    posthog.capture("admin_dashboard_viewed");
+  }
+
+  function trackAdminDashboardTabSwitched(to: "algotime" | "competitions") {
+    posthog.capture("admin_dashboard_tab_switched", { to });
+  }
+
+  function trackAdminDashboardTimeRangeChanged(timeRange: string) {
+    posthog.capture("admin_dashboard_time_range_changed", { time_range: timeRange });
+  }
+
+  function trackAdminManageCardClicked(section: string) {
+    posthog.capture("admin_manage_card_clicked", { section });
+  }
+
+  // ─── Admin: competitions ──────────────────────────────────────────────────────
+
+  function trackAdminCompetitionsViewed() {
+    posthog.capture("admin_competitions_viewed");
+  }
+
+  function trackAdminCompetitionSearched(query: string) {
+    posthog.capture("admin_competition_searched", { query });
+  }
+
+  function trackAdminCompetitionFilterChanged(status: string) {
+    posthog.capture("admin_competition_filter_changed", { status });
+  }
+
+  function trackAdminCompetitionCreateNavigated() {
+    posthog.capture("admin_competition_create_navigated");
+  }
+
+  function trackAdminCompetitionEditOpened(competitionId: number, competitionTitle: string) {
+    posthog.capture("admin_competition_edit_opened", {
+      competition_id: competitionId,
+      competition_title: competitionTitle,
+    });
+  }
+
+  function trackAdminCompetitionEditSuccess(competitionId: number) {
+    posthog.capture("admin_competition_edit_success", { competition_id: competitionId });
+  }
+
+  function trackAdminCompetitionEditFailed(competitionId: number, error?: string) {
+    posthog.capture("admin_competition_edit_failed", { competition_id: competitionId, error });
+  }
+
+  function trackAdminCompetitionDeleteAttempted(competitionId: number, competitionTitle: string) {
+    posthog.capture("admin_competition_delete_attempted", {
+      competition_id: competitionId,
+      competition_title: competitionTitle,
+    });
+  }
+
+  function trackAdminCompetitionDeleteSuccess(competitionId: number, competitionTitle: string) {
+    posthog.capture("admin_competition_delete_success", {
+      competition_id: competitionId,
+      competition_title: competitionTitle,
+    });
+  }
+
+  function trackAdminCompetitionDeleteFailed(competitionId: number, error?: string) {
+    posthog.capture("admin_competition_delete_failed", { competition_id: competitionId, error });
+  }
+
+  function trackAdminCompetitionCreateSuccess(competitionTitle: string) {
+    posthog.capture("admin_competition_create_success", { competition_title: competitionTitle });
+  }
+
+  function trackAdminCompetitionCreateFailed(error?: string) {
+    posthog.capture("admin_competition_create_failed", { error });
+  }
+
+  // ─── Admin: algotime ─────────────────────────────────────────────────────────
+
+  function trackAdminAlgotimeSessionsViewed() {
+    posthog.capture("admin_algotime_sessions_viewed");
+  }
+
+  function trackAdminAlgotimeSearched(query: string) {
+    posthog.capture("admin_algotime_searched", { query });
+  }
+
+  function trackAdminAlgotimeCreateNavigated() {
+    posthog.capture("admin_algotime_create_navigated");
+  }
+
+  function trackAdminAlgotimeCreatePageViewed() {
+    posthog.capture("admin_algotime_create_page_viewed");
+  }
+
+  // ─── Admin: riddles ───────────────────────────────────────────────────────────
+
+  function trackAdminRiddlesViewed() {
+    posthog.capture("admin_riddles_viewed");
+  }
+
+  function trackAdminRiddleSearched(query: string) {
+    posthog.capture("admin_riddle_searched", { query });
+  }
+
+  function trackAdminRiddleCreateOpened() {
+    posthog.capture("admin_riddle_create_opened");
+  }
+
+  function trackAdminRiddleCreateSuccess() {
+    posthog.capture("admin_riddle_create_success");
+  }
+
+  function trackAdminRiddleEditOpened(riddleId: number) {
+    posthog.capture("admin_riddle_edit_opened", { riddle_id: riddleId });
+  }
+
+  function trackAdminRiddleEditSuccess(riddleId: number) {
+    posthog.capture("admin_riddle_edit_success", { riddle_id: riddleId });
+  }
+
+  function trackAdminRiddleDeleteAttempted(riddleId: number) {
+    posthog.capture("admin_riddle_delete_attempted", { riddle_id: riddleId });
+  }
+
+  function trackAdminRiddleDeleteSuccess(riddleId: number) {
+    posthog.capture("admin_riddle_delete_success", { riddle_id: riddleId });
+  }
+
+  function trackAdminRiddleDeleteFailed(riddleId: number, error?: string) {
+    posthog.capture("admin_riddle_delete_failed", { riddle_id: riddleId, error });
+  }
+
+  // ─── Admin: accounts ─────────────────────────────────────────────────────────
+
+  function trackAdminAccountsViewed(accountCount: number) {
+    posthog.capture("admin_accounts_viewed", { account_count: accountCount });
+  }
+
+  function trackAdminAccountsBatchDeleted(count: number) {
+    posthog.capture("admin_accounts_batch_deleted", { count });
+  }
+
+  function trackAdminAccountUpdated(userId: number, role: string) {
+    posthog.capture("admin_account_updated", { user_id: userId, role });
+  }
+
   // ─── Errors ──────────────────────────────────────────────────────────────────
 
   function trackPageNotFound(url: string) {
@@ -251,6 +398,43 @@ export function useAnalytics() {
     trackLeaderboardCopied,
     trackLeaderboardDownloaded,
     trackCurrentLeaderboardViewed,
+    // admin dashboard
+    trackAdminDashboardViewed,
+    trackAdminDashboardTabSwitched,
+    trackAdminDashboardTimeRangeChanged,
+    trackAdminManageCardClicked,
+    // admin: competitions
+    trackAdminCompetitionsViewed,
+    trackAdminCompetitionSearched,
+    trackAdminCompetitionFilterChanged,
+    trackAdminCompetitionCreateNavigated,
+    trackAdminCompetitionEditOpened,
+    trackAdminCompetitionEditSuccess,
+    trackAdminCompetitionEditFailed,
+    trackAdminCompetitionDeleteAttempted,
+    trackAdminCompetitionDeleteSuccess,
+    trackAdminCompetitionDeleteFailed,
+    trackAdminCompetitionCreateSuccess,
+    trackAdminCompetitionCreateFailed,
+    // admin: algotime
+    trackAdminAlgotimeSessionsViewed,
+    trackAdminAlgotimeSearched,
+    trackAdminAlgotimeCreateNavigated,
+    trackAdminAlgotimeCreatePageViewed,
+    // admin: riddles
+    trackAdminRiddlesViewed,
+    trackAdminRiddleSearched,
+    trackAdminRiddleCreateOpened,
+    trackAdminRiddleCreateSuccess,
+    trackAdminRiddleEditOpened,
+    trackAdminRiddleEditSuccess,
+    trackAdminRiddleDeleteAttempted,
+    trackAdminRiddleDeleteSuccess,
+    trackAdminRiddleDeleteFailed,
+    // admin: accounts
+    trackAdminAccountsViewed,
+    trackAdminAccountsBatchDeleted,
+    trackAdminAccountUpdated,
     // errors
     trackPageNotFound,
     trackUnauthorizedAccess,
