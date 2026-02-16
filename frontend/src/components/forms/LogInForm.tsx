@@ -16,7 +16,7 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
-import { useAnalytics } from "@/hooks/useAnalytics.ts";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function LoginForm({
   className,

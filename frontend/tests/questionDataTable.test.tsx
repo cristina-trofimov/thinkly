@@ -4,6 +4,16 @@ import { DataTable } from "../src/components/questionsTable/questionDataTable"
 import type { ColumnDef } from "@tanstack/react-table"
 import { waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
+import type { Question } from "../src/types/questions/Question.type"
+
+// Mock useAnalytics hook
+jest.mock("../src/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackQuestionClicked: jest.fn(),
+    trackQuestionSearched: jest.fn(),
+    trackQuestionFilteredByDifficulty: jest.fn(),
+  }),
+}))
 
 // Mock Button, Input, DropdownMenu components (if needed)
 jest.mock("../src/components/ui/button", () => ({
@@ -27,20 +37,32 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
 }))
 
 // Sample columns and data
-interface Question {
-  id: string
-  title: string
-  difficulty: string
-}
-
-const columns: ColumnDef<Question>[] = [
+const columns: ColumnDef<Question, any>[] = [
   { accessorKey: "title", header: "Question Title" },
   { accessorKey: "difficulty", header: "Difficulty" },
 ]
 
 const data: Question[] = [
-  { id: "1", title: "Two Sum", difficulty: "Easy" },
-  { id: "2", title: "Palindrome", difficulty: "Medium" },
+  {
+    id: 1,
+    title: "Two Sum",
+    difficulty: "Easy",
+    description: "Test description",
+    media: "",
+    preset_code: "",
+    template_solution: "",
+    date: new Date("2024-01-01")
+  },
+  {
+    id: 2,
+    title: "Palindrome",
+    difficulty: "Medium",
+    description: "Test description",
+    media: "",
+    preset_code: "",
+    template_solution: "",
+    date: new Date("2024-01-02")
+  },
 ]
 
 describe("DataTable", () => {
