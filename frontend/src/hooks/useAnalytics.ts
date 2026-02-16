@@ -200,6 +200,76 @@ export function useAnalytics() {
     posthog.capture("current_leaderboard_viewed", { competition_name: competitionName });
   }
 
+  // ─── Coding page ─────────────────────────────────────────────────────────────
+
+  function trackCodingPageOpened(questionTitle: string, questionId: number, difficulty: string) {
+    posthog.capture("coding_page_opened", {
+      question_title: questionTitle,
+      question_id: questionId,
+      difficulty,
+    });
+  }
+
+  function trackLanguageChanged(
+    questionId: number,
+    fromLanguage: string,
+    toLanguage: string
+  ) {
+    posthog.capture("coding_language_changed", {
+      question_id: questionId,
+      from_language: fromLanguage,
+      to_language: toLanguage,
+    });
+  }
+
+  function trackCodeReset(questionId: number, language: string) {
+    posthog.capture("coding_code_reset", {
+      question_id: questionId,
+      language,
+    });
+  }
+
+  function trackCodeRun(
+    questionId: number,
+    language: string,
+    status: string,
+    passed: boolean,
+    executionTimeSeconds?: string
+  ) {
+    posthog.capture("coding_code_run", {
+      question_id: questionId,
+      language,
+      status,
+      passed,
+      execution_time_seconds: executionTimeSeconds,
+    });
+  }
+
+  function trackCodeSubmitted(questionId: number, language: string) {
+    posthog.capture("coding_code_submitted", {
+      question_id: questionId,
+      language,
+    });
+  }
+
+  function trackCodingTabSwitched(
+    questionId: number,
+    tab: "description" | "submissions" | "leaderboard"
+  ) {
+    posthog.capture("coding_tab_switched", {
+      question_id: questionId,
+      tab,
+    });
+  }
+
+  function trackTestcaseAdded(questionId: number) {
+    posthog.capture("coding_testcase_added", { question_id: questionId });
+  }
+
+  function trackTestcaseRemoved(questionId: number) {
+    posthog.capture("coding_testcase_removed", { question_id: questionId });
+  }
+
   // ─── Admin dashboard ─────────────────────────────────────────────────────────
 
   function trackAdminDashboardViewed() {
@@ -398,6 +468,15 @@ export function useAnalytics() {
     trackLeaderboardCopied,
     trackLeaderboardDownloaded,
     trackCurrentLeaderboardViewed,
+    // coding page
+    trackCodingPageOpened,
+    trackLanguageChanged,
+    trackCodeReset,
+    trackCodeRun,
+    trackCodeSubmitted,
+    trackCodingTabSwitched,
+    trackTestcaseAdded,
+    trackTestcaseRemoved,
     // admin dashboard
     trackAdminDashboardViewed,
     trackAdminDashboardTabSwitched,
