@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 function getSignupErrorMessage(err: unknown): string {
   if (typeof err === "object" && err !== null && "response" in err) {
@@ -24,7 +25,7 @@ function getSignupErrorMessage(err: unknown): string {
   }
   return "Signup failed";
 }
-// put posthog
+
 function handleLoginError(err: unknown, setError: (msg: string) => void): void {
   const isError = err instanceof Error;
   const errorMessage = isError ? err.message : "Unknown error during login.";
@@ -45,6 +46,12 @@ function handleLoginError(err: unknown, setError: (msg: string) => void): void {
 
 export function SignupForm() {
   const navigate = useNavigate();
+  const {
+    identifyUser,
+    trackSignupAttempt,
+    trackSignupSuccess,
+    trackSignupFailed,
+  } = useAnalytics();
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -68,16 +75,23 @@ export function SignupForm() {
     }
 
     localStorage.setItem("token", token);
-    console.log(localStorage.getItem("token"));
 
     const decoded = jwtDecode<DecodedToken>(token);
-    console.log("Logged in as:", decoded.sub);
 
     logFrontend({
       level: "INFO",
       message: `Logged in as: ${decoded.sub}`,
       component: "SignupForm",
       url: globalThis.location.href,
+    });
+
+    // Identify the new user so all future events are tied to them
+    identifyUser({
+      id: decoded.sub,
+      email: formData.email,
+      firstName: formData.first_name,
+      lastName: formData.last_name,
+      role: decoded.role ?? "participant",
     });
 
     if (decoded) {
@@ -94,7 +108,9 @@ export function SignupForm() {
       return;
     }
 
+    trackSignupAttempt();
     setLoading(true);
+
     try {
       await signup({
         email: formData.email,
@@ -103,6 +119,7 @@ export function SignupForm() {
         lastName: formData.last_name,
       });
 
+      trackSignupSuccess();
       toast.success("Account created successfully!");
 
       try {
@@ -111,7 +128,9 @@ export function SignupForm() {
         handleLoginError(err, setError);
       }
     } catch (err: unknown) {
-      toast.error(getSignupErrorMessage(err));
+      const errorMessage = getSignupErrorMessage(err);
+      trackSignupFailed(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
