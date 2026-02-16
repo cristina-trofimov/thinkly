@@ -428,7 +428,7 @@ def get_all_algotime_leaderboard_entries(db: Annotated[Session, Depends(get_db)]
             event_name="algotime_leaderboard_viewed",
             properties={
                 "total_entries": len(result),
-                "unique_series": len(set(entry.algotime_series_id for entry in entries)),
+                "unique_series": len({entry.algotime_series_id for entry in entries}),
             }
         )
 
