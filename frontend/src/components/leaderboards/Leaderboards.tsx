@@ -98,7 +98,7 @@ export function Leaderboards() {
     );
 
   return (
-    <div className="flex flex-col w-[calc(100vw-var(--sidebar-width)-3rem)] ml-[1rem] space-y-4">
+    <div className="flex flex-col flex-1 w-full max-w-full px-4 space-y-4">
       {/* Toggle between Competition and AlgoTime */}
       <div className="flex items-center">
         <Tabs value={leaderboardType} onValueChange={(v) => setLeaderboardType(v as LeaderboardType)}>

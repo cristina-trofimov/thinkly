@@ -4,6 +4,21 @@ import { createCompetition } from "../src/api/CompetitionAPI";
 import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
 import { useNavigate } from "react-router-dom";
+import axiosClient from '../src/lib/axiosClient';
+
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
+
+const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 // 1. Mocks
 jest.mock("../src/api/CompetitionAPI");

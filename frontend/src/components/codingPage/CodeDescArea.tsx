@@ -104,11 +104,11 @@ const CodeDescArea = (
                                 <p className='font-bold'>Inputs <span className='font-normal'>
                                     {Object.entries(t.input_data).map(([key, val], idx) => {
                                         const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
-                                        return `${key} = ${val}${separator}`
+                                        return `${key} = ${JSON.stringify(val)}${separator}`
                                     })}
                                 </span></p>
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
-                                    {t.expected_output}</span>
+                                    {(t.expected_output)}</span>
                                 </p>
                                 {/* <p className='font-bold'>Explanation <span className='font-normal'>{t.explanation}</span></p> */}
                             </div>
