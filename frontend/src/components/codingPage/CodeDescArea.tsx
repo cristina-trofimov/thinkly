@@ -14,7 +14,7 @@ const CodeDescArea = (
     { question }:
     { question: Question }
     ) => {
-// put posthog
+
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },

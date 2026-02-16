@@ -9,11 +9,24 @@ import { logFrontend } from "../api/LoggerAPI";
 import type { Competition } from "@/types/competition/Competition.type";
 import CompetitionItem from "@/components/helpers/CompetitionItem";
 import HomePageBanner from "@/components/helpers/HomePageBanner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 function HomePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [questions, setQuestions] = useState<Question[]>([]);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+
+  const {
+    trackHomepageViewed,
+    trackCalendarDateSelected,
+    trackCompetitionItemClicked,
+  } = useAnalytics();
+
+  // Track page view once on mount
+  useEffect(() => {
+    trackHomepageViewed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const getAllQuestions = async () => {
@@ -93,51 +106,74 @@ function HomePage() {
 
   const competitionDates = competitions.map((c) => c.startDate);
 
+  const handleDateSelect = (newDate: Date | undefined) => {
+    setDate(newDate);
+    if (newDate) {
+      const competitionsOnDate = competitions.filter((c) => {
+        const compDate = new Date(c.startDate);
+        return compDate.toDateString() === newDate.toDateString();
+      });
+      trackCalendarDateSelected(
+        newDate.toISOString().split("T")[0],
+        competitionsOnDate.length
+      );
+    }
+  };
+
   return (
     <div className="flex flex-col w-full px-4">
-        <div className="flex w-full gap-6 items-start">
-          <div className="flex flex-col flex-1 min-w-0 gap-4">
-            <HomePageBanner competitions={competitions} />
-            <div className="flex flex-col gap-4">
-              <DataTable columns={columns} data={questions} />
-            </div>
+      <div className="flex w-full gap-6 items-start">
+        <div className="flex flex-col flex-1 min-w-0 gap-4">
+          <HomePageBanner competitions={competitions} />
+          <div className="flex flex-col gap-4">
+            <DataTable columns={columns} data={questions} />
           </div>
+        </div>
 
-          <div className="flex flex-col w-[300px] shrink-0 gap-4 ml-auto">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="rounded-md border shadow-sm self-end w-full"
-              captionLayout="dropdown"
-              modifiers={{ competition: competitionDates }}
-              modifiersClassNames={{
-                competition:
-                  "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",
-              }}
-            />
+        <div className="flex flex-col w-[300px] shrink-0 gap-4 ml-auto">
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleDateSelect}
+            className="rounded-md border shadow-sm self-end w-full"
+            captionLayout="dropdown"
+            modifiers={{ competition: competitionDates }}
+            modifiersClassNames={{
+              competition:
+                "relative after:content-[''] after:absolute after:bottom-[4px] after:left-1/2 after:-translate-x-1/2 after:w-[6px] after:h-[6px] after:rounded-full after:bg-primary",
+            }}
+          />
 
-            <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
-              <p className="text-left text-lg font-semibold mb-1">
-                Competitions on {date?.toLocaleDateString() ?? "—"}
+          <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
+            <p className="text-left text-lg font-semibold mb-1">
+              Competitions on {date?.toLocaleDateString() ?? "—"}
+            </p>
+            {competitionsForSelectedDate.length === 0 ? (
+              <p className="text-center text-gray-500 italic">
+                No competitions on this date
               </p>
-              {competitionsForSelectedDate.length === 0 ? (
-                <p className="text-center text-gray-500 italic">
-                  No competitions on this date
-                </p>
-              ) : (
-                competitionsForSelectedDate.map((competition) => (
+            ) : (
+              competitionsForSelectedDate.map((competition) => (
+                <div
+                  key={competition.id}
+                  onClick={() =>
+                    trackCompetitionItemClicked(
+                      competition.competitionTitle,
+                      competition.startDate.toISOString().split("T")[0]
+                    )
+                  }
+                >
                   <CompetitionItem
-                    key={competition.id}
                     title={competition.competitionTitle}
                     date={competition.startDate.toLocaleDateString()}
                   />
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
+    </div>
   );
 }
 
