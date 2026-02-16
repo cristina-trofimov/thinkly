@@ -29,6 +29,98 @@ interface ProfileAccount extends Account {
   isGoogleUser?: boolean;
 }
 
+// Reusable editable field component
+interface EditableFieldProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  fieldName: "firstName" | "lastName" | "email";
+  isEditing: boolean;
+  tempValue: string;
+  isSaving: boolean;
+  isDisabled?: boolean;
+  disabledMessage?: string;
+  onStartEdit: (fieldName: "firstName" | "lastName" | "email", value: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  onTempValueChange: (value: string) => void;
+}
+
+const EditableField: React.FC<EditableFieldProps> = ({
+  icon,
+  label,
+  value,
+  fieldName,
+  isEditing,
+  tempValue,
+  isSaving,
+  isDisabled,
+  disabledMessage,
+  onStartEdit,
+  onSave,
+  onCancel,
+  onTempValueChange,
+}) => {
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-semibold flex items-center gap-2">
+        {icon} {label}
+      </Label>
+      <div className="flex items-center justify-between group min-h-10">
+        {isEditing ? (
+          <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
+            <Input
+              value={tempValue}
+              onChange={(e) => onTempValueChange(e.target.value)}
+              className="h-9 focus-visible:ring-primary focus-visible:ring-1"
+              disabled={isSaving}
+              autoFocus
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onSave}
+              disabled={isSaving}
+              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={isSaving}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Label className="text-muted-foreground text-base font-normal">
+              {value}
+            </Label>
+            {isDisabled ? (
+              <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
+                {disabledMessage}
+              </span>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                onClick={() => onStartEdit(fieldName, value)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 function ProfilePage() {
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -214,176 +306,55 @@ function ProfilePage() {
         <Card className="rounded-3xl overflow-hidden">
           <CardContent className="p-8 space-y-8">
             {/* First Name Field */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 opacity-70 text-primary" /> First Name
-              </Label>
-              <div className="flex items-center justify-between group min-h-10">
-                {editingField === "firstName" ? (
-                  <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
-                    <Input
-                      value={tempValue}
-                      onChange={(e) => setTempValue(e.target.value)}
-                      className="h-9 focus-visible:ring-primary focus-visible:ring-1"
-                      disabled={isSaving}
-                      autoFocus
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={saveField}
-                      disabled={isSaving}
-                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={cancelEditing}
-                      disabled={isSaving}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Label className="text-muted-foreground text-base font-normal">
-                      {user?.firstName ?? ""}
-                    </Label>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                      onClick={() =>
-                        startEditing("firstName", user?.firstName ?? "")
-                      }
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+            <EditableField
+              icon={<User className="h-4 w-4 opacity-70 text-primary" />}
+              label="First Name"
+              value={user?.firstName ?? ""}
+              fieldName="firstName"
+              isEditing={editingField === "firstName"}
+              tempValue={tempValue}
+              isSaving={isSaving}
+              onStartEdit={startEditing}
+              onSave={saveField}
+              onCancel={cancelEditing}
+              onTempValueChange={setTempValue}
+            />
 
             <Separator className="opacity-60" />
 
             {/* Last Name Field */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 opacity-70 text-primary" /> Last Name
-              </Label>
-              <div className="flex items-center justify-between group min-h-10">
-                {editingField === "lastName" ? (
-                  <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
-                    <Input
-                      value={tempValue}
-                      onChange={(e) => setTempValue(e.target.value)}
-                      className="h-9 focus-visible:ring-primary focus-visible:ring-1"
-                      disabled={isSaving}
-                      autoFocus
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={saveField}
-                      disabled={isSaving}
-                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={cancelEditing}
-                      disabled={isSaving}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Label className="text-muted-foreground text-base font-normal">
-                      {user?.lastName ?? ""}
-                    </Label>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                      onClick={() =>
-                        startEditing("lastName", user?.lastName ?? "")
-                      }
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
+            <EditableField
+              icon={<User className="h-4 w-4 opacity-70 text-primary" />}
+              label="Last Name"
+              value={user?.lastName ?? ""}
+              fieldName="lastName"
+              isEditing={editingField === "lastName"}
+              tempValue={tempValue}
+              isSaving={isSaving}
+              onStartEdit={startEditing}
+              onSave={saveField}
+              onCancel={cancelEditing}
+              onTempValueChange={setTempValue}
+            />
 
             <Separator className="opacity-60" />
 
             {/* Email Field */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <Mail className="h-4 w-4 opacity-70 text-primary" /> Email
-              </Label>
-              <div className="flex items-center justify-between group min-h-10">
-                {editingField === "email" ? (
-                  <div className="flex items-center gap-2 w-full animate-in slide-in-from-left-2 duration-200">
-                    <Input
-                      value={tempValue}
-                      onChange={(e) => setTempValue(e.target.value)}
-                      className="h-9 focus-visible:ring-primary focus-visible:ring-1"
-                      disabled={isSaving}
-                      autoFocus
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={saveField}
-                      disabled={isSaving}
-                      className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={cancelEditing}
-                      disabled={isSaving}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Label className="text-muted-foreground text-base font-normal">
-                      {user?.email ?? ""}
-                    </Label>
-                    {user?.isGoogleUser ? (
-                      <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
-                        Managed by Google
-                      </span>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
-                        onClick={() =>
-                          startEditing("email", user?.email ?? "")
-                        }
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+            <EditableField
+              icon={<Mail className="h-4 w-4 opacity-70 text-primary" />}
+              label="Email"
+              value={user?.email ?? ""}
+              fieldName="email"
+              isEditing={editingField === "email"}
+              tempValue={tempValue}
+              isSaving={isSaving}
+              isDisabled={user?.isGoogleUser}
+              disabledMessage="Managed by Google"
+              onStartEdit={startEditing}
+              onSave={saveField}
+              onCancel={cancelEditing}
+              onTempValueChange={setTempValue}
+            />
 
             <Separator className="opacity-50" />
 
@@ -428,7 +399,7 @@ function ProfilePage() {
               >
                 Google Account
               </a>
-              .
+              {" "}.
             </p>
           </div>
         )}

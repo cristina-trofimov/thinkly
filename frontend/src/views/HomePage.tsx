@@ -154,7 +154,7 @@ function HomePage() {
               </p>
             ) : (
               competitionsForSelectedDate.map((competition) => (
-                <div
+                <button
                   key={competition.id}
                   onClick={() =>
                     trackCompetitionItemClicked(
@@ -162,12 +162,14 @@ function HomePage() {
                       competition.startDate.toISOString().split("T")[0]
                     )
                   }
+                  className="w-full text-left"
+                  type="button"
                 >
                   <CompetitionItem
                     title={competition.competitionTitle}
                     date={competition.startDate.toLocaleDateString()}
                   />
-                </div>
+                </button>
               ))
             )}
           </div>
