@@ -107,14 +107,24 @@ describe("ProfilePage Component", () => {
         (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
         (useOutlet as jest.Mock).mockReturnValue(null);
         
-        // Mock window.location for reload and href access
-        delete (window as any).location;
-        window.location = {
+        // Create a shared location mock for both window and globalThis
+        const locationMock = {
             href: 'http://localhost/app/profile',
             origin: 'http://localhost',
             pathname: '/app/profile',
             reload: mockReload,
         } as any;
+        
+        // Mock window.location
+        delete (window as any).location;
+        window.location = locationMock;
+        
+        // Mock globalThis.location (used by the component)
+        Object.defineProperty(globalThis, 'location', {
+            value: locationMock,
+            configurable: true,
+            writable: true
+        });
 
         const sessionStorageMock = (() => {
             let store: Record<string, string> = {};
@@ -133,6 +143,11 @@ describe("ProfilePage Component", () => {
 
         (getProfile as jest.Mock).mockResolvedValue(mockUser);
         (isGoogleAccount as jest.Mock).mockResolvedValue({ isGoogleUser: false });
+    });
+
+    afterEach(() => {
+        // Clean up globalThis.location mock to avoid test pollution
+        delete (globalThis as any).location;
     });
 
     test("renders user profile information correctly after loading", async () => {

@@ -177,7 +177,7 @@ function ProfilePage() {
           level: "ERROR",
           message: `Failed to load user profile: ${error}`,
           component: "ProfilePage",
-          url: window.location.href,
+          url: globalThis.location.href,
         });
         toast.error("Failed to load profile data.");
       } finally {
@@ -235,7 +235,7 @@ function ProfilePage() {
       setEditingField(null);
       setTempValue("");
 
-      window.location.reload();
+      globalThis.location.reload();
     } catch (error) {
       console.error(`Error updating ${editingField}:`, error);
       trackProfileFieldSaveFailed(
