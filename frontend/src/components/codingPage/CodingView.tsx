@@ -18,15 +18,22 @@ import { useTestcases } from '../helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import Loader from '../helpers/Loader';
 import ConsoleOutput from './ConsoleOutput';
+import { submitAttempt } from '@/api/CodeSubmission';
 
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
   const { testcases } = useTestcases(question.id)
-  const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
-  const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
-  const [loadingMsg, setLoadingMsg] = useState<string>("")
+  const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
+  const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+  const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
+  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+  const outputTabs = [
+    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
+    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
+  ]
 
   useEffect(() => {
     if (question?.id) {
@@ -36,19 +43,26 @@ const CodingView = () => {
     }
   }, [question?.id])
 
-  const submitCode = () => {
-    console.log("submitting code")
+  const submitCode = async () => {
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Submitting")
+      const response = await submitAttempt(question?.id, 1, code, judgeID, selectedLang, testcases)
+      setLogs(prev => [...prev, response])
+      setCurrentOutputTab("results")
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
   }
-
-  const [ logs, setLogs ] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
-
       const response = await submitToJudge0(code, judgeID, testcases)
       setLogs(prev => [...prev, response])
+      setCurrentOutputTab("results")
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -70,11 +84,6 @@ const CodingView = () => {
   const [ code, setCode ] = useStateCallback<string>(templateCode)
 
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
-
-  const outputTabs = [
-    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
-    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
-  ]
 
   const [fullCode, setFullCode] = useState(false)
   const [fullOutput, setFullOutput] = useState(false)
@@ -219,7 +228,9 @@ const CodingView = () => {
             <Panel data-testid="resizable-handle" defaultSize={35} 
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none h-full' defaultValue='testcases' >
+              <Tabs data-testid="sandbox-tabs" onValueChange={setCurrentOutputTab}
+                value={currentOutputTab} className='border-none h-full'
+              >
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"
