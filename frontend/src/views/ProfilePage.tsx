@@ -29,18 +29,21 @@ interface ProfileAccount extends Account {
   isGoogleUser?: boolean;
 }
 
+// Type alias for editable fields
+type EditableFieldName = "firstName" | "lastName" | "email";
+
 // Reusable editable field component
 interface EditableFieldProps {
   icon: React.ReactNode;
   label: string;
   value: string;
-  fieldName: "firstName" | "lastName" | "email";
+  fieldName: EditableFieldName;
   isEditing: boolean;
   tempValue: string;
   isSaving: boolean;
   isDisabled?: boolean;
   disabledMessage?: string;
-  onStartEdit: (fieldName: "firstName" | "lastName" | "email", value: string) => void;
+  onStartEdit: (fieldName: EditableFieldName, value: string) => void;
   onSave: () => void;
   onCancel: () => void;
   onTempValueChange: (value: string) => void;
@@ -135,9 +138,9 @@ function ProfilePage() {
     trackChangePasswordNavigated,
   } = useAnalytics();
 
-  const [editingField, setEditingField] = React.useState<
-    "firstName" | "lastName" | "email" | null
-  >(null);
+  const [editingField, setEditingField] = React.useState<EditableFieldName | null>(
+    null
+  );
   const [tempValue, setTempValue] = React.useState("");
 
   // Track profile view once on mount
@@ -174,7 +177,7 @@ function ProfilePage() {
           level: "ERROR",
           message: `Failed to load user profile: ${error}`,
           component: "ProfilePage",
-          url: globalThis.location.href,
+          url: window.location.href,
         });
         toast.error("Failed to load profile data.");
       } finally {
@@ -186,7 +189,7 @@ function ProfilePage() {
   }, []);
 
   const startEditing = (
-    field: "firstName" | "lastName" | "email",
+    field: EditableFieldName,
     value: string
   ) => {
     setEditingField(field);
@@ -232,7 +235,7 @@ function ProfilePage() {
       setEditingField(null);
       setTempValue("");
 
-      globalThis.location.reload();
+      window.location.reload();
     } catch (error) {
       console.error(`Error updating ${editingField}:`, error);
       trackProfileFieldSaveFailed(
