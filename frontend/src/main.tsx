@@ -8,6 +8,7 @@ import {
 import "./index.css";
 import LoginPage from "./views/LogInPage.tsx"; // currently using HomePage as login page
 import { Toaster } from "@/components/ui/sonner";
+import { PostHogProvider } from '@posthog/react'
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -33,6 +34,10 @@ import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
+const options = {
+  api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+  defaults: '2026-01-30',
+} as const
 
 const router = createBrowserRouter([
   // --- PUBLIC ROUTES ---
@@ -174,9 +179,11 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <PostHogProvider apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY} options={options}>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <Toaster position="top-center" />
       <RouterProvider router={router} />
     </GoogleOAuthProvider>
+    </PostHogProvider>
   </StrictMode>
 );

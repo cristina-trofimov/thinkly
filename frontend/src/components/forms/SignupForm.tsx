@@ -24,7 +24,7 @@ function getSignupErrorMessage(err: unknown): string {
   }
   return "Signup failed";
 }
-
+// put posthog
 function handleLoginError(err: unknown, setError: (msg: string) => void): void {
   const isError = err instanceof Error;
   const errorMessage = isError ? err.message : "Unknown error during login.";

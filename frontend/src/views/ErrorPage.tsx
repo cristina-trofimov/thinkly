@@ -2,6 +2,7 @@ import { Button } from "../components/ui/button";
 import { useNavigate } from 'react-router-dom';
 
 const ErrorPage = () => {
+    // put posthog -  was displayed
     const navigate = useNavigate();
     return (
         <section className="p-20 lg:p-40 bg-background relative flex flex-col items-center overflow-hidden" >

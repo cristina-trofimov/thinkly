@@ -21,7 +21,7 @@ interface CompetitionFormProps {
     onCancel: () => void;
     submitLabel: string;
 }
-
+// put posthog
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
 const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {

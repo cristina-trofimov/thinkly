@@ -21,7 +21,7 @@ export function Leaderboards() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
-
+// put posthog
   // Fetch current user ID
   useEffect(() => {
     const fetchCurrentUser = async () => {

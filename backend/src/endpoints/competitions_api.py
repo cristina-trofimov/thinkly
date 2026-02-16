@@ -9,6 +9,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
+from posthog_analytics import track_custom_event
 
 TIMEZONE_NEW_YORK = "America/New_York"
 LOCAL_TZ = ZoneInfo(TIMEZONE_NEW_YORK)
@@ -408,6 +409,23 @@ async def create_competition(
         if request.emailEnabled and request.emailNotification:
             send_competition_emails(db, competition, request.emailNotification, start_dt)
 
+        # Track competition creation
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="competition_created",
+            properties={
+                "competition_id": base_event.event_id,
+                "competition_name": base_event.event_name,
+                "location": base_event.event_location,
+                "question_count": len(request.selectedQuestions),
+                "riddle_count": len(request.selectedRiddles),
+                "question_cooldown": base_event.question_cooldown,
+                "riddle_cooldown": competition.riddle_cooldown,
+                "email_enabled": request.emailEnabled,
+                "user_email": user_email,
+            }
+        )
+
         return CompetitionResponse(
             event_id=base_event.event_id,
             event_name=base_event.event_name,
@@ -619,6 +637,21 @@ async def update_competition(
 
         logger.info(f"SUCCESSFUL UPDATE: Competition '{request.name}' (ID: {competition_id}) by '{user_email}'")
 
+        # Track competition update
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="competition_updated",
+            properties={
+                "competition_id": competition_id,
+                "competition_name": request.name,
+                "location": request.location,
+                "question_count": len(request.selectedQuestions),
+                "riddle_count": len(request.selectedRiddles),
+                "email_enabled": request.emailEnabled,
+                "user_email": user_email,
+            }
+        )
+
         return CompetitionResponse(
             event_id=base_event.event_id,
             event_name=base_event.event_name,
@@ -696,6 +729,17 @@ async def delete_competition(
 
         logger.info(
             f"SUCCESSFUL DELETION: Competition '{competition_name}' (ID: {competition_id}) deleted by '{user_email}'")
+
+        # Track competition deletion
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="competition_deleted",
+            properties={
+                "competition_id": competition_id,
+                "competition_name": competition_name,
+                "user_email": user_email,
+            }
+        )
 
     except HTTPException:
         raise
