@@ -10,7 +10,6 @@ import { NavSection } from "@/components/layout/NavSection"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
