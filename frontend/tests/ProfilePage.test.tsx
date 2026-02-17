@@ -14,14 +14,14 @@ import { toast } from "sonner";
 
 // --- Mocks ---
 jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
+    __esModule: true,
+    default: {
+        get: jest.fn(),
+        post: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+    },
+    API_URL: 'http://localhost:8000',
 }))
 jest.mock("../src/api/AuthAPI", () => ({
     getProfile: jest.fn(),
@@ -78,10 +78,10 @@ jest.mock("@/components/helpers/AvatarInitials", () => ({
 
 jest.mock("@/components/ui/button", () => ({
     Button: ({ children, onClick, disabled, variant, size, className }: any) => (
-        <button 
-            onClick={onClick} 
-            disabled={disabled} 
-            data-variant={variant} 
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            data-variant={variant}
             data-size={size}
             className={className}
         >
@@ -106,7 +106,7 @@ describe("ProfilePage Component", () => {
         jest.clearAllMocks();
         (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
         (useOutlet as jest.Mock).mockReturnValue(null);
-        
+
         // Create a shared location mock for both window and globalThis
         delete (window as any).location;
         window.location = {
@@ -125,10 +125,10 @@ describe("ProfilePage Component", () => {
                 clear: jest.fn(() => { store = {}; }),
             };
         })();
-        Object.defineProperty(window, 'sessionStorage', { 
-            value: sessionStorageMock, 
-            configurable: true, 
-            writable: true 
+        Object.defineProperty(window, 'sessionStorage', {
+            value: sessionStorageMock,
+            configurable: true,
+            writable: true
         });
 
         (getProfile as jest.Mock).mockResolvedValue(mockUser);
@@ -201,7 +201,7 @@ describe("ProfilePage Component", () => {
             ...mockUser,
             firstName: "Jane"
         });
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -226,7 +226,7 @@ describe("ProfilePage Component", () => {
                 "First name updated successfully."
             );
         });
-        
+
         // Note: reload() is called but difficult to test in JSDOM - tested in reload-specific test below
     });
 
@@ -235,7 +235,7 @@ describe("ProfilePage Component", () => {
             ...mockUser,
             lastName: "Smith"
         });
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -261,7 +261,7 @@ describe("ProfilePage Component", () => {
             ...mockUser,
             email: "jane.doe@example.com"
         });
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -284,7 +284,7 @@ describe("ProfilePage Component", () => {
 
     test("displays error toast when field update fails", async () => {
         (updateAccount as jest.Mock).mockRejectedValue(new Error("Update failed"));
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -307,10 +307,10 @@ describe("ProfilePage Component", () => {
 
     test("disables save and cancel buttons during save operation", async () => {
         // Make updateAccount slow to observe the saving state
-        (updateAccount as jest.Mock).mockImplementation(() => 
+        (updateAccount as jest.Mock).mockImplementation(() =>
             new Promise(resolve => setTimeout(() => resolve({ ...mockUser }), 100))
         );
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -350,12 +350,12 @@ describe("ProfilePage Component", () => {
     });
 
     test("renders loading spinner while fetching profile", () => {
-        (getProfile as jest.Mock).mockImplementation(() => 
+        (getProfile as jest.Mock).mockImplementation(() =>
             new Promise(resolve => setTimeout(() => resolve(mockUser), 1000))
         );
-        
+
         render(<ProfilePage />);
-        
+
         // Should show loading spinner
         const spinner = document.querySelector('.animate-spin');
         expect(spinner).toBeTruthy();
@@ -366,7 +366,7 @@ describe("ProfilePage Component", () => {
             ...mockUser,
             firstName: "Jane"
         });
-        
+
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
@@ -389,15 +389,15 @@ describe("ProfilePage Component", () => {
             expect(updateAccount).toHaveBeenCalled();
             expect(window.sessionStorage.setItem).toHaveBeenCalled();
         });
-        
+
         // Note: reload() is called but causes test environment issues - verified via manual testing
     });
 
-    test("displays user ID and account type badge", async () => {
+    test("displays account type badge", async () => {
         render(<ProfilePage />);
         await waitFor(() => {
-            expect(screen.getByText(/User ID: user-123/i)).toBeTruthy();
-            expect(screen.getByText(/participant/i)).toBeTruthy();
+            const badge = screen.getByText(/participant/i);
+            expect(badge).toBeTruthy();
         });
     });
 

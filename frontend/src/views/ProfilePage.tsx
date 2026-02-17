@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
-  IdCardLanyard,
   Mail,
   User,
   IdCard,
@@ -288,10 +287,6 @@ function ProfilePage() {
               {user?.accountType ?? "Participant"}
             </Badge>
           </div>
-          <p className="text-muted-foreground flex items-center justify-center md:justify-start gap-2">
-            <IdCardLanyard className="h-4 w-4" />
-            User ID: {user?.id}
-          </p>
         </div>
       </div>
 
@@ -362,20 +357,23 @@ function ProfilePage() {
             <Separator className="opacity-50" />
 
             {/* Password Field */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <KeyRound className="h-4 w-4 opacity-70 text-primary" />{" "}
-                Password
-              </Label>
-              <div className="flex items-center justify-between group">
-                <Label className="text-muted-foreground text-base font-normal tracking-widest">
-                  ••••••••••••
-                </Label>
-                {user?.isGoogleUser ? (
-                  <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
-                    Managed by Google
-                  </span>
-                ) : (
+            <div className="pt-2">
+              {user?.isGoogleUser ? (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 opacity-70 text-primary" /> Password
+                  </Label>
+                  <div className="flex items-center justify-between group min-h-10">
+                    <Label className="text-muted-foreground text-base font-normal tracking-widest">
+                      ••••••••••••
+                    </Label>
+                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
+                      Managed by Google
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-end">
                   <Button
                     variant="ghost"
                     className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
@@ -383,8 +381,8 @@ function ProfilePage() {
                   >
                     Change Password
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
