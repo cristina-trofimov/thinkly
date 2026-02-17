@@ -3,6 +3,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { jest } from '@jest/globals';
 import { AppSidebar } from "../src/components/layout/AppSidebar";
+import { MemoryRouter } from 'react-router-dom';
+import { Layout } from "../src/components/layout/AppLayout";
 import '@testing-library/jest-dom';
 
 const { TextEncoder, TextDecoder } = require('util');
@@ -152,11 +154,25 @@ describe("AppSidebar", () => {
     });
   });
 
-  test("renders correct sidebar structure with header, content, and footer", () => {
+  test("renders correct sidebar structure and places profile button in top-right header", () => {
+    // Sidebar should still render header and content
     render(<AppSidebar />);
     expect(screen.getByTestId("sidebar-header")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-content")).toBeInTheDocument();
-    expect(screen.getByTestId("sidebar-footer")).toBeInTheDocument();
+
+    // The user/profile control is moved to the top header. Render the full Layout
+    // (with Router) and ensure the mocked NavUser appears inside the header's
+    // right-aligned container (class 'ml-auto').
+    render(
+      <MemoryRouter>
+        <Layout />
+      </MemoryRouter>
+    );
+
+    const navUser = screen.getByTestId("nav-user");
+    // Find the nearest ancestor with the right-align class
+    const rightContainer = navUser.closest('.ml-auto');
+    expect(rightContainer).toBeInTheDocument();
   });
 
   test("passes through additional props to Sidebar component", () => {
