@@ -16,7 +16,9 @@ import { Leaderboards } from "./components/leaderboards/Leaderboards";
 import AdminDashboard from "./views/admin/AdminDashboardPage.tsx";
 import CodingView from "./components/codingPage/CodingView.tsx";
 import HomePage from "./views/HomePage.tsx";
+import CompetitionsPage from "./views/CompetitionsPage.tsx";
 import SignupPage from "./views/SignupPage.tsx";
+import AlgoTimePage from "./views/AlgoTimePage.tsx";
 import ManageCompetitions from "./views/admin/ManageCompetitionsPage.tsx";
 import CreateCompetition from "./views/admin/CreateCompetitionPage.tsx";
 import ErrorPage from "./views/ErrorPage.tsx";
@@ -117,6 +119,16 @@ const router = createBrowserRouter([
                 handle: { crumb: { title: "Competition Leaderboard" } },
               },
             ],
+          },
+          {
+            path: "competitions",
+            element: <CompetitionsPage />,
+            handle: { crumb: { title: "Competitions" } },
+          },
+          {
+            path: "algotime",
+            element: <AlgoTimePage />,
+            handle: { crumb: { title: "AlgoTime" } },
           },
           {
             path: "profile",
