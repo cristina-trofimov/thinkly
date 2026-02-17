@@ -1,20 +1,21 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
-import { useEffect, useRef, useState, } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
 import { useStateCallback } from '../helpers/UseStateCallback'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 
 const CodeDescArea = (
     { question }:
     { question: Question }
-    ) => {
-// put posthog
+) => {
+
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
@@ -22,7 +23,7 @@ const CodeDescArea = (
     ]
 
     const { testcases } = useTestcases(question?.id)
-
+    const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useStateCallback("description")
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
@@ -34,7 +35,6 @@ const CodeDescArea = (
         if (!containerRef.current) return
 
         const observer = new ResizeObserver(entries => {
-            // for now, entries is guaranteed to not be empty
             if (entries.length === 0) return
             const width = entries[0].contentRect.width
             setContainerWidth(width)
@@ -52,9 +52,17 @@ const CodeDescArea = (
         quarterSize = fullSize / 4
     }
 
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab)
+        trackCodingTabSwitched(
+            question.id,
+            tab as "description" | "submissions" | "leaderboard"
+        )
+    }
+
     return (
         <Tabs data-testid="tabs" defaultValue='description'
-            value={activeTab} onValueChange={setActiveTab} className='w-full h-full'
+            value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
         >
             <TabsList data-testid="tabs-list" ref={containerRef}
                 className={`w-full h-10 py-0 px-4 bg-muted rounded-none
@@ -88,19 +96,18 @@ const CodeDescArea = (
             </TabsList>
 
             {/* Description */}
-            <TabsContent value='description' data-testid="tabs-content-description" >
-                <div className='h-full p-6' >
-                    <h1 className='font-bold mb-3 '>
+            <TabsContent value='description' data-testid="tabs-content-description">
+                <div className='h-full p-6'>
+                    <h1 className='font-bold mb-3'>
                         {question.title}
                     </h1>
-
-                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre' >
+                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
                         {question.description}
                     </p>
                     {testcases?.map((t, idx) => {
-                        return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1' >
+                        return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
                             <p className='font-bold'>Example {idx + 1}:</p>
-                            <div className='ml-4 flex flex-col gap-1' >
+                            <div className='ml-4 flex flex-col gap-1'>
                                 <p className='font-bold'>Inputs <span className='font-normal'>
                                     {Object.entries(t.input_data).map(([key, val], idx) => {
                                         const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
@@ -110,7 +117,6 @@ const CodeDescArea = (
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
                                     {(t.expected_output)}</span>
                                 </p>
-                                {/* <p className='font-bold'>Explanation <span className='font-normal'>{t.explanation}</span></p> */}
                             </div>
                         </div>
                     })}
@@ -118,10 +124,10 @@ const CodeDescArea = (
             </TabsContent>
 
             {/* Submissions */}
-            <TabsContent value='submissions' data-testid="tabs-content-submissions" >
-                <div className='h-full p-6' >
+            <TabsContent value='submissions' data-testid="tabs-content-submissions">
+                <div className='h-full p-6'>
                     {selectedSubmission === null ?
-                        <Table data-testid="table" >
+                        <Table data-testid="table">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Status</TableHead>
@@ -130,27 +136,25 @@ const CodeDescArea = (
                                     <TableHead className="text-right">Runtime</TableHead>
                                 </TableRow>
                             </TableHeader>
-
-                            
                         </Table>
-                        : (<div>
-                            <div className='flex flex-row gap-6 items-center mb-4' >
-                                <Button onClick={() => setSelectedSubmission(null)} >
-                                    Back
-                                </Button>
-                                <h1 className='text-3xl font-semibold'
-                                >
-                                    {selectedSubmission.status}
-                                </h1>
+                        : (
+                            <div>
+                                <div className='flex flex-row gap-6 items-center mb-4'>
+                                    <Button onClick={() => setSelectedSubmission(null)}>
+                                        Back
+                                    </Button>
+                                    <h1 className='text-3xl font-semibold'>
+                                        {selectedSubmission.status}
+                                    </h1>
+                                </div>
                             </div>
-                        </div>
                         )}
                 </div>
             </TabsContent>
 
             {/* Leaderboard */}
-            <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard" >
-                <div className='h-full p-6' >
+            <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
+                <div className='h-full p-6'>
                     <CurrentLeaderboard />
                 </div>
             </TabsContent>

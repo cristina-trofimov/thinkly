@@ -30,7 +30,7 @@ interface RiddleFormProps {
     /** Required in edit mode */
     initial?: InitialRiddle;
 }
-// put posthog
+
 export default function RiddleForm({ mode, onSuccess, initial }: Readonly<RiddleFormProps>) {
     const isEdit = mode === "edit";
 
