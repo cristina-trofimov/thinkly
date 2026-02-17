@@ -103,6 +103,11 @@ export function SignupForm() {
     e.preventDefault();
     setError(null);
 
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     if (formData.password !== formData.confirm_password) {
       setError("Passwords do not match");
       return;
@@ -204,12 +209,19 @@ export function SignupForm() {
           <Input
             id="password"
             type="password"
+            placeholder="At least 8 characters"
             value={formData.password}
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
             }
+            className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${formData.password && formData.password.length < 8 ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             required
           />
+          {formData.password && formData.password.length < 8 && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              Password must be at least 8 characters
+            </p>
+          )}
         </Field>
 
         <Field>
@@ -223,8 +235,14 @@ export function SignupForm() {
             onChange={(e) =>
               setFormData({ ...formData, confirm_password: e.target.value })
             }
+            className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${formData.confirm_password && formData.password !== formData.confirm_password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             required
           />
+          {formData.confirm_password && formData.password !== formData.confirm_password && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              Passwords do not match
+            </p>
+          )}
         </Field>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
