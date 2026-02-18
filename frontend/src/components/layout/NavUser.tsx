@@ -84,56 +84,57 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
 
   return (
     <DropdownMenu>
+      <span className="truncate font-medium mr-2 pr-1">{localUser?.firstName} {localUser?.lastName}</span>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/80 outline-none">
-          <AvatarInitials
+        <button className="flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
+        {/* <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span> */}
+          {/* <div className="hidden sm:grid flex-1 text-left text-sm leading-tight"> */}
+            {/* <span className="truncate text-xs">{localUser?.email}</span> */}
+          {/* </div> */}
+          {/* <ChevronsUpDown className="ml-2 size-4" />  */}
+          <AvatarInitials className=""
             firstName={localUser?.firstName ?? ""}
             lastName={localUser?.lastName ?? ""}
-            size="md"
+            size="ml"
           />
-          <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span>
-            <span className="truncate text-xs">{localUser?.email}</span>
-          </div>
-          <ChevronsUpDown className="ml-2 size-4" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-        side={isMobile ? "bottom" : "right"}
+        side={"bottom"}
         align="end"
         sideOffset={4}
       >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <AvatarInitials
-                  firstName={localUser?.firstName ?? ""}
-                  lastName={localUser?.lastName ?? ""}
-                  size="md"
-                />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span>
-                  <span className="truncate text-xs">{localUser?.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={handleProfileClick}>
-                <BadgeCheck />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-      </DropdownMenu>
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <AvatarInitials
+              firstName={localUser?.firstName ?? ""}
+              lastName={localUser?.lastName ?? ""}
+              size="md"
+            />
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              {/* <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span> */}
+              <span className="truncate text-xs">{localUser?.email}</span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={handleProfileClick}>
+            <BadgeCheck />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Bell />
+            Notifications
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -2,13 +2,14 @@
 interface AvatarInitialsProps {
   firstName: string;
   lastName: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "ml" | "lg" | "xl";
   className?: string;
 }
 
 const sizeClasses = {
   sm: "h-6 w-6 text-xs",
   md: "h-8 w-8 text-sm",
+  ml: "w-10 h-10 text-base",
   lg: "h-12 w-12 text-base",
   xl: "h-30 w-30 text-4xl",
 };
