@@ -14,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useSidebar } from "@/components/ui/sidebar"
 import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
