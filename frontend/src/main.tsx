@@ -6,11 +6,10 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import "./index.css";
-import LoginPage from "./views/LogInPage.tsx"; // currently using HomePage as login page
+import LoginPage from "./views/LogInPage.tsx";
 import { Toaster } from "@/components/ui/sonner";
-
+import { PostHogProvider } from '@posthog/react'
 import { GoogleOAuthProvider } from "@react-oauth/google";
-
 
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
@@ -32,7 +31,27 @@ import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
+
+// PostHog configuration
+const posthogOptions = {
+  api_host: POSTHOG_HOST,
+  // Enable session recording (optional but recommended for debugging)
+  autocapture: false, // We're tracking manually, so disable autocapture
+  capture_pageview: false, // We'll track page views manually via our analytics hook
+  // Enable debug mode in development
+  loaded: () => {
+    if (import.meta.env.DEV) {
+      console.log('PostHog loaded successfully');
+      console.log('PostHog config:', {
+        api_host: POSTHOG_HOST,
+        key: POSTHOG_KEY?.substring(0, 10) + '...'
+      });
+    }
+  },
+};
 
 const router = createBrowserRouter([
   // --- PUBLIC ROUTES ---
@@ -63,7 +82,6 @@ const router = createBrowserRouter([
     element: <Layout />,
     errorElement: <ErrorPage />,
     children: [
-
       {
         element: <ProtectedRoute allowedRoles={["participant", "owner", "admin"]} />,
         children: [
@@ -116,7 +134,6 @@ const router = createBrowserRouter([
       },
 
       // 2. ADMIN ACCESS ONLY (Owner, Admin)
-      // If a 'participant' tries to go here, they get sent to /unauthorized
       {
         element: <ProtectedRoute allowedRoles={["owner", "admin"]} />,
         children: [
@@ -172,11 +189,24 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Log PostHog initialization in dev mode
+if (import.meta.env.DEV) {
+  console.log('Initializing PostHog with:', {
+    key: POSTHOG_KEY ? 'Present' : 'Missing',
+    host: POSTHOG_HOST || 'Missing',
+  });
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <Toaster position="top-center" />
-      <RouterProvider router={router} />
-    </GoogleOAuthProvider>
+    <PostHogProvider
+      apiKey={POSTHOG_KEY}
+      options={posthogOptions}
+    >
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <Toaster position="top-center" />
+        <RouterProvider router={router} />
+      </GoogleOAuthProvider>
+    </PostHogProvider>
   </StrictMode>
 );

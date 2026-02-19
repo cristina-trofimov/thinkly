@@ -5,17 +5,27 @@ import { ScoreboardDataTable } from "./ScoreboardDataTable";
 export type { CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
 import type { CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
 import { getCurrentCompetitionLeaderboard } from "../../api/LeaderboardsAPI";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function CurrentLeaderboard() {
   const [standings, setStandings] = useState<CurrentStandings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { trackCurrentLeaderboardViewed } = useAnalytics();
 
   const getCurrentStandings = async () => {
     try {
       setError(null);
       const response = await getCurrentCompetitionLeaderboard();
       setStandings(response);
+
+      // Track when a live competition is actually visible (not just "no active competition")
+      if (
+        response.competitionName !== "No Active Competition" &&
+        response.participants.length > 0
+      ) {
+        trackCurrentLeaderboardViewed(response.competitionName);
+      }
     } catch (err) {
       console.error("Error loading current standings:", err);
       setError("Failed to load current standings");
@@ -26,15 +36,17 @@ export function CurrentLeaderboard() {
 
   useEffect(() => {
     getCurrentStandings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-refresh every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       getCurrentStandings();
-    }, 60000); // 60 seconds
+    }, 60000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -53,7 +65,7 @@ export function CurrentLeaderboard() {
     );
   }
 
-  if (!(standings?.participants?.length)) {
+  if (!standings?.participants?.length) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-gray-500">No active competition</div>
@@ -68,7 +80,9 @@ export function CurrentLeaderboard() {
         <h2 className="text-2xl font-bold text-[#8065CD]">
           {standings.competitionName}
         </h2>
-        <p className="text-sm text-gray-500">Live Standings • Updates every 60s</p>
+        <p className="text-sm text-gray-500">
+          Live Standings • Updates every 60s
+        </p>
       </div>
 
       {/* Leaderboard Table */}

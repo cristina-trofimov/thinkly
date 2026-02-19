@@ -8,6 +8,7 @@ import os
 import time
 import re
 from urllib.parse import urlparse
+from posthog_analytics import track_custom_event
 
 from supabase import create_client, Client
 
@@ -221,6 +222,17 @@ async def create_riddle(
         _commit_or_rollback(db)
         db.refresh(new_riddle)
 
+        # Track riddle creation
+        track_custom_event(
+            user_id="anonymous",  # Riddles can be created by anyone
+            event_name="riddle_created",
+            properties={
+                "riddle_id": new_riddle.riddle_id,
+                "has_file": file_url is not None,
+                "question_length": len(q),
+            }
+        )
+
         return {
             "riddle_id": new_riddle.riddle_id,
             "riddle_question": new_riddle.riddle_question,
@@ -298,6 +310,20 @@ async def edit_riddle(
         _commit_or_rollback(db)
         db.refresh(riddle)
 
+        # Track riddle edit
+        track_custom_event(
+            user_id="anonymous",
+            event_name="riddle_edited",
+            properties={
+                "riddle_id": riddle.riddle_id,
+                "fields_updated": {
+                    "question": question is not None,
+                    "answer": answer is not None,
+                    "file": file is not None or remove_file,
+                }
+            }
+        )
+
         return {
             "riddle_id": riddle.riddle_id,
             "riddle_question": riddle.riddle_question,
@@ -340,6 +366,16 @@ async def delete_riddle(
 
         db.delete(riddle)
         _commit_or_rollback(db)
+
+        # Track riddle deletion
+        track_custom_event(
+            user_id="anonymous",
+            event_name="riddle_deleted",
+            properties={
+                "riddle_id": riddle_id,
+                "had_file": riddle.riddle_file is not None,
+            }
+        )
 
     except HTTPException:
         raise

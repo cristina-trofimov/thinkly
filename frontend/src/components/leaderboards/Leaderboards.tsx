@@ -6,21 +6,53 @@ import { AlgoTimeCard } from "./AlgoTimeCard";
 import { SearchAndFilterBar } from "./SearchAndFilterBar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
-import { getCompetitionsDetails, getCurrentCompetitionLeaderboard, getAllAlgoTimeEntries } from "@/api/LeaderboardsAPI";
+import {
+  getCompetitionsDetails,
+  getCurrentCompetitionLeaderboard,
+  getAllAlgoTimeEntries,
+} from "@/api/LeaderboardsAPI";
 import { getProfile } from "@/api/AuthAPI";
-import type { Participant } from "@/types/account/Participant.type.tsx"
+import type { Participant } from "@/types/account/Participant.type.tsx";
+import { useAnalytics } from "@/hooks/useAnalytics";
+
 type LeaderboardType = "competition" | "algotime";
 
 export function Leaderboards() {
-  const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("algotime");
-  const [competitions, setCompetitions] = useState<CompetitionWithParticipants[]>([]);
-  const [currentCompetition, setCurrentCompetition] = useState<CompetitionWithParticipants | null>(null);
+  const [leaderboardType, setLeaderboardType] =
+    useState<LeaderboardType>("algotime");
+  const [competitions, setCompetitions] = useState<
+    CompetitionWithParticipants[]
+  >([]);
+  const [currentCompetition, setCurrentCompetition] =
+    useState<CompetitionWithParticipants | null>(null);
   const [algoTimeEntries, setAlgoTimeEntries] = useState<Participant[]>([]);
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
+  const [currentUserId, setCurrentUserId] = useState<number | undefined>(
+    undefined
+  );
+
+  const {
+    trackLeaderboardViewed,
+    trackLeaderboardTabSwitched,
+    trackLeaderboardSearched,
+    trackLeaderboardSortChanged,
+  } = useAnalytics();
+
+  // Track initial page view
+  useEffect(() => {
+    trackLeaderboardViewed("algotime");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleTabChange = (value: string) => {
+    const newType = value as LeaderboardType;
+    setLeaderboardType(newType);
+    trackLeaderboardTabSwitched(newType);
+    trackLeaderboardViewed(newType);
+  };
 
   // Fetch current user ID
   useEffect(() => {
@@ -44,9 +76,13 @@ export function Leaderboards() {
 
         if (leaderboardType === "competition") {
           const allCompetitions = await getCompetitionsDetails(currentUserId);
-          const currentStandings = await getCurrentCompetitionLeaderboard(currentUserId);
+          const currentStandings =
+            await getCurrentCompetitionLeaderboard(currentUserId);
 
-          if (currentStandings.competitionName !== "No Active Competition" && currentStandings.participants.length > 0) {
+          if (
+            currentStandings.competitionName !== "No Active Competition" &&
+            currentStandings.participants.length > 0
+          ) {
             const current: CompetitionWithParticipants = {
               id: 0,
               competitionTitle: currentStandings.competitionName,
@@ -55,14 +91,16 @@ export function Leaderboards() {
               showSeparator: currentStandings.showSeparator,
             };
             setCurrentCompetition(current);
-
-            setCompetitions(allCompetitions.filter(c => c.competitionTitle !== current.competitionTitle));
+            setCompetitions(
+              allCompetitions.filter(
+                (c) => c.competitionTitle !== current.competitionTitle
+              )
+            );
           } else {
             setCurrentCompetition(null);
             setCompetitions(allCompetitions);
           }
         } else {
-          // Fetch the single AlgoTime table
           const entries = await getAllAlgoTimeEntries();
           const participants = entries.map((e) => ({
             entryId: e.entryId,
@@ -71,9 +109,8 @@ export function Leaderboards() {
             total_score: e.total_score,
             problems_solved: e.problems_solved,
             total_time: e.total_time,
-            rank: e.rank
+            rank: e.rank,
           }));
-
           setAlgoTimeEntries(participants);
         }
       } catch (err) {
@@ -89,8 +126,23 @@ export function Leaderboards() {
     }
   }, [leaderboardType, currentUserId]);
 
+  // Debounce search tracking
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (value.trim()) {
+      trackLeaderboardSearched(value.trim());
+    }
+  };
+
+  const handleSortChange = (newSortAsc: boolean) => {
+    setSortAsc(newSortAsc);
+    trackLeaderboardSortChanged(newSortAsc ? "asc" : "desc");
+  };
+
   const filteredCompetitions = competitions
-    .filter((c) => c.competitionTitle?.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) =>
+      c.competitionTitle?.toLowerCase().includes(search.toLowerCase())
+    )
     .sort((a, b) =>
       sortAsc
         ? new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -101,7 +153,7 @@ export function Leaderboards() {
     <div className="flex flex-col flex-1 w-full max-w-full px-4 space-y-4">
       {/* Toggle between Competition and AlgoTime */}
       <div className="flex items-center">
-        <Tabs value={leaderboardType} onValueChange={(v) => setLeaderboardType(v as LeaderboardType)}>
+        <Tabs value={leaderboardType} onValueChange={handleTabChange}>
           <TabsList className="space-x-1">
             <TabsTrigger
               value="algotime"
@@ -117,7 +169,6 @@ export function Leaderboards() {
             >
               Competitions
             </TabsTrigger>
-
           </TabsList>
         </Tabs>
       </div>
@@ -125,36 +176,60 @@ export function Leaderboards() {
       {leaderboardType === "competition" && (
         <SearchAndFilterBar
           search={search}
-          setSearch={setSearch}
+          setSearch={handleSearchChange}
           sortAsc={sortAsc}
-          setSortAsc={setSortAsc}
+          setSortAsc={handleSortChange}
         />
       )}
 
-      {loading && <div className="text-center py-8 text-gray-600">Loading leaderboards...</div>}
-      {error && <div className="text-center py-8 text-red-500 bg-red-50 rounded-lg border border-red-200">{error}</div>}
+      {loading && (
+        <div className="text-center py-8 text-gray-600">
+          Loading leaderboards...
+        </div>
+      )}
+      {error && (
+        <div className="text-center py-8 text-red-500 bg-red-50 rounded-lg border border-red-200">
+          {error}
+        </div>
+      )}
 
       {!loading && !error && leaderboardType === "competition" && (
         <>
           {currentCompetition && (
             <div className="border-4 border-[#8065CD] rounded-lg p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
-              <h2 className="text-lg font-semibold text-[#8065CD] mb-3">Current Competition</h2>
-              <CompetitionCard competition={currentCompetition} isCurrent={true} currentUserId={currentUserId} />
+              <h2 className="text-lg font-semibold text-[#8065CD] mb-3">
+                Current Competition
+              </h2>
+              <CompetitionCard
+                competition={currentCompetition}
+                isCurrent={true}
+                currentUserId={currentUserId}
+              />
             </div>
           )}
 
           {filteredCompetitions.length > 0 && (
             <>
-              {currentCompetition && <h2 className="text-lg font-semibold text-gray-700 mt-4">Past Competitions</h2>}
+              {currentCompetition && (
+                <h2 className="text-lg font-semibold text-gray-700 mt-4">
+                  Past Competitions
+                </h2>
+              )}
               {filteredCompetitions.map((comp) => (
-                <CompetitionCard key={comp.id} competition={comp} currentUserId={currentUserId} />
+                <CompetitionCard
+                  key={comp.id}
+                  competition={comp}
+                  currentUserId={currentUserId}
+                />
               ))}
             </>
           )}
 
           {filteredCompetitions.length === 0 && !currentCompetition && (
             <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-              {search ? "No competitions match your search" : "No competitions found"}
+              {search
+                ? "No competitions match your search"
+                : "No competitions found"}
             </div>
           )}
         </>
