@@ -14,12 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { logout } from "@/api/AuthAPI"
+import { logout, getProfile } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
 import type { Account } from "@/types/account/Account.type"
 import { logFrontend } from '../../api/LoggerAPI';
-import { getProfile } from '@/api/AuthAPI'
 
 interface NavUserProps {
   user?: Account | null;

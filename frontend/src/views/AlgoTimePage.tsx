@@ -49,7 +49,7 @@ export default function AlgoTimePage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sessions
-          .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+          .toSorted((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
           .map((s) => (
             <Card key={s.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col">
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">

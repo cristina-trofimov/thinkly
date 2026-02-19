@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NavUser } from "../src/components/layout/NavUser";
 
@@ -144,6 +144,29 @@ describe("NavUser", () => {
       const { getProfile } = require("../src/api/AuthAPI");
       render(<NavUser user={mockUser as any} />);
       expect(getProfile).not.toHaveBeenCalled();
+    });
+
+    // Covers line 40: console.error inside the getProfile catch block
+    test("logs error to console when getProfile fails", async () => {
+      const { getProfile } = require("../src/api/AuthAPI");
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const fetchError = new Error("Network error");
+      (getProfile as jest.Mock).mockRejectedValueOnce(fetchError);
+
+      render(<NavUser />);
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          "NavUser: failed to load profile",
+          fetchError
+        );
+      });
+
+      // localUser should remain null — no name rendered in trigger
+      const trigger = screen.getByTestId("dropdown-menu-trigger");
+      expect(within(trigger).queryByText(/\S/)).toBeNull();
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -311,6 +334,98 @@ describe("NavUser", () => {
       expect(logout).toHaveBeenCalled();
       await screen.findByTestId("dropdown-menu"); // wait for async
       expect(mockNavigate).toHaveBeenCalledWith("/");
+    });
+  });
+
+  // ─── New tests covering lines 53–67: handleLogout error branches ─────────────
+  describe("Logout error handling", () => {
+    beforeEach(() => {
+      window.alert = jest.fn();
+    });
+
+    // Covers lines 53–58: logFrontend call + instanceof Error branch (line 60–62)
+    test("alerts the error message and calls logFrontend when logout throws an Error", async () => {
+      const { logout } = require("../src/api/AuthAPI");
+      const { logFrontend } = require("../src/api/LoggerAPI");
+      const logoutError = new Error("Session expired");
+      (logout as jest.Mock).mockRejectedValueOnce(logoutError);
+
+      render(<NavUser user={mockUser as any} />);
+      const menuItems = screen.getAllByTestId("dropdown-menu-item");
+      await userEvent.click(menuItems[2]);
+
+      await waitFor(() => {
+        // logFrontend must be called with ERROR level (line 53–58)
+        expect(logFrontend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            level: "ERROR",
+            message: expect.stringContaining("Session expired"),
+            component: "NavUser",
+          })
+        );
+        // instanceof Error branch: alert with err.message (line 61)
+        expect(window.alert).toHaveBeenCalledWith("Session expired");
+      });
+
+      // navigate should NOT have been called
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    // Covers lines 62–65: axios-style error branch (object with response.data.error)
+    test("alerts the server error message when logout throws an axios-style error", async () => {
+      const { logout } = require("../src/api/AuthAPI");
+      const { logFrontend } = require("../src/api/LoggerAPI");
+      const axiosError = {
+        response: { data: { error: "Unauthorized" } },
+      };
+      (logout as jest.Mock).mockRejectedValueOnce(axiosError);
+
+      render(<NavUser user={mockUser as any} />);
+      const menuItems = screen.getAllByTestId("dropdown-menu-item");
+      await userEvent.click(menuItems[2]);
+
+      await waitFor(() => {
+        // logFrontend is still called (lines 53–58); non-Error, so message uses String(err)
+        expect(logFrontend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            level: "ERROR",
+            component: "NavUser",
+          })
+        );
+        // axios branch: alert with response.data.error (line 64)
+        expect(window.alert).toHaveBeenCalledWith("Unauthorized");
+      });
+    });
+
+    // Covers the axios branch fallback when response.data.error is absent
+    test("alerts generic message when axios-style error has no error string", async () => {
+      const { logout } = require("../src/api/AuthAPI");
+      const axiosError = { response: { data: {} } };
+      (logout as jest.Mock).mockRejectedValueOnce(axiosError);
+
+      render(<NavUser user={mockUser as any} />);
+      const menuItems = screen.getAllByTestId("dropdown-menu-item");
+      await userEvent.click(menuItems[2]);
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith(
+          "An unknown error occurred during logout"
+        );
+      });
+    });
+
+    // Covers line 66–67: plain string / other primitive error
+    test("alerts stringified error when logout throws a non-Error, non-object value", async () => {
+      const { logout } = require("../src/api/AuthAPI");
+      (logout as jest.Mock).mockRejectedValueOnce("plain string error");
+
+      render(<NavUser user={mockUser as any} />);
+      const menuItems = screen.getAllByTestId("dropdown-menu-item");
+      await userEvent.click(menuItems[2]);
+
+      await waitFor(() => {
+        expect(window.alert).toHaveBeenCalledWith("plain string error");
+      });
     });
   });
 });
