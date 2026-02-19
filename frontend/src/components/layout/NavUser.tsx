@@ -2,7 +2,7 @@ import * as React from "react"
 import {
   BadgeCheck,
   Bell,
-  ChevronsUpDown,
+  // ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 import {
@@ -27,7 +27,6 @@ interface NavUserProps {
 }
 
 export function NavUser({ user }: Readonly<NavUserProps>) {
-  const { isMobile } = useSidebar()
   const navigate = useNavigate();
   const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
 
