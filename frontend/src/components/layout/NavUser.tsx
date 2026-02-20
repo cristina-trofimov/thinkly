@@ -38,12 +38,12 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         if (mounted) setLocalUser(profile)
       } catch (err) {
         logFrontend({
-          level: 'ERROR',
-          message: `NavUser: failed to load profile: ${err instanceof Error ? err.message : String(err)}`,
-          component: 'NavUser',
-          url: globalThis.location.href,
-          stack: err instanceof Error ? err.stack : undefined,
-        });
+        level: 'ERROR',
+        message: `Error finding user profile: ${(err as Error).message}`,
+        component: 'NavUser',
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       }
     }
     fetch()
@@ -55,12 +55,13 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       await logout();
       alert("You have been logged out.");
       navigate('/');
-    } catch (err: unknown) {
+    } catch (err) {
       logFrontend({
         level: 'ERROR',
-        message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
+        message: `Error logging out: ${(err as Error).message}`,
         component: 'NavUser',
         url: globalThis.location.href,
+        stack: (err as Error).stack,
       });
 
       // Narrow the type

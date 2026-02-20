@@ -146,27 +146,28 @@ describe("NavUser", () => {
       expect(getProfile).not.toHaveBeenCalled();
     });
 
-    // Covers line 40: console.error inside the getProfile catch block
+    // Covers line 40: logFrontend call inside the getProfile catch block
     test("logs error to console when getProfile fails", async () => {
       const { getProfile } = require("../src/api/AuthAPI");
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      const { logFrontend } = require("../src/api/LoggerAPI");
       const fetchError = new Error("Network error");
       (getProfile as jest.Mock).mockRejectedValueOnce(fetchError);
 
       render(<NavUser />);
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          "NavUser: failed to load profile",
-          fetchError
+        expect(logFrontend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            level: "ERROR",
+            message: expect.stringContaining("Network error"),
+            component: "NavUser",
+          })
         );
       });
 
       // localUser should remain null — no name rendered in trigger
       const trigger = screen.getByTestId("dropdown-menu-trigger");
       expect(within(trigger).queryByText(/\S/)).toBeNull();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
