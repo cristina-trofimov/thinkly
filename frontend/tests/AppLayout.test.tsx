@@ -44,6 +44,11 @@ jest.mock("../src/components/layout/AppBreadcrumb", () => ({
   ),
 }));
 
+// NavUser is now rendered in the top header bar
+jest.mock("../src/components/layout/NavUser", () => ({
+  NavUser: () => <div data-testid="nav-user">Nav User</div>,
+}));
+
 describe("Layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -80,7 +85,7 @@ describe("Layout", () => {
       const { container } = render(<Layout />);
       const main = container.querySelector("main");
       expect(main).toBeInTheDocument();
-      expect(main).toHaveClass("flex-1"); 
+      expect(main).toHaveClass("flex-1");
     });
 
     test("renders flex container with min-h-screen", () => {
@@ -89,7 +94,29 @@ describe("Layout", () => {
       const flexContainer = container.querySelector(".flex.min-h-screen");
       expect(flexContainer).toBeInTheDocument();
     });
-}); 
+
+    test("renders NavUser in the header", () => {
+      mockUseMatches.mockReturnValue([]);
+      render(<Layout />);
+      expect(screen.getByTestId("nav-user")).toBeInTheDocument();
+    });
+
+    test("renders NavUser inside the right-aligned header container", () => {
+      mockUseMatches.mockReturnValue([]);
+      const { container } = render(<Layout />);
+      const navUser = screen.getByTestId("nav-user");
+      const rightContainer = navUser.closest(".ml-auto");
+      expect(rightContainer).toBeInTheDocument();
+    });
+
+    test("renders header with sticky positioning", () => {
+      mockUseMatches.mockReturnValue([]);
+      const { container } = render(<Layout />);
+      const header = container.querySelector("header");
+      expect(header).toBeInTheDocument();
+      expect(header).toHaveClass("sticky");
+    });
+  });
 
   describe("Breadcrumb Generation", () => {
     test("generates breadcrumbs from routes with crumb handles", () => {
@@ -110,7 +137,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Products")).toBeInTheDocument();
       expect(screen.getByText("Product Details")).toBeInTheDocument();
@@ -134,7 +161,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Destination")).toBeInTheDocument();
       expect(screen.queryByText("intermediate")).not.toBeInTheDocument();
@@ -157,7 +184,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Destination")).toBeInTheDocument();
     });
@@ -176,19 +203,19 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       const homeSpan = screen.getByText("Home");
       const settingsSpan = screen.getByText("Settings");
-      
+
       expect(homeSpan).toHaveAttribute("data-href", "/home");
       expect(settingsSpan).toHaveAttribute("data-href", "/home/settings");
     });
 
     test("handles empty routes array", () => {
       mockUseMatches.mockReturnValue([]);
-      
+
       render(<Layout />);
-      
+
       const breadcrumbs = screen.getByTestId("app-breadcrumbs");
       expect(breadcrumbs).toBeEmptyDOMElement();
     });
@@ -207,7 +234,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       const breadcrumbs = screen.getByTestId("app-breadcrumbs");
       expect(breadcrumbs).toBeEmptyDOMElement();
     });
@@ -228,10 +255,10 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       const productItem = screen.getByText("Product Item");
       const subcategory = screen.getByText("Subcategory");
-      
+
       expect(productItem).toHaveAttribute("data-href", "/products/item-123");
       expect(subcategory).toHaveAttribute("data-href", "/products/category/sub-category");
     });
@@ -250,7 +277,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Settings & Preferences")).toBeInTheDocument();
       expect(screen.getByText("User's Profile")).toBeInTheDocument();
     });
@@ -265,37 +292,22 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
     });
 
     test("handles deeply nested routes", () => {
       const mockRoutes = [
-        {
-          pathname: "/",
-          handle: { crumb: { title: "Home" } },
-        },
-        {
-          pathname: "/level1",
-          handle: { crumb: { title: "Level 1" } },
-        },
-        {
-          pathname: "/level1/level2",
-          handle: { crumb: { title: "Level 2" } },
-        },
-        {
-          pathname: "/level1/level2/level3",
-          handle: { crumb: { title: "Level 3" } },
-        },
-        {
-          pathname: "/level1/level2/level3/level4",
-          handle: { crumb: { title: "Level 4" } },
-        },
+        { pathname: "/", handle: { crumb: { title: "Home" } } },
+        { pathname: "/level1", handle: { crumb: { title: "Level 1" } } },
+        { pathname: "/level1/level2", handle: { crumb: { title: "Level 2" } } },
+        { pathname: "/level1/level2/level3", handle: { crumb: { title: "Level 3" } } },
+        { pathname: "/level1/level2/level3/level4", handle: { crumb: { title: "Level 4" } } },
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Level 1")).toBeInTheDocument();
       expect(screen.getByText("Level 2")).toBeInTheDocument();
@@ -329,7 +341,7 @@ describe("Layout", () => {
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       const searchSpan = screen.getByText("Search");
       expect(searchSpan).toHaveAttribute("data-href", "/search");
     });
@@ -338,34 +350,20 @@ describe("Layout", () => {
   describe("Mixed Route Scenarios", () => {
     test("handles alternating routes with and without crumbs", () => {
       const mockRoutes = [
-        {
-          pathname: "/",
-          handle: { crumb: { title: "Home" } },
-        },
-        {
-          pathname: "/intermediate1",
-          handle: {},
-        },
-        {
-          pathname: "/page1",
-          handle: { crumb: { title: "Page 1" } },
-        },
-        {
-          pathname: "/intermediate2",
-        },
-        {
-          pathname: "/page2",
-          handle: { crumb: { title: "Page 2" } },
-        },
+        { pathname: "/", handle: { crumb: { title: "Home" } } },
+        { pathname: "/intermediate1", handle: {} },
+        { pathname: "/page1", handle: { crumb: { title: "Page 1" } } },
+        { pathname: "/intermediate2" },
+        { pathname: "/page2", handle: { crumb: { title: "Page 2" } } },
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
       render(<Layout />);
-      
+
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Page 1")).toBeInTheDocument();
       expect(screen.getByText("Page 2")).toBeInTheDocument();
-      
+
       const breadcrumbs = screen.getByTestId("app-breadcrumbs");
       expect(breadcrumbs.children).toHaveLength(3);
     });
