@@ -27,6 +27,16 @@ jest.mock("@/api/LoggerAPI", () => ({
     logFrontend: jest.fn(),
 }));
 
+// Mock useAnalytics hook
+jest.mock("@/hooks/useAnalytics", () => ({
+    useAnalytics: () => ({
+        identifyUser: jest.fn(),
+        trackSignupAttempt: jest.fn(),
+        trackSignupSuccess: jest.fn(),
+        trackSignupFailed: jest.fn(),
+    }),
+}));
+
 // Mock react-router-dom
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
@@ -208,10 +218,72 @@ describe("SignupForm", () => {
             fireEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+                // Both live validation and form error show "Passwords do not match"
+                const errorMessages = screen.getAllByText("Passwords do not match");
+                expect(errorMessages.length).toBeGreaterThanOrEqual(1);
             });
 
             expect(mockSignup).not.toHaveBeenCalled();
+        });
+
+        test("shows error when password is less than 8 characters", async () => {
+            render(<SignupForm />);
+
+            const firstNameInput = screen.getByLabelText("First Name");
+            const lastNameInput = screen.getByLabelText("Last Name");
+            const emailInput = screen.getByLabelText("Email");
+            const passwordInput = screen.getByLabelText(/^Password$/);
+            const confirmPasswordInput = screen.getByLabelText("Confirm Password");
+            const submitButton = screen.getByRole("button", { name: /create account/i });
+
+            fireEvent.change(firstNameInput, { target: { value: "John" } });
+            fireEvent.change(lastNameInput, { target: { value: "Doe" } });
+            fireEvent.change(emailInput, { target: { value: "test@example.com" } });
+            fireEvent.change(passwordInput, { target: { value: "short" } });
+            fireEvent.change(confirmPasswordInput, { target: { value: "short" } });
+
+            fireEvent.click(submitButton);
+
+            await waitFor(() => {
+                // Both live validation and form error show the message
+                const errorMessages = screen.getAllByText("Password must be at least 8 characters");
+                expect(errorMessages.length).toBeGreaterThanOrEqual(1);
+            });
+
+            expect(mockSignup).not.toHaveBeenCalled();
+        });
+
+        test("shows live validation message when typing short password", async () => {
+            render(<SignupForm />);
+
+            const passwordInput = screen.getByLabelText(/^Password$/);
+            fireEvent.change(passwordInput, { target: { value: "short" } });
+
+            expect(screen.getByText("Password must be at least 8 characters")).toBeInTheDocument();
+        });
+
+        test("hides live validation message when password reaches 8 characters", async () => {
+            render(<SignupForm />);
+
+            const passwordInput = screen.getByLabelText(/^Password$/);
+
+            fireEvent.change(passwordInput, { target: { value: "short" } });
+            expect(screen.getByText("Password must be at least 8 characters")).toBeInTheDocument();
+
+            fireEvent.change(passwordInput, { target: { value: "longenough" } });
+            expect(screen.queryByText("Password must be at least 8 characters")).not.toBeInTheDocument();
+        });
+
+        test("shows live validation when confirm password does not match", async () => {
+            render(<SignupForm />);
+
+            const passwordInput = screen.getByLabelText(/^Password$/);
+            const confirmPasswordInput = screen.getByLabelText("Confirm Password");
+
+            fireEvent.change(passwordInput, { target: { value: "password123" } });
+            fireEvent.change(confirmPasswordInput, { target: { value: "different" } });
+
+            expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
         });
 
         test("does not show error when passwords match", async () => {

@@ -10,11 +10,68 @@ from endpoints.send_email_api import email_router
 from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
+from endpoints.judge0_api import judge0_router
 from logging_config import setup_logging
+from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from contextlib import asynccontextmanager
 import os
+from dotenv import load_dotenv
+import time
+
+
+load_dotenv()
+JUDGE0_URL = os.getenv("JUDGE0_URL")
+
 
 setup_logging()
-app = FastAPI(title="My Backend API")
+
+
+# Modern lifespan event handler (replaces deprecated on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 Starting up...")
+    init_posthog()
+    print("✓ PostHog analytics initialized")
+
+    yield  # Application runs here
+
+    # Shutdown
+    print("🛑 Shutting down...")
+    shutdown_posthog()
+    print("✓ PostHog analytics shut down")
+
+
+app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+
+# --- PostHog Analytics Middleware ---
+@app.middleware("http")
+async def analytics_middleware(request: Request, call_next):
+    """Track all API calls with PostHog analytics"""
+    start_time = time.time()
+    error = None
+    response = None
+
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        error = str(e)
+        raise
+    finally:
+        # Calculate response time
+        response_time_ms = (time.time() - start_time) * 1000
+
+        # Track the API call in PostHog
+        status_code = response.status_code if response else 500
+        await track_api_call(
+            request=request,
+            response_status=status_code,
+            response_time_ms=response_time_ms,
+            error=error
+        )
+
 
 # --- Request Logging Middleware ---
 @app.middleware("http")
@@ -27,7 +84,8 @@ async def log_requests(request: Request, call_next):
 origins = [
     "https://thinklyscs.com",
     "https://www.thinklyscs.com",  # Create React App
-    "http://localhost:5173"
+    "http://localhost:5173",
+    JUDGE0_URL
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -62,8 +120,9 @@ try:
     app.include_router(riddles_router, prefix="/riddles")
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
+    app.include_router(judge0_router, prefix="/judge0")
 except AttributeError:
-    print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
+    print("⚠️ No router found. Make sure all routers are properly defined.")
 
 #  Run server
 if __name__ == "__main__":

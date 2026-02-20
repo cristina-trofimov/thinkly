@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import AlgoTimeSession,AlgoTimeSeries,BaseEvent, QuestionInstance, Question
+from models.schema import AlgoTimeSession, AlgoTimeSeries, BaseEvent, QuestionInstance, Question
 from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 algotime_router = APIRouter(tags=["Algotime"])
+
 
 # ---------------- Models ----------------
 class CreateAlgotimeSessionRequest(BaseModel):
@@ -24,6 +26,7 @@ class CreateAlgotimeSessionRequest(BaseModel):
         if not v or len(v) == 0:
             raise ValueError('At least one question must be selected')
         return v
+
 
 class CreateAlgoTimeRequest(BaseModel):
     seriesName: str
@@ -42,6 +45,7 @@ class CreateAlgoTimeRequest(BaseModel):
             raise ValueError('Cooldown time cannot be negative')
         return v
 
+
 class AlgoTimeQuestionResponse(BaseModel):
     questionId: int
     questionName: str
@@ -49,6 +53,7 @@ class AlgoTimeQuestionResponse(BaseModel):
     difficulty: str
     tags: List[str]
     points: int
+
 
 class AlgoTimeSessionResponse(BaseModel):
     id: int
@@ -60,14 +65,15 @@ class AlgoTimeSessionResponse(BaseModel):
     seriesName: Optional[str] = None
     questions: List[AlgoTimeQuestionResponse]
 
-#------Functions to help 
+
+# ------Functions to help
 def validate_questions_exist(db: Session, question_ids: List[int]):
     count = (
         db.query(Question)
         .filter(Question.question_id.in_(question_ids))
         .count()
     )
-    
+
     if count != len(set(question_ids)):
         logger.error("Selected question does not exist")
         raise HTTPException(
@@ -75,8 +81,8 @@ def validate_questions_exist(db: Session, question_ids: List[int]):
             detail="One or more questions do not exist"
         )
 
-def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
 
+def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
     try:
         dt_str = f"{date_str}T{time_str}:00"
         dt = datetime.fromisoformat(dt_str)
@@ -90,8 +96,8 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
             detail=f"Invalid date or time format: {str(e)}"
         )
 
-def validate_competition_times(start_dt: datetime, end_dt: datetime):
 
+def validate_competition_times(start_dt: datetime, end_dt: datetime):
     if end_dt <= start_dt:
         logger.error(f"Invalid competition time. Start time:{start_dt} is later than end time: {end_dt}")
         raise HTTPException(
@@ -99,16 +105,18 @@ def validate_competition_times(start_dt: datetime, end_dt: datetime):
             detail="Competition end time must be after start time"
         )
 
+
 def generate_unique_series_name(name: str) -> str:
     timestamp = datetime.now(timezone.utc).strftime("%H%M%S")
     return f"{name} · #{timestamp}"
 
+
 # ---------------ROUTES----------------
 @algotime_router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_algotime(
-    request: CreateAlgoTimeRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+        request: CreateAlgoTimeRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     logger.info(f"Creating AlgoTime series '{request.seriesName}'")
 
@@ -120,7 +128,7 @@ def create_algotime(
         existing_series = db.query(AlgoTimeSeries).filter(
             AlgoTimeSeries.algotime_series_name == series_name
         ).first()
-        
+
         if existing_series:
             logger.warning(f"Series name '{series_name}' already exists")
             raise HTTPException(
@@ -148,19 +156,18 @@ def create_algotime(
             validate_competition_times(start_dt, end_dt)
 
             event_name = session.name
-            
+
             # Check if event name already exists - throw 409
             existing_event = db.query(BaseEvent).filter(
                 BaseEvent.event_name == event_name
             ).first()
-            
+
             if existing_event:
                 logger.warning(f"Event name '{event_name}' already exists")
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"A session with the name '{event_name}' already exists"
                 )
-
 
             base_event = BaseEvent(
                 event_name=session.name,
@@ -193,6 +200,20 @@ def create_algotime(
             f"with {len(request.sessions)} session(s)"
         )
 
+        # Track AlgoTime series creation
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="algotime_series_created",
+            properties={
+                "series_id": series.algotime_series_id,
+                "series_name": series.algotime_series_name,
+                "session_count": len(request.sessions),
+                "question_cooldown": request.questionCooldown,
+                "total_questions": sum(len(s.selectedQuestions) for s in request.sessions),
+                "user_email": current_user.get("sub"),
+            }
+        )
+
         return {
             "series_id": series.algotime_series_id,
             "series_name": series.algotime_series_name,
@@ -208,6 +229,7 @@ def create_algotime(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create AlgoTime"
         )
+
 
 @algotime_router.get("/", response_model=List[AlgoTimeSessionResponse])
 def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
@@ -245,13 +267,13 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
                 "endTime": str(event.event_end_date),
                 "questionCooldown": event.question_cooldown,
                 "seriesId": s.algotime_series.algotime_series_id
-                    if s.algotime_series else None,
-                "seriesName": s.algotime_series.algotime_series_name 
-                    if s.algotime_series else None,
+                if s.algotime_series else None,
+                "seriesName": s.algotime_series.algotime_series_name
+                if s.algotime_series else None,
                 "questions": questions,
             })
         return response
-        
+
     except Exception as e:
         logger.error(f"Error fetching AlgoTime sessions: {e}")
         raise HTTPException(

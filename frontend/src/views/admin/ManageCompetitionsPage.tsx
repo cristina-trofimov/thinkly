@@ -1,6 +1,6 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,35 +19,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Filter, Trash2 } from 'lucide-react';
-import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog"
-import { useEffect, useState } from 'react';
-import { useNavigate, useOutlet, useLocation } from 'react-router-dom';
-import { type Competition } from "../../types/competition/Competition.type"
-import { toast } from 'sonner';
+import { Plus, Search, Filter, Trash2 } from "lucide-react";
+import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog";
+import { useEffect, useState } from "react";
+import { useNavigate, useOutlet, useLocation } from "react-router-dom";
+import { type Competition } from "../../types/competition/Competition.type";
+import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const getCompetitionStatus = (
   competitionStart: Date | string
 ): "Completed" | "Active" | "Upcoming" => {
   const now = new Date();
   const start = new Date(competitionStart);
-
   if (Number.isNaN(start.getTime())) return "Upcoming";
-
-  // If current time is before the start → Upcoming
   if (now < start) return "Upcoming";
-
-  // If same calendar day and now >= start → Active
   const sameDay =
     now.getFullYear() === start.getFullYear() &&
     now.getMonth() === start.getMonth() &&
     now.getDate() === start.getDate();
-
   if (sameDay) return "Active";
-
-  // Otherwise → Completed
   return "Completed";
 };
 
@@ -62,16 +55,39 @@ const ManageCompetitions = () => {
   const outlet = useOutlet();
   const location = useLocation();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<number | null>(null);
+  const [selectedCompetition, setSelectedCompetition] = useState<{
+    id: number;
+    title: string;
+  } | null>(null);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [competitionToDelete, setCompetitionToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [competitionToDelete, setCompetitionToDelete] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const {
+    trackAdminCompetitionsViewed,
+    trackAdminCompetitionSearched,
+    trackAdminCompetitionFilterChanged,
+    trackAdminCompetitionCreateNavigated,
+    trackAdminCompetitionEditOpened,
+    trackAdminCompetitionDeleteAttempted,
+    trackAdminCompetitionDeleteSuccess,
+    trackAdminCompetitionDeleteFailed,
+  } = useAnalytics();
+
+  // Track page view once on mount
+  useEffect(() => {
+    trackAdminCompetitionsViewed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadCompetitions = async () => {
     try {
@@ -79,9 +95,9 @@ const ManageCompetitions = () => {
       setCompetitions(data1);
     } catch (err) {
       logFrontend({
-        level: 'ERROR',
+        level: "ERROR",
         message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
-        component: 'ManageCompetitionsPage.tsx',
+        component: "ManageCompetitionsPage.tsx",
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
@@ -101,56 +117,72 @@ const ManageCompetitions = () => {
     }
   };
 
-  // 1. Handle Success Toast from Navigation State
   useEffect(() => {
     if (location.state?.success) {
       toast.success("Competition published successfully!");
-
-      // Clear the state so the toast doesn't show up again if the user refreshes
       globalThis.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // 2. Fetch data
   useEffect(() => {
     let cancelled = false;
-
     const load = async () => {
       setLoading(true);
       try {
         const data = await getCompetitions();
-        if (!cancelled) {
-          setCompetitions(data);
-        }
+        if (!cancelled) setCompetitions(data);
       } catch (err) {
         logFrontend({
-          level: 'ERROR',
+          level: "ERROR",
           message: `Failed to load competitions: ${(err as Error).message}`,
-          component: 'ManageCompetitionsPage.tsx',
+          component: "ManageCompetitionsPage.tsx",
           url: globalThis.location.href,
         });
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [location.key]);
 
   if (outlet) return outlet;
 
   const handleCreateNavigation = () => {
+    trackAdminCompetitionCreateNavigated();
     navigate("createCompetition");
+  };
+
+  // Debounce-free: track on blur or enter would be ideal, but for admin
+  // pages simple onChange tracking is acceptable since usage is low-frequency
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      trackAdminCompetitionSearched(value.trim());
+    }
+  };
+
+  const handleFilterChange = (status: string | undefined) => {
+    setStatusFilter(status);
+    trackAdminCompetitionFilterChanged(status ?? "all");
   };
 
   const filteredCompetitions = competitions
     .filter((comp) => {
-      const matchesSearch = (comp.competitionTitle?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-        (comp.competitionLocation?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-
+      const matchesSearch =
+        (comp.competitionTitle?.toLowerCase() || "").includes(
+          searchQuery.toLowerCase()
+        ) ||
+        (comp.competitionLocation?.toLowerCase() || "").includes(
+          searchQuery.toLowerCase()
+        );
       const status = getCompetitionStatus(comp.startDate);
-      const matchesStatus = !statusFilter || statusFilter === "All competitions" || status === statusFilter;
+      const matchesStatus =
+        !statusFilter ||
+        statusFilter === "All competitions" ||
+        status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -161,41 +193,52 @@ const ManageCompetitions = () => {
       return bTime - aTime;
     });
 
-  const handleCardClick = (id: number) => {
-    setSelectedCompetitionId(id);
+  const handleCardClick = (id: number, title: string) => {
+    setSelectedCompetition({ id, title });
     setEditDialogOpen(true);
+    trackAdminCompetitionEditOpened(id, title);
   };
 
   const handleEditSuccess = () => {
-    // Reload competitions after successful edit
     loadCompetitions();
   };
 
-  const handleDeleteClick = (id: number, name: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (
+    id: number,
+    name: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
     setCompetitionToDelete({ id, name });
     setDeleteDialogOpen(true);
+    trackAdminCompetitionDeleteAttempted(id, name);
   };
 
   const handleDeleteConfirm = async () => {
     if (!competitionToDelete) return;
-
     setIsDeleting(true);
     try {
       await deleteCompetition(competitionToDelete.id);
-      toast.success(`Competition "${competitionToDelete.name}" deleted successfully`);
-
-      // Reload competitions
+      trackAdminCompetitionDeleteSuccess(
+        competitionToDelete.id,
+        competitionToDelete.name
+      );
+      toast.success(
+        `Competition "${competitionToDelete.name}" deleted successfully`
+      );
       await loadCompetitions();
-
       setDeleteDialogOpen(false);
       setCompetitionToDelete(null);
     } catch (err) {
+      trackAdminCompetitionDeleteFailed(
+        competitionToDelete.id,
+        (err as Error).message
+      );
       toast.error("Failed to delete competition. Please try again.");
       logFrontend({
-        level: 'ERROR',
+        level: "ERROR",
         message: `Failed to delete competition: ${(err as Error).message}`,
-        component: 'ManageCompetitionsPage.tsx',
+        component: "ManageCompetitionsPage.tsx",
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
@@ -207,8 +250,12 @@ const ManageCompetitions = () => {
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">Manage Competitions</h1>
-        <p className="text-muted-foreground">View and manage all your competitions</p>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">
+          Manage Competitions
+        </h1>
+        <p className="text-muted-foreground">
+          View and manage all your competitions
+        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -217,7 +264,7 @@ const ManageCompetitions = () => {
           <Input
             placeholder="Search competitions..."
             value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
+            onChange={(event) => handleSearchChange(event.target.value)}
             className="pl-9"
           />
         </div>
@@ -231,10 +278,18 @@ const ManageCompetitions = () => {
           <DropdownMenuContent align="start" className="w-48">
             <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setStatusFilter(undefined)}>All competitions</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Active")}>Active</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Upcoming")}>Upcoming</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setStatusFilter("Completed")}>Completed</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterChange(undefined)}>
+              All competitions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterChange("Active")}>
+              Active
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterChange("Upcoming")}>
+              Upcoming
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleFilterChange("Completed")}>
+              Completed
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -246,37 +301,39 @@ const ManageCompetitions = () => {
           onClick={handleCreateNavigation}
         >
           <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-            <Plus className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors" strokeWidth={1.5} />
+            <Plus
+              className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
+              strokeWidth={1.5}
+            />
           </div>
           <CardContent className="p-4 bg-white text-center">
-            <h3 className="font-semibold text-base text-primary">Create New Competition</h3>
-            <p className="text-sm text-muted-foreground mt-1">Setup a new coding event</p>
+            <h3 className="font-semibold text-base text-primary">
+              Create New Competition
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Setup a new coding event
+            </p>
           </CardContent>
         </Card>
 
-        {/* Loading Skeleton Placeholder */}
         {loading && competitions.length === 0 && (
           <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
             Refreshing competition list...
           </div>
         )}
 
-        {/* Competition Cards */}
         {filteredCompetitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate);
-          const title = comp.competitionTitle || 'Untitled Competition';
+          const title = comp.competitionTitle || "Untitled Competition";
 
           return (
             <Card
               key={comp.id}
               className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col"
-              onClick={() => handleCardClick(comp.id)}
+              onClick={() => handleCardClick(comp.id, title)}
             >
-              {/* Banner Area */}
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
-
-                {/* Status Badge */}
                 <div className="absolute top-3 right-3 z-20">
                   <span
                     className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
@@ -284,8 +341,6 @@ const ManageCompetitions = () => {
                     {status}
                   </span>
                 </div>
-
-                {/* Title */}
                 <div className="relative z-10 text-center w-full">
                   <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
                     {title}
@@ -296,21 +351,18 @@ const ManageCompetitions = () => {
               <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {comp.competitionLocation || 'Location TBD'}
+                    {comp.competitionLocation || "Location TBD"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatCompetitionDate(comp.startDate)}
                   </p>
                 </div>
-
                 <div className="flex items-center justify-end pt-2 border-t">
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-destructive hover:bg-destructive/10 h-8"
-                    onClick={(e) =>
-                      handleDeleteClick(comp.id, title, e)
-                    }
+                    onClick={(e) => handleDeleteClick(comp.id, title, e)}
                   >
                     Delete <Trash2 className="h-4 w-4 ml-1" />
                   </Button>
@@ -321,7 +373,6 @@ const ManageCompetitions = () => {
         })}
       </div>
 
-      {/* No Results Message */}
       {filteredCompetitions.length === 0 && competitions.length > 0 && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -334,7 +385,6 @@ const ManageCompetitions = () => {
         </div>
       )}
 
-      {/* Empty State - No Competitions at All */}
       {competitions.length === 0 && !loading && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -351,25 +401,23 @@ const ManageCompetitions = () => {
         </div>
       )}
 
-      {/* Edit Dialog */}
-      {selectedCompetitionId && (
+      {selectedCompetition && (
         <EditCompetitionDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
-          competitionId={selectedCompetitionId}
+          competitionId={selectedCompetition.id}
           onSuccess={handleEditSuccess}
-          key={editDialogOpen ? selectedCompetitionId : 'closed'}
+          key={editDialogOpen ? selectedCompetition.id : "closed"}
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the competition "{competitionToDelete?.name}".
-              This action cannot be undone.
+              This will permanently delete the competition "
+              {competitionToDelete?.name}". This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -389,5 +437,3 @@ const ManageCompetitions = () => {
 };
 
 export default ManageCompetitions;
-
-

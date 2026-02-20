@@ -7,6 +7,7 @@ from typing import List, Optional
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 DEFAULT_SENDER_EMAIL = os.getenv("DEFAULT_SENDER_EMAIL")
-DEFAULT_SENDER_NAME  = os.getenv("DEFAULT_SENDER_NAME", "My App")
+DEFAULT_SENDER_NAME = os.getenv("DEFAULT_SENDER_NAME", "My App")
 
 if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
     logger.critical("FATAL: Missing BREVO_API_KEY or DEFAULT_SENDER_EMAIL in environment.")
@@ -24,7 +25,8 @@ BREVO_SEND_URL = "https://api.brevo.com/v3/smtp/email"
 
 email_router = APIRouter(tags=["Email"])
 
-#Ensure recipients is a non-empty list (Validation)
+
+# Ensure recipients is a non-empty list (Validation)
 class SendEmailRequest(BaseModel):
     to: List[str]
     subject: str
@@ -60,6 +62,7 @@ class SendEmailRequest(BaseModel):
             logger.error("Validation failed: Email body text is missing.")
             raise ValueError("Provide at least one of 'text'.")
         return v.strip()
+
 
 # Normalize ISO8601 timestamp to UTC with 'Z' suffix
 def normalize_iso_utc(iso_str):
@@ -151,11 +154,12 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | 
     logger.info(f"SUCCESS: Email sent successfully. Message ID: {resp.json().get('messageId')}")
     return {"brevo": resp.json(), "scheduledAt": scheduled_at}
 
+
 # Routes
 
 @email_router.post(
     "/send",
-    responses={ 400: { "description": "Error sending email." } }
+    responses={400: {"description": "Error sending email."}}
 )
 async def send_email(request: SendEmailRequest):
     try:
@@ -165,6 +169,18 @@ async def send_email(request: SendEmailRequest):
             text=request.text,
             send_at=request.sendAt
         )
+
+        # Track email sent
+        track_custom_event(
+            user_id="system",  # Email sending is usually system-initiated
+            event_name="email_sent",
+            properties={
+                "recipient_count": len(request.to),
+                "has_schedule": request.sendAt is not None,
+                "subject": request.subject[:50],  # Truncate for privacy
+            }
+        )
+
         return {"ok": True, **result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -174,6 +190,7 @@ async def send_email(request: SendEmailRequest):
 def health():
     logger.debug("Health check accessed.")
     return {"ok": True}
+
 
 @email_router.get("/")
 def index():

@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { updateCompetition, getCompetitionById } from "@/api/CompetitionAPI";
 import { CompetitionForm } from "@/components/forms/CompetitionForm";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CompetitionFormPayload } from "@/types/competition/Competition.type";
 import { logFrontend } from "@/api/LoggerAPI";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface EditProps {
   open: boolean;
@@ -14,9 +20,16 @@ interface EditProps {
   onSuccess?: () => void;
 }
 
-export default function EditCompetitionDialog({ open, onOpenChange, competitionId, onSuccess }: Readonly<EditProps>) {
+export default function EditCompetitionDialog({
+  open,
+  onOpenChange,
+  competitionId,
+  onSuccess,
+}: Readonly<EditProps>) {
   const [initialData, setInitialData] = useState<CompetitionFormPayload>();
   const [loading, setLoading] = useState(true);
+  const { trackAdminCompetitionEditSuccess, trackAdminCompetitionEditFailed } =
+    useAnalytics();
 
   useEffect(() => {
     if (open && competitionId) {
@@ -36,15 +49,17 @@ export default function EditCompetitionDialog({ open, onOpenChange, competitionI
   const handleUpdate = async (payload: CompetitionFormPayload) => {
     try {
       await updateCompetition({ ...payload, id: competitionId });
+      trackAdminCompetitionEditSuccess(competitionId);
       toast.success("Competition updated!");
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
+      trackAdminCompetitionEditFailed(competitionId, (err as Error).message);
       toast.error("Update failed.");
       logFrontend({
-        level: 'ERROR',
+        level: "ERROR",
         message: `An error occurred. Reason: ${err}`,
-        component: 'EditCompetitionDialog',
+        component: "EditCompetitionDialog",
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
@@ -60,7 +75,6 @@ export default function EditCompetitionDialog({ open, onOpenChange, competitionI
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
-        {/* Screen readers need a Title inside DialogContent */}
         <VisuallyHidden>
           <DialogHeader>
             <DialogTitle>Edit Competition</DialogTitle>

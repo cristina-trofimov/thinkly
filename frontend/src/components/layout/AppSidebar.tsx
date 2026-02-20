@@ -7,11 +7,9 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { NavSection } from "@/components/layout/NavSection"
-import { NavUser } from "@/components/layout/NavUser"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -119,9 +117,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSection link={filteredOtherLinks} label="Other" />
       </SidebarContent>
 
-      <SidebarFooter>
-        <NavUser user={user} />
-      </SidebarFooter>
+      {/* Footer intentionally left empty; user nav moved to top header */}
     </Sidebar>
   )
 }

@@ -20,6 +20,7 @@ import { forgotPassword } from "@/api/AuthAPI";
 import thinkly from "../../../public/assets/thinkly_logo.png";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function ForgotPasswordForm({
   className,
@@ -31,6 +32,7 @@ export default function ForgotPasswordForm({
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { trackForgotPasswordRequested, trackForgotPasswordFailed } = useAnalytics();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,6 +42,7 @@ export default function ForgotPasswordForm({
 
     try {
       await forgotPassword({ email });
+      trackForgotPasswordRequested();
       toast.success(
         "If the account exists, a password reset email has been sent."
       );
@@ -50,12 +53,14 @@ export default function ForgotPasswordForm({
         ? err.message
         : "Unknown error during reset password request.";
 
+      trackForgotPasswordFailed(errorMessage);
+
       logFrontend({
         level: "ERROR",
         message: `API Error: Failed to send reset email: ${errorMessage}`,
         component: "ForgotPasswordForm",
         url: globalThis.location.href,
-        stack: isError ? err.stack : undefined, // Safely access stack
+        stack: isError ? err.stack : undefined,
       });
       toast.error("Something went wrong. Try again.");
     } finally {

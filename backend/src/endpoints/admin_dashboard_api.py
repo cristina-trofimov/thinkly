@@ -12,6 +12,7 @@ from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
 import logging
 from typing import Annotated
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])
@@ -231,6 +232,19 @@ async def get_dashboard_overview(
             )
             for base_event, algo in recent_algos
         ]
+
+        # Track admin dashboard access
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="admin_dashboard_accessed",
+            properties={
+                "user_email": user_email,
+                "recent_users_count": len(recent_accounts),
+                "recent_competitions_count": len(recent_competitions),
+                "recent_questions_count": len(recent_questions),
+                "recent_algotime_count": len(recent_algotime_sessions),
+            }
+        )
 
         return DashboardOverviewResponse(
             recent_accounts=recent_accounts,

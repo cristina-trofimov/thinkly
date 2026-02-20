@@ -1,7 +1,8 @@
+import * as React from "react"
 import {
   BadgeCheck,
   Bell,
-  ChevronsUpDown,
+  // ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 import {
@@ -13,37 +14,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar"
-import { logout } from "@/api/AuthAPI"
+import { logout, getProfile } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
 import type { Account } from "@/types/account/Account.type"
 import { logFrontend } from '../../api/LoggerAPI';
 
 interface NavUserProps {
-  user: Account | null;
+  user?: Account | null;
 }
 
 export function NavUser({ user }: Readonly<NavUserProps>) {
-  const { isMobile } = useSidebar()
   const navigate = useNavigate();
+  const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
+
+  React.useEffect(() => {
+    // If a user prop is not provided, fetch profile ourselves.
+    if (user) return
+    let mounted = true
+    const fetch = async () => {
+      try {
+        const profile = await getProfile()
+        if (mounted) setLocalUser(profile)
+      } catch (err) {
+        logFrontend({
+        level: 'ERROR',
+        message: `Error finding user profile: ${(err as Error).message}`,
+        component: 'NavUser',
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      }
+    }
+    fetch()
+    return () => { mounted = false }
+  }, [user])
 
   const handleLogout = async () => {
     try {
       await logout();
       alert("You have been logged out.");
       navigate('/');
-    } catch (err: unknown) {
+    } catch (err) {
       logFrontend({
         level: 'ERROR',
-        message: `Logout failed: ${err instanceof Error ? err.message : String(err)}`,
+        message: `Error logging out: ${(err as Error).message}`,
         component: 'NavUser',
         url: globalThis.location.href,
+        stack: (err as Error).stack,
       });
 
       // Narrow the type
@@ -69,68 +87,54 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
   };
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="w-full outline-none">
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              >
-                <AvatarInitials
-                  firstName={user?.firstName ?? ""}
-                  lastName={user?.lastName ?? ""}
-                  size="md"
-                />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {user?.firstName} {user?.lastName}
-                  </span>
-                  <span className="truncate text-xs">{user?.email}</span>
-                </div>
-                <ChevronsUpDown className="ml-auto size-4" />
-              </SidebarMenuButton>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <AvatarInitials
-                  firstName={user?.firstName ?? ""}
-                  lastName={user?.lastName ?? ""}
-                  size="md"
-                />
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user?.firstName} {user?.lastName}</span>
-                  <span className="truncate text-xs">{user?.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={handleProfileClick}>
-                <BadgeCheck />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Log out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
+          <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
+          </div>
+          <AvatarInitials className=""
+            firstName={localUser?.firstName ?? ""}
+            lastName={localUser?.lastName ?? ""}
+            size="ml"
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+        side={"bottom"}
+        align="end"
+        sideOffset={4}
+      >
+        <DropdownMenuLabel className="p-0 font-normal">
+          <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+            <AvatarInitials
+              firstName={localUser?.firstName ?? ""}
+              lastName={localUser?.lastName ?? ""}
+              size="md"
+            />
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate text-xs">{localUser?.email}</span>
+            </div>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={handleProfileClick}>
+            <BadgeCheck />
+            Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Bell />
+            Notifications
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout}>
+          <LogOut />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -151,10 +151,17 @@ def test_list_competitions_error(client, mock_db):
 
 # --- TESTS FOR POST /create ---
 
+@patch('src.endpoints.competitions_api.datetime')
 @patch('src.endpoints.competitions_api.send_competition_emails')
 @patch('src.endpoints.competitions_api._commit_or_rollback')
-def test_create_competition_success(mock_commit, mock_send_emails, client, mock_db):
+def test_create_competition_success(mock_commit, mock_send_emails, mock_datetime, client, mock_db):
     """Test successful competition creation."""
+
+    # Mock datetime.now() to return a time before the competition start (9:00 AM)
+    mock_datetime.now.return_value = datetime(2026, 2, 15, 9, 0, 0, tzinfo=timezone.utc)
+    # Pass through other datetime methods
+    mock_datetime.fromisoformat = datetime.fromisoformat
+    mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 
     # Ensure no existing competition
     name_check_query = create_mock_query([])
@@ -184,7 +191,6 @@ def test_create_competition_success(mock_commit, mock_send_emails, client, mock_
 
     response = client.post("/competitions/create", json=payload)
     assert response.status_code == 201
-
 
 
 def test_create_competition_duplicate_name(client, mock_db):
@@ -283,7 +289,7 @@ def test_create_competition_end_before_start(client, mock_db):
 
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2026-07-15",
         "startTime": "18:00",
         "endTime": "10:00",
         "questionCooldownTime": 300,
@@ -354,7 +360,6 @@ def test_create_competition_with_email(mock_commit, mock_send_emails, client, mo
 
     response = client.post("/competitions/create", json=payload)
     assert response.status_code == 201
-
 
 
 # --- TESTS FOR GET /{competition_id} ---
@@ -576,9 +581,17 @@ def test_parse_datetime_invalid_format(client, mock_db):
     assert response.status_code in [400, 422]
 
 
+@patch('src.endpoints.competitions_api.datetime')
 @patch('src.endpoints.competitions_api._commit_or_rollback')
-def test_create_competition_db_rollback_on_error(mock_commit, client, mock_db):
+def test_create_competition_db_rollback_on_error(mock_commit, mock_datetime, client, mock_db):
     """Test that database rollback is called on error."""
+
+    # Mock datetime.now() to return a time before the competition start (9:00 AM)
+    mock_datetime.now.return_value = datetime(2026, 2, 15, 9, 0, 0, tzinfo=timezone.utc)
+    # Pass through other datetime methods
+    mock_datetime.fromisoformat = datetime.fromisoformat
+    mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
     mock_db.query.return_value = create_mock_query([])
 
     def refresh_side_effect(obj):

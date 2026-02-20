@@ -5,12 +5,15 @@ from DB_Methods.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Optional
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 accounts_router = APIRouter(tags=["Accounts"])
 
+
 class DeleteAccountsRequest(BaseModel):
     user_ids: list[int] = Field(..., min_items=1)
+
 
 class UpdateAccountRequest(BaseModel):
     first_name: Optional[str] = None
@@ -18,15 +21,17 @@ class UpdateAccountRequest(BaseModel):
     email: Optional[str] = None
     user_type: Optional[str] = None
 
+
 @accounts_router.get("/users")
 def get_all_accounts(db: Annotated[Session, Depends(get_db)]):
     accounts = db.query(UserAccount).all()
     logger.info(f"Fetched {len(accounts)} accounts from the database.")
     return accounts
 
+
 @accounts_router.delete(
     "/users/batch-delete",
-    responses={ 500: { "description": "Error deleting accounts." } }
+    responses={500: {"description": "Error deleting accounts."}}
 )
 def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Session, Depends(get_db)]):
     try:
@@ -51,7 +56,16 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
         existing_set = set(existing_ids)
         missing_ids = [user_id for user_id in requested_ids if user_id not in existing_set]
         errors = [{"user_id": user_id, "error": "User not found."} for user_id in missing_ids]
-
+        # Track user deletion
+        track_custom_event(
+            user_id="admin",  # This endpoint is typically admin-only
+            event_name="users_batch_deleted",
+            properties={
+                "deleted_count": deleted_count,
+                "requested_count": len(requested_ids),
+                "failed_count": len(missing_ids),
+            }
+        )
         return {
             "deleted_count": deleted_count,
             "deleted_users": [{"user_id": user_id} for user_id in existing_ids],
@@ -63,12 +77,13 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error deleting accounts.")
 
+
 @accounts_router.patch(
     "/users/{user_id}",
-    responses={ 
-               400: { "description": "No fields to update." },
-               404: { "description": "Account not found." }
-            }
+    responses={
+        400: {"description": "No fields to update."},
+        404: {"description": "Account not found."}
+    }
 )
 def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[Session, Depends(get_db)]):
     account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
@@ -86,4 +101,15 @@ def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annot
     db.commit()
     db.refresh(account)
     logger.info(f"Updated account with ID {user_id}.")
+
+    # Track account update
+    track_custom_event(
+        user_id=str(user_id),
+        event_name="account_updated",
+        properties={
+            "updated_fields": list(update_data.keys()),
+            "field_count": len(update_data),
+        }
+    )
+
     return account
