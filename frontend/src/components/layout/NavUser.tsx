@@ -37,7 +37,13 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         const profile = await getProfile()
         if (mounted) setLocalUser(profile)
       } catch (err) {
-        console.error('NavUser: failed to load profile', err)
+        logFrontend({
+          level: 'ERROR',
+          message: `NavUser: failed to load profile: ${err instanceof Error ? err.message : String(err)}`,
+          component: 'NavUser',
+          url: globalThis.location.href,
+          stack: err instanceof Error ? err.stack : undefined,
+        });
       }
     }
     fetch()

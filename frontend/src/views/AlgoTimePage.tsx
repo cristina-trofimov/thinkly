@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
+import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 
 const formatSessionDate = (d: Date) => {
@@ -27,7 +28,13 @@ export default function AlgoTimePage() {
         const data = await getAllAlgotimeSessions();
         if (!cancelled) setSessions(data);
       } catch (err) {
-        console.error("Failed to load AlgoTime sessions", err);
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to load AlgoTime sessions: ${err instanceof Error ? err.message : String(err)}`,
+          component: "AlgoTimePage",
+          url: globalThis.location.href,
+          stack: err instanceof Error ? err.stack : undefined,
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
