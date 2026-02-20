@@ -81,14 +81,11 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
 
   return (
     <DropdownMenu>
-      {/* <span className="truncate font-medium mr-2 pr-1">{localUser?.firstName} {localUser?.lastName}</span> */}
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
           <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span>
-            {/* <span className="truncate text-xs text-right">{localUser?.email}</span> */}
+            <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
           </div>
-          {/* <ChevronsUpDown className="ml-2 size-4" />  */}
           <AvatarInitials className=""
             firstName={localUser?.firstName ?? ""}
             lastName={localUser?.lastName ?? ""}
