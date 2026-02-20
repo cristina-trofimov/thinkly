@@ -462,7 +462,7 @@ async def profile(
 @auth_router.post("/logout", responses={401: {"description": "Logout failed due to missing or invalid token"}})
 async def logout(
     request: Request, 
-    response: Response, # Add response here to clear cookies
+    response: Response, # Added response here to clear cookies
     db: Session = Depends(get_db), 
     current_user: dict = Depends(get_current_user)
 ):
@@ -481,6 +481,8 @@ async def logout(
     if jti:
         token_blocklist.add(jti)
         logger.info(f"Access token JTI {jti[:8]} revoked.")
+    else:
+        logger.warning(f"Logout attempted with token missing JTI for user: {user_email}")
 
     # 2. Clear the Refresh Token Cookie
     # This ensures the browser removes the 7-day token immediately
@@ -500,21 +502,20 @@ async def logout(
         ).update({"is_active": False})
         db.commit()
 
-    logger.info(f"SUCCESSFUL LOGOUT: User {user_email} logged out completely.")
-    token_blocklist.add(jti)
-
     # Track logout event
     track_custom_event(
-        user_id=str(user_id),
+        user_id=str(user_id) if user_id else "anonymous",
         event_name="user_logout",
         properties={
             "user_email": user_email,
         }
     )
 
-    logger.info(f"SUCCESSFUL LOGOUT: Token JTI '{jti[:8]}...' revoked for user: {user_email}")
+    # FIX: Use a safe display variable for the logger to avoid 'NoneType' error
+    jti_display = jti[:8] if jti else "N/A"
+    logger.info(f"SUCCESSFUL LOGOUT: Token JTI '{jti_display}...' revoked for user: {user_email}")
+    
     return {"msg": "Successfully logged out"}
-
 
 @auth_router.get("/admin/dashboard")
 async def admin_dashboard(
