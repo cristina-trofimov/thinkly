@@ -84,9 +84,6 @@ export default function CompetitionsPage() {
             comp: c,
             status: getCompetitionStatus(c.startDate),
           }))
-          // comment out to see all the competitions, including completed comps
-          //.filter((x) => x.status !== "Completed")
-          // Show upcoming/active first (sort by start date asc)
           .sort((a, b) => new Date(a.comp.startDate).getTime() - new Date(b.comp.startDate).getTime())
           .map(({ comp, status }) => {
             const title = comp.competitionTitle || "Untitled Competition";

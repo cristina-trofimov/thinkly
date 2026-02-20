@@ -107,7 +107,6 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
               size="md"
             />
             <div className="grid flex-1 text-left text-sm leading-tight">
-              {/* <span className="truncate font-medium">{localUser?.firstName} {localUser?.lastName}</span> */}
               <span className="truncate text-xs">{localUser?.email}</span>
             </div>
           </div>
