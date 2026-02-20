@@ -459,10 +459,10 @@ async def profile(
     return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email,
             "role": user.user_type}
 
-@auth_router.post("/logout", responses={401: {"description": "Logout failed due to missing or invalid token"}})
+@auth_router.post("/logout")
 async def logout(
     request: Request, 
-    response: Response, # Added response here to clear cookies
+    response: Response, 
     db: Session = Depends(get_db), 
     current_user: dict = Depends(get_current_user)
 ):
@@ -470,31 +470,34 @@ async def logout(
     user_id = current_user.get("id")
     
     auth_header = request.headers.get("Authorization")
+    # This check is technically redundant because get_current_user already checks this, 
+    # but it doesn't hurt.
     if not auth_header:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
 
     token = auth_header.split(" ")[1]
-    payload = decode_access_token(token)
-    jti = payload.get("jti")
+    
+    # Use a try-except or check the payload manually if you want to ensure 
+    # logout finishes even if the token is "dirty"
+    try:
+        payload = decode_access_token(token)
+        jti = payload.get("jti")
+        if jti:
+            token_blocklist.add(jti)
+    except HTTPException:
+        # If the token is already invalid/revoked, we still want to proceed 
+        # to clear the cookies on the client side.
+        jti = None
 
-    # 1. Revoke the Access Token (Add to blocklist)
-    if jti:
-        token_blocklist.add(jti)
-        logger.info(f"Access token JTI {jti[:8]} revoked.")
-    else:
-        logger.warning(f"Logout attempted with token missing JTI for user: {user_email}")
-
-    # 2. Clear the Refresh Token Cookie
-    # This ensures the browser removes the 7-day token immediately
+    # 1. Clear the Refresh Token Cookie (CRITICAL)
     response.delete_cookie(
         key="refresh_token",
         httponly=True,
         samesite="lax",
-        secure=True # Match the settings used in /login
+        secure=True 
     )
 
-    # 3. Database Cleanup (Optional but Recommended)
-    # Mark the session as inactive so the refresh token can't be reused 
+    # 2. Database Cleanup
     if user_id:
         db.query(UserSession).filter(
             UserSession.user_id == user_id, 
@@ -502,18 +505,15 @@ async def logout(
         ).update({"is_active": False})
         db.commit()
 
-    # Track logout event
+    # 3. Analytics
     track_custom_event(
         user_id=str(user_id) if user_id else "anonymous",
         event_name="user_logout",
-        properties={
-            "user_email": user_email,
-        }
+        properties={"user_email": user_email}
     )
 
-    # FIX: Use a safe display variable for the logger to avoid 'NoneType' error
     jti_display = jti[:8] if jti else "N/A"
-    logger.info(f"SUCCESSFUL LOGOUT: Token JTI '{jti_display}...' revoked for user: {user_email}")
+    logger.info(f"SUCCESSFUL LOGOUT: User {user_email} (JTI: {jti_display})")
     
     return {"msg": "Successfully logged out"}
 
