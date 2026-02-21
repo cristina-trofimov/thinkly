@@ -186,4 +186,3 @@ describe('CodeDescArea', () => {
     expect(screen.getByText(/num = 10/i)).toBeInTheDocument()
   })
 })
-
