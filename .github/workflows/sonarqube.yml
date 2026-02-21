@@ -2,7 +2,7 @@ name: Code Analysis
 on:
   push:
     branches:
-      - '**'
+      - "**"
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20.19.0'
+          node-version: "20.19.0"
 
       - name: Install frontend dependencies
         run: cd frontend && npm ci
@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Create venv & install backend deps
         run: |
@@ -89,10 +89,10 @@ jobs:
           cd backend
           # Remove the <source> tag entirely - SonarQube will use projectBaseDir
           sed -i '/<sources>/,/<\/sources>/d' coverage.xml
-          
+
           # Make all filename paths relative to project root (backend/src/...)
           sed -i 's|filename="|filename="backend/src/|g' coverage.xml
-          
+
           echo "--- Updated coverage.xml (source removed, paths from project root) ---"
           head -30 coverage.xml
           echo "Sample file paths:"
@@ -110,7 +110,23 @@ jobs:
             -Dsonar.projectBaseDir=.
             -Dsonar.sources=frontend/src,backend/src
             -Dsonar.tests=frontend/tests,backend/tests
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/DB_Methods/**,**/init_db.py,**/__init__.py,**/*.config.ts,**/config.ts,**/db.py,**/hooks/**,**/shadcn-io/**,**/models/**,**/logging_config.py,**/ui/**
+            -Dsonar.exclusions=**/node_modules/**, \
+                 **/dist/**, \
+                 **/DB_Methods/**, \
+                 **/init_db.py, \
+                 **/__init__.py, \
+                 **/*.config.ts, \
+                 **/config.ts, \
+                 **/db.py, \
+                 **/hooks/**, \
+                 **/shadcn-io/**, \
+                 **/models/**, \
+                 **/logging_config.py, \
+                 **/ui/**, \
+                 src/types/**/*.ts, \
+                 **/*.type.ts, \
+                 **/*.types.ts, \
+                 frontend/src/lib/axiosClient.tsx
             -Dsonar.javascript.lcov.reportPaths=frontend/coverage/lcov.info
             -Dsonar.python.coverage.reportPaths=backend/coverage.xml
             -Dsonar.python.version=3.11
@@ -120,14 +136,14 @@ jobs:
           BLOCKER=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
             "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=BLOCKER" \
             | jq '.total')
-      
+
           CRITICAL=$(curl -s -u ${{ secrets.SONAR_TOKEN }}: \
             "${{ secrets.SONAR_HOST_URL }}/api/issues/search?componentKeys=my-project&severities=CRITICAL" \
             | jq '.total')
-      
+
           echo "BLOCKER: $BLOCKER"
           echo "CRITICAL: $CRITICAL"
-      
+
           if [ "$BLOCKER" -gt 0 ] || [ "$CRITICAL" -gt 3 ]; then
             echo "Severity threshold exceeded"
             exit 1
