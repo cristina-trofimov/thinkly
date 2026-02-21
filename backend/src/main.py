@@ -11,6 +11,7 @@ from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
 from endpoints.judge0_api import judge0_router
+from endpoints.submission_api import submission_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
@@ -121,6 +122,7 @@ try:
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
     app.include_router(judge0_router, prefix="/judge0")
+    app.include_router(submission_router, prefix="/attempts")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
