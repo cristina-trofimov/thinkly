@@ -46,6 +46,30 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="My Backend API", lifespan=lifespan)
 
 
+# --- Allow frontend requests (CORS setup) ---
+# ✅ CORS must be registered FIRST so it wraps all other middleware.
+# If CORS is added after custom middlewares, unhandled exceptions will
+# propagate out before CORS headers are attached, causing browser CORS errors.
+origins = [
+    "https://thinklyscs.com",
+    "https://www.thinklyscs.com",
+    "http://localhost:5173",
+]
+# Guard against JUDGE0_URL being None if env var is not set
+if JUDGE0_URL:
+    origins.append(JUDGE0_URL)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=3600,  # Allow browser to cache preflight for 1 hour
+    expose_headers=["*"],
+)
+
+
 # --- PostHog Analytics Middleware ---
 @app.middleware("http")
 async def analytics_middleware(request: Request, call_next):
@@ -81,22 +105,6 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# --- Allow frontend requests (CORS setup) ---
-origins = [
-    "https://thinklyscs.com",
-    "https://www.thinklyscs.com",  # Create React App
-    "http://localhost:5173",
-    JUDGE0_URL
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    max_age=3600,  # Allow browser to cache preflight for 1 hour
-    expose_headers=["*"],
-)
 
 # Root route (for testing)
 @app.get("/")
@@ -126,7 +134,7 @@ try:
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
-#  Run server
+# Run server
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
