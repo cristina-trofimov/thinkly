@@ -281,7 +281,7 @@ class Language(Base):
     lang_judge_id: Mapped[int] = mapped_column()
     monaco_name: Mapped[str] = mapped_column()
     
-    __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
+    __table_args__ = (UniqueConstraint('lang_judge_id', 'monaco_name', name='uix_language'),)
 
 
 class CompetitionLeaderboardEntry(Base):
