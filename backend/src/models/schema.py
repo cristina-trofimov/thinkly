@@ -242,20 +242,46 @@ class Submission(Base):
     __tablename__ = 'submission'
 
     submission_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    participation_id: Mapped[int] = mapped_column(ForeignKey('participation.participation_id', ondelete='CASCADE'))
+    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
     question_instance_id: Mapped[int] = mapped_column(
         ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
-    submitted_code: Mapped[str] = mapped_column()
-    submission_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    successful: Mapped[bool] = mapped_column(default=False)
-    failed_test_case_id: Mapped[Optional[int]] = mapped_column(ForeignKey('test_case.test_case_id'))
-    participation: Mapped[Participation] = relationship('Participation', back_populates='submissions', uselist=False)
+    compile_output: Mapped[str] = mapped_column()
+    submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    time: Mapped[int] = mapped_column()
+    status: Mapped[str] = mapped_column()
+    memory: Mapped[int] = mapped_column()
+    stdout: Mapped[str] = mapped_column()
+    stderr: Mapped[str] = mapped_column()
+    
     question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='submissions',
                                                                uselist=False)
-    failed_test_case: Mapped[Optional[TestCase]] = relationship('TestCase', uselist=False)
-    __table_args__ = (
-        UniqueConstraint('participation_id', 'question_instance_id', name='uix_submission'),
-    )
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='submissions',
+                                                               uselist=False)
+
+class MostRecentSubmission(Base):
+    __tablename__ = 'most_recent_submission'
+
+    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
+    question_instance_id: Mapped[int] = mapped_column(
+        ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
+    code: Mapped[str] = mapped_column()
+    lang_judge_id: Mapped[int] = mapped_column(ForeignKey('language.lang_judge_id', ondelete='CASCADE'))
+    
+    question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='most_recent_submission',
+                                                               uselist=False)
+    __table_args__ = (UniqueConstraint('question_instance_id', 'user_id', name='uix_most_recent_submission'),)
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='most_recent_submission',
+                                                               uselist=False)
+
+class Language(Base):
+    __tablename__ = 'language'
+
+    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    lang_judge_id: Mapped[int] = mapped_column()
+    monaco_name: Mapped[str] = mapped_column()
+    
+    __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
 
 
 class CompetitionLeaderboardEntry(Base):
