@@ -201,6 +201,12 @@ export const AlgoTimeSessionForm = () => {
       return false;
     }
 
+
+    if (generalData.name.trim() === '') {
+      setValidationError("Please enter a session name.");
+      return false;
+    }
+
     const ATSessionDateTime = new Date(`${generalData.date}T${generalData.startTime}`);
     const now = new Date();
     now.setSeconds(0, 0);
@@ -352,13 +358,13 @@ export const AlgoTimeSessionForm = () => {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-6 py-1 space-y-6">
       <form onSubmit={(e) => {
         e.preventDefault();
         handleSubmit();
-      }} className="space-y-8"> 
+      }} className="space-y-4"> 
 
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-2">
           <div>
                 <h2 className="text-2xl font-bold text-primary">
                   Create a New AlgoTime Session
