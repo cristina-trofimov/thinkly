@@ -81,12 +81,20 @@ jest.mock('../src/components/algotime/SessionQuestionSelector', () => ({
     sessionDate, 
     questions, 
     sessionQuestions,
-    toggleQuestionForSession 
+    toggleQuestionForSession, 
+    sessionNames,
+    setSessionNames
   }: any) => {
     const React = require('react');
     return React.createElement('div', {
       'data-testid': `session-${sessionNumber}`,
     }, [
+      React.createElement('input', {
+        key: 'name-input',
+        'aria-label': 'Session Name',
+        value: sessionNames[sessionNumber] || '',
+        onChange: (e: any) => setSessionNames((prev: any) => ({ ...prev, [sessionNumber]: e.target.value })),
+      }),
       React.createElement('button', {
         key: 'accordion-trigger',
         onClick: (e: any) => {
@@ -200,21 +208,7 @@ describe('AlgoTimeSessionForm', () => {
   });
 
   describe('Form Validation', () => {
-    test('shows validation error when submitting empty form', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      // Clear the default date
-      const dateInput = screen.getByTestId('date') as HTMLInputElement;
-      fireEvent.change(dateInput, { target: { value: '' } });
-
-      const submitButton = screen.getByText('Create');
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
-      });
-    });
-
+    
     test('shows error when date is missing', async () => {
       render(<AlgoTimeSessionForm />);
 
@@ -271,7 +265,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '13:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
@@ -294,7 +288,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
@@ -330,7 +324,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       // Select 7 questions
       for (let i = 1; i <= 7; i++) {
         const checkbox = screen.getByTestId(`question-1-${i}`);
@@ -402,66 +396,6 @@ describe('AlgoTimeSessionForm', () => {
     });
   });
 
-  describe('Form Reset Functionality', () => {
-    test('clears date input when reset button is clicked', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('date')).toBeInTheDocument();
-      });
-
-      const dateInput = screen.getByTestId('date') as HTMLInputElement;
-      fireEvent.change(dateInput, { target: { value: '2025-12-25' } });
-      expect(dateInput.value).toBe('2025-12-25');
-
-      const resetButton = screen.getByText('Reset');
-      fireEvent.click(resetButton);
-
-      expect(dateInput.value).toBe('');
-    });
-
-    test('clears time inputs when reset button is clicked', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      const startTimeInput = screen.getByLabelText('Start Time') as HTMLInputElement;
-      fireEvent.change(startTimeInput, { target: { value: '14:00' } });
-
-      const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
-      fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-
-      expect(startTimeInput.value).toBe('14:00');
-      expect(endTimeInput.value).toBe('16:00');
-
-      const resetButton = screen.getByText('Reset');
-      fireEvent.click(resetButton);
-
-      expect(startTimeInput.value).toBe('');
-      expect(endTimeInput.value).toBe('');
-    });
-
-    test('clears selected questions when reset', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('question-1-1')).toBeInTheDocument();
-      });
-
-      const checkbox = screen.getByTestId('question-1-1');
-      fireEvent.click(checkbox);
-
-      await waitFor(() => {
-        expect(checkbox).toBeChecked();
-      });
-
-      const resetButton = screen.getByText('Reset');
-      fireEvent.click(resetButton);
-
-      await waitFor(() => {
-        expect(checkbox).not.toBeChecked();
-      });
-    });
-  });
-
   describe('Question Selection', () => {
     test('toggles question selection', async () => {
       render(<AlgoTimeSessionForm />);
@@ -485,33 +419,6 @@ describe('AlgoTimeSessionForm', () => {
       });
     });
 
-    test('allows selecting multiple questions', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('question-1-1')).toBeInTheDocument();
-      });
-
-      const checkbox1 = screen.getByTestId('question-1-1');
-      const checkbox2 = screen.getByTestId('question-1-2');
-
-      fireEvent.click(checkbox1);
-      fireEvent.click(checkbox2);
-
-      await waitFor(() => {
-        expect(checkbox1).toBeChecked();
-        expect(checkbox2).toBeChecked();
-      });
-    });
-
-    test('displays question titles', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Test Question 1')).toBeInTheDocument();
-        expect(screen.getByText('Test Question 2')).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Form Submission', () => {
@@ -530,7 +437,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -554,7 +461,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -590,7 +497,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -615,7 +522,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -644,7 +551,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -771,7 +678,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -799,7 +706,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-
+      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 

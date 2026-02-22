@@ -53,7 +53,7 @@ describe('GeneralInfoCard', () => {
       render(<GeneralInfoCard data={dataWithoutLocation} onChange={mockOnChange} />);
       expect(screen.getByPlaceholderText(/Online or Physical Address/i)).toHaveValue('');
     });
-
+  });
 
   describe('Interactions', () => {
     test('calls onChange when name is updated', () => {
