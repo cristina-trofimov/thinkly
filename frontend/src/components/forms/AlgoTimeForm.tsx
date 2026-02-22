@@ -462,6 +462,8 @@ export const AlgoTimeSessionForm = () => {
                 key={session.sessionNumber}
                 value={`session-${session.sessionNumber}`}
                 className="mt-0 p-2"
+                forceMount  
+                hidden={activeSession !== `session-${session.sessionNumber}`}
               >
                 <SessionQuestionSelector
                   key={session.sessionNumber}
