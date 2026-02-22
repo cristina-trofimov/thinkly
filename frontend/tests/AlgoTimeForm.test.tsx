@@ -51,7 +51,7 @@ jest.mock('../src/helpers/DatePicker', () => {
         value: value || '',
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value),
         placeholder: 'YYYY-MM-DD',
-        'data-testid': id,
+        'data-testid': id || 'repeatEndDate',
       }),
   };
 });
@@ -700,7 +700,7 @@ describe('AlgoTimeSessionForm', () => {
         expect(screen.getByTestId('session-1')).toBeInTheDocument();
       });
 
-      const cooldownInput = screen.getByPlaceholderText('(Optional)') as HTMLInputElement;
+      const cooldownInput = screen.getByPlaceholderText('Optional') as HTMLInputElement;
       fireEvent.change(cooldownInput, { target: { value: '600' } });
 
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
