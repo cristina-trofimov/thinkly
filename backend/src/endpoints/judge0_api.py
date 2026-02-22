@@ -30,7 +30,7 @@ def judge0_get_output(
     _validate_judge0_url()
     for _ in range(max_attempts):
         try:
-            logger.debug("Getting Judge0 submission outout...")
+            logger.debug("Getting Judge0 submission output...")
             resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
             resp.raise_for_status()
 

@@ -281,11 +281,13 @@ class Submission(Base):
         ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
     compile_output: Mapped[str] = mapped_column()
     submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    # runtime: Mapped[int] = mapped_column()
     time: Mapped[int] = mapped_column()
     status: Mapped[str] = mapped_column()
     memory: Mapped[int] = mapped_column()
     stdout: Mapped[str] = mapped_column()
     stderr: Mapped[str] = mapped_column()
+    # message: Mapped[str] = mapped_column()
 
     question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='submissions',
                                                                uselist=False)

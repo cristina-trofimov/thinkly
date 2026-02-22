@@ -1,27 +1,27 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import CodeDescArea from "./CodeDescArea";
+import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
   Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload
 } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-import { DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useStateCallback } from '../helpers/UseStateCallback';
+import { useStateCallback } from '../components/helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
-import { buildMonacoCode } from '../helpers/monacoConfig';
+import { buildMonacoCode } from '../components/helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { submitToJudge0 } from '@/api/Judge0API';
-import Testcases from './Testcases';
+import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
-import { useTestcases } from '../helpers/useTestcases';
+import { useTestcases } from '../components/helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
-import Loader from '../helpers/Loader';
-import ConsoleOutput from './ConsoleOutput';
-import { submitAttempt } from '@/api/CodeSubmission';
+import Loader from '../components/helpers/Loader';
+import ConsoleOutput from '../components/codingPage/ConsoleOutput';
+import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 
 
@@ -66,7 +66,7 @@ const CodingView = () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
-      const response = await submitAttempt(question?.id, 1, code, judgeID, selectedLang, testcases)
+      const response = await submitAttempt(question?.id, 1, null, code, judgeID, selectedLang, testcases)
       setLogs(prev => [...prev, response])
       setCurrentOutputTab("results")
     } finally {
@@ -81,6 +81,7 @@ const CodingView = () => {
       setLoadingMsg("Running")
       const response = await submitToJudge0(code, judgeID, testcases)
       setLogs(prev => [...prev, response])
+      console.log(response)
       setCurrentOutputTab("results")
 
       // Capture run result — status comes directly from Judge0 response

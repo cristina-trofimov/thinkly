@@ -1,17 +1,12 @@
 export type SubmissionType = {
-    question_id: number,
     user_id: number,
+    question_instance_id: number,
+    compile_output: string | null,
     status: string,
-    language: {
-        judge0_id: string,
-        name: string
-    },
-    code: string,
-    memory: string,
-    runtime: string,
-    submittedOn: string,
+    runtime: number | null,
+    memory: number | null,
+    submitted_on: string,
     stdout: string | null,
     stderr: string | null,
-    compile_output: string | null,
     message: string | null,
 }

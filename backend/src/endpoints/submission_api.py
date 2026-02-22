@@ -1,102 +1,73 @@
-import os
-import time
-import requests
-from fastapi import APIRouter, HTTPException
-from dotenv import load_dotenv
 import logging
+from typing import Annotated
+from pydantic import BaseModel
+from DB_Methods.database import get_db
+from models.schema import Submission
+from fastapi import APIRouter, HTTPException, Depends, Query
 
 logger = logging.getLogger(__name__)
 
 submission_router = APIRouter(tags=["Attempts"])
 
-
-# def _validate_judge0_url():
-#     """Validate that JUDGE0_URL is configured. Called when actually needed."""
-#     if not JUDGE0_URL:
-#         logger.critical("FATAL: Missing judge0 url.")
-#         raise RuntimeError("Missing JUDGE0_URL environment variable. Please configure it in your .env file.")
-
-
-# def judge0_get_output(
-#         token: str,
-#         interval_ms: int = 500,
-#         max_attempts: int = 300,
-# ):
-#     _validate_judge0_url()
-#     for _ in range(max_attempts):
-#         try:
-#             logger.debug("Getting Judge0 submission outout...")
-#             resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
-#             resp.raise_for_status()
-
-#             data = resp.json()
-#             status = data['status']['description']
-
-#             if status not in ("In Queue", "Processing"):
-#                 return data
-
-#             time.sleep(interval_ms / 1000)
-
-#         except Exception as e:
-#             logger.exception("Network error when getting Judge0 output")
-#             raise RuntimeError(f"Network error when getting Judge0 output: {e}")
-
-#     raise RuntimeError("Judge0 polling timed out")
+class SubmissionModel(BaseModel):
+    user_id: int
+    question_instance_id: int
+    compile_output: str
+    submitted_on: str # CHNAGE
+    time: int
+    status: str
+    memory: int
+    stdout: str
+    stderr: str
 
 
-# def submit_to_judge0(
-#         source_code: str,
-#         language_id: str,
-#         stdin: str,
-#         expected_output: str | None = None,
-# ):
-#     _validate_judge0_url()
-#     payload = {
-#         "source_code": source_code,
-#         "language_id": language_id,
-#         "number_of_runs": None,
-#         "stdin": stdin,
-#         "expected_output": expected_output,
-#         "cpu_time_limit": None,
-#         "cpu_extra_time": None,
-#         "wall_time_limit": None,
-#         "memory_limit": None,
-#         "stack_limit": None,
-#         "max_processes_and_or_threads": None,
-#         "enable_per_process_and_thread_time_limit": None,
-#         "enable_per_process_and_thread_memory_limit": None,
-#         "max_file_size": None,
-#         "enable_network": None
-#     }
+@submission_router.get("/all",
+    responses={400: {"description": "Error retrieving submissions."}}
+)
+def get_all_submissions(
+    db: Annotated[str, Depends(get_db)],
+    user_id: int = Query(None),
+    question_instance_id: int = Query(None),
+):
+    try:
+        subs = db.query(Submission).filter_by(
+            user_id = int(user_id),
+            question_instance_id = int(question_instance_id)
+            ).all()
+        logger.info(f"Fetched {len(subs)} submissions from the database.")
 
-#     # Remove None fields, should be null
-#     payload = {k: v for k, v in payload.items() if v is not None}
-
-#     try:
-#         logger.debug("Posting to Judge0...")
-#         post_resp = requests.post(f"{JUDGE0_URL}/submissions", json=payload)
-#         post_resp.raise_for_status()
-
-#         results = judge0_get_output(post_resp.json()['token'])
-#         return results
-
-#     except Exception as e:
-#         logger.exception("Network error when running code with Judge0")
-#         raise RuntimeError(f"Network error when running code with Judge0: {e}")
+        return {"status_code": 200, **subs}
+    except Exception as e:
+        logger.error(f"Error fetching submissions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve submissions. Exception: {str(e)}")
 
 
-# # Routes
-# @judge0_router.post("",
-#     responses={400: {"description": "Error sending problem to Judge0."}}
-# )
-# def judge0_run_code(request: dict):
-#     try:
-#         response = submit_to_judge0(
-#             source_code=request["source_code"],
-#             language_id=request['language_id'],
-#             stdin=request['stdin'],
-#             expected_output=request["expected_output"]
-#         )
-#         return {"ok": True, "status_code": 200, **response}
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
+@submission_router.post("/add",
+    status_code=201,
+    responses={500: {"description": "Failed to upload most recent submission."}}
+)
+def save_most_recent_sub(
+    db: Annotated[str, Depends(get_db)],
+    sub_request: dict,
+):
+    try:
+        db.add(SubmissionModel(
+            user_id = sub_request['user_id'],
+            question_instance_id = sub_request['question_instance_id'],
+            compile_output = sub_request['compile_output'],
+            submitted_on = sub_request['submitted_on'],
+            time = sub_request['time'],
+            status = sub_request['status'],
+            memory = sub_request['memory'],
+            stdout = sub_request['stdout'],
+            stderr = sub_request['stderr'],
+        ))
+        db.commit()
+
+        logger.info(f"Uploaded submission.")
+
+        return {"status_code": 200, "message": f"Successfully uploaded submission"}
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error uploading submissions: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload submissions. Exception: {str(e)}")

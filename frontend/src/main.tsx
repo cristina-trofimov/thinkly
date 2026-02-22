@@ -14,7 +14,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Layout } from "./components/layout/AppLayout.tsx";
 import { Leaderboards } from "./components/leaderboards/Leaderboards";
 import AdminDashboard from "./views/admin/AdminDashboardPage.tsx";
-import CodingView from "./components/codingPage/CodingView.tsx";
+import CodingView from "./views/CodingView.tsx";
 import HomePage from "./views/HomePage.tsx";
 import CompetitionsPage from "./views/CompetitionsPage.tsx";
 import SignupPage from "./views/SignupPage.tsx";
