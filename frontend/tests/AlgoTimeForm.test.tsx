@@ -57,7 +57,7 @@ jest.mock('../src/helpers/DatePicker', () => {
 });
 
 //Mock general info card
-jest.mock('../src/components/forms/GeneralInfoCard', () => ({
+jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
   GeneralInfoCard: ({ data, onChange, onRepeatChange, cooldown, onCooldownChange }: any) => {
     const React = require('react');
     return React.createElement('div', {}, [
