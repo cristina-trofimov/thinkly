@@ -13,16 +13,6 @@ export default function ManageAlgoTimePage() {
     <Button variant="ghost" size="sm" className="absolute -top-12 left-0 text-muted-foreground" onClick={() => navigate(-1)}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-      {/* Header */}
-      <div className="mb-2">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Create a New AlgoTime Session
-        </h1>
-        <p className="text-gray-600">
-          Fill in the details below to create a new Session.
-        </p>
-      </div>
-      {/* Form Component */}
       <AlgoTimeSessionForm />
     </div>
     </div>

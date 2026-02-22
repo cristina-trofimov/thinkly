@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle} from "lucide-react"
+import { AlertCircle, MousePointer} from "lucide-react"
 import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
@@ -10,9 +10,10 @@ import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session, CreateAlgotimeRequest, CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
-import { sendEmail } from "@/api/EmailAPI";
 import {createAlgotime} from "@/api/AlgotimeAPI"
 import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent} from "@/components/ui/tabs"
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -75,31 +76,14 @@ export const AlgoTimeSessionForm = () => {
     }));
   };
  
-  const [emailEnabled, setEmailEnabled] = useState(false);
-  const [emailToAll, setEmailToAll] = useState(true);
-  const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
-
-  const [emailData, setEmailData] = useState({
-    to: "",
-    subject: "",
-    body: "",
-    sendAtLocal: "",
-    sendInOneMinute: false
-  });
-
-  const handleManualEdit = () => {
-    console.log("User manually edited email");
-  };
-
-
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
-    if (!formData.date || formData.repeatType === "none") {
+    if (!generalData.date || formData.repeatType === "none") {
       return [{ id: "1", sessionNumber: 1, date: formData.date }];
     }
 
     const sessions: Session[] = [];
-    const startDate = new Date(formData.date + 'T00:00:00');
+    const startDate = new Date(generalData.date + 'T00:00:00');
     const endDate = formData.repeatEndDate ? new Date(formData.repeatEndDate + 'T00:00:00') : null;
 
     let currentDate = startDate;
@@ -155,6 +139,9 @@ export const AlgoTimeSessionForm = () => {
   };
 
   const repeatSessions = calculateRepeatSessions();
+  const [activeSession, setActiveSession] = useState<string>(
+    `session-${repeatSessions[0]?.sessionNumber || 1}`
+  )
 
   const [questions, setQuestions] = useState<Question[]>([]);
 
@@ -197,9 +184,14 @@ export const AlgoTimeSessionForm = () => {
     getAllQuestions()
   }, [])
 
+  const isSessionComplete = (sessionNum: number) => {
+    const hasQuestions = (sessionQuestions[sessionNum]?.length || 0) > 0;
+    const hasName = !!(sessionNames[sessionNum]?.trim());
+    return hasQuestions && hasName;
+  };
 
   const validateForm = (): boolean => {
-    if (formData.date === '' || formData.startTime === '' || formData.endTime === '') {
+    if (generalData.date === '' || generalData.startTime === '' || generalData.endTime === '') {
       setValidationError("Incomplete general information.");
       return false;
     }
@@ -209,7 +201,7 @@ export const AlgoTimeSessionForm = () => {
       return false;
     }
 
-    const ATSessionDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const ATSessionDateTime = new Date(`${generalData.date}T${generalData.startTime}`);
     const now = new Date();
     now.setSeconds(0, 0);
     if (ATSessionDateTime.getTime() <= now.getTime()) {
@@ -321,16 +313,6 @@ export const AlgoTimeSessionForm = () => {
         url: globalThis.location.href,
       });
 
-      // Handle email notification if recipients are provided
-      if (emailEnabled) {
-        await sendEmail({
-          to: emailToAll ? "ALL_PARTICIPANTS" : emailData.to,
-          subject: emailData.subject,
-          text: emailData.body,
-          sendAtLocal: emailData.sendAtLocal,
-          sendInOneMinute: emailData.sendInOneMinute
-        });
-      }
       // Navigate to main page 
       navigate("/app/dashboard");
       // Show success message
@@ -370,9 +352,21 @@ export const AlgoTimeSessionForm = () => {
 
 
   return (
-    <div className="pb-10 space-y-6">
-      {/* Action Buttons */}
-      <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+      }} className="space-y-8"> 
+
+      <div className="flex justify-between items-center mb-6">
+          <div>
+                <h2 className="text-2xl font-bold text-primary">
+                  Create a New AlgoTime Session
+                </h2>
+                <p className="text-muted-foreground text-sm">Fill in the details below to create a new Session.</p>
+          </div>
+          {/* Action Buttons */}
+          <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
             <Button
               type="button"
               variant="outline"
@@ -390,7 +384,7 @@ export const AlgoTimeSessionForm = () => {
             </Button>
 
           </div>
-
+        </div>
       <div ref={errorRef}>
         {validationError && (
           <Alert className="shadow border-destructive" variant="destructive">
@@ -403,15 +397,10 @@ export const AlgoTimeSessionForm = () => {
         )}
       </div>
 
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        handleSubmit();
-      }} className="space-y-8">
-
         {/* Form Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
-          <div className="space-y-8">
+          <div className="lg:col-span-2 space-y-4 text-sm">
          <GeneralInfoCard
           data={generalData}
           errors={{}}
@@ -429,13 +418,48 @@ export const AlgoTimeSessionForm = () => {
 
         </div>
 
-          <div>
-            <h2 className="text-xl text-primary font-semibold text-gray-800 mb-4">
-              Select Questions for Sessions
-            </h2>
+          <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MousePointer className="h-5 w-5 text-primary" /> Select Questions for Sessions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {formData.repeatType !== "none" && formData.repeatEndDate && formData.date ? (
+                <Tabs
+                  value={activeSession}
+                  onValueChange={setActiveSession}
+                  className="w-full"
+                >
+                <div className="flex h-[500px] gap-6">
+                  {/* Tabs List on the left */}
+                  <TabsList className="flex flex-col h-full w-48 shrink-0 justify-start overflow-y-auto rounded-none border-r border-gray-200 bg-transparent p-1 gap-1">
+                    {repeatSessions.map((session) => (
+                      <TabsTrigger
+                      key={session.sessionNumber}
+                      value={`session-${session.sessionNumber}`}
+                      className={`w-full justify-start text-left px-3 py-2 text-sm truncate border-l-2 ${
+                        isSessionComplete(session.sessionNumber)
+                          ? "border-l-green-500 bg-green-500/10 text-green-700"
+                          : "border-l-red-500 bg-red-500/10 text-red-700"
+                      }`}
+                    >
+              <span className="truncate block w-full">
+                {sessionNames[session.sessionNumber] || `Session ${session.sessionNumber}`}
+              </span>
+            </TabsTrigger>
+            ))}
+          </TabsList>
 
-            {formData.repeatType !== "none" && formData.repeatEndDate && formData.date ? (
-              repeatSessions.map((session) => (
+          {/* Tabs Content on the right */}
+          <div className="flex-1 overflow-auto min-w-0">
+            {repeatSessions.map((session) => (
+              <TabsContent
+                key={session.sessionNumber}
+                value={`session-${session.sessionNumber}`}
+                className="mt-0 p-2"
+              >
                 <SessionQuestionSelector
                   key={session.sessionNumber}
                   sessionNumber={session.sessionNumber}
@@ -451,7 +475,11 @@ export const AlgoTimeSessionForm = () => {
                   sessionNames={sessionNames}
                   setSessionNames={setSessionNames}
                 />
-              ))
+              </TabsContent>
+            ))}
+          </div>
+        </div>
+      </Tabs>
             ) : (
               <SessionQuestionSelector
                 sessionNumber={1}
@@ -469,6 +497,8 @@ export const AlgoTimeSessionForm = () => {
               />
             )
             }
+          </CardContent>
+        </Card>
           </div>
          
         </div>
