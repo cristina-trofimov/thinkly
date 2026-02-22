@@ -56,6 +56,28 @@ jest.mock('../src/helpers/DatePicker', () => {
   };
 });
 
+//Mock general info card
+jest.mock('../src/components/forms/GeneralInfoCard', () => ({
+  GeneralInfoCard: ({ data, onChange, onRepeatChange, cooldown, onCooldownChange }: any) => {
+    const React = require('react');
+    return React.createElement('div', {}, [
+      React.createElement('input', {
+        key: 'date',
+        'data-testid': 'date',
+        value: data.date || '',
+        onChange: (e: any) => onChange({ date: e.target.value }),
+      }),
+      React.createElement('input', {
+        key: 'name',
+        'aria-label': 'Session Name',
+        value: data.name || '',
+        onChange: (e: any) => onChange({ name: e.target.value }),
+      }),
+      // ... startTime, endTime, repeat controls
+    ]);
+  }
+}));
+
 // Mock TimeInput
 jest.mock('../src/helpers/TimeInput', () => {
   const React = require('react');
