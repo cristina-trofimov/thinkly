@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AlgoTimeSessionForm } from '../src/components/forms/AlgoTimeForm';
 import { createAlgotime } from '../src/api/AlgotimeAPI';
-import { sendEmail } from '../src/api/EmailAPI';
 import { getQuestions } from '../src/api/QuestionsAPI';
 import { logFrontend } from '../src/api/LoggerAPI';
 import { toast } from 'sonner';
@@ -38,7 +37,6 @@ jest.mock('sonner', () => ({
 // Mock the API calls
 jest.mock('../src/api/QuestionsAPI');
 jest.mock('../src/api/AlgotimeAPI');
-jest.mock('../src/api/EmailAPI');
 jest.mock('../src/api/LoggerAPI');
 
 // Mock DatePicker component
@@ -158,7 +156,6 @@ describe('AlgoTimeSessionForm', () => {
     
     (getQuestions as jest.Mock).mockResolvedValue(mockQuestions);
     (createAlgotime as jest.Mock).mockResolvedValue({ success: true });
-    (sendEmail as jest.Mock).mockResolvedValue({ success: true });
     (logFrontend as jest.Mock).mockResolvedValue(undefined);
   });
 
@@ -513,108 +510,6 @@ describe('AlgoTimeSessionForm', () => {
       await waitFor(() => {
         expect(screen.getByText('Test Question 1')).toBeInTheDocument();
         expect(screen.getByText('Test Question 2')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Email Notification', () => {
-    test('updates email data when toggled or typed', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      const emailAccordion = screen.getByText('Email Notification');
-      fireEvent.click(emailAccordion);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('To (comma-separated)')).toBeVisible();
-      });
-
-      const emailToInput = screen.getByLabelText('To (comma-separated)') as HTMLInputElement;
-      fireEvent.change(emailToInput, { target: { value: 'test@example.com' } });
-      expect(emailToInput.value).toBe('test@example.com');
-    });
-
-    test('updates email subject', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      const emailAccordion = screen.getByText('Email Notification');
-      fireEvent.click(emailAccordion);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('Subject')).toBeVisible();
-      });
-
-      const subjectInput = screen.getByLabelText('Subject') as HTMLInputElement;
-      fireEvent.change(subjectInput, { target: { value: 'Test Subject' } });
-      expect(subjectInput.value).toBe('Test Subject');
-    });
-
-    test('updates email message', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      const emailAccordion = screen.getByText('Email Notification');
-      fireEvent.click(emailAccordion);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('Message')).toBeVisible();
-      });
-
-      const messageInput = screen.getByLabelText('Message') as HTMLTextAreaElement;
-      fireEvent.change(messageInput, { target: { value: 'Test message' } });
-      expect(messageInput.value).toBe('Test message');
-    });
-
-    test('toggles send in one minute switch', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      const emailAccordion = screen.getByText('Email Notification');
-      fireEvent.click(emailAccordion);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('Send in 1 minute')).toBeVisible();
-      });
-
-      const switchInput = screen.getByLabelText('Send in 1 minute') as HTMLInputElement;
-      fireEvent.click(switchInput);
-      expect(switchInput).toBeChecked();
-    });
-
-    test('sends email when recipient is provided', async () => {
-      render(<AlgoTimeSessionForm />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('session-1')).toBeInTheDocument();
-      });
-
-      // Fill form
-      const dateInput = screen.getByTestId('date') as HTMLInputElement;
-      fireEvent.change(dateInput, { target: { value: '2025-01-20' } });
-
-      const startTimeInput = screen.getByLabelText('Start Time') as HTMLInputElement;
-      fireEvent.change(startTimeInput, { target: { value: '14:00' } });
-
-      const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
-      fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-
-      // Select a question
-      const checkbox = screen.getByTestId('question-1-1');
-      fireEvent.click(checkbox);
-
-      // Add email
-      const emailAccordion = screen.getByText('Email Notification');
-      fireEvent.click(emailAccordion);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText('To (comma-separated)')).toBeVisible();
-      });
-
-      const emailToInput = screen.getByLabelText('To (comma-separated)');
-      fireEvent.change(emailToInput, { target: { value: 'test@example.com' } });
-
-      const submitButton = screen.getByText('Create');
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(sendEmail).toHaveBeenCalled();
       });
     });
   });

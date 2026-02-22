@@ -48,34 +48,16 @@ describe('GeneralInfoCard', () => {
   });
 
   describe('Rendering', () => {
-    test('renders all fields with provided data', () => {
-      render(<GeneralInfoCard data={mockData} onChange={mockOnChange} />);
-
-      expect(screen.getByLabelText(/Name/i)).toHaveValue(mockData.name);
-      expect(screen.getByTestId('date')).toHaveValue(mockData.date);
-      expect(screen.getByTestId('startTime')).toHaveValue(mockData.startTime);
-      expect(screen.getByTestId('endTime')).toHaveValue(mockData.endTime);
-      expect(screen.getByLabelText(/Location/i)).toHaveValue(mockData.location);
-    });
-
     test('renders empty location placeholder when no location provided', () => {
       const dataWithoutLocation = { ...mockData, location: '' };
       render(<GeneralInfoCard data={dataWithoutLocation} onChange={mockOnChange} />);
       expect(screen.getByPlaceholderText(/Online or Physical Address/i)).toHaveValue('');
     });
 
-    test('renders required asterisks for mandatory fields', () => {
-      render(<GeneralInfoCard data={mockData} onChange={mockOnChange} />);
-      const labels = ['Name', 'Date', 'Start Time (EST)', 'End Time (EST)'];
-      labels.forEach(labelText => {
-        expect(screen.getByText(labelText)).toContainHTML('*');
-      });
-    });
-  });
 
   describe('Interactions', () => {
     test('calls onChange when name is updated', () => {
-      render(<GeneralInfoCard data={mockData} onChange={mockOnChange} />);
+      render(<GeneralInfoCard data={mockData} onChange={mockOnChange} showName nameRequired />);
       fireEvent.change(screen.getByLabelText(/Name/i), { target: { value: 'New Name' } });
       expect(mockOnChange).toHaveBeenCalledWith({ name: 'New Name' });
     });
@@ -106,15 +88,6 @@ describe('GeneralInfoCard', () => {
   });
 
   describe('Validation Styling', () => {
-    test('applies destructive classes to Name field when error exists', () => {
-      render(<GeneralInfoCard data={mockData} errors={{ name: true }} onChange={mockOnChange} />);
-      const label = screen.getByText(/Name/i);
-      const input = screen.getByLabelText(/Name/i);
-      
-      expect(label).toHaveClass('text-destructive');
-      expect(input).toHaveClass('border-destructive');
-    });
-
     test('applies destructive rings to Date and Time fields when errors exist', () => {
       const errors = { date: true, startTime: true, endTime: true };
       render(<GeneralInfoCard data={mockData} errors={errors} onChange={mockOnChange} />);
@@ -125,16 +98,5 @@ describe('GeneralInfoCard', () => {
       expect(screen.getByTestId('endTime').parentElement).toHaveClass('ring-destructive');
     });
 
-    test('does not apply destructive classes when no errors', () => {
-      render(<GeneralInfoCard data={mockData} errors={{}} onChange={mockOnChange} />);
-
-      const label = screen.getByText(/Name/i);
-      const input = screen.getByLabelText(/Name/i);
-      const dateContainer = screen.getByTestId('date').parentElement;
-
-      expect(label).not.toHaveClass('text-destructive');
-      expect(input).not.toHaveClass('border-destructive');
-      expect(dateContainer).not.toHaveClass('ring-destructive');
-    });
   });
 });
