@@ -37,10 +37,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Filter,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Trash2,
 } from "lucide-react";
 
@@ -78,6 +92,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   onDeleteUsers,
   onUserUpdate,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
+  const pageSizeOptions = ["10", "25", "50", "100"];
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -103,7 +118,44 @@ export function ManageAccountsDataTable<TData, TValue>({
       columnFilters,
       rowSelection,
     },
+    initialState: {
+      pagination: {
+        pageSize: 25,
+      },
+    },
   });
+  const currentPage = table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
+  const pageItems = React.useMemo(() => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, index) => index);
+    }
+
+    if (currentPage <= 2) {
+      return [0, 1, 2, 3, "ellipsis-right", pageCount - 1] as const;
+    }
+
+    if (currentPage >= pageCount - 3) {
+      return [
+        0,
+        "ellipsis-left",
+        pageCount - 4,
+        pageCount - 3,
+        pageCount - 2,
+        pageCount - 1,
+      ] as const;
+    }
+
+    return [
+      0,
+      "ellipsis-left",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "ellipsis-right",
+      pageCount - 1,
+    ] as const;
+  }, [currentPage, pageCount]);
 
   const handleDelete = async () => {
     const selectedRows = table
@@ -300,8 +352,26 @@ export function ManageAccountsDataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1">
+      <div className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Rows per page</span>
+            <Select
+              value={`${table.getState().pagination.pageSize}`}
+              onValueChange={(value) => table.setPageSize(Number(value))}
+            >
+              <SelectTrigger className="cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           {selectedCount > 0 ? (
             <div className="text-sm text-muted-foreground">
               {selectedCount} of{" "}
@@ -309,28 +379,58 @@ export function ManageAccountsDataTable<TData, TValue>({
             </div>
           ) : null}
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            className="cursor-pointer"
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronLeft className="h-4 w-4 text-primary mr-auto" />
-            Previous
-          </Button>
-          <Button
-            className="cursor-pointer"
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-            <ChevronRight className="h-4 w-4 text-primary ml-auto" />
-          </Button>
-        </div>
+
+        <Pagination className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  table.previousPage();
+                }}
+                className={
+                  !table.getCanPreviousPage()
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+            {pageItems.map((item, index) => (
+              <PaginationItem key={`${item}-${index}`}>
+                {typeof item === "number" ? (
+                  <PaginationLink
+                    href="#"
+                    isActive={currentPage === item}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      table.setPageIndex(item);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {item + 1}
+                  </PaginationLink>
+                ) : (
+                  <PaginationEllipsis />
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  table.nextPage();
+                }}
+                className={
+                  !table.getCanNextPage()
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
     </div>
   );
