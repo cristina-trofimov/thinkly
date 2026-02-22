@@ -58,7 +58,7 @@ jest.mock('../src/helpers/DatePicker', () => {
 
 //Mock general info card
 jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
-  GeneralInfoCard: ({ data, onChange, onRepeatChange, cooldown, onCooldownChange }: any) => {
+  GeneralInfoCard: ({ data, onChange, repeatData, onRepeatChange, cooldown, onCooldownChange }: any) => {
     const React = require('react');
     return React.createElement('div', { 'data-testid': 'general-info-card' }, [
       // Renders the text so "General Information" tests pass
@@ -73,7 +73,7 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
       React.createElement('input', {
         key: 'name',
         'data-testid': 'name',
-        'aria-label': 'Session Name',
+        'aria-label': 'Series Name',
         value: data.name || '',
         onChange: (e: any) => onChange({ name: e.target.value }),
       }),
@@ -98,7 +98,7 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
       React.createElement('select', {
         key: 'repeat',
         role: 'combobox',
-        value: data.repeatType || 'none',
+        value: repeatData?.repeatType || 'none',
         onChange: (e: any) => onRepeatChange({ repeatType: e.target.value }),
       }, [
         React.createElement('option', { key: 'none', value: 'none' }, 'Does not repeat'),
@@ -107,11 +107,11 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
         React.createElement('option', { key: 'biweekly', value: 'biweekly' }, 'Biweekly'),
         React.createElement('option', { key: 'monthly', value: 'monthly' }, 'Monthly'),
       ]),
-      (data.repeatType && data.repeatType !== 'none')
+      (repeatData?.repeatType && repeatData.repeatType !== 'none')
         ? React.createElement('input', {
-            key: 'repeatEndDate',
-            'data-testid': 'repeatEndDate',
-            value: data.repeatEndDate || '',
+         key: 'repeatEndDate',
+        'data-testid': 'repeatEndDate',
+         value: repeatData.repeatEndDate || '',
             onChange: (e: any) => onRepeatChange({ repeatEndDate: e.target.value }),
           })
         : null,
@@ -310,7 +310,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '13:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
@@ -333,7 +333,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
@@ -369,7 +369,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       // Select 7 questions
       for (let i = 1; i <= 7; i++) {
         const checkbox = screen.getByTestId(`question-1-${i}`);
@@ -473,7 +473,7 @@ describe('AlgoTimeSessionForm', () => {
 
       const endTimeInput = screen.getByLabelText('End Time') as HTMLInputElement;
       fireEvent.change(endTimeInput, { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -497,7 +497,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -533,7 +533,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -558,7 +558,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -587,7 +587,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -679,7 +679,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
@@ -707,7 +707,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
-      fireEvent.change(screen.getByLabelText('Session Name'), { target: { value: 'My Session' } });
+      fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
 
