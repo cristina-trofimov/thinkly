@@ -12,6 +12,8 @@ from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
 from endpoints.judge0_api import judge0_router
 from endpoints.submission_api import submission_router
+from endpoints.question_instance_api import question_instance_router
+# from endpoints.most_recent_sub_api import most_recent_sub_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
@@ -122,6 +124,7 @@ try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
     app.include_router(questions_router, prefix="/questions")
+    app.include_router(question_instance_router, prefix="/instances")
     app.include_router(competitions_router, prefix="/competitions")
     app.include_router(accounts_router, prefix="/manage-accounts")
     app.include_router(email_router, prefix="/email")
@@ -131,6 +134,7 @@ try:
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
     app.include_router(judge0_router, prefix="/judge0")
     app.include_router(submission_router, prefix="/attempts")
+    # app.include_router(most_recent_sub_router, prefix="/recent-sub")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
@@ -138,3 +142,4 @@ except AttributeError:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    # uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
