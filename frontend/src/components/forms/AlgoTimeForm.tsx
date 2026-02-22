@@ -429,7 +429,7 @@ export const AlgoTimeSessionForm = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {formData.repeatType !== "none" && formData.repeatEndDate && formData.date ? (
+              {formData.repeatType !== "none" && formData.repeatEndDate && generalData.date ? (
                 <Tabs
                   value={activeSession}
                   onValueChange={setActiveSession}
