@@ -64,6 +64,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
             <Input
               id="name"
               className={getInputClass(errors.name)}
+              aria-invalid={errors.name || undefined} 
               value={data.name || ""}
               onChange={e =>
                 onChange({ name: e.target.value })
@@ -80,6 +81,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
               onChange={(v: string) => onChange({ date: v })}
               min={new Date().toISOString().split('T')[0]}
             />
+            </div>
           {repeatData && onRepeatChange && (
            <>
           <div className="space-y-2 gap-4">
@@ -119,25 +121,25 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
           )}
         </>
       )}
-          </div>
+          {/* </div> */}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start Time (EST)<Required /></Label>
             <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
-              <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} />
+              <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} aria-invalid={errors.startTime || undefined} />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End Time (EST)<Required /></Label>
             <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
-              <TimeInput id="endTime" value={data.endTime} onChange={v => onChange({ endTime: v })} />
+              <TimeInput id="endTime" value={data.endTime} onChange={v => onChange({ endTime: v })} aria-invalid={errors.startTime || undefined}/>
             </div>
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label>
-          <Input id="location" value={data.location} onChange={e => onChange({ location: e.target.value })} placeholder="Online or Physical Address" />
+          <Input id="location" value={data.location} onChange={e => onChange({ location: e.target.value })} placeholder="Online or Physical Address" aria-invalid={errors.location || undefined} />
         </div>
         
       {cooldown !== undefined && onCooldownChange && (

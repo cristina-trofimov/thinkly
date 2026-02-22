@@ -50,7 +50,7 @@ export const AlgoTimeSessionForm = () => {
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
   const [sessionNames, setSessionNames] = useState<{ [key: number]: string }>({});
-  
+  const [hasSubmitted, setHasSubmitted] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const handleGeneralChange = (updates: Partial<typeof generalData>) => {
     setGeneralData(prev => ({
@@ -237,6 +237,7 @@ export const AlgoTimeSessionForm = () => {
   };
 
   const handleReset = () => {
+    setHasSubmitted(false);
     setFormData({
       date: "",
       startTime: "",
@@ -273,7 +274,7 @@ export const AlgoTimeSessionForm = () => {
   };
 
   const handleSubmit = async () => {
-
+    setHasSubmitted(true);
     if (!validateForm()) {
       setTimeout(() => {
         errorRef.current?.scrollIntoView({
@@ -406,7 +407,12 @@ export const AlgoTimeSessionForm = () => {
           <div className="lg:col-span-2 space-y-4 text-sm">
          <GeneralInfoCard
           data={generalData}
-          errors={{}}
+          errors={hasSubmitted ? {
+            name: !generalData.name,
+            date: !generalData.date,
+            startTime: !generalData.startTime,
+            endTime: !generalData.endTime,
+          } : {}}
           onChange={handleGeneralChange}
 
           repeatData={{
