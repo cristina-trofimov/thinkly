@@ -1,25 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Switch } from "@/components/ui/switch";
-import { AlertCircle } from "lucide-react"
+import { AlertCircle} from "lucide-react"
 import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import DatePicker from "@/helpers/DatePicker";
-import { TimeInput } from "@/helpers/TimeInput";
 import { format, addDays, addWeeks, addMonths } from "date-fns"
-import { Accordion,AccordionContent,AccordionItem,AccordionTrigger,} from "@/components/ui/accordion"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session, CreateAlgotimeRequest, CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
 import { sendEmail } from "@/api/EmailAPI";
 import {createAlgotime} from "@/api/AlgotimeAPI"
+import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -40,14 +33,14 @@ export const AlgoTimeSessionForm = () => {
     repeatEndDate: "",
   });
 
-  const [emailData, setEmailData] = useState({
-    to: "",
-    subject: "",
-    text: "",
-    sendAtLocal: "",
-    sendInOneMinute: false,
+  const [generalData, setGeneralData] = useState({
+    name: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    location: ""
   });
-
+  const [generalInfoErrors, setGeneralInfoErrors] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
   const [validationError, setValidationError] = useState('');
   const errorRef = useRef<HTMLParagraphElement>(null);
@@ -60,6 +53,43 @@ export const AlgoTimeSessionForm = () => {
   const [sessionNames, setSessionNames] = useState<{ [key: number]: string }>({});
   
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const handleGeneralChange = (updates: Partial<typeof generalData>) => {
+    setGeneralData(prev => ({
+      ...prev,
+      ...updates
+    }));
+  };
+  const handleRepeatChange = (updates: {
+    repeatType?: string;
+    repeatEndDate?: string;
+  }) => {
+    setFormData(prev => ({
+      ...prev,
+      ...updates
+    }));
+  };
+  const handleCooldownChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      questionCooldownTime: value
+    }));
+  };
+ 
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailToAll, setEmailToAll] = useState(true);
+  const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
+
+  const [emailData, setEmailData] = useState({
+    to: "",
+    subject: "",
+    body: "",
+    sendAtLocal: "",
+    sendInOneMinute: false
+  });
+
+  const handleManualEdit = () => {
+    console.log("User manually edited email");
+  };
 
 
   // Calculate repeat sessions
@@ -219,13 +249,6 @@ export const AlgoTimeSessionForm = () => {
       repeatType: "none", // none, daily, weekly, biweekly, monthly
       repeatEndDate: ""
     });
-    setEmailData({
-      to: "",
-      subject: "",
-      text: "",
-      sendAtLocal: "",
-      sendInOneMinute: false,
-    });
     setSelectedQuestions([]);
     setSearchQueries({});
     setSessionQuestions({ 1: [] });
@@ -267,11 +290,18 @@ export const AlgoTimeSessionForm = () => {
     }
     try {
       const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
-        name: sessionNames[session.sessionNumber],
+        name:
+          sessionNames[session.sessionNumber] ||
+          generalData.name ||
+          "AlgoTime Session",
+      
         date: session.date,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        selectedQuestions: sessionQuestions[session.sessionNumber] || []
+      
+        startTime: generalData.startTime,
+        endTime: generalData.endTime,
+      
+        selectedQuestions:
+          sessionQuestions[session.sessionNumber] || []
       }));
 
       const payload: CreateAlgotimeRequest = {
@@ -292,23 +322,14 @@ export const AlgoTimeSessionForm = () => {
       });
 
       // Handle email notification if recipients are provided
-      if (emailData.to.trim()) {
-
+      if (emailEnabled) {
         await sendEmail({
-          to: emailData.to,
+          to: emailToAll ? "ALL_PARTICIPANTS" : emailData.to,
           subject: emailData.subject,
-          text: emailData.text,
-          sendInOneMinute: emailData.sendInOneMinute,
+          text: emailData.body,
           sendAtLocal: emailData.sendAtLocal,
+          sendInOneMinute: emailData.sendInOneMinute
         });
-
-        logFrontend({
-          level: 'INFO',
-          message: `Email processing initiated ✅`,
-          component: 'AlgoTimeSessionForm',
-          url: globalThis.location.href,
-        });
-
       }
       // Navigate to main page 
       navigate("/app/dashboard");
@@ -349,7 +370,26 @@ export const AlgoTimeSessionForm = () => {
 
 
   return (
-    <div className=" flex flex-col  ">
+    <div className="pb-10 space-y-6">
+      {/* Action Buttons */}
+      <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              className="cursor-pointer"
+            >
+              Reset
+            </Button>
+            <Button
+              type="submit"
+              className="cursor-pointer"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create"}
+            </Button>
+
+          </div>
 
       <div ref={errorRef}>
         {validationError && (
@@ -367,101 +407,27 @@ export const AlgoTimeSessionForm = () => {
         e.preventDefault();
         handleSubmit();
       }} className="space-y-8">
+
         {/* Form Content */}
-        <div className="space-y-8">
-          {/* General Information */}
-          <div>
-            <h2 className="text-xl text-primary font-semibold mb-2">General Information</h2>
-            <div className="flex flex-wrap gap-x-4 gap-y-8">
-              <div className="w-48">
-                <Label className="block text-sm font-medium text-gray-700 mb-2">
-                  {formData.repeatType === "none" ? "Date" : "Start Date"}
-                </Label>
-                <DatePicker
-                  id="date"
-                  value={formData.date}
-                  onChange={(v) => setFormData({ ...formData, date: v })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-              <div className="w-48">
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Repeat</Label>
-                <Select
-                  value={formData.repeatType}
-                  onValueChange={(value) => {
-                    setFormData({ ...formData, repeatType: value });
-                    if (value === 'none') {
-                      setSessionQuestions({ 1: selectedQuestions });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="cursor-pointer">
-                    <SelectValue placeholder="Does not repeat" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem className="cursor-pointer" value="none">Does not repeat</SelectItem>
-                    <SelectItem className="cursor-pointer" value="daily">Daily</SelectItem>
-                    <SelectItem className="cursor-pointer" value="weekly">Weekly</SelectItem>
-                    <SelectItem className="cursor-pointer" value="biweekly">Every 2 weeks</SelectItem>
-                    <SelectItem className="cursor-pointer" value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {formData.repeatType !== "none" && (
+          <div className="space-y-8">
+         <GeneralInfoCard
+          data={generalData}
+          errors={{}}
+          onChange={handleGeneralChange}
 
-              <div className="w-48 mt-8">
-                <Label className="block text-sm font-medium text-gray-700 mb-2">End Repeat</Label>
-                <DatePicker
-                  id="repeatEndDate"
-                  value={formData.repeatEndDate}
-                  onChange={(v) => setFormData({ ...formData, repeatEndDate: v })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
+          repeatData={{
+            repeatType: formData.repeatType,
+            repeatEndDate: formData.repeatEndDate
+          }}
+          onRepeatChange={handleRepeatChange}
 
+          cooldown={formData.questionCooldownTime}
+          onCooldownChange={handleCooldownChange}
+        />
 
-            )}
-
-            <div className="flex gap-2 mt-8">
-              <div className="w-25">
-                <Label htmlFor="startTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Time
-                </Label>
-                <TimeInput
-                  id="startTime-picker"
-                  value={formData.startTime}
-                  onChange={(value) => setFormData({ ...formData, startTime: value })}
-                />
-              </div>
-
-              <div className="w-25">
-                <Label htmlFor="endTime-picker" className="block text-sm font-medium text-gray-700 mb-2">
-                  End Time
-                </Label>
-                <TimeInput
-                  id="endTime-picker"
-                  value={formData.endTime}
-                  onChange={(value) => setFormData({ ...formData, endTime: value })}
-                />
-              </div>
-            </div>
-            <div className="w-48 mt-8">
-              <Label className="block text-sm font-medium text-gray-700 mb-2">
-                Question Cooldown (seconds)
-              </Label>
-              <Input
-                type="number"
-                value={formData.questionCooldownTime}
-                onChange={(e) => setFormData({ ...formData, questionCooldownTime: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent"
-                placeholder="(Optional)"
-              />
-            </div>
-
-
-          </div>
+        </div>
 
           <div>
             <h2 className="text-xl text-primary font-semibold text-gray-800 mb-4">
@@ -504,98 +470,7 @@ export const AlgoTimeSessionForm = () => {
             )
             }
           </div>
-          {/* Email Notification */}
-          <Accordion type="single" collapsible>
-            <AccordionItem value="item-1">
-
-              <AccordionTrigger className="text-primary text-xl font-semibold hover:text-primary/80">Email Notification</AccordionTrigger>
-              <AccordionContent>
-                <div className="grid gap-4">
-
-                  <p className="text-sm text-gray-500">Optionally send email notifications about this upcoming session</p>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="emailTo">To (comma-separated)</Label>
-                    <Input
-                      id="emailTo"
-                      value={emailData.to}
-                      onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                      placeholder="alice@example.com, bob@example.com"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="emailSubject">Subject</Label>
-                    <Input
-                      id="emailSubject"
-                      value={emailData.subject}
-                      onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-                      placeholder="Session announcement"
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="emailText">Message</Label>
-                    <Textarea
-                      id="emailText"
-                      rows={4}
-                      value={emailData.text}
-                      onChange={(e) => setEmailData({ ...emailData, text: e.target.value })}
-                      placeholder="Write your message..."
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="flex items-center justify-between rounded-md border p-3">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="sendInOneMinute" className="text-sm font-medium">Send in 1 minute</Label>
-                        <p className="text-xs text-gray-500">
-                          Overrides custom schedule
-                        </p>
-                      </div>
-                      <Switch
-                        id="sendInOneMinute"
-                        checked={emailData.sendInOneMinute}
-                        onCheckedChange={(checked) => setEmailData({ ...emailData, sendInOneMinute: checked })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="sendAtLocal">Schedule (local time)</Label>
-                      <Input
-                        id="sendAtLocal"
-                        type="datetime-local"
-                        value={emailData.sendAtLocal}
-                        onChange={(e) => setEmailData({ ...emailData, sendAtLocal: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-
-
-
-          {/* Action Buttons */}
-          <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleReset}
-              className="cursor-pointer"
-            >
-              Reset
-            </Button>
-            <Button
-              type="submit"
-              className="cursor-pointer"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create"}
-            </Button>
-
-          </div>
+         
         </div>
       </form>
     </div>
