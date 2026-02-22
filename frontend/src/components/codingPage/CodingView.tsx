@@ -1,6 +1,9 @@
-import React, { useEffect, useLayoutEffect, useState, } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import CodeDescArea from "./CodeDescArea";
-import { Play, RotateCcw, Maximize2, ChevronDown, Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload } from "lucide-react";
+import {
+  Play, RotateCcw, Maximize2, ChevronDown,
+  Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../ui/dropdown-menu";
@@ -14,30 +17,77 @@ import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from './Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
+import { useTestcases } from '../helpers/useTestcases';
+import type { Judge0Response } from '@/types/questions/Judge0Response';
+import Loader from '../helpers/Loader';
+import ConsoleOutput from './ConsoleOutput';
+import { useAnalytics } from '@/hooks/useAnalytics';
+
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
+  const { testcases } = useTestcases(question.id)
+  const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
+  const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
+  const [loadingMsg, setLoadingMsg] = useState<string>("")
 
-  if (!question?.id) {
-    console.log("Loading question")
-  }
+  const {
+    trackCodingPageOpened,
+    trackLanguageChanged,
+    trackCodeReset,
+    trackCodeRun,
+    trackCodeSubmitted,
+  } = useAnalytics()
+
+  // Track page open once on mount — question is available from location state
+  useEffect(() => {
+    if (question?.id) {
+      trackCodingPageOpened(
+        question.title,
+        question.id,
+        question.difficulty ?? "unknown"
+      )
+      setIsQuestionLoading(false)
+    } else {
+      setIsQuestionLoading(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id])
 
   const submitCode = () => {
+    trackCodeSubmitted(question.id, selectedLang)
     console.log("submitting code")
   }
 
-  const logs: Response[] = []
+  const [logs, setLogs] = useState<Judge0Response[]>([])
 
   const runCode = async () => {
-    const response = await submitToJudge0("64.58.46.96:2358", code, judgeID, "Judge0", null)    
-    logs.push(response)
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Running")
 
-    console.log("log")
-    console.log(logs)
+      const response = await submitToJudge0(code, judgeID, testcases)
+      setLogs(prev => [...prev, response])
+
+      // Capture run result — status comes directly from Judge0 response
+      const passed = response.status.description === "Accepted"
+      trackCodeRun(
+        question.id,
+        selectedLang,
+        response.status.description,
+        passed,
+        response.time ?? undefined
+      )
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
   }
 
   const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
+  // Keep a ref to the previous language so we can log "from → to" on change
+  const prevLangRef = useRef<SupportedLanguagesType>("Java")
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
@@ -49,9 +99,22 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [ code, setCode ] = useStateCallback<string>(templateCode)
+  const [code, setCode] = useStateCallback<string>(templateCode)
 
-  useEffect(() => { setCode(templateCode) }, [selectedLang]) // reset editor
+  // Reset editor on language change
+  useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLanguageChange = (lang: SupportedLanguagesType) => {
+    trackLanguageChanged(question.id, prevLangRef.current, lang)
+    prevLangRef.current = lang
+    setSelectedLang(lang)
+    setCode(templateCode)
+  }
+
+  const handleCodeReset = () => {
+    trackCodeReset(question.id, selectedLang)
+    setCode(templateCode)
+  }
 
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -70,8 +133,8 @@ const CodingView = () => {
     let mainPanelSize: number[], codePanelSize: number[]
 
     if (fullCode) {
-      mainPanelSize = [0, 100] // 1st is desc, 2nd is editor
-      codePanelSize = [100, 0] // 1st is code, 2nd is console
+      mainPanelSize = [0, 100]
+      codePanelSize = [100, 0]
     } else if (fullOutput) {
       mainPanelSize = [0, 100]
       codePanelSize = [0, 100]
@@ -94,17 +157,19 @@ const CodingView = () => {
     <div data-testid="sandbox" key="sandbox"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
-      <div className='flex items-center justify-center my-2 w-full' >
-        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn" >
+      {/* Loading modal */}
+      <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <div className='flex items-center justify-center mb-2 w-full'>
+        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
         </Button>
       </div>
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
-        className='h-full w-full' 
+        className='h-full w-full'
       >
         {/* Description panel */}
-        <Panel data-testid="resizable-panel" key="desc-area" //collapsible collapsedSize={5}
-          defaultSize={50} minSize={5} //maxSize={100}
+        <Panel data-testid="resizable-panel" key="desc-area"
+          defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea question={question} />
@@ -112,63 +177,65 @@ const CodingView = () => {
 
         <PanelResizeHandle data-testid="resizable-handle"
           className="w-[0.35px] mx-[1.5px] border-none"
-          style={{ background: "transparent" }} 
+          style={{ background: "transparent" }}
         />
 
         {/* Second panel */}
-        <Panel defaultSize={50} data-testid="resizable-panel" >
-          <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group" >
+        <Panel defaultSize={50} data-testid="resizable-panel">
+          <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group">
             {/* Coding area panel */}
             <Panel defaultSize={65} data-testid="resizable-panel"
               className="ml-0.75 mb-1 rounded-md border"
             >
-              <div data-testid="coding-area" >
-                <div data-testid="coding-btns" 
+              <div data-testid="coding-area">
+                <div data-testid="coding-btns"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                     border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
-                  <span className="text-lg font-medium" >Code</span>
-                  <div className="grid grid-cols-4 gap-1">
-                    {/* Size buttons */}
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
+                  <span className="text-lg font-medium">Code</span>
+                  <div className="grid grid-cols-5 gap-1">
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
                       onClick={runCode}
                     >
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" 
-                      onClick={() => { setCode(templateCode) } } >
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
+                      onClick={handleCodeReset}
+                    >
                       <RotateCcw size={22} color="black" />
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {fullCode ? <Minimize2 data-testid='code-area-min-icon' size={22} color="black" />
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      {fullCode
+                        ? <Minimize2 data-testid='code-area-min-icon' size={22} color="black" />
                         : <Maximize2 data-testid='code-area-max-icon' size={22} color="black" />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {closeCode ? <ChevronDown data-testid='code-area-down-icon' size={22} color="black" />
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      {closeCode
+                        ? <ChevronDown data-testid='code-area-down-icon' size={22} color="black" />
                         : <ChevronUp data-testid='code-area-up-icon' size={22} color="black" />}
                     </Button>
                   </div>
                 </div>
-                <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2" >
+                <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <Button data-testid='language-btn'
                         className="bg-background text-black text-base font-bold h-7
-                                  hover:bg-primary/20 focus:bg-primary/55" >
+                                  hover:bg-primary/20 focus:bg-primary/55">
                         {selectedLang}
                         <ChevronDown />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className='z-999' asChild >
+                    <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
                         className="z-10 text-sm bg-white w-26 border rounded-lg"
                       >
                         {supportedLanguages.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang}`} key={lang}
                             className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                            onSelect={() => { setSelectedLang(lang); setCode(templateCode) }}
+                            onSelect={() => handleLanguageChange(lang)}
                           >
                             {lang}
                           </DropdownMenuItem>
@@ -183,7 +250,7 @@ const CodingView = () => {
                 language={language}
                 value={code}
                 theme="vs-dark"
-                onChange={(value) => { setCode(value ?? templateCode) } }
+                onChange={(value) => { setCode(value ?? templateCode) }}
                 options={{
                   fontSize: 14,
                   automaticLayout: true,
@@ -193,13 +260,14 @@ const CodingView = () => {
 
             <PanelResizeHandle data-testid="resizable-handle"
               className='my-[0.5px] border-none h-[0.5px]'
-              style={{ background: "transparent" }} 
+              style={{ background: "transparent" }}
             />
+
             {/* Output panel */}
-            <Panel data-testid="resizable-handle" defaultSize={35} 
+            <Panel data-testid="resizable-handle" defaultSize={35}
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none' defaultValue='testcases' >
+              <Tabs data-testid="sandbox-tabs" className='border-none h-full' defaultValue='testcases'>
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"
@@ -207,8 +275,8 @@ const CodingView = () => {
                   <div className='w-full flex rounded-none h-10 bg-muted gap-3
                       border-b border-border/75 dark:border-border/50 py-0 px-4'
                   >
-                    {outputTabs.map(tab => {
-                      return <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
+                    {outputTabs.map(tab => (
+                      <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
                         className='bg-muted rounded-none
                         hover:border-t-2 hover:border-primary/40
                         data-[state=active]:border-primary
@@ -223,34 +291,30 @@ const CodingView = () => {
                       >
                         {tab.icon}{tab.text}
                       </TabsTrigger>
-                    })}
+                    ))}
                   </div>
                   <div className="grid grid-cols-2 gap-4 pr-5">
-                    {/* Size buttons */}
                     <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {fullOutput ? <Minimize2 data-testid='output-area-min-icon' size={22} color="black" />
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      {fullOutput
+                        ? <Minimize2 data-testid='output-area-min-icon' size={22} color="black" />
                         : <Maximize2 data-testid='output-area-max-icon' size={22} color="black" />}
                     </Button>
                     <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25" >
-                      {closeOutput ? <ChevronUp data-testid='output-area-up-icon' size={22} color="black" />
+                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      {closeOutput
+                        ? <ChevronUp data-testid='output-area-up-icon' size={22} color="black" />
                         : <ChevronDown data-testid='output-area-down-icon' size={22} color="black" />}
                     </Button>
                   </div>
                 </TabsList>
-                <TabsContent data-testid="testcases-tab" value="testcases" 
-                  className='max-h-full p-2.5' >
+                <TabsContent data-testid="testcases-tab" value="testcases"
+                  className='max-h-full p-2.5'>
                   <Testcases question_id={question.id} />
                 </TabsContent>
                 <TabsContent data-testid="code-output-tab" value="results"
-                  className='h-full'
-                >
-                  {logs.map((log, idx) => (
-                    <p key={`log-${idx+1}`} >
-                      {log.text()}
-                    </p>
-                  ))}
+                  className='max-h-full p-2.5'>
+                  <ConsoleOutput logs={logs} />
                 </TabsContent>
               </Tabs>
             </Panel>

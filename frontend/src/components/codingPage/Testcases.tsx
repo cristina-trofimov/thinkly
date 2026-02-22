@@ -5,6 +5,7 @@ import { Label } from '../ui/label'
 import { Button } from '../ui/button'
 import { useTestcases } from '../helpers/useTestcases'
 import { useEffect } from 'react'
+import { useAnalytics } from '@/hooks/useAnalytics'
 
 
 const Testcases = (
@@ -12,9 +13,12 @@ const Testcases = (
     { question_id: number }
 ) => {
 
-    const { testcases, addTestcase, removeTestcase, loading,
-            updateTestcase, activeTestcase, setActiveTestcase } 
-        = useTestcases(question_id)
+    const {
+        testcases, addTestcase, removeTestcase, loading,
+        updateTestcase, activeTestcase, setActiveTestcase
+    } = useTestcases(question_id)
+
+    const { trackTestcaseAdded, trackTestcaseRemoved } = useAnalytics()
 
     if (loading) {
         console.log("Loading test cases")
@@ -22,13 +26,22 @@ const Testcases = (
 
     useEffect(() => {
         if (!testcases) addTestcase()
-      }, [testcases])
-      
+    }, [testcases]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleAddTestcase = () => {
+        addTestcase()
+        trackTestcaseAdded(question_id)
+    }
+
+    const handleRemoveTestcase = (caseID: string) => {
+        removeTestcase(caseID)
+        trackTestcaseRemoved(question_id)
+    }
 
     return (
-        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase} >
-            <div key="testcases-triggers" className='flex' >
-                <TabsList className='w-full flex gap-2' >
+        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase}>
+            <div key="testcases-triggers" className='flex'>
+                <TabsList className='w-full flex gap-2'>
                     {testcases?.map((tc) => (
                         <TabsTrigger value={tc?.caseID} key={`trigger-${tc?.caseID}`} data-testid={`trigger-${tc?.caseID}`}
                             className='rounded-sm p-2 flex items-center gap-1
@@ -43,32 +56,36 @@ const Testcases = (
                             transition-all'
                         >
                             {tc?.caseID}
-                            <X size={16} onClick={() => removeTestcase(tc?.caseID)}
+                            <X size={16}
+                                onClick={() => handleRemoveTestcase(tc?.caseID)}
                                 className='hover:text-red-700 rounded-full'
                             />
                         </TabsTrigger>
                     ))}
                 </TabsList>
                 <Button key="add-testcase-btn" data-testid="add-testcase-btn"
-                    size={"icon"} 
-                    variant={'ghost'} 
-                    onClick={addTestcase}
-                    className=" hover:text-primary"
+                    size={"icon"}
+                    variant={'ghost'}
+                    onClick={handleAddTestcase}
+                    className="hover:text-primary"
                 >
                     <Plus size={4} />
                 </Button>
             </div>
             {testcases?.map((tc) => (
-                <TabsContent value={tc.caseID} key={`content-${tc.caseID}`} data-testid={`content-${tc.caseID}`} 
+                <TabsContent value={tc.caseID} key={`content-${tc.caseID}`} data-testid={`content-${tc.caseID}`}
                     className='mt-3 space-y-6'
                 >
                     {Object.entries(tc.input_data).map(([key, val]) => (
-                        <div key={`${key}-input-row`} className='flex flex-col gap-2' >
-                            <Label data-testid={`${tc.caseID}-${key}-label`} >
+                        <div key={`${key}-input-row`} className='flex flex-col gap-2'>
+                            <Label data-testid={`${tc.caseID}-${key}-label`}>
                                 {key}
                             </Label>
-                            <Input key={key} value={`${val}`} data-testid={`${tc.caseID}-${key}-input`} 
-                                onChange={(e) => { updateTestcase(tc.caseID, "input_data", e.target.value); console.log(tc.input_data) } }
+                            <Input key={key} value={`${val}`} data-testid={`${tc.caseID}-${key}-input`}
+                                onChange={(e) => {
+                                    updateTestcase(tc.caseID, "input_data", e.target.value)
+                                    console.log(tc.input_data)
+                                }}
                             />
                         </div>
                     ))}

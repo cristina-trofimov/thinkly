@@ -25,6 +25,7 @@ import {
   getParticipationStats,
 } from "@/api/AdminDashboardAPI";
 import { FileText, Puzzle, Timer, Trophy, Users } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const TIME_RANGE_LABELS: Record<TimeRange, string> = {
   "3months": "Last 3 months",
@@ -39,9 +40,7 @@ function getTimeRangeLabel(timeRange: TimeRange): string {
 export function AdminDashboard() {
   const location = useLocation();
   const [timeRange, setTimeRange] = useState<TimeRange>("3months");
-  const [activeTab, setActiveTab] = useState<"algotime" | "competitions">(
-    "algotime",
-  );
+  const [activeTab, setActiveTab] = useState<"algotime" | "competitions">("algotime");
 
   const [newAccountStats, setNewAccountStats] = useState({
     value: 0,
@@ -55,18 +54,42 @@ export function AdminDashboard() {
   const [timeToSolveData, setTimeToSolveData] = useState<
     { type: string; time: number; color: string }[]
   >([]);
-  const [loginsData, setLoginsData] = useState<
-    { month: string; logins: number }[]
-  >([]);
+  const [loginsData, setLoginsData] = useState<{ month: string; logins: number }[]>([]);
   const [participationData, setParticipationData] = useState<
     { date: string; participation: number }[]
   >([]);
   const [loading, setLoading] = useState(true);
 
+  const {
+    trackAdminDashboardViewed,
+    trackAdminDashboardTabSwitched,
+    trackAdminDashboardTimeRangeChanged,
+    trackAdminManageCardClicked,
+  } = useAnalytics();
+
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
     location.pathname === "/app/dashboard/";
   const chartAnimationKey = `tab-${activeTab}`;
+
+  // Track page view once when the overview is showing
+  useEffect(() => {
+    if (isRootDashboard) {
+      trackAdminDashboardViewed();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRootDashboard]);
+
+  const handleTabChange = (value: string) => {
+    const newTab = value as "algotime" | "competitions";
+    setActiveTab(newTab);
+    trackAdminDashboardTabSwitched(newTab);
+  };
+
+  const handleTimeRangeChange = (value: string) => {
+    setTimeRange(value as TimeRange);
+    trackAdminDashboardTimeRangeChanged(value);
+  };
 
   // Fetch stats data when timeRange or activeTab changes
   useEffect(() => {
@@ -110,31 +133,39 @@ export function AdminDashboard() {
           </div>
 
           {/* Management Cards Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 px-6 ">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 px-6">
             <Link
               to="/app/dashboard/competitions"
               className="xl:col-start-1 xl:row-start-1"
+              onClick={() => trackAdminManageCardClicked("competitions")}
             >
               <ManageCard title="Manage Competitions" icon={Trophy} />
             </Link>
             <Link
               to="/app/dashboard/algoTimeSessions"
               className="xl:col-start-1 xl:row-start-2"
+              onClick={() => trackAdminManageCardClicked("algotime_sessions")}
             >
               <ManageCard title="Manage Algotime Sessions" icon={Timer} />
             </Link>
-            <Link to="#" className="xl:col-start-2 xl:row-start-1">
+            <Link
+              to="#"
+              className="xl:col-start-2 xl:row-start-1"
+              onClick={() => trackAdminManageCardClicked("questions")}
+            >
               <ManageCard title="Manage Questions" icon={FileText} />
             </Link>
             <Link
               to="/app/dashboard/manageRiddles"
               className="xl:col-start-2 xl:row-start-2"
+              onClick={() => trackAdminManageCardClicked("riddles")}
             >
               <ManageCard title="Manage Riddles" icon={Puzzle} />
             </Link>
             <Link
               to="/app/dashboard/manageAccounts"
               className="xl:col-start-3 xl:row-start-1"
+              onClick={() => trackAdminManageCardClicked("accounts")}
             >
               <ManageCard title="Manage Accounts" icon={Users} />
             </Link>
@@ -144,12 +175,7 @@ export function AdminDashboard() {
             {/* Tabs for Algotime/Competitions and Time Range Filter */}
             <div className="flex justify-between items-center gap-2 mt-6 px-6">
               <div className="flex items-center">
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(v) =>
-                    setActiveTab(v as "algotime" | "competitions")
-                  }
-                >
+                <Tabs value={activeTab} onValueChange={handleTabChange}>
                   <TabsList>
                     <TabsTrigger
                       value="algotime"
@@ -168,10 +194,7 @@ export function AdminDashboard() {
               </div>
 
               <div>
-                <Select
-                  value={timeRange}
-                  onValueChange={(v) => setTimeRange(v as TimeRange)}
-                >
+                <Select value={timeRange} onValueChange={handleTimeRangeChange}>
                   <SelectTrigger className="text-primary rounded-lg">
                     <SelectValue
                       className="text-primary"
@@ -190,7 +213,7 @@ export function AdminDashboard() {
               </div>
             </div>
 
-            {/* Stats Cards Row - Metrics and Charts */}
+            {/* Stats Cards Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6">
               <StatsCard
                 title="New Accounts"
@@ -199,7 +222,6 @@ export function AdminDashboard() {
                 description={newAccountStats.description}
                 trend={newAccountStats.trend}
               />
-
               <StatsCard
                 title="Questions solved"
                 dateSubtitle={getTimeRangeLabel(timeRange)}
@@ -210,7 +232,6 @@ export function AdminDashboard() {
                   loading={loading}
                 />
               </StatsCard>
-
               <StatsCard title="Avg. Question Solve Time">
                 <TimeToSolveChart
                   key={`time-${chartAnimationKey}`}
@@ -218,7 +239,6 @@ export function AdminDashboard() {
                   loading={loading}
                 />
               </StatsCard>
-
               <StatsCard title="Number of logins">
                 <NumberOfLoginsChart
                   key={`logins-${chartAnimationKey}`}

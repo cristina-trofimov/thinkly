@@ -1,10 +1,19 @@
-import { AlgoTimeSessionForm } from '../../components/forms/AlgoTimeForm';
+import { useEffect } from "react";
+import { AlgoTimeSessionForm } from "../../components/forms/AlgoTimeForm";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function ManageAlgoTimePage() {
   const navigate = useNavigate();
+  const { trackAdminAlgotimeCreatePageViewed } = useAnalytics();
+
+  useEffect(() => {
+    trackAdminAlgotimeCreatePageViewed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     
     <div className="flex justify-center ">

@@ -16,6 +16,7 @@ import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 export function LoginForm({
   className,
@@ -26,6 +27,12 @@ export function LoginForm({
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const {
+    identifyUser,
+    trackLoginAttempt,
+    trackLoginSuccess,
+    trackLoginFailed,
+  } = useAnalytics();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setForm((prev) => ({ ...prev, [e.target.id]: e.target.value }));
@@ -37,19 +44,37 @@ export function LoginForm({
     e.preventDefault();
     e.stopPropagation();
 
+    trackLoginAttempt("email_password");
+
     setError(null);
     setLoading(true);
+
     try {
       const { token } = await login(form);
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
 
-      if(decoded) {
+      trackLoginSuccess("email_password");
+
+      // Identify the user so all future events are tied to them
+      identifyUser({
+        id: decoded.id,
+        email: decoded.sub,
+        firstName: "",
+        lastName: "",
+        role: decoded.role ?? "participant",
+      });
+
+      if (decoded) {
         navigate("/app/home");
       }
-      
     } catch (err) {
+      trackLoginFailed(
+        "email_password",
+        err instanceof Error ? err.message : "Unknown error"
+      );
+
       const isError = err instanceof Error;
       const errorMessage = isError
         ? err.message
@@ -60,11 +85,10 @@ export function LoginForm({
         message: `API Error: Failed to login: ${errorMessage}`,
         component: "LoginForm",
         url: globalThis.location.href,
-        stack: isError ? err.stack : undefined, // Safely access stack
+        stack: isError ? err.stack : undefined,
       });
 
       toast.error("Invalid email or password.");
-      // Do NOT navigate here
     } finally {
       setLoading(false);
     }
@@ -74,9 +98,12 @@ export function LoginForm({
     credential?: string;
     select_by?: string;
   }
+
   const handleGoogleSuccess = async (
     credentialResponse: GoogleCredentialResponse
   ): Promise<void> => {
+    trackLoginAttempt("google");
+
     try {
       const { credential } = credentialResponse;
       if (!credential) {
@@ -88,6 +115,18 @@ export function LoginForm({
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
+
+      trackLoginSuccess("google");
+
+      // Identify the user so all future events are tied to them
+      identifyUser({
+        id: decoded.id,
+        email: decoded.sub ?? "",
+        firstName: "",
+        lastName: "",
+        role: decoded.role ?? "participant",
+      });
+
       if (decoded) {
         navigate("/app/home");
       }
@@ -97,12 +136,14 @@ export function LoginForm({
         ? err.message
         : "Unknown error during Google login.";
 
+      trackLoginFailed("google", errorMessage);
+
       logFrontend({
         level: "ERROR",
         message: `API Error: Failed to login using Google: ${errorMessage}`,
         component: "LoginForm",
         url: globalThis.location.href,
-        stack: isError ? err.stack : undefined, // Safely access stack
+        stack: isError ? err.stack : undefined,
       });
 
       if (isError) {
@@ -114,8 +155,10 @@ export function LoginForm({
   };
 
   const handleGoogleError = (): void => {
+    trackLoginFailed("google", "Google Sign-In widget error");
     toast.error("Google Sign-In was unsuccessful. Try again later.");
   };
+
   return (
     <div
       className={cn("flex flex-col gap-6 w-full max-w-md mx-auto", className)}

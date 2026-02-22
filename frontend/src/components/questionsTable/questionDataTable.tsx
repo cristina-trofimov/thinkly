@@ -28,13 +28,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import type { Question } from "@/types/questions/Question.type";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends Question, TValue>({
   columns,
   data,
 }: Readonly<DataTableProps<TData, TValue>>) {
@@ -53,7 +55,33 @@ export function DataTable<TData, TValue>({
     },
   });
 
-  const nav = useNavigate()
+  const nav = useNavigate();
+  const {
+    trackQuestionClicked,
+    trackQuestionSearched,
+    trackQuestionFilteredByDifficulty,
+  } = useAnalytics();
+
+  // Debounce search tracking so we don't fire on every keystroke
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = (value: string) => {
+    table.getColumn("title")?.setFilterValue(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    if (value.trim()) {
+      searchTimeoutRef.current = setTimeout(() => {
+        trackQuestionSearched(value.trim());
+      }, 600);
+    }
+  };
+
+  const handleDifficultyFilter = (difficulty: string | undefined) => {
+    table.getColumn("difficulty")?.setFilterValue(difficulty);
+    trackQuestionFilteredByDifficulty(difficulty);
+  };
 
   return (
     <div>
@@ -63,9 +91,7 @@ export function DataTable<TData, TValue>({
           value={
             (table.getColumn("title")?.getFilterValue() as string) ?? ""
           }
-          onChange={(event) =>
-            table.getColumn("title")?.setFilterValue(event.target.value)
-          }
+          onChange={(event) => handleSearchChange(event.target.value)}
           className="max-w-sm w-[250px]"
         />
         <DropdownMenu>
@@ -82,96 +108,92 @@ export function DataTable<TData, TValue>({
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() =>
-                table.getColumn("difficulty")?.setFilterValue(undefined)
-              }
-            >
+            <DropdownMenuItem onClick={() => handleDifficultyFilter(undefined)}>
               All
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-easy"
-              onClick={() =>
-                table.getColumn("difficulty")?.setFilterValue("Easy")
-              }
+              onClick={() => handleDifficultyFilter("Easy")}
             >
               Easy
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-medium"
-              onClick={() =>
-                table.getColumn("difficulty")?.setFilterValue("Medium")
-              }
+              onClick={() => handleDifficultyFilter("Medium")}
             >
               Medium
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-hard"
-              onClick={() =>
-                table.getColumn("difficulty")?.setFilterValue("Hard")
-              }
+              onClick={() => handleDifficultyFilter("Hard")}
             >
               Hard
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+                onClick={() => {
+                  const question = row.original;
+                  trackQuestionClicked(
+                    question.title,
+                    question.difficulty,
+                    question.id
                   );
-                })}
+                  nav(`/app/code/${question.title}`, {
+                    state: {
+                      fromFeed: true,
+                      problem: question,
+                    },
+                  });
+                }}
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="text-left">
+                    {flexRender(
+                      cell.column.columnDef.cell,
+                      cell.getContext()
+                    )}
+                  </TableCell>
+                ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  onClick={() => {
-                    nav(`/app/code/${row.getValue('title')}`, {
-                      state: {
-                        fromFeed: true,
-                        problem: row.original,
-                      }
-                    })
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="text-left">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center"
+              >
+                No results.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
