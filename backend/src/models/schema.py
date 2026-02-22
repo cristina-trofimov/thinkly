@@ -211,10 +211,10 @@ class QuestionInstance(Base):
 
     question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
-    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'))
-    points: Mapped[int] = mapped_column(default=0)
+    event_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), nullable=True)
+    points: Mapped[Optional[int]] = mapped_column(default=0, nullable=True)
     riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete=ON_DELETE_SET_NULL))
-    is_riddle_completed: Mapped[bool] = mapped_column(default=False)
+    is_riddle_completed: Mapped[Optional[bool]] = mapped_column(default=False, nullable=True)
 
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
     riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
@@ -268,6 +268,7 @@ class Language(Base):
     row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     lang_judge_id: Mapped[int] = mapped_column(unique=True)  # ← add this
     display_name: Mapped[str] = mapped_column()
+    active: Mapped[bool] = mapped_column(default=False)
 
     __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
 
@@ -281,13 +282,12 @@ class Submission(Base):
         ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
     compile_output: Mapped[str] = mapped_column()
     submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    # runtime: Mapped[int] = mapped_column()
-    time: Mapped[int] = mapped_column()
+    runtime: Mapped[Optional[int]] = mapped_column(nullable=True)
     status: Mapped[str] = mapped_column()
-    memory: Mapped[int] = mapped_column()
-    stdout: Mapped[str] = mapped_column()
-    stderr: Mapped[str] = mapped_column()
-    # message: Mapped[str] = mapped_column()
+    memory: Mapped[Optional[int]] = mapped_column(nullable=True)
+    message: Mapped[Optional[str]] = mapped_column(nullable=True)
+    stdout: Mapped[Optional[str]] = mapped_column(nullable=True)
+    stderr: Mapped[Optional[str]] = mapped_column(nullable=True)
 
     question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='submissions',
                                                                uselist=False)
