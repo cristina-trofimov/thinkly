@@ -39,7 +39,6 @@ import { Input } from "@/components/ui/input";
 import {
   Filter,
   Search,
-  SquarePen,
   ChevronLeft,
   ChevronRight,
   Trash2,
@@ -84,7 +83,7 @@ export function ManageAccountsDataTable<TData, TValue>({
     []
   );
   const [rowSelection, setRowSelection] = React.useState({});
-  const [isEditMode, setIsEditMode] = React.useState(false);
+  const selectedCount = Object.keys(rowSelection).length;
 
   const table = useReactTable({
     data,
@@ -105,11 +104,6 @@ export function ManageAccountsDataTable<TData, TValue>({
       rowSelection,
     },
   });
-
-  const handleCancel = () => {
-    setIsEditMode(false);
-    setRowSelection({});
-  };
 
   const handleDelete = async () => {
     const selectedRows = table
@@ -152,7 +146,6 @@ export function ManageAccountsDataTable<TData, TValue>({
 
       toast.error(errorMessage);
     } finally {
-      setIsEditMode(false);
       setRowSelection({});
     }
   };
@@ -218,17 +211,15 @@ export function ManageAccountsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {isEditMode ? (
+        {selectedCount > 0 ? (
           <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
-                  className="cursor-pointer"
-                  variant="destructive"
-                  disabled={Object.keys(rowSelection).length === 0}
+                size="icon"
+                  className="cursor-pointer text-destructive bg-destructive/10 hover:bg-destructive/20"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
+                  <Trash2/>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -252,21 +243,9 @@ export function ManageAccountsDataTable<TData, TValue>({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button variant="outline" onClick={handleCancel}>
-              <span className="hidden md:inline-flex items-center cursor-pointer">
-                Cancel
-              </span>
-            </Button>
           </div>
         ) : (
-          <Button
-            variant="secondary"
-            className="ml-auto cursor-pointer"
-            onClick={() => setIsEditMode(true)}
-          >
-            <SquarePen className="text-primary" />
-            <span className="hidden md:inline-flex">Edit</span>
-          </Button>
+          <div className="ml-auto" />
         )}
       </div>
       <div className="overflow-hidden rounded-md border">
@@ -275,9 +254,6 @@ export function ManageAccountsDataTable<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  if (header.id === "select" && !isEditMode) {
-                    return null;
-                  }
                   return (
                     <TableHead key={header.id}>
                       {header.isPlaceholder
@@ -300,9 +276,6 @@ export function ManageAccountsDataTable<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    if (cell.column.id === "select" && !isEditMode) {
-                      return null;
-                    }
                     return (
                       <TableCell key={cell.id}>
                         {flexRender(
@@ -329,9 +302,9 @@ export function ManageAccountsDataTable<TData, TValue>({
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1">
-          {isEditMode ? (
+          {selectedCount > 0 ? (
             <div className="text-sm text-muted-foreground">
-              {Object.keys(rowSelection).length} of{" "}
+              {selectedCount} of{" "}
               {table.getFilteredRowModel().rows.length} row(s) selected
             </div>
           ) : null}
