@@ -41,12 +41,10 @@ export const AlgoTimeSessionForm = () => {
     endTime: "",
     location: ""
   });
-  const [generalInfoErrors, setGeneralInfoErrors] = useState<Record<string, boolean>>({});
   const navigate = useNavigate();
   const [validationError, setValidationError] = useState('');
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [searchQueries, setSearchQueries] = useState<{ [key: number]: string }>({});
-  const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: number[] }>({
     1: []
   });
@@ -247,7 +245,6 @@ export const AlgoTimeSessionForm = () => {
       repeatType: "none", // none, daily, weekly, biweekly, monthly
       repeatEndDate: ""
     });
-    setSelectedQuestions([]);
     setSearchQueries({});
     setSessionQuestions({ 1: [] });
     setDifficultyFilters({});
