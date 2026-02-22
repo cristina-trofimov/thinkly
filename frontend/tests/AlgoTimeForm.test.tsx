@@ -391,6 +391,7 @@ describe('AlgoTimeSessionForm', () => {
       });
 
       // Select weekly repeat
+      fireEvent.change(screen.getByTestId('date'), { target: { value: '2026-02-08' } });
       fireEvent.change(screen.getByRole('combobox'), { target: { value: 'weekly' } });
 
       const startTimeInput = screen.getByLabelText('Start Time') as HTMLInputElement;

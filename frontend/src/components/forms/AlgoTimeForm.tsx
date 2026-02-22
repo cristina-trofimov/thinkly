@@ -77,7 +77,7 @@ export const AlgoTimeSessionForm = () => {
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
     if (!generalData.date || formData.repeatType === "none") {
-      return [{ id: "1", sessionNumber: 1, date: formData.date }];
+      return [{ id: "1", sessionNumber: 1, date: generalData.date || formData.date }];
     }
 
     const sessions: Session[] = [];
