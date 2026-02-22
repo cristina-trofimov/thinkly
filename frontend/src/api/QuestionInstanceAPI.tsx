@@ -2,27 +2,33 @@ import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
 
 export async function updateQuestionInstance(
+  question_instance: QuestionInstance | undefined,
   // question_instance_id: number | null,
-  question_id: number,
-  event_id: number | null,
-  points: number | null,
-  riddle_id: number | null,
-  is_riddle_completed: boolean | null,
-): Promise<any> {
+
+  // question_id: number,
+  // event_id: number | null,
+  // points: number | null,
+  // riddle_id: number | null,
+  // is_riddle_completed: boolean | null,
+): Promise<QuestionInstance> {
+  if (!question_instance) {
+    throw new Error("Question instance cannot be undefined")
+  }
+
   try {
     const response = await axiosClient.post(
-        "/instances/update",
-        {
-            // question_instance_id: question_instance_id,
-            question_id: question_id,
-            event_id: event_id,
-            points: points,
-            riddle_id: riddle_id,
-            is_riddle_completed: is_riddle_completed
-        }
+      "/instances/update",
+      {
+        // question_instance_id: question_instance_id,
+        question_id: question_instance.question_id,
+        event_id: question_instance.event_id,
+        points: question_instance.points,
+        riddle_id: question_instance.riddle_id,
+        is_riddle_completed: question_instance.is_riddle_completed
+      }
     )
 
-    return response
+    return response['data']['data'] //|| response['data']
 
   } catch (err) {
     console.error("Error updating most recent submission:", err)
@@ -33,15 +39,17 @@ export async function updateQuestionInstance(
 export async function getQuestionInstance(
   question_id: number,
   event_id: number | null,
-): Promise<QuestionInstance> {
+): Promise<QuestionInstance[]> {
   try {
     const response = await axiosClient.get<{
-      question_instance_id: number
-      event_id: number
-      question_id: number
-      points: number
-      riddle_id: number
-      is_riddle_completed: boolean
+      status_code: number
+      data: QuestionInstance[]
+      // question_instance_id: number
+      // event_id: number
+      // question_id: number
+      // points: number
+      // riddle_id: number
+      // is_riddle_completed: boolean
     }>(`/instances/find`, {
           params: {
             question_id: question_id,
@@ -49,7 +57,7 @@ export async function getQuestionInstance(
           }
       })
 
-    return response.data
+    return response['data']['data'] //|| []
   } catch (err) {
     console.error("Error fetching most recent submission:", err);
     throw err;

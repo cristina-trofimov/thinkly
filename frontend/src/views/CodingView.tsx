@@ -23,6 +23,7 @@ import Loader from '../components/helpers/Loader';
 import ConsoleOutput from '../components/codingPage/ConsoleOutput';
 import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
 
 
 const CodingView = () => {
@@ -66,7 +67,9 @@ const CodingView = () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
-      const response = await submitAttempt(question?.id, 1, null, code, judgeID, selectedLang, testcases)
+
+      const response = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
+
       setLogs(prev => [...prev, response])
       setCurrentOutputTab("results")
     } finally {

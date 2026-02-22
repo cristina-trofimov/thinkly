@@ -3,6 +3,7 @@ import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { submitToJudge0 } from "./Judge0API";
 import type { Judge0Response } from "@/types/questions/Judge0Response";
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI";
+import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
 
 
 export async function submitAttempt(
@@ -11,22 +12,55 @@ export async function submitAttempt(
     event_id: number | null,
     source_code: string,
     language_id: string,
-    language_name: string,
+    // q_inst: QuestionInstance,
     testcases: TestcaseType[],
 ): Promise<any> {
 // ): {Promise<{ run_resp: Judge0Response; sub_resp: Response} >} {
     try {
+        // 1. Submit to judge0
         const code_run_response = await submitToJudge0(source_code, language_id, testcases)
 
-        // Get/create instance for question_instance_id
-        const question_instance = getQuestionInstance(1, 49)
-        // const question_instance = updateQuestionInstance(question_id, event_id, null, null, null)
+        // 2. Get/create instance for question_instance_id
+        // const question_instance = getQuestionInstance(question_id, event_id)
+        // const question_instance = getQuestionInstance(2, 5)
+        // const q_inst = getQuestionInstance(2, 5)
 
-        console.log('question_instance')
-        console.log(question_instance)
+        let q_inst: QuestionInstance | undefined 
+        // = {
+        //     question_instance_id: -1,
+        //     question_id: question_id,
+        //     event_id: event_id,
+        //     points: null,
+        //     riddle_id: null,
+        //     is_riddle_completed: null,
+        // }
+        if (event_id) {
+            console.log("event_id")
+            // q_inst = (await getQuestionInstance(question_id, event_id)).at(0)
+            const instances = await getQuestionInstance(question_id, event_id)
+            q_inst = instances[0]
+        }
+
+        if (!q_inst) {
+            q_inst = {
+                question_instance_id: -1,
+                question_id: question_id,
+                event_id: event_id,
+                points: 0,
+                riddle_id: null,
+                is_riddle_completed: null,
+            }
+        }
+
+        // 3. Update question instance
+        const updatedInstance = updateQuestionInstance(q_inst)
+
+        console.log('updatedInstance')
+        console.log(updatedInstance)
         
+        // 4. Add submission
         // Add to most recent submission
-        // const response = await axiosClient.post(
+        // const submissionResponse = await axiosClient.post(
         //     "/attempts/add",
         //     {
         //         user_id: 21, // TO CHANGE
@@ -43,7 +77,13 @@ export async function submitAttempt(
         //     }
         // )
 
-        // return {code_run_response, response}
+        // 5. Add to most recent submission
+
+        // return {
+        //     judge0Response: code_run_response,
+        //     submissionResponse: submissionResponse.data,
+        //     questionInstance: updatedInstance
+        // }
 
         return code_run_response
     } catch (err) {
