@@ -3,13 +3,6 @@ import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
 
 export async function updateQuestionInstance(
   question_instance: QuestionInstance | undefined,
-  // question_instance_id: number | null,
-
-  // question_id: number,
-  // event_id: number | null,
-  // points: number | null,
-  // riddle_id: number | null,
-  // is_riddle_completed: boolean | null,
 ): Promise<QuestionInstance> {
   if (!question_instance) {
     throw new Error("Question instance cannot be undefined")
@@ -19,7 +12,6 @@ export async function updateQuestionInstance(
     const response = await axiosClient.post(
       "/instances/update",
       {
-        // question_instance_id: question_instance_id,
         question_id: question_instance.question_id,
         event_id: question_instance.event_id,
         points: question_instance.points,
@@ -28,7 +20,7 @@ export async function updateQuestionInstance(
       }
     )
 
-    return response['data']['data'] //|| response['data']
+    return response['data']['data'] || response['data']
 
   } catch (err) {
     console.error("Error updating most recent submission:", err)
@@ -44,12 +36,6 @@ export async function getQuestionInstance(
     const response = await axiosClient.get<{
       status_code: number
       data: QuestionInstance[]
-      // question_instance_id: number
-      // event_id: number
-      // question_id: number
-      // points: number
-      // riddle_id: number
-      // is_riddle_completed: boolean
     }>(`/instances/find`, {
           params: {
             question_id: question_id,
@@ -57,7 +43,7 @@ export async function getQuestionInstance(
           }
       })
 
-    return response['data']['data'] //|| []
+    return response['data']['data'] || []
   } catch (err) {
     console.error("Error fetching most recent submission:", err);
     throw err;

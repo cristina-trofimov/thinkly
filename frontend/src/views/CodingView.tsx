@@ -68,9 +68,9 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const response = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
+      const { judge0Response, submissionResponse } = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
 
-      setLogs(prev => [...prev, response])
+      setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")
     } finally {
       setIsAsyncLoading(false)

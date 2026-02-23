@@ -13,12 +13,13 @@ class SubmissionModel(BaseModel):
     user_id: int
     question_instance_id: int
     compile_output: str
-    submitted_on: str # CHNAGE
-    time: int
-    status: str
-    memory: int
-    stdout: str
-    stderr: str
+    submitted_on: str
+    runtime: float | None = None
+    status: str | None = None
+    memory: int | None = None
+    stdout: str | None = None
+    stderr: str | None = None
+    message: str | None = None
 
 
 @submission_router.get("/all",
@@ -51,22 +52,23 @@ def save_most_recent_sub(
     sub_request: dict,
 ):
     try:
-        db.add(SubmissionModel(
+        db.add(Submission(
             user_id = sub_request['user_id'],
-            question_instance_id = sub_request['question_instance_id'],
+            question_instance_id = int(sub_request['question_instance_id']),
             compile_output = sub_request['compile_output'],
             submitted_on = sub_request['submitted_on'],
-            time = sub_request['time'],
+            runtime = float(sub_request['runtime']) if sub_request['runtime'] is not None else None,
             status = sub_request['status'],
-            memory = sub_request['memory'],
-            stdout = sub_request['stdout'],
-            stderr = sub_request['stderr'],
+            memory = int(sub_request['memory']) if sub_request['memory'] is not None else None,
+            stdout = sub_request['stdout'] if sub_request['stdout'] is not None else None,
+            stderr = sub_request['stderr'] if sub_request['stderr'] is not None else None,
+            message = sub_request['message'] if sub_request['message'] is not None else None,
         ))
         db.commit()
 
         logger.info(f"Uploaded submission.")
 
-        return {"status_code": 200, "message": f"Successfully uploaded submission"}
+        return {"status_code": 200, "message": f"Submission sucessful"}
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading submissions: {e}")

@@ -14,7 +14,7 @@ question_instance_router = APIRouter(tags=["Instances"])
 class QuestionInstanceModel(BaseModel):
     question_id: int
     event_id: int | None = None
-    points: int
+    points: int | None = None
     riddle_id: int | None = None
     is_riddle_completed: bool = False
 
@@ -78,15 +78,11 @@ def create_question_instance(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):
-    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-    print(f'request: {request}')
-    print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     try:
         instance = None
 
         # If event_id is null -> practicing: save automaticall
         if request['event_id'] is None:
-            print("request")
             instance = QuestionInstance(
                 question_id = request['question_id'],
                 event_id = None,
@@ -96,21 +92,13 @@ def create_question_instance(
             )
             db.add(instance)
         else:
-            print("1"*60)
-            
             # get instance
             instance = query_get_question_instance(db,
                 request['question_id'],
                 request['event_id']
             ).first()
-            
-            print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
-            print(f'instance: {instance}')
-            print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
             if instance is None:
-                print("2"*60)
-
                 # If it doesn't exist already, create it
                 instance = QuestionInstance(
                     question_id = request['question_id'],
@@ -121,8 +109,6 @@ def create_question_instance(
                 )
                 db.add(instance)
             else:
-                print("3"*60)
-
                 # update if it exist
                 instance.question_id = request['question_id'],
                 instance.event_id = request['event_id'],
@@ -136,7 +122,7 @@ def create_question_instance(
         logger.info(f"Uploaded question instance.")
 
         return {"status_code": 200, 'data': {
-            "question_instance_id": instance.id,
+            "question_instance_id": instance.question_instance_id,
             "event_id": instance.event_id,
             "question_id": instance.question_id,
             "points": instance.points,
