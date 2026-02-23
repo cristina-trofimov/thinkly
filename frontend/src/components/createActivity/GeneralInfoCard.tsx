@@ -84,6 +84,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
             </div>
           {repeatData && onRepeatChange && (
            <>
+           <div className="space-y-2 mt-4">
           <div className="space-y-2 gap-4">
             <Label>Repeat</Label>
 
@@ -106,8 +107,10 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
               </SelectContent>
             </Select>
           </div>
+          </div>
 
           {repeatData.repeatType !== "none" && (
+            <div className="space-y-2 mt-4">
             <div className="space-y-2">
               <Label>Repeat End Date</Label>
 
@@ -117,6 +120,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
                   onRepeatChange({ repeatEndDate: v })
                 }
               />
+            </div>
             </div>
           )}
         </>

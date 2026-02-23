@@ -190,18 +190,12 @@ export const AlgoTimeSessionForm = () => {
 
   const validateForm = (): boolean => {
     if (generalData.date === '' || generalData.startTime === '' || generalData.endTime === '') {
-      setValidationError("Incomplete general information.");
+      toast.error("Incomplete general information.");
       return false;
     }
 
     if (formData.repeatType !== 'none' && formData.repeatEndDate === '') {
-      setValidationError("Please provide an end date for repeat sessions.");
-      return false;
-    }
-
-
-    if (generalData.name.trim() === '') {
-      setValidationError("Please enter a session name.");
+      toast.error("Please provide an end date for repeat sessions.");
       return false;
     }
 
@@ -209,7 +203,7 @@ export const AlgoTimeSessionForm = () => {
     const now = new Date();
     now.setSeconds(0, 0);
     if (ATSessionDateTime.getTime() <= now.getTime()) {
-      setValidationError("The session must be scheduled for a future date and time.");
+      toast.error("The session must be scheduled for a future date and time.");
       return false;
     }
 
@@ -219,7 +213,14 @@ export const AlgoTimeSessionForm = () => {
     );
 
     if (sessionsWithoutQuestions.length > 0) {
-      setValidationError(`Please select at least one question for session ${sessionsWithoutQuestions[0].sessionNumber}.`);
+      const session = sessionsWithoutQuestions[0];
+      const name = sessionNames[session.sessionNumber] || `Session ${session.sessionNumber}`;
+      toast.error(`Please select at least one question for "${name}".`);
+      return false;
+    }
+
+    if (generalData.name.trim() === '') {
+      toast.error("Please enter a session name.");
       return false;
     }
 
@@ -229,10 +230,10 @@ export const AlgoTimeSessionForm = () => {
     );
 
     if (sessionsWithTooMany.length > 0) {
-      setValidationError(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 6.`);
+      toast.error(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 6.`);
       return false;
     }
-    setValidationError('');
+    toast.error('');
     return true;
   };
 
@@ -246,6 +247,14 @@ export const AlgoTimeSessionForm = () => {
       repeatType: "none", // none, daily, weekly, biweekly, monthly
       repeatEndDate: ""
     });
+    setGeneralData({
+      name: "",
+      date: "",
+      startTime: "",
+      endTime: "",
+      location: ""
+    });
+    setSessionNames({}); 
     setSearchQueries({});
     setSessionQuestions({ 1: [] });
     setDifficultyFilters({});
@@ -333,14 +342,14 @@ export const AlgoTimeSessionForm = () => {
 
       // 409 handling
       if (isAxiosError(error) && error.response?.status === 409) {
-        setValidationError(
+        toast.error(
           error.response?.data?.detail || 
           'A series with this name already exists. Please try again.'
         );
 
       } else {
       console.error('Session creation failed:', error);
-      setValidationError('Failed to create session. Please try again.');
+      toast.error('Failed to create session. Please try again.');
       toast.error("Failed to create session");
       }
       setTimeout(() => {
@@ -395,7 +404,7 @@ export const AlgoTimeSessionForm = () => {
             <AlertCircle />
             <AlertTitle >Warning!</AlertTitle>
             <AlertDescription>
-              {validationError}
+             
             </AlertDescription>
           </Alert>
         )}
@@ -404,7 +413,7 @@ export const AlgoTimeSessionForm = () => {
         {/* Form Content */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
 
-          <div className="lg:col-span-2 space-y-4 text-sm">
+          <div className="lg:col-span-2 space-y-4 text-sm h-full">
          <GeneralInfoCard
           data={generalData}
           errors={hasSubmitted ? {
@@ -448,10 +457,10 @@ export const AlgoTimeSessionForm = () => {
                       <TabsTrigger
                       key={session.sessionNumber}
                       value={`session-${session.sessionNumber}`}
-                      className={`w-full justify-start text-left px-3 py-2 text-sm truncate border-l-2 ${
+                      className={`w-full shadows-sm justify-start text-left border border-gray-200  data-[state=active]:border-l-primary px-3 py-2 text-sm truncate border-l-2 ${
                         isSessionComplete(session.sessionNumber)
-                          ? "border-l-green-500 bg-green-500/10 text-green-700"
-                          : "border-l-red-500 bg-red-500/10 text-red-700"
+                          ? "border-l-green-500 shadow-sm "
+                          : "border-l-red-500 shadow-sm"
                       }`}
                     >
               <span className="truncate block w-full">

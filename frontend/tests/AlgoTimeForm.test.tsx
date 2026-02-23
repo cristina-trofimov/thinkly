@@ -269,7 +269,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Incomplete general information.');
       });
     });
 
@@ -282,7 +282,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Incomplete general information.');
       });
     });
 
@@ -295,7 +295,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Incomplete general information.');
       });
     });
 
@@ -314,7 +314,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('The session must be scheduled for a future date and time.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('The session must be scheduled for a future date and time.');
       });
     });
 
@@ -337,7 +337,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Please select at least one question for session 1.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Please select at least one question for "Session 1".');
       });
     });
 
@@ -379,7 +379,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Session 1 has too many questions. Maximum is 6.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Session 1 has too many questions. Maximum is 6.');
       });
     });
 
@@ -403,7 +403,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Please provide an end date for repeat sessions.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Please provide an end date for repeat sessions.');
       });
     });
 
@@ -413,22 +413,18 @@ describe('AlgoTimeSessionForm', () => {
       await waitFor(() => {
         expect(screen.getByText('Create')).toBeInTheDocument();
       });
-
-      const dateInput = screen.getByTestId('date') as HTMLInputElement;
-      fireEvent.change(dateInput, { target: { value: '' } });
-
-      const submitButton = screen.getByText('Create');
-      fireEvent.click(submitButton);
-
+    
+      fireEvent.click(screen.getByText('Create'));
+    
       await waitFor(() => {
-        expect(screen.getByText('Incomplete general information.')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalled();
       });
-
-      const resetButton = screen.getByText('Reset');
-      fireEvent.click(resetButton);
-
+    
+      fireEvent.click(screen.getByText('Reset'));
+    
+      // Verify form is reset by checking date input is empty
       await waitFor(() => {
-        expect(screen.queryByText('Incomplete general information.')).not.toBeInTheDocument();
+        expect(screen.getByTestId('date')).toHaveValue('');
       });
     });
   });
@@ -566,7 +562,6 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Failed to create session. Please try again.')).toBeInTheDocument();
         expect(toast.error).toHaveBeenCalledWith('Failed to create session');
       });
     });
@@ -595,7 +590,7 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.click(screen.getByText('Create'));
 
       await waitFor(() => {
-        expect(screen.getByText('Series already exists')).toBeInTheDocument();
+        expect(toast.error).toHaveBeenCalledWith('Series already exists');
       });
     });
   });
