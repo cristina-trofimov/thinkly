@@ -50,6 +50,8 @@ function PaginationLink({
           variant: isActive ? "outline" : "ghost",
           size,
         }),
+        "hover:text-primary",
+        isActive && "text-primary font-semibold",
         className
       )}
       {...props}
@@ -69,8 +71,8 @@ function PaginationPrevious({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <ChevronLeftIcon />
-      <span className="hidden sm:block">{text}</span>
+      <ChevronLeftIcon className="size-4 text-primary" />
+      <span className="hidden items-center sm:inline-flex">{text}</span>
     </PaginationLink>
   )
 }
@@ -87,8 +89,8 @@ function PaginationNext({
       className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
-      <ChevronRightIcon />
+      <span className="hidden items-center sm:inline-flex">{text}</span>
+      <ChevronRightIcon className="size-4 text-primary" />
     </PaginationLink>
   )
 }
