@@ -127,23 +127,16 @@ export function ManageAccountsDataTable<TData, TValue>({
   const currentPage = table.getState().pagination.pageIndex;
   const pageCount = table.getPageCount();
   const pageItems = React.useMemo(() => {
-    if (pageCount <= 7) {
+    if (pageCount <= 3) {
       return Array.from({ length: pageCount }, (_, index) => index);
     }
 
-    if (currentPage <= 2) {
-      return [0, 1, 2, 3, "ellipsis-right", pageCount - 1] as const;
+    if (currentPage <= 1) {
+      return [0, 1, 2, "ellipsis-right", pageCount - 1] as const;
     }
 
     if (currentPage >= pageCount - 3) {
-      return [
-        0,
-        "ellipsis-left",
-        pageCount - 4,
-        pageCount - 3,
-        pageCount - 2,
-        pageCount - 1,
-      ] as const;
+      return [0, "ellipsis-left", pageCount - 3, pageCount - 2, pageCount - 1] as const;
     }
 
     return [
@@ -200,6 +193,10 @@ export function ManageAccountsDataTable<TData, TValue>({
     } finally {
       setRowSelection({});
     }
+  };
+
+  const handleCancelSelection = () => {
+    setRowSelection({});
   };
 
   return (
@@ -295,6 +292,13 @@ export function ManageAccountsDataTable<TData, TValue>({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            <Button
+              variant="outline"
+              className="cursor-pointer"
+              onClick={handleCancelSelection}
+            >
+              Cancel
+            </Button>
           </div>
         ) : (
           <div className="ml-auto" />
