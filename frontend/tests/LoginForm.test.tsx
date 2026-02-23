@@ -147,7 +147,7 @@ describe('LoginForm', () => {
             const mockToken = 'mock-jwt-token';
             const mockDecodedToken = { sub: { role: 'student' } };
 
-            mockLogin.mockResolvedValue({ token: mockToken });
+            mockLogin.mockResolvedValue({ access_token: mockToken });
             mockJwtDecode.mockReturnValue(mockDecodedToken as any);
 
             render(<LoginForm />, { wrapper: Wrapper });
@@ -216,7 +216,7 @@ describe('LoginForm', () => {
 
         it('clears previous error on new submission', async () => {
             mockLogin.mockRejectedValueOnce(new Error('First error'));
-            mockLogin.mockResolvedValueOnce({ token: 'mock-token' });
+            mockLogin.mockResolvedValueOnce({ access_token: 'mock-token' });
             mockJwtDecode.mockReturnValue({ sub: { role: 'student' } } as any);
 
             render(<LoginForm />, { wrapper: Wrapper });
@@ -255,7 +255,7 @@ describe('LoginForm', () => {
             const mockToken = 'mock-google-jwt-token';
             const mockDecodedToken = { sub: { role: 'student' } };
 
-            mockGoogleLogin.mockResolvedValue({ token: mockToken });
+            mockGoogleLogin.mockResolvedValue({ access_token: mockToken });
             mockJwtDecode.mockReturnValue(mockDecodedToken as any);
 
             render(<LoginForm />, { wrapper: Wrapper });
@@ -318,7 +318,7 @@ describe('LoginForm', () => {
     describe('LocalStorage', () => {
         it('stores token in localStorage on successful login', async () => {
             const mockToken = 'test-token-12345';
-            mockLogin.mockResolvedValue({ token: mockToken });
+            mockLogin.mockResolvedValue({ access_token: mockToken });
             mockJwtDecode.mockReturnValue({ sub: { role: 'student' } } as any);
 
             render(<LoginForm />, { wrapper: Wrapper });

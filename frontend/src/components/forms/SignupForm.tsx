@@ -65,7 +65,7 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
 
   async function loginAfterSignup(): Promise<void> {
-    const { token } = await login({
+    const { access_token: token } = await login({
       email: formData.email,
       password: formData.password,
     });
