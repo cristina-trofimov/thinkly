@@ -1,5 +1,6 @@
 import * as React from "react"
 import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
+import { type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
@@ -33,12 +34,14 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 type PaginationLinkProps = {
   isActive?: boolean
   size?: "default" | "sm" | "lg" | "icon" | "icon-sm" | "icon-lg"
+  variant?: VariantProps<typeof buttonVariants>["variant"]
 } & React.ComponentProps<"a">
 
 function PaginationLink({
   className,
   isActive,
   size = "icon",
+  variant,
   ...props
 }: PaginationLinkProps) {
   return (
@@ -47,7 +50,7 @@ function PaginationLink({
       data-slot="pagination-link"
       className={cn(
         buttonVariants({
-          variant: isActive ? "outline" : "ghost",
+          variant: variant ?? (isActive ? "outline" : "ghost"),
           size,
         }),
         "hover:text-primary",
@@ -67,12 +70,13 @@ function PaginationPrevious({
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      size="default"
-      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
+      size="sm"
+      variant="outline"
+      className={cn("gap-1 px-2 sm:pl-2", className)}
       {...props}
     >
       <ChevronLeftIcon className="size-4 text-primary" />
-      <span className="hidden items-center sm:inline-flex">{text}</span>
+      <span className="hidden items-center lg:inline-flex">{text}</span>
     </PaginationLink>
   )
 }
@@ -85,11 +89,12 @@ function PaginationNext({
   return (
     <PaginationLink
       aria-label="Go to next page"
-      size="default"
-      className={cn("gap-1 px-2.5 sm:pr-2.5", className)}
+      size="sm"
+      variant="outline"
+      className={cn("flex items-center gap-1 px-2 sm:pr-2", className)}
       {...props}
     >
-      <span className="hidden items-center sm:inline-flex">{text}</span>
+      <span className="hidden items-center lg:inline-flex">{text}</span>
       <ChevronRightIcon className="size-4 text-primary" />
     </PaginationLink>
   )

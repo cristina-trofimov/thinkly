@@ -356,7 +356,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <div className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-row items-center justify-between gap-3 py-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Rows per page</span>
@@ -400,8 +400,11 @@ export function ManageAccountsDataTable<TData, TValue>({
                 }
               />
             </PaginationItem>
+            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
+              Page {currentPage + 1} of {pageCount}
+            </PaginationItem>
             {pageItems.map((item, index) => (
-              <PaginationItem key={`${item}-${index}`}>
+              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
                 {typeof item === "number" ? (
                   <PaginationLink
                     href="#"
