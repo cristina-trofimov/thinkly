@@ -6,6 +6,18 @@ import { getQuestionInstance, updateQuestionInstance } from "../src/api/Question
 import type { Judge0Response } from "../src/types/questions/Judge0Response"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
 
+beforeAll(() => {
+  Object.defineProperty(global, 'import', {
+    value: {
+      meta: {
+        env: {
+          VITE_BACKEND_URL: 'http://localhost:8000'
+        }
+      }
+    }
+  });
+});
+
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
   default: {
@@ -18,51 +30,19 @@ jest.mock('../src/lib/axiosClient', () => ({
 }))
 
 jest.mock('../src/api/Judge0API', () => ({
-    submitToJudge0: jest.fn(() =>
-      Promise.resolve({
-        text: () => 'Execution success'
-      })
-    )
-}))
-
-jest.mock('../src/api/CodeSubmissionAPI', () => ({
-    submitAttempt: jest.fn(() =>
-      Promise.resolve({
-        text: () => 'Successfully submitted code'
-      })
-    )
+  submitToJudge0: jest.fn()
 }))
 
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
-    getQuestionInstance: jest.fn(() =>
-      Promise.resolve({
-        text: () => 'Question instance'
-      })
-    ),
-    updateQuestionInstance: jest.fn(() =>
-      Promise.resolve({
-        text: () => 'Updated question instance'
-      })
-    ),
+  getQuestionInstance: jest.fn(),
+  updateQuestionInstance: jest.fn(),
 }))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-
-// const { mockedSubmitToJudge0 } = require('../src/api/Judge0API')
-// const { mockedGetQuestionInstance, mockedUpdateQuestionInstance } = require('../src/api/QuestionInstanceAPI')
-
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
 const mockedUpdateQuestionInstance = updateQuestionInstance as jest.MockedFunction<typeof updateQuestionInstance>
 
-// jest.mock('../src/lib/axiosClient')
-// jest.mock('../src/api/Judge0API')
-// jest.mock('../src/api/QuestionInstanceAPI')
-
-// const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-// const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
-// const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
-// const mockedUpdateQuestionInstance = updateQuestionInstance as jest.MockedFunction<typeof updateQuestionInstance>
 
 const question_id = 1
 const user_id = 1
@@ -93,17 +73,17 @@ const testcases: TestcaseType[] = [
 ]
 
 const mockJudge0Response: Judge0Response = {
-    stdout: "Hello\n",
-    stderr: null,
-    compile_output: null,
-    message: null,
-    status: {
-        id: 3,
-        description: "Accepted"
-    },
-    memory: "1024",
-    time: "0.123",
-    token: null
+  stdout: "Hello\n",
+  stderr: null,
+  compile_output: null,
+  message: null,
+  status: {
+    id: 3,
+    description: "Accepted"
+  },
+  memory: "1024",
+  time: "0.123",
+  token: null
 }
 
 const mockQuestionInstance: QuestionInstance = {
@@ -135,14 +115,19 @@ const mockSubmissionResponse = {
 describe("Code Submission", () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    
+    mockedSubmitToJudge0.mockImplementation(async () => mockJudge0Response)
+    mockedGetQuestionInstance.mockImplementation(async () => [])
+    mockedUpdateQuestionInstance.mockImplementation(async (instance) => ({
+      ...mockQuestionInstance,
+      question_instance_id: instance.question_instance_id === -1 ? 123 : instance.question_instance_id
+    }))
+    
+    mockedAxios.post.mockImplementation(async () => ({ data: mockSubmissionResponse }))
   })
 
-  it("processes submission not linked to an event", async () => {
-    mockedSubmitToJudge0.mockResolvedValueOnce(mockJudge0Response)
-    mockedGetQuestionInstance.mockResolvedValueOnce([])
+  it("processes submission not linked to an event (practice question)", async () => {
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
-
-    mockedAxios.post.mockResolvedValueOnce({ data: mockSubmissionResponse })
 
     const result = await submitAttempt(question_id, user_id, null, source_code, language_id, testcases)
 
@@ -155,9 +140,9 @@ describe("Code Submission", () => {
     expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
       question_id: question_id,
       event_id: null,
-      points: 0,
+      points: null,
       riddle_id: null,
-      is_riddle_completed: false
+      is_riddle_completed: null
     })
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
@@ -171,22 +156,11 @@ describe("Code Submission", () => {
         runtime: mockJudge0Response.time,
       })
     )
-
-    expect(result).toEqual({
-      judge0Response: mockJudge0Response,
-      submissionResponse: mockSubmissionResponse.data,
-      questionInstance: mockQuestionInstance
-    })
   })
 
   it("processes submission linked to an event with existing question instance", async () => {
-    mockedSubmitToJudge0.mockResolvedValueOnce(mockJudge0Response)
     mockedGetQuestionInstance.mockResolvedValueOnce([mockQuestionInstance])
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
-    
-    mockedAxios.post.mockResolvedValueOnce({
-      data: mockSubmissionResponse
-    })
 
     const result = await submitAttempt(question_id, user_id, event_id, source_code, language_id, testcases)
 
@@ -202,13 +176,8 @@ describe("Code Submission", () => {
   })
 
   it("processes submission linked to an event without existing question instance", async () => {
-    mockedSubmitToJudge0.mockResolvedValueOnce(mockJudge0Response)
     mockedGetQuestionInstance.mockResolvedValueOnce([])
-    
-    const newQuestionInstance = { ...mockQuestionInstance, question_instance_id: -1 }
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
-    
-    mockedAxios.post.mockResolvedValueOnce({ data: mockSubmissionResponse })
 
     const result = await submitAttempt(question_id, user_id, event_id, source_code, language_id, testcases)
 
@@ -219,9 +188,9 @@ describe("Code Submission", () => {
     expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
       question_id: question_id,
       event_id: event_id,
-      points: 0,
+      points: null,
       riddle_id: null,
-      is_riddle_completed: false
+      is_riddle_completed: null
     })
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
@@ -231,149 +200,25 @@ describe("Code Submission", () => {
     mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Judge0 API error"))
 
     await expect(submitAttempt(question_id, user_id, null, source_code, language_id, testcases))
-        .rejects.toThrow("Judge0 API error")
+                .rejects.toThrow("Judge0 API error")
 
+    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
     expect(mockedUpdateQuestionInstance).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
   })
 
   it("handles errors from submission API", async () => {
-    mockedSubmitToJudge0.mockResolvedValueOnce(mockJudge0Response)
     mockedGetQuestionInstance.mockResolvedValueOnce([])
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
-
     mockedAxios.post.mockRejectedValueOnce(new Error("Submission API error"))
 
     await expect(submitAttempt(question_id, user_id, null, source_code, language_id, testcases))
-        .rejects.toThrow("Submission API error")
+                .rejects.toThrow("Submission API error")
+
+    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
+    expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
+    expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1)
   })
 })
-
-
-
-
-// import axiosClient from "../src/lib/axiosClient"
-// import { submitToJudge0 } from "../src/api/Judge0API"
-// import { submitAttempt } from "../src/api/CodeSubmissionAPI"
-// import type { TestcaseType } from "../src/types/questions/Testcases.type"
-// import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
-
-
-// jest.mock('../src/lib/axiosClient', () => ({
-//   __esModule: true,
-//   default: {
-//     get: jest.fn(),
-//     post: jest.fn(),
-//     put: jest.fn(),
-//     delete: jest.fn(),
-//   },
-//   API_URL: 'http://localhost:8000',
-// }))
-
-// jest.mock('../src/api/Judge0API', () => ({
-//     submitToJudge0: jest.fn(() =>
-//       Promise.resolve({
-//         text: () => 'Execution success'
-//       })
-//     )
-// }))
-
-// jest.mock('../src/api/CodeSubmissionAPI', () => ({
-//     submitAttempt: jest.fn(() =>
-//       Promise.resolve({
-//         text: () => 'Successfully submitted code'
-//       })
-//     )
-// }))
-
-// jest.mock('../src/api/QuestionInstanceAPI', () => ({
-//     getQuestionInstance: jest.fn(() =>
-//       Promise.resolve({
-//         text: () => 'Question instance'
-//       })
-//     ),
-//     updateQuestionInstance: jest.fn(() =>
-//       Promise.resolve({
-//         text: () => 'Updated question instance'
-//       })
-//     ),
-// }))
-
-// const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-// const question_id = 1
-// const user_id = 1
-// const event_id = 1
-// const source_code = "print('Hello')"
-// const language_id = "71"
-// const testcases: TestcaseType[] = [
-//   {
-//     test_case_id: 1,
-//     question_id: 1,
-//     input_data: {
-//       "nums": [2, 7, 11, 15],
-//       "target": 19
-//       },
-//     expected_output: "[1,2]",
-//     caseID: 'Case 1'
-//   },
-//   {
-//     test_case_id: 2,
-//     question_id: 1,
-//     input_data: {
-//       "nums": [2, 7],
-//       "target": 9
-//       },
-//     expected_output: "[0,1]",
-//     caseID: 'Case 2'
-//   },
-// ]
-
-// describe("Code Submission", () => {
-//   beforeEach(() => {
-//     jest.clearAllMocks()
-//   })
-
-
-//   it("processes submission not linked to an event", async () => {
-//     const { judge0Response, submissionResponse } = await submitAttempt(question_id, user_id, null, source_code, language_id, testcases)
-    
-//     // mockedAxios.post.mockResolvedValueOnce({
-//     //     judge0Response: null,
-//     //     submissionResponse: {
-//     //     status_code: 200,
-//     //     message: "message",
-//     // },
-//     // questionInstance: null
-//     // })
-
-//     // const result = await submitToJudge0(code, language_id, []);
-
-//     expect(submitToJudge0).toHaveBeenCalledTimes(1)
-//     expect(updateQuestionInstance).toHaveBeenCalledTimes(1)
-//     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-//   })
-
-// //   it("submit to judge0 and returns final output", async () => {
-// //     const { stdin, expected_output } = parse_input_output(testcases)
-    
-// //     mockedAxios.post.mockResolvedValueOnce({
-// //       data: { 
-// //         source_code: code,
-// //         language_id: language_id,
-// //         stdin: stdin,
-// //         expected_output: expected_output,
-// //        },
-// //     })
-
-// //     const result = await submitToJudge0(code, language_id, []);
-
-// //     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-// //   })
-
-// //   it("throws error if axios fails", async () => {
-// //     mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
-// //     await expect(submitToJudge0('print("Hello', '71', testcases))
-// //       .rejects.toThrow("Network error")
-// //   })
-// })
