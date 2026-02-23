@@ -1,15 +1,19 @@
 # nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
 # from sqlalchemy.orm import Session
-# from datetime import datetime, timedelta, UTC
+# from datetime import datetime, timedelta, timezone
 # import random
 #
 # from db import engine, Base, SessionLocal
-# from endpoints.authentification_api import create_user
 #
 # from models.schema import (
+#     UserAccount,
 #     BaseEvent,
 #     Competition,
+#     CompetitionEmail,
 #     Question,
+#     TestCase,
+#     Tag,
+#     Language,
 #     QuestionInstance,
 #     Riddle,
 #     Participation,
@@ -30,24 +34,48 @@
 #     db: Session = SessionLocal()
 #
 #     try:
+#         # ---------------- LANGUAGES ----------------
+#         # Required by UserPreferences.last_used_programming_language and MostRecentSubmission.lang_judge_id
+#         languages_data = [
+#             (63,  "JavaScript (Node.js 12.14.0)"),
+#             (71,  "Python (3.8.1)"),
+#             (74,  "TypeScript (3.7.4)"),
+#             (62,  "Java (OpenJDK 13.0.1)"),
+#             (54,  "C++ (GCC 9.2.0)"),
+#             (51,  "C# (Mono 6.6.0.161)"),
+#         ]
+#         languages = []
+#         for judge_id, display_name in languages_data:
+#             lang = Language(
+#                 lang_judge_id=judge_id,
+#                 display_name=display_name,
+#                 active=True,
+#             )
+#             languages.append(lang)
+#
+#         db.add_all(languages)
+#         db.commit()
+#         print(f"✅ {len(languages)} Languages created")
+#
 #         # ---------------- USERS ----------------
 #         users = []
 #         for i in range(1, 21):
-#             user = create_user(
-#                 db=db,
+#             user = UserAccount(
 #                 email=f"user{i}@example.com",
-#                 password_hash="hashed_pw",
+#                 hashed_password="hashed_pw",          # was: password_hash
 #                 first_name=f"First{i}",
 #                 last_name=f"Last{i}",
-#                 type="participant"
+#                 user_type="participant",               # was: type
 #             )
+#             db.add(user)
 #             users.append(user)
 #
+#         db.commit()
 #         print(f"✅ {len(users)} Users created")
 #
 #         # ---------------- EVENTS + COMPETITIONS ----------------
 #         competitions = []
-#         now = datetime.now(UTC)
+#         now = datetime.now(timezone.utc)
 #
 #         for i in range(1, 6):
 #             event_start_date = now - timedelta(days=i * 7)
@@ -70,29 +98,67 @@
 #                 riddle_cooldown=30,
 #             )
 #             db.add(competition)
+#             db.flush()
+#
+#             # CompetitionEmail — one reminder per competition
+#             email = CompetitionEmail(
+#                 competition_id=competition.event_id,
+#                 subject=f"Reminder: Competition {i} is coming up!",
+#                 to="participants@example.com",
+#                 body=f"Don't forget that Competition {i} starts soon. Good luck!",
+#                 time_24h_before=event_start_date - timedelta(hours=24),
+#                 time_5min_before=event_start_date - timedelta(minutes=5),
+#                 other_time=None,
+#             )
+#             db.add(email)
 #             competitions.append(competition)
 #
 #         db.commit()
-#         print("✅ BaseEvents + Competitions created")
+#         print("✅ BaseEvents + Competitions + CompetitionEmails created")
 #
-#         # ---------------- QUESTIONS ----------------
+#         # ---------------- TAGS ----------------
+#         tag_names = ["arrays", "strings", "dynamic-programming", "graphs", "sorting", "recursion"]
+#         tags = []
+#         for name in tag_names:
+#             tag = Tag(tag_name=name)
+#             db.add(tag)
+#             tags.append(tag)
+#
+#         db.commit()
+#         print(f"✅ {len(tags)} Tags created")
+#
+#         # ---------------- QUESTIONS + TESTCASES ----------------
 #         questions = []
 #         for i in range(6):
 #             q = Question(
 #                 question_name=f"Problem {i + 1}",
 #                 question_description="Solve the problem efficiently.",
+#                 media=None,                            # new optional field
 #                 difficulty=random.choice(DIFFICULTIES),
+#                 preset_code=f"# Starter code for problem {i + 1}",   # new optional field
 #                 from_string_function="def from_string(s): return s",
 #                 to_string_function="def to_string(v): return str(v)",
 #                 template_solution="Reference solution",
 #                 created_at=now,
 #                 last_modified_at=now,
+#                 tags=random.sample(tags, k=random.randint(1, 3)),     # many-to-many via question_tag
 #             )
+#             db.add(q)
+#             db.flush()
+#
+#             # TestCase — now its own model, not a simple field
+#             for j in range(3):
+#                 tc = TestCase(
+#                     question_id=q.question_id,
+#                     input_data=f"input_{i}_{j}",
+#                     expected_output=f"output_{i}_{j}",
+#                 )
+#                 db.add(tc)
+#
 #             questions.append(q)
 #
-#         db.add_all(questions)
 #         db.commit()
-#         print("✅ Questions created")
+#         print("✅ Questions + TestCases + Tags created")
 #
 #         # ---------------- RIDDLES ----------------
 #         riddles_data = [
@@ -115,10 +181,9 @@
 #
 #         db.add_all(riddles)
 #         db.commit()
-#         print(f"✅ {len(riddles)} riddles created")
+#         print(f"✅ {len(riddles)} Riddles created")
 #
 #         # ---------------- QUESTION INSTANCES ----------------
-#         # Assign questions to competition events
 #         for comp in competitions:
 #             selected_questions = random.sample(questions, k=min(3, len(questions)))
 #             for q in selected_questions:
@@ -155,7 +220,7 @@
 #                         name=f"{user.first_name} {user.last_name}",
 #                         total_score=random.randint(300, 2000),
 #                         problems_solved=random.randint(1, 6),
-#                         total_time=random.randint(15, 120),  # int, in minutes
+#                         total_time=random.randint(15, 120),
 #                     )
 #                 )
 #
@@ -170,7 +235,7 @@
 #         db.commit()
 #         print("✅ AlgoTime series created")
 #
-#         # ---------------- ALGOTIME SESSIONS + LEADERBOARD ----------------
+#         # ---------------- ALGOTIME SESSIONS + PARTICIPATION ----------------
 #         for event_id in range(1, 6):
 #             session = AlgoTimeSession(
 #                 event_id=event_id,
@@ -199,12 +264,10 @@
 #         db.commit()
 #         print("✅ AlgoTime sessions created")
 #
-#         # Collect all participants from all AlgoTime sessions
+#         # ---------------- ALGOTIME LEADERBOARD ----------------
 #         all_algotime_participants = set()
 #         for event_id in range(1, 6):
-#             session_participants = db.query(Participation).filter_by(
-#                 event_id=event_id
-#             ).all()
+#             session_participants = db.query(Participation).filter_by(event_id=event_id).all()
 #             for p in session_participants:
 #                 all_algotime_participants.add(p.user_id)
 #
@@ -216,8 +279,9 @@
 #             additional_users = random.sample(remaining_users, additional_needed)
 #             all_algotime_participants.update([u.user_id for u in additional_users])
 #
+#         user_map = {u.user_id: u for u in users}
 #         for user_id in all_algotime_participants:
-#             user = db.query(type(users[0])).filter_by(user_id=user_id).first()
+#             user = user_map[user_id]
 #             score = random.randint(500, 2500)
 #
 #             db.add(
@@ -226,7 +290,7 @@
 #                     user_id=user.user_id,
 #                     name=f"{user.first_name} {user.last_name}",
 #                     total_score=score,
-#                     total_time=score,  # int, in seconds
+#                     total_time=score,
 #                     problems_solved=random.randint(1, 6),
 #                     last_updated=now,
 #                 )

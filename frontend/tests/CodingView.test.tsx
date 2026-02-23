@@ -63,6 +63,24 @@ jest.mock('../src/api/CodeSubmissionAPI', () => ({
     )
 }))
 
+jest.mock('../src/hooks/useAnalytics', () => ({
+    useAnalytics: () => ({
+        trackCodingPageOpened: jest.fn(),
+        trackLanguageChanged: jest.fn(),
+        trackCodeReset: jest.fn(),
+        trackCodeRun: jest.fn(),
+        trackCodeSubmitted: jest.fn(),
+    }),
+}))
+
+jest.mock('sonner', () => ({
+    toast: {
+        success: jest.fn(),
+        warning: jest.fn(),
+        error: jest.fn(),
+    },
+}))
+
 jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
     useLocation: jest.fn(),
@@ -80,11 +98,11 @@ jest.mock('../src/components/codingPage/Testcases', () => ({
 
 jest.mock("../src/components/ui/dropdown-menu", () => {
     const React = require('react')
-  
+
     const DropdownContext = React.createContext({
       itemMap: new Map(),
     })
-  
+
     return {
       __esModule: true,
       DropdownMenu: ({ children }: any) => (
@@ -182,7 +200,7 @@ describe('CodingView Component', () => {
           const removeTestcase = jest.fn()
           const updateTestcase = jest.fn()
           const setActiveTestcase = jest.fn()
-        
+
           mockUseTestcases.mockReturnValue({
             testcases: mockTestcases,
             addTestcase,
@@ -206,12 +224,12 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
         expect(screen.getByTestId("code-output-tab")).toBeInTheDocument()
     })
-    
+
     it("doesn't call panelRef.current.resize when refs are not set", async () => {
         render(<CodingView />)
-        
+
         fireEvent.click(screen.getByTestId('code-area-fullscreen'))
-        
+
         expect(nullRef.current?.resize).toBeUndefined();
     })
 

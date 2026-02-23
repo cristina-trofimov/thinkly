@@ -65,6 +65,7 @@ const CodingView = () => {
 
   const submitCode = async () => {
     try {
+      console.log('submitting code')
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
@@ -72,12 +73,12 @@ const CodingView = () => {
       if (submissionResponse.status_code) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
-          style: { backgroundColor: '#DAE9DA' } 
+          style: { backgroundColor: '#DAE9DA' }
         })
       } else {
         toast.warning(submissionResponse.message, {
           position: 'top-right',
-          style: { backgroundColor: '#E9DADA' } 
+          style: { backgroundColor: '#E9DADA' }
         })
       }
 

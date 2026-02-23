@@ -37,7 +37,22 @@ def get_all_submissions(
             ).all()
         logger.info(f"Fetched {len(subs)} submissions from the database.")
 
-        return {"status_code": 200, **subs}
+        return {"status_code": 200, "data": [
+            {
+                "submission_id": sub.submission_id,
+                "user_id": sub.user_id,
+                "question_instance_id": sub.question_instance_id,
+                "compile_output": sub.compile_output,
+                "submitted_on": sub.submitted_on,
+                "runtime": sub.runtime,
+                "status": sub.status,
+                "memory": sub.memory,
+                "stdout": sub.stdout,
+                "stderr": sub.stderr,
+                "message": sub.message,
+            }
+            for sub in subs
+        ]}
     except Exception as e:
         logger.error(f"Error fetching submissions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve submissions. Exception: {str(e)}")
