@@ -42,7 +42,7 @@ export function AlgoTimeCard({ participants, currentUserId }: Props) {
       textArea.select();
       try {
         // sonar error expected, its a fall back for older browsers
-        const success = document.execCommand("copy");  
+        const success = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
         if (!success) throw new Error("execCommand copy failed");
       } finally {
         textArea.remove();

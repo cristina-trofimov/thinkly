@@ -52,7 +52,7 @@ export async function submitAttempt(
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
-                user_id: 21,
+                user_id: user_id, //21
                 question_instance_id: updatedInstance.question_instance_id,
                 status: code_run_response['status']['description'],
                 memory: code_run_response['memory'],
@@ -78,35 +78,3 @@ export async function submitAttempt(
         throw err;
     }
 }
-
-// export async function getAttempts(
-//     question_id: number,
-//     user_id: number,
-//     event_id: number | null,
-// ): Promise<Judge0Response> {
-//     try {
-//         // Get instance for question_instance_id
-
-//         const response = await axiosClient.get(
-//             "/attempts/all",
-//             {
-//                 user_id: 21, // TO CHANGE
-//                 question_instance_id: question_id, // TO CHANGE
-//                 status: code_run_response['status']['description'],
-//                 // code: source_code.trim(),
-//                 memory: code_run_response['memory'],
-//                 runtime: code_run_response['time'],
-//                 submitted_on: Date.now(),
-//                 stdout: code_run_response['stdout'],
-//                 stderr: code_run_response['stderr'],
-//                 compile_output: code_run_response['compile_output'],
-//                 message: code_run_response['message'],
-//             }
-//         )
-
-//         return code_run_response
-//     } catch (err) {
-//         console.error("Error submitting coding attempt:", err);
-//         throw err;
-//     }
-// }
