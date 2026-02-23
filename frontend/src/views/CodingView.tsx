@@ -23,7 +23,6 @@ import Loader from '../components/helpers/Loader';
 import ConsoleOutput from '../components/codingPage/ConsoleOutput';
 import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 
 
@@ -70,19 +69,30 @@ const CodingView = () => {
       setLoadingMsg("Submitting")
 
       const { judge0Response, submissionResponse } = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
-      toast(submissionResponse.message, { position: 'top-right' })
+      if (submissionResponse.status_code) {
+        toast.success(submissionResponse.message, {
+          position: 'top-right',
+          style: { backgroundColor: '#DAE9DA' } 
+        })
+      } else {
+        toast.warning(submissionResponse.message, {
+          position: 'top-right',
+          style: { backgroundColor: '#E9DADA' } 
+        })
+      }
 
       setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")
+
+      trackCodeSubmitted(
+        question.id,
+        selectedLang,
+      )
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
     }
   }
-
-  // useEffect(() => {
-
-  // })
 
   const runCode = async () => {
     try {
@@ -177,11 +187,6 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
-
-      {/* {newSub && (
-        <Toaster  position='top-right' />
-      )} */}
-
       <div className='flex items-center justify-center mb-2 w-full'>
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
