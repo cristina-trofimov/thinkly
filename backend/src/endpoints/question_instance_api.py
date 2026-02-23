@@ -37,7 +37,7 @@ def query_get_question_instance(
 
 
 @question_instance_router.get("/find", response_model = dict,
-    responses={400: {"description": "Error retrieving question instance."}}
+    responses={500: {"description": "Error retrieving question instance."}}
 )
 def get_question_instance(
     db: Annotated[Session, Depends(get_db)],

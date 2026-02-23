@@ -23,12 +23,12 @@ class SubmissionModel(BaseModel):
 
 
 @submission_router.get("/all",
-    responses={400: {"description": "Error retrieving submissions."}}
+    responses={500: {"description": "Error retrieving submissions."}}
 )
 def get_all_submissions(
     db: Annotated[str, Depends(get_db)],
-    user_id: int = Query(None),
-    question_instance_id: int = Query(None),
+    user_id: Annotated[int, Query()] = None,
+    question_instance_id: Annotated[int, Query()] = None,
 ):
     try:
         subs = db.query(Submission).filter_by(

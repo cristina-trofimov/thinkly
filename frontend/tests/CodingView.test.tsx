@@ -55,6 +55,14 @@ jest.mock('../src/api/Judge0API', () => ({
     )
 }))
 
+jest.mock('../src/api/CodeSubmissionAPI', () => ({
+    submitAttempt: jest.fn(() =>
+      Promise.resolve({
+        text: () => 'Submission successful'
+      })
+    )
+}))
+
 jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
     useLocation: jest.fn(),
@@ -308,14 +316,27 @@ describe('CodingView Component', () => {
     })
 
     it('calls submit code when submit button is clicked', async () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+        const { submitAttempt } = require('../src/api/CodeSubmissionAPI')
+        const mockResponse = {
+            judge0Response: {
+                status: { description: 'Accepted' },
+                time: '0.1'
+            },
+            
+            submissionResponse: {
+                status: 200,
+                message: "sucess"
+            },
+        }
+        submitAttempt.mockResolvedValueOnce(mockResponse)
+
         render(<CodingView />)
 
-        const submitBtn = screen.getByTestId('submit-btn')
-        await userEvent.click(submitBtn)
+        const submitBTN = screen.getByTestId('submit-btn')
 
-        expect(consoleSpy).toHaveBeenCalledWith('submitting code')
-        consoleSpy.mockRestore()
+        await userEvent.click(submitBTN!)
+
+        expect(submitAttempt).toHaveBeenCalled()
     })
 
     it('shows loader when question has no id', () => {
