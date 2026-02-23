@@ -119,6 +119,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
                 onChange={(v) =>
                   onRepeatChange({ repeatEndDate: v })
                 }
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
             </div>

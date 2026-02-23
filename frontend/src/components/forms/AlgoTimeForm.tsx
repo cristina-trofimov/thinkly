@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, MousePointer} from "lucide-react"
+import { AlertCircle, Timer} from "lucide-react"
 import type { Question } from "../../types/questions/Question.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
@@ -440,7 +440,7 @@ export const AlgoTimeSessionForm = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <MousePointer className="h-5 w-5 text-primary" /> Select Questions for Sessions
+                <Timer className="h-5 w-5 text-primary" /> Select Questions for Sessions
               </CardTitle>
             </CardHeader>
             <CardContent>
