@@ -29,7 +29,7 @@ def get_most_recent_sub(
             user_id = int(user_id),
             question_instance_id = int(question_instance_id)
             ).all()
-        logger.info(f"Fetched most recent submission from the database.")
+        logger.info("Fetched most recent submission from the database.")
 
         return {"status_code": 200, **sub}
     except Exception as e:
@@ -69,9 +69,9 @@ def save_most_recent_sub(
 
         db.commit()
 
-        logger.info(f"Uploaded most recent submission.")
+        logger.info("Uploaded most recent submission.")
 
-        return {"status_code": 200, "message": f"Successfully uploaded most recent submission"}
+        return {"status_code": 200, "message": "Successfully uploaded most recent submission"}
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading most recent submission: {e}")

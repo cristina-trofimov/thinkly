@@ -28,7 +28,7 @@ def query_get_question_instance(
         if event_id is not None:
             query = query.filter_by(event_id = event_id)
 
-        logger.info(f"Fetched question instance from the database.")
+        logger.info("Fetched question instance from the database.")
         
         return query
     except SQLAlchemyError as e:
@@ -61,7 +61,7 @@ def get_question_instance(
             for inst in instances
         ]
 
-        logger.info(f"Fetched question instance from the database.")
+        logger.info("Fetched question instance from the database.")
 
         return {"status_code": 200, 'data': data}
     except Exception as e:
@@ -119,7 +119,7 @@ def create_question_instance(
         db.commit()
         db.refresh(instance)
 
-        logger.info(f"Uploaded question instance.")
+        logger.info("Uploaded question instance.")
 
         return {"status_code": 200, 'data': {
             "question_instance_id": instance.question_instance_id,

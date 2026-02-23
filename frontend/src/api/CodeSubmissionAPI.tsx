@@ -3,7 +3,16 @@ import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
+import type { Judge0Response } from "@/types/questions/Judge0Response"
 
+interface AttemptResponse {
+    judge0Response: Judge0Response,
+    submissionResponse: {
+        status_code: number,
+        message: string,
+    },
+    questionInstance: QuestionInstance
+}
 
 export async function submitAttempt(
     question_id: number,
@@ -12,7 +21,7 @@ export async function submitAttempt(
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
-): Promise<any> {
+): Promise<AttemptResponse> {
     try {
         // 1. Submit to judge0
         const code_run_response = await submitToJudge0(source_code, language_id, testcases)

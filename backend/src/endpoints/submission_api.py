@@ -66,9 +66,9 @@ def save_most_recent_sub(
         ))
         db.commit()
 
-        logger.info(f"Uploaded submission.")
+        logger.info("Uploaded submission.")
 
-        return {"status_code": 200, "message": f"Submission sucessful"}
+        return {"status_code": 200, "message": "Submission sucessful"}
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading submissions: {e}")
