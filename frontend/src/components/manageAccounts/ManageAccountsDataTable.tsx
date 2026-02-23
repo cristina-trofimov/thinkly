@@ -394,9 +394,9 @@ export function ManageAccountsDataTable<TData, TValue>({
                   table.previousPage();
                 }}
                 className={
-                  !table.getCanPreviousPage()
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
+                  table.getCanPreviousPage()
+                    ? "cursor-pointer"
+                    : "pointer-events-none opacity-50"
                 }
               />
             </PaginationItem>
@@ -430,9 +430,9 @@ export function ManageAccountsDataTable<TData, TValue>({
                   table.nextPage();
                 }}
                 className={
-                  !table.getCanNextPage()
-                    ? "pointer-events-none opacity-50"
-                    : "cursor-pointer"
+                  table.getCanNextPage()
+                    ? "cursor-pointer"
+                    : "pointer-events-none opacity-50"
                 }
               />
             </PaginationItem>

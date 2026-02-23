@@ -63,6 +63,15 @@ const mockData: TestData[] = [
   },
 ];
 
+const createManyRows = (count: number): TestData[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    firstName: `First${index + 1}`,
+    lastName: `Last${index + 1}`,
+    email: `user${index + 1}@example.com`,
+    accountType: index % 3 === 0 ? "Admin" : index % 3 === 1 ? "Participant" : "Owner",
+  }));
+
 const createMockColumns = (): ColumnDef<TestData>[] => [
   {
     id: "select",
@@ -481,6 +490,43 @@ describe("ManageAccountsDataTable", () => {
     const prevBtn = screen.getByRole("link", { name: /go to previous page/i });
     expect(nextBtn).toBeInTheDocument();
     expect(prevBtn).toBeInTheDocument();
+  });
+
+  it("shows page label and disables prev/next when there is one page", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /go to previous page/i }).className
+    ).toContain("pointer-events-none");
+    expect(
+      screen.getByRole("link", { name: /go to next page/i }).className
+    ).toContain("pointer-events-none");
+  });
+
+  it("updates page label and ellipsis layout across pagination ranges", async () => {
+    render(
+      <ManageAccountsDataTable columns={mockColumns} data={createManyRows(200)} />
+    );
+
+    expect(screen.getByText("Page 1 of 8")).toBeInTheDocument();
+    expect(screen.getAllByText("More pages")).toHaveLength(1);
+
+    const nextButton = screen.getByRole("link", { name: /go to next page/i });
+    await user.click(nextButton);
+    await user.click(nextButton);
+    await user.click(nextButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Page 4 of 8")).toBeInTheDocument();
+      expect(screen.getAllByText("More pages")).toHaveLength(2);
+    });
+
+    await user.click(screen.getByRole("link", { name: "8" }));
+    await waitFor(() => {
+      expect(screen.getByText("Page 8 of 8")).toBeInTheDocument();
+      expect(screen.getAllByText("More pages")).toHaveLength(1);
+    });
   });
 
   it("handles column header clicks (sorting)", async () => {
