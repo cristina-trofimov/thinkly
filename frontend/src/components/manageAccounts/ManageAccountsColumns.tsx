@@ -41,8 +41,19 @@ export const columns: ColumnDef<Account>[] = [
     enableSorting: false,
   },
   {
-    accessorKey: "name",
-    header: () => <div className="text-left">Name</div>,
+    id: "name",
+    accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+    header: ({ column }) => (
+      <div className="text-left">
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+    ),
     cell: ({ row }) => {
       const name: string = row.original.firstName + " " + row.original.lastName;
 
