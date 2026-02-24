@@ -2,7 +2,7 @@ import React from 'react'
 import '@testing-library/jest-dom'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import CodingView from '../src/components/codingPage/CodingView'
+import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
@@ -55,6 +55,32 @@ jest.mock('../src/api/Judge0API', () => ({
     )
 }))
 
+jest.mock('../src/api/CodeSubmissionAPI', () => ({
+    submitAttempt: jest.fn(() =>
+      Promise.resolve({
+        text: () => 'Submission successful'
+      })
+    )
+}))
+
+jest.mock('../src/hooks/useAnalytics', () => ({
+    useAnalytics: () => ({
+        trackCodingPageOpened: jest.fn(),
+        trackLanguageChanged: jest.fn(),
+        trackCodeReset: jest.fn(),
+        trackCodeRun: jest.fn(),
+        trackCodeSubmitted: jest.fn(),
+    }),
+}))
+
+jest.mock('sonner', () => ({
+    toast: {
+        success: jest.fn(),
+        warning: jest.fn(),
+        error: jest.fn(),
+    },
+}))
+
 jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
     useLocation: jest.fn(),
@@ -72,11 +98,11 @@ jest.mock('../src/components/codingPage/Testcases', () => ({
 
 jest.mock("../src/components/ui/dropdown-menu", () => {
     const React = require('react')
-  
+
     const DropdownContext = React.createContext({
       itemMap: new Map(),
     })
-  
+
     return {
       __esModule: true,
       DropdownMenu: ({ children }: any) => (
@@ -174,7 +200,7 @@ describe('CodingView Component', () => {
           const removeTestcase = jest.fn()
           const updateTestcase = jest.fn()
           const setActiveTestcase = jest.fn()
-        
+
           mockUseTestcases.mockReturnValue({
             testcases: mockTestcases,
             addTestcase,
@@ -198,12 +224,12 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
         expect(screen.getByTestId("code-output-tab")).toBeInTheDocument()
     })
-    
+
     it("doesn't call panelRef.current.resize when refs are not set", async () => {
         render(<CodingView />)
-        
+
         fireEvent.click(screen.getByTestId('code-area-fullscreen'))
-        
+
         expect(nullRef.current?.resize).toBeUndefined();
     })
 
@@ -308,14 +334,27 @@ describe('CodingView Component', () => {
     })
 
     it('calls submit code when submit button is clicked', async () => {
-        const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+        const { submitAttempt } = require('../src/api/CodeSubmissionAPI')
+        const mockResponse = {
+            judge0Response: {
+                status: { description: 'Accepted' },
+                time: '0.1'
+            },
+            
+            submissionResponse: {
+                status: 200,
+                message: "sucess"
+            },
+        }
+        submitAttempt.mockResolvedValueOnce(mockResponse)
+
         render(<CodingView />)
 
-        const submitBtn = screen.getByTestId('submit-btn')
-        await userEvent.click(submitBtn)
+        const submitBTN = screen.getByTestId('submit-btn')
 
-        expect(consoleSpy).toHaveBeenCalledWith('submitting code')
-        consoleSpy.mockRestore()
+        await userEvent.click(submitBTN!)
+
+        expect(submitAttempt).toHaveBeenCalled()
     })
 
     it('shows loader when question has no id', () => {

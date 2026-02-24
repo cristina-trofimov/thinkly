@@ -11,6 +11,9 @@ from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
 from endpoints.judge0_api import judge0_router
+from endpoints.submission_api import submission_router
+from endpoints.question_instance_api import question_instance_router
+# from endpoints.most_recent_sub_api import most_recent_sub_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
@@ -43,6 +46,30 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+
+# --- Allow frontend requests (CORS setup) ---
+# ✅ CORS must be registered FIRST so it wraps all other middleware.
+# If CORS is added after custom middlewares, unhandled exceptions will
+# propagate out before CORS headers are attached, causing browser CORS errors.
+origins = [
+    "https://thinklyscs.com",
+    "https://www.thinklyscs.com",
+    "http://localhost:5173",
+]
+# Guard against JUDGE0_URL being None if env var is not set
+if JUDGE0_URL:
+    origins.append(JUDGE0_URL)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=3600,  # Allow browser to cache preflight for 1 hour
+    expose_headers=["*"],
+)
 
 
 # --- PostHog Analytics Middleware ---
@@ -80,22 +107,6 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# --- Allow frontend requests (CORS setup) ---
-origins = [
-    "https://thinklyscs.com",
-    "https://www.thinklyscs.com",  # Create React App
-    "http://localhost:5173",
-    JUDGE0_URL
-]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    max_age=3600,  # Allow browser to cache preflight for 1 hour
-    expose_headers=["*"],
-)
 
 # Root route (for testing)
 @app.get("/")
@@ -113,6 +124,7 @@ try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
     app.include_router(questions_router, prefix="/questions")
+    app.include_router(question_instance_router, prefix="/instances")
     app.include_router(competitions_router, prefix="/competitions")
     app.include_router(accounts_router, prefix="/manage-accounts")
     app.include_router(email_router, prefix="/email")
@@ -121,10 +133,13 @@ try:
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
     app.include_router(judge0_router, prefix="/judge0")
+    app.include_router(submission_router, prefix="/attempts")
+    # app.include_router(most_recent_sub_router, prefix="/recent-sub")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
-#  Run server
+# Run server
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    

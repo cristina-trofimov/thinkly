@@ -1,36 +1,44 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import CodeDescArea from "./CodeDescArea";
+import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
   Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload
 } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-import { DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useStateCallback } from '../helpers/UseStateCallback';
+import { useStateCallback } from '../components/helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
-import { buildMonacoCode } from '../helpers/monacoConfig';
+import { buildMonacoCode } from '../components/helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { submitToJudge0 } from '@/api/Judge0API';
-import Testcases from './Testcases';
+import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/Question.type';
-import { useTestcases } from '../helpers/useTestcases';
+import { useTestcases } from '../components/helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
-import Loader from '../helpers/Loader';
-import ConsoleOutput from './ConsoleOutput';
+import Loader from '../components/helpers/Loader';
+import ConsoleOutput from '../components/codingPage/ConsoleOutput';
+import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { toast } from 'sonner';
 
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
   const { testcases } = useTestcases(question.id)
-  const [isQuestionLoading, setIsQuestionLoading] = useState<boolean>(false)
-  const [isAsyncLoading, setIsAsyncLoading] = useState<boolean>(false)
-  const [loadingMsg, setLoadingMsg] = useState<string>("")
+  const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
+  const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+  const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
+  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+  const outputTabs = [
+    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
+    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
+  ]
 
   const {
     trackCodingPageOpened,
@@ -55,20 +63,44 @@ const CodingView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id])
 
-  const submitCode = () => {
-    trackCodeSubmitted(question.id, selectedLang)
-    console.log("submitting code")
-  }
+  const submitCode = async () => {
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Submitting")
 
-  const [logs, setLogs] = useState<Judge0Response[]>([])
+      const { judge0Response, submissionResponse } = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
+      if (submissionResponse.status_code) {
+        toast.success(submissionResponse.message, {
+          position: 'top-right',
+          style: { backgroundColor: '#DAE9DA' }
+        })
+      } else {
+        toast.warning(submissionResponse.message, {
+          position: 'top-right',
+          style: { backgroundColor: '#E9DADA' }
+        })
+      }
+
+      setLogs(prev => [...prev, judge0Response])
+      setCurrentOutputTab("results")
+
+      trackCodeSubmitted(
+        question.id,
+        selectedLang,
+      )
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
+    }
+  }
 
   const runCode = async () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
-
       const response = await submitToJudge0(code, judgeID, testcases)
       setLogs(prev => [...prev, response])
+      setCurrentOutputTab("results")
 
       // Capture run result — status comes directly from Judge0 response
       const passed = response.status.description === "Accepted"
@@ -115,11 +147,6 @@ const CodingView = () => {
     trackCodeReset(question.id, selectedLang)
     setCode(templateCode)
   }
-
-  const outputTabs = [
-    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
-    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
-  ]
 
   const [fullCode, setFullCode] = useState(false)
   const [fullOutput, setFullOutput] = useState(false)
@@ -267,7 +294,9 @@ const CodingView = () => {
             <Panel data-testid="resizable-handle" defaultSize={35}
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" className='border-none h-full' defaultValue='testcases'>
+              <Tabs data-testid="sandbox-tabs" onValueChange={setCurrentOutputTab}
+                value={currentOutputTab} className='border-none h-full'
+              >
                 <TabsList data-testid="sandbox-tabs-list"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
                       border-b border-border/75 dark:border-border/50 py-1.5"

@@ -1,15 +1,20 @@
 # nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
 # from sqlalchemy.orm import Session
-# from datetime import datetime, timedelta, UTC
+# from datetime import datetime, timedelta, timezone
 # import random
 #
 # from db import engine, Base, SessionLocal
-# from endpoints.authentification_api import create_user
 #
 # from models.schema import (
+#     UserAccount,
 #     BaseEvent,
 #     Competition,
+#     CompetitionEmail,
 #     Question,
+#     TestCase,
+#     Tag,
+#     Language,
+#     QuestionInstance,
 #     Riddle,
 #     Participation,
 #     CompetitionLeaderboardEntry,
@@ -29,24 +34,48 @@
 #     db: Session = SessionLocal()
 #
 #     try:
+#         # ---------------- LANGUAGES ----------------
+#         # Required by UserPreferences.last_used_programming_language and MostRecentSubmission.lang_judge_id
+#         languages_data = [
+#             (63,  "JavaScript (Node.js 12.14.0)"),
+#             (71,  "Python (3.8.1)"),
+#             (74,  "TypeScript (3.7.4)"),
+#             (62,  "Java (OpenJDK 13.0.1)"),
+#             (54,  "C++ (GCC 9.2.0)"),
+#             (51,  "C# (Mono 6.6.0.161)"),
+#         ]
+#         languages = []
+#         for judge_id, display_name in languages_data:
+#             lang = Language(
+#                 lang_judge_id=judge_id,
+#                 display_name=display_name,
+#                 active=True,
+#             )
+#             languages.append(lang)
+#
+#         db.add_all(languages)
+#         db.commit()
+#         print(f"✅ {len(languages)} Languages created")
+#
 #         # ---------------- USERS ----------------
 #         users = []
-#         for i in range(1, 21):  # Changed to create 20 users
-#             user = create_user(
-#                 db=db,
+#         for i in range(1, 21):
+#             user = UserAccount(
 #                 email=f"user{i}@example.com",
-#                 password_hash="hashed_pw",
+#                 hashed_password="hashed_pw",          # was: password_hash
 #                 first_name=f"First{i}",
 #                 last_name=f"Last{i}",
-#                 type="participant"
+#                 user_type="participant",               # was: type
 #             )
+#             db.add(user)
 #             users.append(user)
 #
+#         db.commit()
 #         print(f"✅ {len(users)} Users created")
 #
 #         # ---------------- EVENTS + COMPETITIONS ----------------
 #         competitions = []
-#         now = datetime.now(UTC)
+#         now = datetime.now(timezone.utc)
 #
 #         for i in range(1, 6):
 #             event_start_date = now - timedelta(days=i * 7)
@@ -69,27 +98,67 @@
 #                 riddle_cooldown=30,
 #             )
 #             db.add(competition)
+#             db.flush()
+#
+#             # CompetitionEmail — one reminder per competition
+#             email = CompetitionEmail(
+#                 competition_id=competition.event_id,
+#                 subject=f"Reminder: Competition {i} is coming up!",
+#                 to="participants@example.com",
+#                 body=f"Don't forget that Competition {i} starts soon. Good luck!",
+#                 time_24h_before=event_start_date - timedelta(hours=24),
+#                 time_5min_before=event_start_date - timedelta(minutes=5),
+#                 other_time=None,
+#             )
+#             db.add(email)
 #             competitions.append(competition)
 #
 #         db.commit()
-#         print("✅ BaseEvents + Competitions created")
+#         print("✅ BaseEvents + Competitions + CompetitionEmails created")
 #
-#         # ---------------- QUESTIONS ----------------
+#         # ---------------- TAGS ----------------
+#         tag_names = ["arrays", "strings", "dynamic-programming", "graphs", "sorting", "recursion"]
+#         tags = []
+#         for name in tag_names:
+#             tag = Tag(tag_name=name)
+#             db.add(tag)
+#             tags.append(tag)
+#
+#         db.commit()
+#         print(f"✅ {len(tags)} Tags created")
+#
+#         # ---------------- QUESTIONS + TESTCASES ----------------
 #         questions = []
 #         for i in range(6):
 #             q = Question(
 #                 question_name=f"Problem {i + 1}",
 #                 question_description="Solve the problem efficiently.",
+#                 media=None,                            # new optional field
 #                 difficulty=random.choice(DIFFICULTIES),
+#                 preset_code=f"# Starter code for problem {i + 1}",   # new optional field
+#                 from_string_function="def from_string(s): return s",
+#                 to_string_function="def to_string(v): return str(v)",
 #                 template_solution="Reference solution",
 #                 created_at=now,
 #                 last_modified_at=now,
+#                 tags=random.sample(tags, k=random.randint(1, 3)),     # many-to-many via question_tag
 #             )
+#             db.add(q)
+#             db.flush()
+#
+#             # TestCase — now its own model, not a simple field
+#             for j in range(3):
+#                 tc = TestCase(
+#                     question_id=q.question_id,
+#                     input_data=f"input_{i}_{j}",
+#                     expected_output=f"output_{i}_{j}",
+#                 )
+#                 db.add(tc)
+#
 #             questions.append(q)
 #
-#         db.add_all(questions)
 #         db.commit()
-#         print("✅ Questions created")
+#         print("✅ Questions + TestCases + Tags created")
 #
 #         # ---------------- RIDDLES ----------------
 #         riddles_data = [
@@ -112,12 +181,26 @@
 #
 #         db.add_all(riddles)
 #         db.commit()
+#         print(f"✅ {len(riddles)} Riddles created")
 #
-#         print(f"✅ {len(riddles)} riddles created")
+#         # ---------------- QUESTION INSTANCES ----------------
+#         for comp in competitions:
+#             selected_questions = random.sample(questions, k=min(3, len(questions)))
+#             for q in selected_questions:
+#                 qi = QuestionInstance(
+#                     question_id=q.question_id,
+#                     event_id=comp.event_id,
+#                     points=random.choice([100, 200, 300]),
+#                     riddle_id=random.choice(riddles).riddle_id if random.random() > 0.5 else None,
+#                     is_riddle_completed=False,
+#                 )
+#                 db.add(qi)
+#
+#         db.commit()
+#         print("✅ QuestionInstances created")
 #
 #         # ---------------- PARTICIPATION + COMPETITION LEADERBOARD ----------------
 #         for comp in competitions[:4]:
-#             # Random number of participants between 15 and 20
 #             num_participants = random.randint(15, 20)
 #             participants = random.sample(users, num_participants)
 #
@@ -125,12 +208,11 @@
 #                 db.add(
 #                     Participation(
 #                         user_id=user.user_id,
-#                         event_id=comp.event_id
+#                         event_id=comp.event_id,
+#                         total_score=random.randint(300, 2000),
 #                     )
 #                 )
 #
-#                 # FIXED: Removed rank parameter - it will be calculated dynamically
-#                 # Total score is now randomized between 300 and 2000
 #                 db.add(
 #                     CompetitionLeaderboardEntry(
 #                         user_id=user.user_id,
@@ -138,7 +220,7 @@
 #                         name=f"{user.first_name} {user.last_name}",
 #                         total_score=random.randint(300, 2000),
 #                         problems_solved=random.randint(1, 6),
-#                         total_time=round(random.uniform(15, 120), 2),
+#                         total_time=random.randint(15, 120),
 #                     )
 #                 )
 #
@@ -153,10 +235,8 @@
 #         db.commit()
 #         print("✅ AlgoTime series created")
 #
-#         # ---------------- ALGOTIME SESSIONS + LEADERBOARD ----------------
-#         # Create sessions for events 1-5
+#         # ---------------- ALGOTIME SESSIONS + PARTICIPATION ----------------
 #         for event_id in range(1, 6):
-#             # Create session
 #             session = AlgoTimeSession(
 #                 event_id=event_id,
 #                 algotime_series_id=series.algotime_series_id
@@ -164,12 +244,9 @@
 #             db.add(session)
 #             db.flush()
 #
-#             # Pick random participants for this session (6-10 per session)
 #             participants = random.sample(users, random.randint(6, 10))
 #
-#             # Create participations for AlgoTime sessions
 #             for user in participants:
-#                 # Check if participation already exists (might be from competitions)
 #                 existing = db.query(Participation).filter_by(
 #                     user_id=user.user_id,
 #                     event_id=event_id
@@ -179,25 +256,21 @@
 #                     db.add(
 #                         Participation(
 #                             user_id=user.user_id,
-#                             event_id=event_id
+#                             event_id=event_id,
+#                             total_score=0,
 #                         )
 #                     )
 #
 #         db.commit()
 #         print("✅ AlgoTime sessions created")
 #
-#         # Create AlgoTime leaderboard (aggregate across all sessions in the series)
-#         # Collect all participants from all AlgoTime sessions
+#         # ---------------- ALGOTIME LEADERBOARD ----------------
 #         all_algotime_participants = set()
 #         for event_id in range(1, 6):
-#             session_participants = db.query(Participation).filter_by(
-#                 event_id=event_id
-#             ).all()
+#             session_participants = db.query(Participation).filter_by(event_id=event_id).all()
 #             for p in session_participants:
 #                 all_algotime_participants.add(p.user_id)
 #
-#         # Ensure we have 15-20 participants in AlgoTime leaderboard
-#         # If we have fewer, add random users who haven't participated yet
 #         remaining_users = [u for u in users if u.user_id not in all_algotime_participants]
 #         target_count = random.randint(15, 20)
 #
@@ -206,22 +279,20 @@
 #             additional_users = random.sample(remaining_users, additional_needed)
 #             all_algotime_participants.update([u.user_id for u in additional_users])
 #
-#         # Create leaderboard entries with random scores
+#         user_map = {u.user_id: u for u in users}
 #         for user_id in all_algotime_participants:
-#             user = db.query(type(users[0])).filter_by(user_id=user_id).first()
-#             # Random score between 500 and 2500
+#             user = user_map[user_id]
 #             score = random.randint(500, 2500)
 #
-#             # FIXED: Removed rank parameter - it will be calculated dynamically
 #             db.add(
 #                 AlgoTimeLeaderboardEntry(
 #                     algotime_series_id=series.algotime_series_id,
 #                     user_id=user.user_id,
 #                     name=f"{user.first_name} {user.last_name}",
 #                     total_score=score,
-#                     total_time=score,  # For AlgoTime, time and score are often the same
+#                     total_time=score,
 #                     problems_solved=random.randint(1, 6),
-#                     last_updated=now
+#                     last_updated=now,
 #                 )
 #             )
 #

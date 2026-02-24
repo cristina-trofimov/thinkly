@@ -46,7 +46,7 @@ export async function submitToJudge0(
                 expected_output: expected_output,
             }
         )
-  
+
         return response['data']
 
       } catch (err) {
