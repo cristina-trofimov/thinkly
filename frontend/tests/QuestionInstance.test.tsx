@@ -1,76 +1,144 @@
 import axiosClient from "../src/lib/axiosClient"
-import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
-import type { TestcaseType } from "../src/types/questions/Testcases.type";
+import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
+import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
+
+beforeAll(() => {
+    Object.defineProperty(global, 'import', {
+        value: {
+        meta: {
+            env: {
+            VITE_BACKEND_URL: 'http://localhost:8000'
+            }
+        }
+        }
+    })
+})
 
 jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
+    __esModule: true,
+    default: {
+        get: jest.fn(),
+        post: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+    },
+    API_URL: 'http://localhost:8000',
 }))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-const code = "print('Hello')";
-const language_id = "71";
-const testcases: TestcaseType[] = [
-  {
-    test_case_id: 1,
-    question_id: 1,
-    input_data: {
-      "nums": [2, 7, 11, 15],
-      "target": 19
-      },
-    expected_output: "[1,2]",
-    caseID: 'Case 1'
-  },
-  {
-    test_case_id: 2,
-    question_id: 1,
-    input_data: {
-      "nums": [2, 7],
-      "target": 9
-      },
-    expected_output: "[0,1]",
-    caseID: 'Case 2'
-  },
+
+const question_id = 1
+const user_id = 1
+const event_id = 1
+
+const mockQuestionInstances: QuestionInstance[] = [
+    {
+        question_instance_id: 123,
+        question_id: question_id,
+        event_id: event_id,
+        points: 10,
+        riddle_id: null,
+        is_riddle_completed: false
+    },
+    {
+        question_instance_id: 334,
+        question_id: question_id,
+        event_id: 2,
+        points: 10,
+        riddle_id: null,
+        is_riddle_completed: true
+    }
 ]
 
-describe("Judge0API", () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
+const mockGetResponse = {
+    status_code: 200,
+    data: [
+        {
+            question_instance_id: 123,
+            question_id: question_id,
+            event_id: event_id,
+            points: 10,
+            riddle_id: null,
+            is_riddle_completed: false
+        },
+        {
+            question_instance_id: 334,
+            question_id: question_id,
+            event_id: 2,
+            points: 10,
+            riddle_id: null,
+            is_riddle_completed: true
+        }
+    ]
+  }
 
-  it("properly parses stdin and expected outputs", async () => {
-    const { stdin, expected_output } = parse_input_output(testcases)
+const mockUpdateResponse = {
+    status_code: 200,
+    data: {
+        question_instance_id: 123,
+        question_id: question_id,
+        event_id: event_id,
+        points: 10,
+        riddle_id: null,
+        is_riddle_completed: false
+    }
+  }
 
-    expect(stdin).toEqual("[2,7,11,15] 19\n[2,7] 9\n")
-    expect(expected_output).toEqual('[1,2]\n[0,1]\n')
-  })
-
-  it("submit to judge0 and returns final output", async () => {
-    const { stdin, expected_output } = parse_input_output(testcases)
-    
-    mockedAxios.post.mockResolvedValueOnce({
-      data: { 
-        source_code: code,
-        language_id: language_id,
-        stdin: stdin,
-        expected_output: expected_output,
-       },
+describe("Question Instance", () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
     })
 
-    const result = await submitToJudge0(code, language_id, []);
+    it("updateQuestionInstance: updates the values of the given (defined) question instance", async () => {
+        mockedAxios.post.mockImplementation(async () => ({ data: mockGetResponse }))
 
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-  })
+        const result = await updateQuestionInstance(mockQuestionInstances[0])
+        
+        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.post).toHaveBeenCalledWith(
+            "/instances/update",
+            expect.objectContaining({
+                question_id: mockQuestionInstances[0].question_id,
+                event_id: mockQuestionInstances[0].event_id,
+                points: mockQuestionInstances[0].points,
+                riddle_id: mockQuestionInstances[0].riddle_id,
+                is_riddle_completed: mockQuestionInstances[0].is_riddle_completed
+            })
+        )
+    })
 
-  it("throws error if axios fails", async () => {
-    mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
-    await expect(submitToJudge0('print("Hello', '71', testcases))
-      .rejects.toThrow("Network error")
-  })
+    it("updateQuestionInstance: throws an error if the given question instance is undefined", async () => {
+        await expect(updateQuestionInstance(undefined))
+                    .rejects.toThrow("Question instance cannot be undefined")
+        expect(mockedAxios.post).toHaveBeenCalledTimes(0)
+    })
+
+    it("handles errors from updateQuestionInstance", async () => {
+        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating most recent submission"))
+
+        await expect(updateQuestionInstance(mockQuestionInstances[0]))
+                    .rejects.toThrow("Error updating most recent submission")
+
+        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+    })
+
+    it("getQuestionInstance: returns a list of the instances associated between a question and an event", async () => {
+        mockedAxios.get.mockImplementation(async () => ({ data: mockUpdateResponse }))
+
+        const result = await getQuestionInstance(question_id, event_id)
+
+        expect(mockedAxios.get).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+            "/instances/find", {"params": {"event_id": event_id, "question_id": question_id}}
+        )
+    })
+
+    it("handles errors from getQuestionInstance", async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching most recent submission"))
+
+        await expect(getQuestionInstance(question_id, event_id))
+                    .rejects.toThrow("Error fetching most recent submission")
+
+        expect(mockedAxios.get).toHaveBeenCalled()
+    })
 })
