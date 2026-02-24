@@ -9,19 +9,6 @@ logger = logging.getLogger(__name__)
 
 submission_router = APIRouter(tags=["Attempts"])
 
-class SubmissionModel(BaseModel):
-    user_id: int
-    question_instance_id: int
-    compile_output: str
-    submitted_on: str
-    runtime: float | None = None
-    status: str | None = None
-    memory: int | None = None
-    stdout: str | None = None
-    stderr: str | None = None
-    message: str | None = None
-
-
 @submission_router.get("/all",
     responses={500: {"description": "Error retrieving submissions."}}
 )

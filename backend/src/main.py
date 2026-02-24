@@ -13,7 +13,7 @@ from endpoints.admin_dashboard_api import admin_dashboard_router
 from endpoints.judge0_api import judge0_router
 from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
-# from endpoints.most_recent_sub_api import most_recent_sub_router
+from endpoints.most_recent_sub_api import most_recent_sub_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
@@ -134,12 +134,13 @@ try:
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
     app.include_router(judge0_router, prefix="/judge0")
     app.include_router(submission_router, prefix="/attempts")
-    # app.include_router(most_recent_sub_router, prefix="/recent-sub")
+    app.include_router(most_recent_sub_router, prefix="/recent-sub")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    # uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
     

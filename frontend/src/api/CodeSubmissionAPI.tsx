@@ -4,6 +4,7 @@ import { submitToJudge0 } from "./Judge0API"
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { Judge0Response } from "@/types/questions/Judge0Response"
+import type { MostRecentSub } from "@/types/MostRecentSub.type"
 
 interface AttemptResponse {
     judge0Response: Judge0Response,
@@ -11,7 +12,8 @@ interface AttemptResponse {
         status_code: number,
         message: string,
     },
-    questionInstance: QuestionInstance
+    questionInstance: QuestionInstance,
+    mostRecentSubResponse: MostRecentSub,
 }
 
 export async function submitAttempt(
@@ -23,10 +25,7 @@ export async function submitAttempt(
     testcases: TestcaseType[],
 ): Promise<AttemptResponse> {
     try {
-        // 1. Submit to judge0
-        const code_run_response = await submitToJudge0(source_code, language_id, testcases)
-
-        // 2. Get/create instance for question_instance_id
+        // 1. Get/create instance for question_instance_id
         let q_inst: QuestionInstance | undefined 
 
         if (event_id) {
@@ -45,32 +44,34 @@ export async function submitAttempt(
             }
         }
 
-        // 3. Update question instance
+        // 2. Update question instance
         const updatedInstance = await updateQuestionInstance(q_inst)
 
-        // 4. Add submission
+        // 3. Submit to judge0 and save most recent submission
+        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user_id, updatedInstance.question_instance_id, source_code, language_id, testcases)
+
+        // 4. Save submission's output details
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
-                user_id: user_id, //21
+                user_id: user_id,
                 question_instance_id: updatedInstance.question_instance_id,
-                status: code_run_response['status']['description'],
-                memory: code_run_response['memory'],
-                runtime: code_run_response['time'],
+                status: judge0Response['status']['description'],
+                memory: judge0Response['memory'],
+                runtime: judge0Response['time'],
                 submitted_on: new Date(Date.now()).toISOString(),
-                stdout: code_run_response['stdout'],
-                stderr: code_run_response['stderr'],
-                compile_output: code_run_response['compile_output'],
-                message: code_run_response['message'],
+                stdout: judge0Response['stdout'],
+                stderr: judge0Response['stderr'],
+                compile_output: judge0Response['compile_output'],
+                message: judge0Response['message'],
             }
         )
 
-        // 5. Add to most recent submission
-
         return {
-            judge0Response: code_run_response,
+            judge0Response: judge0Response,
             submissionResponse: submissionResponse.data,
-            questionInstance: updatedInstance
+            questionInstance: updatedInstance,
+            mostRecentSubResponse: mostRecentSubResponse
         }
 
     } catch (err) {
