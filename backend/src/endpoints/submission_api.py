@@ -1,6 +1,5 @@
 import logging
 from typing import Annotated
-from pydantic import BaseModel
 from DB_Methods.database import get_db
 from models.schema import Submission
 from fastapi import APIRouter, HTTPException, Depends, Query

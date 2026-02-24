@@ -1,6 +1,8 @@
 import axiosClient from "../src/lib/axiosClient"
 import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
+import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
+import type { MostRecentSub } from "../src/types/MostRecentSub.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -13,9 +15,15 @@ jest.mock('../src/lib/axiosClient', () => ({
   API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/MostRecentSubAPI', () => ({
+  updateMostRecentSub: jest.fn()
+}))
+
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 const code = "print('Hello')";
 const language_id = "71";
+const user_id = 1;
+const question_instance_id = 1;
 const testcases: TestcaseType[] = [
   {
     test_case_id: 1,
@@ -63,14 +71,14 @@ describe("Judge0API", () => {
        },
     })
 
-    const result = await submitToJudge0(code, language_id, []);
+    await submitToJudge0(user_id, question_instance_id, code, language_id, []);
 
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
   })
 
   it("throws error if axios fails", async () => {
     mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
-    await expect(submitToJudge0('print("Hello', '71', testcases))
+    await expect(submitToJudge0(user_id, question_instance_id, code, language_id, testcases))
       .rejects.toThrow("Network error")
   })
 })

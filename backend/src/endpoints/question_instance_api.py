@@ -1,6 +1,5 @@
 import logging
 from typing import Annotated, Optional
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from DB_Methods.database import get_db
 from models.schema import QuestionInstance

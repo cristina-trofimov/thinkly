@@ -2,8 +2,8 @@ import axiosClient from "../src/lib/axiosClient"
 import { submitToJudge0 } from "../src/api/Judge0API"
 import { submitAttempt } from "../src/api/CodeSubmissionAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type"
+import type { MostRecentSub } from "../src/types/MostRecentSub.type"
 import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
-import type { Judge0Response } from "../src/types/questions/Judge0Response"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
 
 beforeAll(() => {
@@ -45,6 +45,7 @@ const mockedUpdateQuestionInstance = updateQuestionInstance as jest.MockedFuncti
 
 
 const question_id = 1
+const question_instance_id = 123
 const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
@@ -72,22 +73,32 @@ const testcases: TestcaseType[] = [
   },
 ]
 
-const mockJudge0Response: Judge0Response = {
-  stdout: "Hello\n",
-  stderr: null,
-  compile_output: null,
-  message: null,
-  status: {
-    id: 3,
-    description: "Accepted"
+const mockMostRecentSubResponse: MostRecentSub = {
+  user_id: user_id,
+  question_instance_id: question_instance_id,
+  code: source_code,
+  lang_judge_id: parseInt(language_id)
+}
+
+const mockJudge0Response = {
+  judge0Response: {
+    stdout: "Hello\n",
+    stderr: null,
+    compile_output: null,
+    message: null,
+    status: {
+      id: 3,
+      description: "Accepted"
+    },
+    memory: "1024",
+    time: "0.123",
+    token: null
   },
-  memory: "1024",
-  time: "0.123",
-  token: null
+  mostRecentSubResponse: mockMostRecentSubResponse
 }
 
 const mockQuestionInstance: QuestionInstance = {
-  question_instance_id: 123,
+  question_instance_id: question_instance_id,
   question_id: question_id,
   event_id: event_id,
   points: 10,
@@ -96,34 +107,36 @@ const mockQuestionInstance: QuestionInstance = {
 }
 
 const mockSubmissionResponse = {
-  status_code: 200,
-  data: {
-    submission_id: 456,
-    user_id: user_id,
-    question_instance_id: 123,
-    status: "Accepted",
-    memory: "1024",
-    runtime: "0.123",
-    submitted_on: "2026-02-22T19:30:00.000Z",
-    stdout: "Hello\n",
-    stderr: null,
-    compile_output: null,
-    message: null
-  }
+  judge0Response: mockJudge0Response,
+  submissionResponse: {
+    status_code: 200,
+    data: {
+      submission_id: 456,
+      user_id: user_id,
+      question_instance_id: question_instance_id,
+      status: "Accepted",
+      memory: "1024",
+      runtime: "0.123",
+      submitted_on: "2026-02-22T19:30:00.000Z",
+      stdout: "Hello\n",
+      stderr: null,
+      compile_output: null,
+      message: null
+    }
+  },
+  questionInstance: mockQuestionInstance,
+  mostRecentSubResponse: mockMostRecentSubResponse
 }
+
 
 describe("Code Submission", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     
-    mockedSubmitToJudge0.mockImplementation(async () => mockJudge0Response)
-    mockedGetQuestionInstance.mockImplementation(async () => [])
-    mockedUpdateQuestionInstance.mockImplementation(async (instance) => ({
-      ...mockQuestionInstance,
-      question_instance_id: instance.question_instance_id === -1 ? 123 : instance.question_instance_id
-    }))
-    
-    mockedAxios.post.mockImplementation(async () => ({ data: mockSubmissionResponse }))
+    mockedSubmitToJudge0.mockResolvedValue(mockJudge0Response)
+    mockedGetQuestionInstance.mockResolvedValue([])
+    mockedUpdateQuestionInstance.mockResolvedValue(mockQuestionInstance)
+    mockedAxios.post.mockResolvedValue({ data: mockSubmissionResponse })
   })
 
   it("processes submission not linked to an event (practice question)", async () => {
@@ -131,11 +144,7 @@ describe("Code Submission", () => {
 
     const result = await submitAttempt(question_id, user_id, null, source_code, language_id, testcases)
 
-    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
-    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(source_code, language_id, testcases)
-
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
-
     expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
     expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
       question_id: question_id,
@@ -144,6 +153,9 @@ describe("Code Submission", () => {
       riddle_id: null,
       is_riddle_completed: null
     })
+
+    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
+    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(user_id, question_instance_id, source_code, language_id, testcases)
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -151,9 +163,9 @@ describe("Code Submission", () => {
       expect.objectContaining({
         user_id: user_id,
         question_instance_id: mockQuestionInstance.question_instance_id,
-        status: mockJudge0Response.status.description,
-        memory: mockJudge0Response.memory,
-        runtime: mockJudge0Response.time,
+        status: mockJudge0Response.judge0Response.status.description,
+        memory: mockJudge0Response.judge0Response.memory,
+        runtime: mockJudge0Response.judge0Response.time,
       })
     )
   })
@@ -202,9 +214,9 @@ describe("Code Submission", () => {
     await expect(submitAttempt(question_id, user_id, null, source_code, language_id, testcases))
                 .rejects.toThrow("Judge0 API error")
 
-    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
-    expect(mockedUpdateQuestionInstance).not.toHaveBeenCalled()
+    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
+    expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
   })
 

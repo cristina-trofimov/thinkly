@@ -1,11 +1,10 @@
 import logging
-from typing import Annotated, Optional
-from pydantic import BaseModel
+from typing import Annotated
 from sqlalchemy.orm import Session
 from DB_Methods.database import get_db
 from models.schema import MostRecentSubmission
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ def get_most_recent_sub(
         
     
 
-@most_recent_sub_router.post("/update",
+@most_recent_sub_router.post("/update", status_code=201,
     responses={500: {"description": "Failed to update most recent submission."}}
 )
 def add_most_recent_sub(
