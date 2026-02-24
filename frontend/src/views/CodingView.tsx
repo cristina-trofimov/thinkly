@@ -65,7 +65,6 @@ const CodingView = () => {
 
   const submitCode = async () => {
     try {
-      console.log('submitting code')
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
@@ -101,7 +100,6 @@ const CodingView = () => {
       setLoadingMsg("Running")
       const response = await submitToJudge0(code, judgeID, testcases)
       setLogs(prev => [...prev, response])
-      console.log(response)
       setCurrentOutputTab("results")
 
       // Capture run result — status comes directly from Judge0 response
