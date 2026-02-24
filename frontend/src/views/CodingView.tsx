@@ -72,7 +72,6 @@ const CodingView = () => {
 
   const submitCode = async () => {
     try {
-      console.log('submitting code')
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 

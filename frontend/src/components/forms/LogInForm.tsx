@@ -50,7 +50,7 @@ export function LoginForm({
     setLoading(true);
 
     try {
-      const { token } = await login(form);
+      const { access_token: token } = await login(form);
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
@@ -111,7 +111,7 @@ export function LoginForm({
       }
 
       const res = await googleLogin(credential);
-      const { token } = res;
+      const { access_token: token } = res;
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
