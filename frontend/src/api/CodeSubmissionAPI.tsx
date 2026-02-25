@@ -3,18 +3,8 @@ import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { Judge0Response } from "@/types/questions/Judge0Response"
-import type { MostRecentSub } from "@/types/MostRecentSub.type"
+import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 
-interface AttemptResponse {
-    judge0Response: Judge0Response,
-    submissionResponse: {
-        status_code: number,
-        message: string,
-    },
-    questionInstance: QuestionInstance,
-    mostRecentSubResponse: MostRecentSub,
-}
 
 export async function submitAttempt(
     question_id: number,
@@ -23,7 +13,7 @@ export async function submitAttempt(
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
-): Promise<AttemptResponse> {
+): Promise<SubmitAttemptResponse> {
     try {
         // 1. Get/create instance for question_instance_id
         let q_inst: QuestionInstance | undefined 
@@ -68,10 +58,12 @@ export async function submitAttempt(
         )
 
         return {
-            judge0Response: judge0Response,
+            codeRunResponse: {
+                judge0Response: judge0Response,
+                mostRecentSubResponse: mostRecentSubResponse
+            },
             submissionResponse: submissionResponse.data,
-            questionInstance: updatedInstance,
-            mostRecentSubResponse: mostRecentSubResponse
+            questionInstance: updatedInstance
         }
 
     } catch (err) {

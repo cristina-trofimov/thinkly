@@ -1,13 +1,9 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Judge0Response } from "@/types/questions/Judge0Response";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
-import type { MostRecentSub } from "@/types/MostRecentSub.type";
+import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
+import { updateLastProgLang } from "./UserPreferencesAPI";
 
-interface RunResponse {
-    judge0Response: Judge0Response,
-    mostRecentSubResponse: MostRecentSub,
-}
 
 export function parse_input_output(testcases: TestcaseType[]) {
     let stdin: string = ''
@@ -42,7 +38,7 @@ export async function submitToJudge0(
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
-): Promise<RunResponse> {
+): Promise<CodeRunResponse> {
     try {
         const { stdin, expected_output } = parse_input_output(testcases)
 
@@ -58,7 +54,13 @@ export async function submitToJudge0(
 
         const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, parseInt(language_id))
 
-        return { judge0Response: response['data'], mostRecentSubResponse: mostRecentSubResponse }
+        const userPref = await updateLastProgLang(user_id, parseInt(language_id))
+
+        return {
+            judge0Response: response['data'],
+            mostRecentSubResponse: mostRecentSubResponse,
+            userPrefs: userPref
+        }
 
       } catch (err) {
         console.error("Error running the code:", err)

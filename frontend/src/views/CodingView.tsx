@@ -77,7 +77,7 @@ const CodingView = () => {
 
       const user = await getProfile()
 
-      const { judge0Response, submissionResponse, mostRecentSubResponse } = await submitAttempt(question?.id, user.id, null, code, judgeID, testcases)
+      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, user.id, null, code, judgeID, testcases)
       if (submissionResponse.status_code) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -90,8 +90,8 @@ const CodingView = () => {
         })
       }
 
-      setLogs(prev => [...prev, judge0Response])
-      setMostRecentSub(mostRecentSubResponse)
+      setLogs(prev => [...prev, codeRunResponse.judge0Response])
+      setMostRecentSub(codeRunResponse.mostRecentSubResponse)
       setCurrentOutputTab("results")
 
       trackCodeSubmitted(

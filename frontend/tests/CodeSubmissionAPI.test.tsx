@@ -107,7 +107,10 @@ const mockQuestionInstance: QuestionInstance = {
 }
 
 const mockSubmissionResponse = {
-  judge0Response: mockJudge0Response,
+  codeRunResponse: {
+    judge0Response: mockJudge0Response,
+    mostRecentSubResponse: mockMostRecentSubResponse
+  },
   submissionResponse: {
     status_code: 200,
     data: {
@@ -125,7 +128,6 @@ const mockSubmissionResponse = {
     }
   },
   questionInstance: mockQuestionInstance,
-  mostRecentSubResponse: mockMostRecentSubResponse
 }
 
 
