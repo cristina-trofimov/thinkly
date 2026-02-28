@@ -1,16 +1,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ProfilePage from "../src/views/ProfilePage";
 import { getProfile, isGoogleAccount } from "../src/api/AuthAPI";
-import { updateAccount } from "../src/api/AccountsAPI";
+import { updateAccount, getUserPreferences, updateUserPreferences } from "../src/api/AccountsAPI";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
-
-/**
- * NOTE: The compilation errors in the preview window (Could not resolve) 
- * are due to the environment not having access to your local project files 
- * or specific node_modules. This code is designed to run in your local 
- * Jest/Vitest environment where those paths exist.
- */
 
 // --- Mocks ---
 jest.mock('../src/lib/axiosClient', () => ({
@@ -22,7 +15,8 @@ jest.mock('../src/lib/axiosClient', () => ({
         delete: jest.fn(),
     },
     API_URL: 'http://localhost:8000',
-}))
+}));
+
 jest.mock("../src/api/AuthAPI", () => ({
     getProfile: jest.fn(),
     isGoogleAccount: jest.fn(),
@@ -30,6 +24,8 @@ jest.mock("../src/api/AuthAPI", () => ({
 
 jest.mock("../src/api/AccountsAPI", () => ({
     updateAccount: jest.fn(),
+    getUserPreferences: jest.fn(),
+    updateUserPreferences: jest.fn(),
 }));
 
 jest.mock("../src/api/LoggerAPI", () => ({
@@ -59,8 +55,8 @@ jest.mock("@/hooks/useAnalytics", () => ({
     }),
 }));
 
+// Mock ALL lucide-react icons used in ProfilePage
 jest.mock("lucide-react", () => ({
-    IdCardLanyard: () => <div />,
     Mail: () => <div />,
     User: () => <div />,
     IdCard: () => <div />,
@@ -68,6 +64,10 @@ jest.mock("lucide-react", () => ({
     KeyRound: () => <div />,
     Check: () => <span>Check</span>,
     X: () => <span>X</span>,
+    Bell: () => <div />,
+    Sun: () => <div />,
+    Moon: () => <div />,
+    Settings2: () => <div />,
 }));
 
 jest.mock("@/components/helpers/AvatarInitials", () => ({
@@ -90,6 +90,30 @@ jest.mock("@/components/ui/button", () => ({
     ),
 }));
 
+// Mock shadcn components that may not resolve in test env
+jest.mock("@/components/ui/separator", () => ({
+    Separator: () => <hr />,
+}));
+
+jest.mock("@/components/ui/badge", () => ({
+    Badge: ({ children, className }: any) => <span className={className}>{children}</span>,
+}));
+
+jest.mock("@/components/ui/card", () => ({
+    Card: ({ children, className }: any) => <div className={className}>{children}</div>,
+    CardContent: ({ children, className }: any) => <div className={className}>{children}</div>,
+}));
+
+jest.mock("@/components/ui/label", () => ({
+    Label: ({ children, className, htmlFor }: any) => <label htmlFor={htmlFor} className={className}>{children}</label>,
+}));
+
+jest.mock("@/components/ui/input", () => ({
+    Input: ({ value, onChange, disabled, autoFocus, className }: any) => (
+        <input value={value} onChange={onChange} disabled={disabled} autoFocus={autoFocus} className={className} />
+    ),
+}));
+
 describe("ProfilePage Component", () => {
     const mockUser = {
         id: "user-123",
@@ -97,6 +121,11 @@ describe("ProfilePage Component", () => {
         lastName: "Doe",
         email: "john.doe@example.com",
         accountType: "participant",
+    };
+
+    const mockPreferences = {
+        theme: "light",
+        notifications_enabled: true,
     };
 
     const mockNavigate = jest.fn();
@@ -107,7 +136,6 @@ describe("ProfilePage Component", () => {
         (useNavigate as jest.Mock).mockReturnValue(mockNavigate);
         (useOutlet as jest.Mock).mockReturnValue(null);
 
-        // Create a shared location mock for both window and globalThis
         delete (window as any).location;
         window.location = {
             href: 'http://localhost/app/profile',
@@ -128,11 +156,13 @@ describe("ProfilePage Component", () => {
         Object.defineProperty(window, 'sessionStorage', {
             value: sessionStorageMock,
             configurable: true,
-            writable: true
+            writable: true,
         });
 
         (getProfile as jest.Mock).mockResolvedValue(mockUser);
         (isGoogleAccount as jest.Mock).mockResolvedValue({ isGoogleUser: false });
+        (getUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
+        (updateUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
     });
 
     test("renders user profile information correctly after loading", async () => {
@@ -162,7 +192,6 @@ describe("ProfilePage Component", () => {
         render(<ProfilePage />);
 
         await waitFor(() => {
-            // FIX: Use getAllByText because "Managed by Google" appears in both Email and Password fields
             const managedLabels = screen.getAllByText(/Managed by Google/i);
             expect(managedLabels.length).toBeGreaterThanOrEqual(1);
             expect(screen.queryByText("Change Password")).toBeNull();
@@ -197,28 +226,21 @@ describe("ProfilePage Component", () => {
     });
 
     test("allows editing and saving first name successfully", async () => {
-        (updateAccount as jest.Mock).mockResolvedValue({
-            ...mockUser,
-            firstName: "Jane"
-        });
+        (updateAccount as jest.Mock).mockResolvedValue({ ...mockUser, firstName: "Jane" });
 
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Find and click the first name edit button
         const editButtons = screen.getAllByRole("button");
         const firstNameEdit = editButtons.find(b => b.textContent?.includes("Pencil"));
         if (firstNameEdit) fireEvent.click(firstNameEdit);
 
-        // Type new value
         const input = screen.getByRole("textbox");
         fireEvent.change(input, { target: { value: "Jane" } });
 
-        // Save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
-        // Wait for the API call to complete
         await waitFor(() => {
             expect(updateAccount).toHaveBeenCalledWith("user-123", { first_name: "Jane" });
             expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
@@ -226,28 +248,20 @@ describe("ProfilePage Component", () => {
                 "First name updated successfully."
             );
         });
-
-        // Note: reload() is called but difficult to test in JSDOM - tested in reload-specific test below
     });
 
     test("allows editing and saving last name successfully", async () => {
-        (updateAccount as jest.Mock).mockResolvedValue({
-            ...mockUser,
-            lastName: "Smith"
-        });
+        (updateAccount as jest.Mock).mockResolvedValue({ ...mockUser, lastName: "Smith" });
 
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Find all pencil buttons and click the second one (last name)
         const editButtons = screen.getAllByRole("button").filter(b => b.textContent?.includes("Pencil"));
         if (editButtons[1]) fireEvent.click(editButtons[1]);
 
-        // Type new value
         const input = screen.getByRole("textbox");
         fireEvent.change(input, { target: { value: "Smith" } });
 
-        // Save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
@@ -257,23 +271,17 @@ describe("ProfilePage Component", () => {
     });
 
     test("allows editing and saving email successfully", async () => {
-        (updateAccount as jest.Mock).mockResolvedValue({
-            ...mockUser,
-            email: "jane.doe@example.com"
-        });
+        (updateAccount as jest.Mock).mockResolvedValue({ ...mockUser, email: "jane.doe@example.com" });
 
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Find all pencil buttons and click the third one (email)
         const editButtons = screen.getAllByRole("button").filter(b => b.textContent?.includes("Pencil"));
         if (editButtons[2]) fireEvent.click(editButtons[2]);
 
-        // Type new value
         const input = screen.getByRole("textbox");
         fireEvent.change(input, { target: { value: "jane.doe@example.com" } });
 
-        // Save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
@@ -288,7 +296,6 @@ describe("ProfilePage Component", () => {
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Start editing first name
         const editButtons = screen.getAllByRole("button");
         const firstNameEdit = editButtons.find(b => b.textContent?.includes("Pencil"));
         if (firstNameEdit) fireEvent.click(firstNameEdit);
@@ -296,7 +303,6 @@ describe("ProfilePage Component", () => {
         const input = screen.getByRole("textbox");
         fireEvent.change(input, { target: { value: "Jane" } });
 
-        // Try to save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
@@ -306,7 +312,6 @@ describe("ProfilePage Component", () => {
     });
 
     test("disables save and cancel buttons during save operation", async () => {
-        // Make updateAccount slow to observe the saving state
         (updateAccount as jest.Mock).mockImplementation(() =>
             new Promise(resolve => setTimeout(() => resolve({ ...mockUser }), 100))
         );
@@ -314,7 +319,6 @@ describe("ProfilePage Component", () => {
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Start editing
         const editButtons = screen.getAllByRole("button");
         const firstNameEdit = editButtons.find(b => b.textContent?.includes("Pencil"));
         if (firstNameEdit) fireEvent.click(firstNameEdit);
@@ -322,11 +326,9 @@ describe("ProfilePage Component", () => {
         const input = screen.getByRole("textbox");
         fireEvent.change(input, { target: { value: "Jane" } });
 
-        // Click save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
-        // Buttons should be disabled during save
         await waitFor(() => {
             const disabledButtons = screen.getAllByRole("button").filter(b => b.hasAttribute("disabled"));
             expect(disabledButtons.length).toBeGreaterThan(0);
@@ -339,14 +341,12 @@ describe("ProfilePage Component", () => {
 
         await waitFor(() => {
             expect(screen.getByText("john.doe@example.com")).toBeTruthy();
-            // Email field should show "Managed by Google" instead of edit button
             const managedLabels = screen.getAllByText(/Managed by Google/i);
             expect(managedLabels.length).toBeGreaterThan(0);
         });
 
-        // Should not be able to find as many pencil buttons (email edit is hidden)
         const editButtons = screen.getAllByRole("button").filter(b => b.textContent?.includes("Pencil"));
-        expect(editButtons.length).toBe(2); // Only firstName and lastName, not email
+        expect(editButtons.length).toBe(2);
     });
 
     test("renders loading spinner while fetching profile", () => {
@@ -356,21 +356,16 @@ describe("ProfilePage Component", () => {
 
         render(<ProfilePage />);
 
-        // Should show loading spinner
         const spinner = document.querySelector('.animate-spin');
         expect(spinner).toBeTruthy();
     });
 
     test("clears editing state after successful save", async () => {
-        (updateAccount as jest.Mock).mockResolvedValue({
-            ...mockUser,
-            firstName: "Jane"
-        });
+        (updateAccount as jest.Mock).mockResolvedValue({ ...mockUser, firstName: "Jane" });
 
         render(<ProfilePage />);
         await screen.findByText("John Doe");
 
-        // Start editing
         const editButtons = screen.getAllByRole("button");
         const firstNameEdit = editButtons.find(b => b.textContent?.includes("Pencil"));
         if (firstNameEdit) fireEvent.click(firstNameEdit);
@@ -380,17 +375,13 @@ describe("ProfilePage Component", () => {
 
         fireEvent.change(input, { target: { value: "Jane" } });
 
-        // Save
         const saveButton = screen.getAllByRole("button").find(b => b.textContent?.includes("Check"));
         if (saveButton) fireEvent.click(saveButton);
 
-        // Wait for the update to complete
         await waitFor(() => {
             expect(updateAccount).toHaveBeenCalled();
             expect(window.sessionStorage.setItem).toHaveBeenCalled();
         });
-
-        // Note: reload() is called but causes test environment issues - verified via manual testing
     });
 
     test("displays account type badge", async () => {
@@ -406,7 +397,7 @@ describe("ProfilePage Component", () => {
         await waitFor(() => {
             const avatar = screen.getByTestId("avatar-initials");
             expect(avatar).toBeTruthy();
-            expect(avatar.textContent).toBe("JD"); // John Doe initials
+            expect(avatar.textContent).toBe("JD");
         });
     });
 });
