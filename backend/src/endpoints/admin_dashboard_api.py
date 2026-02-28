@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
-    AlgoTimeSession, Participation, Submission, UserSession
+    AlgoTimeSession, QuestionInstance, Submission, UserSession
 )
 from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
@@ -335,8 +335,6 @@ async def get_questions_solved_stats(
         range_start = get_time_range_start(time_range)
 
         # Query successful submissions grouped by question difficulty
-        from models.schema import QuestionInstance
-
         results = (
             db.query(
                 Question.difficulty,
@@ -388,7 +386,6 @@ async def get_time_to_solve_stats(
 
     try:
         range_start = get_time_range_start(time_range)
-        from models.schema import QuestionInstance
 
         # Calculate average time to solve by difficulty
         # Time = submission_time - event_start_date (in minutes)
@@ -401,8 +398,7 @@ async def get_time_to_solve_stats(
             )
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
-            .join(Participation, Submission.participation_id == Participation.participation_id)
-            .join(BaseEvent, Participation.event_id == BaseEvent.event_id)
+            .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
             .filter(
                 Submission.successful.is_(True),
                 Submission.submission_time >= range_start
@@ -541,19 +537,19 @@ async def get_participation_stats(
         def get_submission_count(day_start, day_end):
             query = (
                 db.query(func.count(Submission.submission_id))
-                .join(Participation, Submission.participation_id == Participation.participation_id)
+                .join(QuestionInstance, Submission.question_instance_id == QuestionInstance.question_instance_id)
             )
 
             # Filter by event type
             if event_type == "competitions":
                 query = query.filter(
-                    Participation.event_id.in_(
+                    QuestionInstance.event_id.in_(
                         db.query(Competition.event_id)
                     )
                 )
             else:  # algotime
                 query = query.filter(
-                    Participation.event_id.in_(
+                    QuestionInstance.event_id.in_(
                         db.query(AlgoTimeSession.event_id)
                     )
                 )

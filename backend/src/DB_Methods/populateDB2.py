@@ -16,7 +16,6 @@
 #     Language,
 #     QuestionInstance,
 #     Riddle,
-#     Participation,
 #     CompetitionLeaderboardEntry,
 #     AlgoTimeSeries,
 #     AlgoTimeSession,
@@ -199,20 +198,12 @@
 #         db.commit()
 #         print("✅ QuestionInstances created")
 #
-#         # ---------------- PARTICIPATION + COMPETITION LEADERBOARD ----------------
+#         # ---------------- COMPETITION LEADERBOARD ----------------
 #         for comp in competitions[:4]:
 #             num_participants = random.randint(15, 20)
 #             participants = random.sample(users, num_participants)
 #
 #             for user in participants:
-#                 db.add(
-#                     Participation(
-#                         user_id=user.user_id,
-#                         event_id=comp.event_id,
-#                         total_score=random.randint(300, 2000),
-#                     )
-#                 )
-#
 #                 db.add(
 #                     CompetitionLeaderboardEntry(
 #                         user_id=user.user_id,
@@ -227,6 +218,7 @@
 #         db.commit()
 #         print("✅ Competition leaderboard entries created")
 #
+#
 #         # ---------------- ALGOTIME SERIES ----------------
 #         series = AlgoTimeSeries(
 #             algotime_series_name="Winter Session 2026",
@@ -235,7 +227,9 @@
 #         db.commit()
 #         print("✅ AlgoTime series created")
 #
-#         # ---------------- ALGOTIME SESSIONS + PARTICIPATION ----------------
+#         # ---------------- ALGOTIME SESSIONS ----------------
+#         algotime_participants_per_event: dict[int, list] = {}
+#
 #         for event_id in range(1, 6):
 #             session = AlgoTimeSession(
 #                 event_id=event_id,
@@ -245,42 +239,27 @@
 #             db.flush()
 #
 #             participants = random.sample(users, random.randint(6, 10))
-#
-#             for user in participants:
-#                 existing = db.query(Participation).filter_by(
-#                     user_id=user.user_id,
-#                     event_id=event_id
-#                 ).first()
-#
-#                 if not existing:
-#                     db.add(
-#                         Participation(
-#                             user_id=user.user_id,
-#                             event_id=event_id,
-#                             total_score=0,
-#                         )
-#                     )
+#             algotime_participants_per_event[event_id] = participants
 #
 #         db.commit()
 #         print("✅ AlgoTime sessions created")
 #
 #         # ---------------- ALGOTIME LEADERBOARD ----------------
-#         all_algotime_participants = set()
-#         for event_id in range(1, 6):
-#             session_participants = db.query(Participation).filter_by(event_id=event_id).all()
-#             for p in session_participants:
-#                 all_algotime_participants.add(p.user_id)
+#         all_algotime_participant_ids: set[int] = set()
+#         for participants in algotime_participants_per_event.values():
+#             for user in participants:
+#                 all_algotime_participant_ids.add(user.user_id)
 #
-#         remaining_users = [u for u in users if u.user_id not in all_algotime_participants]
+#         remaining_users = [u for u in users if u.user_id not in all_algotime_participant_ids]
 #         target_count = random.randint(15, 20)
 #
-#         if len(all_algotime_participants) < target_count and remaining_users:
-#             additional_needed = min(target_count - len(all_algotime_participants), len(remaining_users))
+#         if len(all_algotime_participant_ids) < target_count and remaining_users:
+#             additional_needed = min(target_count - len(all_algotime_participant_ids), len(remaining_users))
 #             additional_users = random.sample(remaining_users, additional_needed)
-#             all_algotime_participants.update([u.user_id for u in additional_users])
+#             all_algotime_participant_ids.update([u.user_id for u in additional_users])
 #
 #         user_map = {u.user_id: u for u in users}
-#         for user_id in all_algotime_participants:
+#         for user_id in all_algotime_participant_ids:
 #             user = user_map[user_id]
 #             score = random.randint(500, 2500)
 #
@@ -297,7 +276,7 @@
 #             )
 #
 #         db.commit()
-#         print(f"✅ AlgoTime leaderboard created with {len(all_algotime_participants)} participants")
+#         print(f"✅ AlgoTime leaderboard created with {len(all_algotime_participant_ids)} participants")
 #         print("🎉 Seeding completed successfully")
 #
 #     except Exception as e:

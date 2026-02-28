@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, Participation, CompetitionLeaderboardEntry
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, CompetitionLeaderboardEntry
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
@@ -710,10 +710,7 @@ async def delete_competition(
             QuestionInstance.event_id == competition_id
         ).delete()
 
-        # 3. Delete leaderboard instances for that competition   Participation, CompetitionLeaderboardEntry
-        db.query(Participation).filter(
-            Participation.event_id == competition_id
-        ).delete()
+        # 3. Delete leaderboard entries for that competition
         db.query(CompetitionLeaderboardEntry).filter(
             CompetitionLeaderboardEntry.competition_id == competition_id
         ).delete()
