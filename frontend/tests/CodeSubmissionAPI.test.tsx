@@ -154,7 +154,7 @@ describe("Code Submission", () => {
   it("processes submission not linked to an event (practice question)", async () => {
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
 
-    const result = await submitAttempt(question_id, user_id, null, source_code, language_id, testcases)
+    const result = await submitAttempt(question_id, null, source_code, language_id, testcases)
 
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
     expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
@@ -167,7 +167,7 @@ describe("Code Submission", () => {
     })
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
-    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(user_id, question_instance_id, source_code, language_id, testcases)
+    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(question_instance_id, source_code, language_id, testcases)
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -186,7 +186,7 @@ describe("Code Submission", () => {
     mockedGetQuestionInstance.mockResolvedValueOnce([mockQuestionInstance])
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
 
-    const result = await submitAttempt(question_id, user_id, event_id, source_code, language_id, testcases)
+    await submitAttempt(question_id, event_id, source_code, language_id, testcases)
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     
@@ -203,7 +203,7 @@ describe("Code Submission", () => {
     mockedGetQuestionInstance.mockResolvedValueOnce([])
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
 
-    const result = await submitAttempt(question_id, user_id, event_id, source_code, language_id, testcases)
+    await submitAttempt(question_id, event_id, source_code, language_id, testcases)
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedGetQuestionInstance).toHaveBeenCalledTimes(1)
@@ -223,7 +223,7 @@ describe("Code Submission", () => {
   it("handles errors from Judge0 API", async () => {
     mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Judge0 API error"))
 
-    await expect(submitAttempt(question_id, user_id, null, source_code, language_id, testcases))
+    await expect(submitAttempt(question_id, null, source_code, language_id, testcases))
                 .rejects.toThrow("Judge0 API error")
 
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
@@ -237,7 +237,7 @@ describe("Code Submission", () => {
     mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstance)
     mockedAxios.post.mockRejectedValueOnce(new Error("Submission API error"))
 
-    await expect(submitAttempt(question_id, user_id, null, source_code, language_id, testcases))
+    await expect(submitAttempt(question_id, null, source_code, language_id, testcases))
                 .rejects.toThrow("Submission API error")
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)

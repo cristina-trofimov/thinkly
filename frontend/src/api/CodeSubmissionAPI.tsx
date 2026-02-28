@@ -8,7 +8,7 @@ import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 
 export async function submitAttempt(
     question_id: number,
-    user_id: number,
+    // user_id: number,
     event_id: number | null,
     source_code: string,
     language_id: string,
@@ -38,13 +38,13 @@ export async function submitAttempt(
         const updatedInstance = await updateQuestionInstance(q_inst)
 
         // 3. Submit to judge0 and save most recent submission
-        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(user_id, updatedInstance.question_instance_id, source_code, language_id, testcases)
+        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(updatedInstance.question_instance_id, source_code, language_id, testcases)
 
         // 4. Save submission's output details
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
-                user_id: user_id,
+                user_id: mostRecentSubResponse.user_id,
                 question_instance_id: updatedInstance.question_instance_id,
                 status: judge0Response['status']['description'],
                 memory: judge0Response['memory'],
