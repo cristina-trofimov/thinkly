@@ -3,7 +3,6 @@ import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
 import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
-import type { MostRecentSub } from "../src/types/MostRecentSub.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,

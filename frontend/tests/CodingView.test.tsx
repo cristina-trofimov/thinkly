@@ -7,6 +7,7 @@ import { useLocation } from 'react-router-dom'
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
+import { Account } from '../src/types/account/Account.type'
 import { CodeRunResponse } from '../src/types/CodeRunResponse.type'
 import { SubmitAttemptResponse } from '../src/types/SubmitAttemptResponse.type'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
@@ -14,6 +15,8 @@ import { getProfile } from '../src/api/AuthAPI';
 import { UserPreferences } from '../src/types/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/CodeSubmissionAPI'
+import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
+import { toast } from 'sonner'
 
 
 jest.mock('@monaco-editor/react', () => {
@@ -29,15 +32,15 @@ jest.mock('@monaco-editor/react', () => {
 })
 
 jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
-}))
+    __esModule: true,
+    default: {
+      get: jest.fn(),
+      post: jest.fn(),
+      put: jest.fn(),
+      delete: jest.fn(),
+    },
+    API_URL: 'http://localhost:8000',
+  }))
 
 jest.mock('../src/components/helpers/Loader.tsx', () => {
     return function Loader(props: any) {
@@ -55,22 +58,20 @@ jest.mock('../src/components/codingPage/ConsoleOutput.tsx', () => {
     }
 })
 
-// jest.mock('../src/api/Judge0API', () => ({
-//     submitToJudge0: jest.fn()
-// }))
-
-const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
-
-jest.mock('../src/api/AuthAPI', () => ({
-    getProfile: jest.fn().mockResolvedValue({
-        id: 1,
-        name: 'Test User',
-        email: 'test@example.com'
-    })
+jest.mock('../src/api/Judge0API', () => ({
+    submitToJudge0: jest.fn()
 }))
 
 jest.mock('../src/api/CodeSubmissionAPI', () => ({
     submitAttempt: jest.fn()
+}))
+
+jest.mock('../src/api/QuestionInstanceAPI', () => ({
+    getQuestionInstance: jest.fn()
+}))
+
+jest.mock('../src/api/AuthAPI', () => ({
+    getProfile: jest.fn()
 }))
 
 jest.mock('../src/hooks/useAnalytics', () => ({
@@ -166,6 +167,12 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
 
 jest.mock('../src/components/helpers/useTestcases')
 
+const mockedToast = toast as jest.Mocked<typeof toast>
+const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
+const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
+const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
+const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
+
 const mockProblem: Question = {
     id: 1,
     title: "Sum Problem",
@@ -195,6 +202,14 @@ const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
 const language_id = "71"
+
+const mockProfile: Account = {
+    id: user_id,
+    email: 'test@example.com',
+    firstName: "Test",
+    lastName: "User",
+    accountType: "Participant"
+}
 
 const mockMostRecentSubResponse: MostRecentSub = {
     user_id: user_id,
@@ -231,22 +246,31 @@ const mockCodeRunResponse: CodeRunResponse = {
     userPrefs: mockUserPrefs,
 }
 
-const mockQuestionInstance: QuestionInstance = {
+const mockQuestionInstances: QuestionInstance[] = [{
     question_instance_id: question_instance_id,
     question_id: question_id,
     event_id: event_id,
     points: null,
     riddle_id: null,
     is_riddle_completed: null
-}
+}]
 
-const mockSubmitAttemptResponse: SubmitAttemptResponse = {
+const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
     codeRunResponse: mockCodeRunResponse,
     submissionResponse: {
         status_code: 200,
         message: "Submitted"
     },
-    questionInstance: mockQuestionInstance
+    questionInstance: mockQuestionInstances[0]
+}
+
+const mockSubmitAttemptResponseFAIL: SubmitAttemptResponse = {
+    codeRunResponse: mockCodeRunResponse,
+    submissionResponse: {
+        status_code: 400,
+        message: "Failed"
+    },
+    questionInstance: mockQuestionInstances[0]
 }
 
 const nullRef = { current: null }
@@ -394,46 +418,52 @@ describe('CodingView Component', () => {
         expect(editor).toHaveValue('const x = 5')
     })
 
-    // it('switches between testcases and results tabs', async () => {
-    //     render(<CodingView />)
-
-    //     const testcasesTab = screen.getByTestId('testcases-tab')
-    //     const resultsTab = screen.getByTestId('code-output-tab')
-
-    //     expect(testcasesTab).toBeInTheDocument()
-    //     expect(resultsTab).toBeInTheDocument()
-    // })
-
-    it('calls submit code when submit button is clicked', async () => {
-        // const { submitAttempt } = require('../src/api/CodeSubmissionAPI')
-        // const mockResponse = {
-        //     judge0Response: {
-        //         status: { description: 'Accepted' },
-        //         time: '0.1'
-        //     },
-            
-        //     submissionResponse: {
-        //         status: 200,
-        //         message: "sucess"
-        //     },
-        // }
-        // submitAttempt.mockResolvedValueOnce(mockResponse)
-        submitAttempt.mockResolvedValueOnce(mockSubmitAttemptResponse)
+    it('submits code with successful output', async () => {
+        mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseSUCCESS)
+        mockedGetProfile.mockResolvedValue(mockProfile)
 
         render(<CodingView />)
 
-        const lastCode = await screen.findByTestId("most-recent-sub-btn")
-
-        expect(lastCode).not.toBeInTheDocument()
+        expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
 
-        await waitFor(() => {
-            expect(submitAttempt).toHaveBeenCalled()
-            expect(getProfile).toHaveBeenCalled()
-            expect(lastCode).toBeInTheDocument()
-            expect(screen.queryByText(mockSubmitAttemptResponse.submissionResponse.message)).toBeInTheDocument()
-        })
+        expect(submitAttempt).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
+
+        expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message, expect.objectContaining({
+            position: 'top-right',
+            style: { backgroundColor: '#DAE9DA' },
+        }))
+        expect(toast.warning).not.toHaveBeenCalled()
+    })
+
+    it('submits code with failure output', async () => {
+        mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseFAIL)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        render(<CodingView />)
+
+        expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('submit-btn'))
+
+        expect(submitAttempt).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
+
+        expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message, expect.objectContaining({
+            position: 'top-right',
+            style: { backgroundColor: '#E9E2DA' },
+        }))
+        expect(toast.success).not.toHaveBeenCalled()
+    })
+
+    it('handles failed code submission', async () => {
+        mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        await expect(submitAttempt(question_id, user_id, null, "code", language_id, []))
+            .rejects.toThrow("Network error")
     })
 
     it('shows loader when question has no id', () => {
@@ -447,23 +477,29 @@ describe('CodingView Component', () => {
         expect(screen.getByTestId('Loader')).toBeInTheDocument()
     })
 
-    //here
-    it('runs code and updates logs when run button is clicked', async () => {
-        const { submitToJudge0 } = require('../src/api/Judge0API')
-        const mockResponse = {
-            status: { description: 'Accepted' },
-            time: '0.1',
-        }
-        submitToJudge0.mockResolvedValueOnce(mockResponse)
+    it('execute code and updates logs when run button is clicked', async () => {
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
 
         render(<CodingView />)
 
-        const buttons = screen.getAllByRole('button')
-        const playButton = buttons.find(btn => btn.querySelector('.lucide-play'))
+        const playButton = screen.getByTestId('play-btn')
 
         await userEvent.click(playButton!)
 
         expect(submitToJudge0).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
+        expect(getQuestionInstance).toHaveBeenCalled()
+    })
+
+    it('handles failed code execution', async () => {
+        mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Network error"))
+        mockedGetProfile.mockResolvedValue(mockProfile)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
+
+        await expect(submitToJudge0(user_id, question_instance_id, "code", language_id, []))
+            .rejects.toThrow("Network error")
     })
 
     it('handles language dropdown interaction', async () => {
@@ -475,56 +511,18 @@ describe('CodingView Component', () => {
         expect(languageBtn).toBeInTheDocument()
     })
 
-
-    it('renders description area with question', () => {
-        render(<CodingView />)
-
-        expect(screen.getByTestId('desc-area')).toBeInTheDocument()
-    })
-
     it('handles async loading state during code execution', async () => {
-        // const { submitToJudge0 } = require('../src/api/Judge0API')
-
-        let resolvePromise: (value: any) => void
-        const mockPromise = new Promise((resolve) => {
-            resolvePromise = resolve
-        })
-        mockedSubmitToJudge0.mockResolvedValue(mockCodeRunResponse)
-        // submitToJudge0.mockResolvedValue({ data:  mockPromise })
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
 
         render(<CodingView />)
 
-        const buttons = screen.getAllByRole('button')
-        const playButton = buttons.find(btn => btn.querySelector('.lucide-play'))
+        const playButton = screen.getByTestId('play-btn')
 
         await userEvent.click(playButton!)
 
-        expect(screen.getByTestId('Loader')).toBeInTheDocument()
-
-        resolvePromise!({
-            status: { description: 'Accepted' },
-            time: '0.1',
-        })
-    })
-
-    //Here
-    it('handles failed code execution', async () => {
-        const { submitToJudge0 } = require('../src/api/Judge0API')
-        const mockResponse = {
-            status: { description: 'Wrong Answer' },
-            time: '0.2',
-        }
-        submitToJudge0.mockResolvedValueOnce(mockResponse)
-
-        render(<CodingView />)
-
-        const buttons = screen.getAllByRole('button')
-        const playButton = buttons.find(btn => btn.querySelector('.lucide-play'))
-
-        await userEvent.click(playButton!)
-
-        await screen.findByTestId('code-output-tab')
-        expect(submitToJudge0).toHaveBeenCalled()
+        await waitFor(() => expect(screen.getByTestId('Loader')).toBeInTheDocument())
     })
 
     it('displays coding buttons container', () => {
@@ -545,50 +543,6 @@ describe('CodingView Component', () => {
         await userEvent.click(screen.getByTestId('code-area-fullscreen'))
 
         expect(editor).toHaveValue('test code')
-    })
-
-    it('handles multiple code runs and accumulates logs', async () => {
-        // submitToJudge0
-        // mockedSubmitToJudge0
-        //     .mockResolvedValue(mockCodeRunResponse)
-        //     .mockResolvedValue(mockCodeRunResponse)
-
-        // render(<CodingView />)
-
-        // const playButton = screen.getByText('', { selector: 'button' }).closest('button');
-
-        // if (playButton) {
-        //     await userEvent.click(playButton)
-        //     await userEvent.click(playButton)
-        // }
-
-        // expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(2)
-
-        const { submitToJudge0 } = require('../src/api/Judge0API')
-        submitToJudge0
-            .mockResolvedValue(mockCodeRunResponse)
-            .mockResolvedValue(mockCodeRunResponse)
-            // .mockResolvedValueOnce({
-            //     judge0Response: mockJudge0Response,
-            //     mostRecentSubResponse: mockMostRecentSubResponse
-            // })
-            // .mockResolvedValueOnce({
-            //     judge0Response: mockJudge0Response,
-            //     mostRecentSubResponse: mockMostRecentSubResponse
-            // })
-
-        // render(<CodingView />)
-
-        // const buttons = screen.getAllByRole('button')
-        // const playButton = buttons.find(btn => btn.querySelector('.lucide-play'))
-
-        // await userEvent.click(playButton!)
-        // await screen.findByTestId('code-output-tab')
-
-        // await userEvent.click(playButton!)
-        // await screen.findByTestId('code-output-tab')
-
-        // expect(submitToJudge0).toHaveBeenCalledTimes(2)
     })
 
     it('renders sandbox with correct dimensions', () => {

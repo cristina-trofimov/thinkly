@@ -7,7 +7,7 @@ const ConsoleOutput = ({logs}: {logs: Judge0Response[]}) => {
             const stat = log.status.description === "Accepted" ? "Passed" : "Failed"
             const text_color = log.status.description === "Accepted" ? "bg-green-500" : "bg-red-500"
 
-            return <div key={`log-${idx+1}`} className='flex columns-2 gap-1.5 items-start' >
+            return <div data-testid={`log-${idx+1}`} className='flex columns-2 gap-1.5 items-start' >
                 <div className={`flex flex-col py-0.5 px-1 text-sm ${text_color}`} >
                     <div>{stat}</div>
                     {log.time && (

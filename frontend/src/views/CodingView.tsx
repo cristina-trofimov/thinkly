@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getProfile } from '@/api/AuthAPI';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 
 
 const CodingView = () => {
@@ -78,7 +78,7 @@ const CodingView = () => {
       const user = await getProfile()
 
       const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, user.id, null, code, judgeID, testcases)
-      if (submissionResponse.status_code) {
+      if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
           style: { backgroundColor: '#DAE9DA' }
@@ -86,7 +86,7 @@ const CodingView = () => {
       } else {
         toast.warning(submissionResponse.message, {
           position: 'top-right',
-          style: { backgroundColor: '#E9DADA' }
+          style: { backgroundColor: '#E9E2DA' }
         })
       }
 
@@ -98,6 +98,12 @@ const CodingView = () => {
         question.id,
         selectedLang,
       )
+    } catch (err) {
+      toast.error("Error when submitting the code.", {
+        position: 'top-right',
+        style: { backgroundColor: '#E9DADA' }
+      })
+      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -126,6 +132,12 @@ const CodingView = () => {
         passed,
         judge0Response.time ?? undefined
       )
+    } catch (err) {
+      toast.error("Error when running the code.", {
+        position: 'top-right',
+        style: { backgroundColor: '#E9DADA' }
+      })
+      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -244,7 +256,7 @@ const CodingView = () => {
                   <span className="text-lg font-medium">Code</span>
                   <div className="grid grid-cols-4 gap-1">
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={runCode}
+                      onClick={runCode} data-testid="play-btn"
                     >
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
@@ -346,19 +358,21 @@ const CodingView = () => {
                   </div>
                   <div className={`pr-5 ${mostRecentSubGroupClass}`} >
                     {mostRecentSub && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || templateCode) }}
-                            className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
-                            <UndoDot size={22} color='black' />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className='z-99999999999999 p-1.5 text-sm bg-white border rounded-3xl' >
-                            Go back to the most recently ran code
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || templateCode) }}
+                              className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                              <UndoDot size={22} color='black' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className='z-99999999999999 p-1.5 text-sm bg-white border rounded-3xl' >
+                              Go back to the most recently ran code
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
