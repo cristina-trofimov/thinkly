@@ -38,7 +38,7 @@ export async function submitAttempt(
         const updatedInstance = await updateQuestionInstance(q_inst)
 
         // 3. Submit to judge0 and save most recent submission
-        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user_id, updatedInstance.question_instance_id, source_code, language_id, testcases)
+        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(user_id, updatedInstance.question_instance_id, source_code, language_id, testcases)
 
         // 4. Save submission's output details
         const submissionResponse = await axiosClient.post(
@@ -60,7 +60,8 @@ export async function submitAttempt(
         return {
             codeRunResponse: {
                 judge0Response: judge0Response,
-                mostRecentSubResponse: mostRecentSubResponse
+                mostRecentSubResponse: mostRecentSubResponse,
+                userPrefs: userPrefs
             },
             submissionResponse: submissionResponse.data,
             questionInstance: updatedInstance

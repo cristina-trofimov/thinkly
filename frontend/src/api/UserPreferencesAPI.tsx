@@ -2,11 +2,6 @@ import axiosClient from "@/lib/axiosClient"
 import type { UserPreferences } from "@/types/UserPreferences.type"
 
 
-// pref_id: number,
-//     user_id: number,
-//     theme: string,
-//     notifications_enabled: boolean,
-//     last_used_programming_language: number | null,
 export async function updateAllPrefs(
   prefs: UserPreferences,
 ): Promise<UserPreferences> {

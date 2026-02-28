@@ -55,7 +55,7 @@ describe("Most recent submission", () => {
     it("updateMostRecentSub: updates the values of the most recent submission", async () => {
         mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
 
-        const result = await updateMostRecentSub(user_id, question_instance_id, code,lang_judge_id)
+        await updateMostRecentSub(user_id, question_instance_id, code,lang_judge_id)
         
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
         expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -78,10 +78,10 @@ describe("Most recent submission", () => {
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     })
 
-    it("getMostRecentSub: returns the most recent submission associated with a given ", async () => {
+    it("getMostRecentSub: returns the most recent submission associated with a given user and question instance id", async () => {
         mockedAxios.get.mockImplementation(async () => ({ data: mockResponse }))
 
-        const result = await getMostRecentSub(user_id, question_instance_id)
+        await getMostRecentSub(user_id, question_instance_id)
 
         expect(mockedAxios.get).toHaveBeenCalledTimes(1)
         expect(mockedAxios.get).toHaveBeenCalledWith(

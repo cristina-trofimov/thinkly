@@ -66,9 +66,9 @@ def update_user_theme(
 
 
 @user_preferences_router.post("/notif", status_code=201,
-    responses={500: {"description": "Failed to update user themes."}}
+    responses={500: {"description": "Failed to update user notifications_enabled."}}
 )
-def update_notification(
+def update_notifications(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):
@@ -90,29 +90,16 @@ def update_notification(
 
 
 @user_preferences_router.post("/prog", status_code=201,
-    responses={500: {"description": "Failed to update user themes."}}
+    responses={500: {"description": "Failed to update user last_used_programming_language."}}
 )
 def update_last_prog(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):
     try:
-        
-        print("="*60)
-        print(request)
-        print("="*60)
-        
         pref = query_get_prefs(db, request['user_id'])
-        
-        print("="*60)
-        print((pref))
-        print("="*60)
 
         pref.last_used_programming_language = request['last_used_programming_language'],
-
-        print("="*60)
-        print(pref.last_used_programming_language)
-        print("="*60)
 
         db.commit()
         db.refresh(pref)
@@ -127,26 +114,35 @@ def update_last_prog(
 
 
 @user_preferences_router.post("/update", status_code=201,
-    responses={500: {"description": "Failed to update user themes."}}
+    responses={500: {"description": "Failed to add/update all user preferences."}}
 )
-def update_all_pref(
+def update_all_prefs(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):
     try:
         pref = query_get_prefs(db, request['user_id'])
 
-        pref.theme = request['theme']
-        pref.notifications_enabled = request['notifications_enabled']
-        pref.last_used_programming_language = request['last_used_programming_language']
+        if pref is None:
+            pref = UserPreferences(
+                user_id = request['user_id'],
+                theme = request['theme'],
+                notifications_enabled = request['notifications_enabled'],
+                last_used_programming_language = request['last_used_programming_language']
+            )
+            db.add(pref)
+        else:
+            pref.theme = request['theme']
+            pref.notifications_enabled = request['notifications_enabled']
+            pref.last_used_programming_language = request['last_used_programming_language']
 
         db.commit()
         db.refresh(pref)
 
-        logger.info("Updated all user preferences.")
+        logger.info("Added/Updated all user preferences.")
 
         return {"status_code": 200, 'data': pref}
     except Exception as e:
         db.rollback()
-        logger.error(f"Error updating all user preferences: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update all user preferences. Exception: {str(e)}")
+        logger.error(f"Error adding/updating all user preferences: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to add/update all user preferences. Exception: {str(e)}")

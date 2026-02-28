@@ -5,6 +5,7 @@ import type { TestcaseType } from "../src/types/questions/Testcases.type"
 import type { MostRecentSub } from "../src/types/MostRecentSub.type"
 import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
+import { UserPreferences } from "../src/types/UserPreferences.type"
 
 beforeAll(() => {
   Object.defineProperty(global, 'import', {
@@ -80,6 +81,14 @@ const mockMostRecentSubResponse: MostRecentSub = {
   lang_judge_id: parseInt(language_id)
 }
 
+const mockUserPrefs: UserPreferences = {
+  pref_id: 1,
+  user_id: user_id,
+  theme: "light",
+  notifications_enabled: false,
+  last_used_programming_language: null
+}
+
 const mockJudge0Response = {
   judge0Response: {
     stdout: "Hello\n",
@@ -94,7 +103,8 @@ const mockJudge0Response = {
     time: "0.123",
     token: null
   },
-  mostRecentSubResponse: mockMostRecentSubResponse
+  mostRecentSubResponse: mockMostRecentSubResponse,
+  userPrefs: mockUserPrefs
 }
 
 const mockQuestionInstance: QuestionInstance = {

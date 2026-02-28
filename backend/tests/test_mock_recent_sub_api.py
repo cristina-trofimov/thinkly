@@ -40,12 +40,12 @@ def client(mock_db):
 
 def test_get_most_recent_sub_success(client, mock_db):
     """Test fetching most recent submission by user_id and question_instance_id."""
-    most_recent_run = SimpleNamespace(
-        question_instance_id=1,
-        user_id=10,
-        code="print('hello world')",
-        lang_judge_id=71,
-    )
+    most_recent_run = {
+        "question_instance_id": 1,
+        "user_id": 10,
+        "code": "print('hello world')",
+        "lang_judge_id": 71,
+    }
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = most_recent_run
 

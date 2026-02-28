@@ -1,5 +1,6 @@
 import axiosClient from "../src/lib/axiosClient"
 import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
+import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
 import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
 import type { MostRecentSub } from "../src/types/MostRecentSub.type";
@@ -17,6 +18,10 @@ jest.mock('../src/lib/axiosClient', () => ({
 
 jest.mock('../src/api/MostRecentSubAPI', () => ({
   updateMostRecentSub: jest.fn()
+}))
+
+jest.mock('../src/api/UserPreferencesAPI', () => ({
+  updateLastProgLang: jest.fn()
 }))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
@@ -63,7 +68,7 @@ describe("Judge0API", () => {
     const { stdin, expected_output } = parse_input_output(testcases)
     
     mockedAxios.post.mockResolvedValueOnce({
-      data: { 
+      data: {
         source_code: code,
         language_id: language_id,
         stdin: stdin,
@@ -71,8 +76,10 @@ describe("Judge0API", () => {
        },
     })
 
-    await submitToJudge0(user_id, question_instance_id, code, language_id, []);
+    await submitToJudge0(user_id, question_instance_id, code, language_id, testcases);
 
+    expect(updateLastProgLang).toHaveBeenCalledTimes(1)
+    expect(updateMostRecentSub).toHaveBeenCalledTimes(1)
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
   })
 
