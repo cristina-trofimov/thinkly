@@ -1,12 +1,16 @@
 import logging
 from datetime import datetime, timezone
 
+from DB_Methods.database import SessionLocal
+from models.schema import CompetitionEmail
+from endpoints.send_email_api import send_email_via_brevo
+from endpoints.competitions_api import resolve_email_recipients
+
 logger = logging.getLogger(__name__)
 
 
 def _send_reminder(email_id: int, recipients: list, subject: str, body: str) -> None:
     """Send a single reminder email and log the result."""
-    from endpoints.send_email_api import send_email_via_brevo
     try:
         send_email_via_brevo(to=recipients, subject=subject, text=body)
     except Exception as e:
@@ -37,10 +41,6 @@ def run_scheduled_emails():
     For each reminder timestamp (24h, 5min, other) that is due (≤ now),
     sends the email via Brevo and nulls out the timestamp so it never re-fires.
     """
-    from DB_Methods.database import SessionLocal
-    from models.schema import CompetitionEmail
-    from endpoints.competitions_api import resolve_email_recipients
-
     db = SessionLocal()
     now = datetime.now(timezone.utc)
 
