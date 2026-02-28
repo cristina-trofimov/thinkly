@@ -15,6 +15,7 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints.base_event_api import base_event_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from contextlib import asynccontextmanager
@@ -137,6 +138,7 @@ try:
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
     app.include_router(user_preferences_router, prefix="/prefs")
+    app.include_router(base_event_router, prefix="/events")
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
@@ -144,4 +146,5 @@ except AttributeError:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    
     

@@ -11,7 +11,7 @@ const Loader = ({ isOpen, msg }: { isOpen: boolean, msg: string } ) => {
   return (
     <Dialog open={isOpen} >
         <DialogOverlay className='fixed inset-0 z-9998 bg-black/40 backdrop-blur-sm' data-testid="Loader"  >
-          <DialogContent  onEscapeKeyDown={(e) => e.preventDefault()}
+          <DialogContent onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}
             className='bg-transparent z-9999 border-none
               fixed inset-0 flex justify-center items-center'

@@ -55,7 +55,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const fetchUser = async () => {
       try {
         const currentAccount = await getProfile();
-        console.log("Fetched user profile:", currentAccount);
         setUser({
           id: currentAccount.id,
           firstName: currentAccount.firstName,
