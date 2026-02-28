@@ -79,7 +79,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             ? true
             : !!initialData.emailNotification
     );
-    const [emailToAll, setEmailToAll] = useState(initialData?.emailNotification?.to === "all participants");
+    const [emailToAll, setEmailToAll] = useState(initialData?.emailNotification?.to === "all");
     const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
     const [emailData, setEmailData] = useState({
         to: initialData?.emailNotification?.to || "",
@@ -160,12 +160,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             sourcePool = currentOrdered;
         }
 
-        const updatedList = calculateNewList(
-            source,
-            destination,
-            currentOrdered,
-            sourcePool
-        );
+        const updatedList = calculateNewList(source, destination, currentOrdered, sourcePool);
 
         if (isQuestion) {
             setOrderedQuestions(updatedList as Question[]);
@@ -205,6 +200,13 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         if (orderedQuestions.length !== orderedRiddles.length) {
             setErrors({ name: false, date: false, startTime: false, endTime: false, questions: true, riddles: true });
             return `Questions and riddles count mismatch.`;
+        }
+
+        if (emailEnabled && emailData.sendAtLocal) {
+            const reminderDateTime = new Date(emailData.sendAtLocal);
+            if (reminderDateTime.getTime() <= Date.now()) {
+                return "Custom reminder time must be in the future.";
+            }
         }
 
         return null;
