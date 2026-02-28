@@ -34,7 +34,6 @@ export function parse_input_output(testcases: TestcaseType[]) {
 }
 
 export async function submitToJudge0(
-    // user_id: number,
     question_instance_id: number,
     source_code: string,
     language_id: string,

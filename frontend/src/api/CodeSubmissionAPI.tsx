@@ -8,7 +8,6 @@ import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 
 export async function submitAttempt(
     question_id: number,
-    // user_id: number,
     event_id: number | null,
     source_code: string,
     language_id: string,
