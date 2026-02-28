@@ -343,8 +343,8 @@ async def get_questions_solved_stats(
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
             .filter(
-                Submission.successful.is_(True),
-                Submission.submission_time >= range_start
+                Submission.status == 'Accepted',
+                Submission.submitted_on >= range_start
             )
             .group_by(Question.difficulty)
             .all()
@@ -388,20 +388,20 @@ async def get_time_to_solve_stats(
         range_start = get_time_range_start(time_range)
 
         # Calculate average time to solve by difficulty
-        # Time = submission_time - event_start_date (in minutes)
+        # Time = submitted_on - event_start_date (in minutes)
         results = (
             db.query(
                 Question.difficulty,
                 func.avg(
-                    func.extract('epoch', Submission.submission_time - BaseEvent.event_start_date) / 60
+                    func.extract('epoch', Submission.submitted_on - BaseEvent.event_start_date) / 60
                 ).label('avg_minutes')
             )
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
             .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
             .filter(
-                Submission.successful.is_(True),
-                Submission.submission_time >= range_start
+                Submission.status == 'Accepted',
+                Submission.submitted_on >= range_start
             )
             .group_by(Question.difficulty)
             .all()
@@ -555,8 +555,8 @@ async def get_participation_stats(
                 )
 
             return query.filter(
-                Submission.submission_time >= day_start,
-                Submission.submission_time < day_end
+                Submission.submitted_on >= day_start,
+                Submission.submitted_on < day_end
             ).scalar() or 0
 
         if time_range == "7days":
