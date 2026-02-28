@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, CompetitionLeaderboardEntry
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
+    CompetitionLeaderboardEntry
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
@@ -234,7 +235,6 @@ def create_competition_emails(
 
 
 def resolve_email_recipients(db: Session, recipient_str: str) -> List[str]:
-
     if recipient_str.strip().lower() in ("all", "all participants", "all users"):
         try:
             # Fetch all user emails first, then filter by preference in Python
@@ -321,8 +321,8 @@ def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
 
 @competitions_router.get("/list", response_model=List[CompetitionResponse])
 async def list_competitions(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     List all competitions with detailed information.
@@ -343,12 +343,12 @@ async def list_competitions(
         for base_event, competition in competitions:
             question_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                ~QuestionInstance.is_riddle
+                QuestionInstance.riddle_id.is_(None)
             ).count()
 
             riddle_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                QuestionInstance.is_riddle
+                QuestionInstance.riddle_id.isnot(None)
             ).count()
 
             result.append(CompetitionResponse(
@@ -377,15 +377,16 @@ async def list_competitions(
 
 @competitions_router.post("/create", response_model=CompetitionResponse, status_code=status.HTTP_201_CREATED)
 async def create_competition(
-    request: CreateCompetitionRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        request: CreateCompetitionRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
 
     if check_competition_name_exists(db, request.name):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Competition with name '{request.name}' already exists")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Competition with name '{request.name}' already exists")
 
     start_dt = parse_datetime_from_request(request.date, request.startTime)
     end_dt = parse_datetime_from_request(request.date, request.endTime)
@@ -480,14 +481,15 @@ async def create_competition(
     except Exception as e:
         logger.exception(f"FATAL error during competition creation: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during competition creation")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Internal server error during competition creation")
 
 
 @competitions_router.get("/{competition_id}", response_model=DetailedCompetitionResponse)
 async def get_competition_detailed(
-    competition_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Get full details of a competition for editing purposes.
@@ -592,12 +594,11 @@ async def get_competition_detailed(
 
 @competitions_router.put("/{competition_id}", response_model=CompetitionResponse)
 async def update_competition(
-    competition_id: int,
-    request: CreateCompetitionRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        request: CreateCompetitionRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
-
     user_email = current_user.get("sub")
     logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
 
@@ -724,9 +725,9 @@ async def update_competition(
 
 @competitions_router.delete("/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_competition(
-    competition_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Delete a competition.
