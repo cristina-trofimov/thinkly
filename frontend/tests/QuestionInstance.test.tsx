@@ -114,10 +114,10 @@ describe("Question Instance", () => {
     })
 
     it("handles errors from updateQuestionInstance", async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating most recent submission"))
+        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating question instance"))
 
         await expect(updateQuestionInstance(mockQuestionInstances[0]))
-                    .rejects.toThrow("Error updating most recent submission")
+                    .rejects.toThrow("Error updating question instance")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     })
@@ -134,10 +134,10 @@ describe("Question Instance", () => {
     })
 
     it("handles errors from getQuestionInstance", async () => {
-        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching most recent submission"))
+        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching question instance"))
 
         await expect(getQuestionInstance(question_id, event_id))
-                    .rejects.toThrow("Error fetching most recent submission")
+                    .rejects.toThrow("Error fetching question instance")
 
         expect(mockedAxios.get).toHaveBeenCalled()
     })

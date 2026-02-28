@@ -266,7 +266,7 @@ class Language(Base):
     __tablename__ = 'language'
 
     row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    lang_judge_id: Mapped[int] = mapped_column(unique=True)  # ← add this
+    lang_judge_id: Mapped[int] = mapped_column(unique=True)
     display_name: Mapped[str] = mapped_column()
     active: Mapped[bool] = mapped_column(default=False)
 
