@@ -65,7 +65,7 @@
 #         users = []
 #         for i in range(1, 21):
 #             user = UserAccount(
-#                 email=f"user{i}@example.com",
+#                 email=f"user{i}@gmail.com",
 #                 hashed_password="hashed_pw",          # was: password_hash
 #                 first_name=f"First{i}",
 #                 last_name=f"Last{i}",
