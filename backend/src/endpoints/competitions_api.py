@@ -241,12 +241,12 @@ def resolve_email_recipients(db: Session, recipient_str: str) -> List[str]:
             # to avoid issues with missing UserPreferences rows
             all_users = db.query(UserAccount.user_id, UserAccount.email).all()
 
-            opted_out_ids = set(
+            opted_out_ids = {
                 row.user_id
                 for row in db.query(UserPreferences.user_id)
                 .filter(UserPreferences.notifications_enabled == False)  # noqa: E712
                 .all()
-            )
+            }
 
             recipients = [
                 user.email
