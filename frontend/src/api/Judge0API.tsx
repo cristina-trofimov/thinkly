@@ -52,9 +52,9 @@ export async function submitToJudge0(
             }
         )
 
-        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, parseInt(language_id))
+        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, Number.parseInt(language_id))
 
-        const userPref = await updateLastProgLang(user_id, parseInt(language_id))
+        const userPref = await updateLastProgLang(user_id, Number.parseInt(language_id))
 
         return {
             judge0Response: response['data'],
