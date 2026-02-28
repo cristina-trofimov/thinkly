@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, CompetitionLeaderboardEntry
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, CompetitionLeaderboardEntry
 from DB_Methods.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
@@ -234,9 +234,34 @@ def create_competition_emails(
 
 
 def resolve_email_recipients(db: Session, recipient_str: str) -> List[str]:
-    """Resolve recipient string to list of email addresses."""
-    if recipient_str.strip().lower() == "all participants":
-        return [u.email for u in db.query(UserAccount).all()]
+
+    if recipient_str.strip().lower() in ("all", "all participants", "all users"):
+        try:
+            # Fetch all user emails first, then filter by preference in Python
+            # to avoid issues with missing UserPreferences rows
+            all_users = db.query(UserAccount.user_id, UserAccount.email).all()
+
+            opted_out_ids = set(
+                row.user_id
+                for row in db.query(UserPreferences.user_id)
+                .filter(UserPreferences.notifications_enabled == False)  # noqa: E712
+                .all()
+            )
+
+            recipients = [
+                user.email
+                for user in all_users
+                if user.user_id not in opted_out_ids and user.email
+            ]
+
+            logger.info(f"Resolved {len(recipients)} recipients from 'all participants'")
+            return recipients
+
+        except Exception as e:
+            logger.error(f"Failed to resolve 'all participants' recipients: {str(e)}")
+            # Return empty list rather than crashing the whole request
+            return []
+
     return [e.strip() for e in recipient_str.split(",") if e.strip()]
 
 
@@ -264,8 +289,7 @@ def send_competition_emails(
         send_email_via_brevo(
             to=recipients,
             subject=email_notification.subject,
-            text=email_notification.body,
-            sendAt=email_notification.sendAtLocal
+            text=email_notification.body
         )
 
 
@@ -406,8 +430,20 @@ async def create_competition(
         _commit_or_rollback(db)
         logger.info(f"Added {len(request.selectedQuestions)} question+riddle pairs")
 
+        # ----------------------------------------------------------------
+        # Email step: isolated so a failure here does NOT roll back
+        # the already-committed competition. We log and continue.
+        # ----------------------------------------------------------------
         if request.emailEnabled and request.emailNotification:
-            send_competition_emails(db, competition, request.emailNotification, start_dt)
+            try:
+                send_competition_emails(db, competition, request.emailNotification, start_dt)
+            except Exception as email_err:
+                logger.error(
+                    f"Competition {base_event.event_id} created successfully, "
+                    f"but email scheduling failed: {email_err}"
+                )
+                # Competition is saved — don't re-raise, just warn.
+                # The frontend will still get a 201 and navigate away normally.
 
         # Track competition creation
         track_custom_event(
@@ -625,15 +661,25 @@ async def update_competition(
             CompetitionEmail.competition_id == competition_id
         ).delete()
 
-        if request.emailEnabled and request.emailNotification:
-            create_competition_emails(
-                db,
-                competition,
-                request.emailNotification,
-                start_dt
-            )
-
         _commit_or_rollback(db)
+
+        # ----------------------------------------------------------------
+        # Email step: isolated so a failure here does NOT roll back
+        # the already-committed update.
+        # ----------------------------------------------------------------
+        if request.emailEnabled and request.emailNotification:
+            try:
+                create_competition_emails(
+                    db,
+                    competition,
+                    request.emailNotification,
+                    start_dt
+                )
+            except Exception as email_err:
+                logger.error(
+                    f"Competition {competition_id} updated successfully, "
+                    f"but email scheduling failed: {email_err}"
+                )
 
         logger.info(f"SUCCESSFUL UPDATE: Competition '{request.name}' (ID: {competition_id}) by '{user_email}'")
 
