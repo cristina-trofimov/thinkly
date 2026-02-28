@@ -227,7 +227,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             selectedRiddles: orderedRiddles.map(r => Number(r.id)),
             emailEnabled,
             emailNotification: emailEnabled ? {
-                to: emailToAll ? "all participants" : emailData.to.trim(),
+                to: emailToAll ? "all" : emailData.to.trim(),
                 subject: emailData.subject.trim(),
                 body: emailData.body.trim(),
                 sendInOneMinute: emailData.sendInOneMinute,
