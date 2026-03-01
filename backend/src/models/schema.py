@@ -27,8 +27,6 @@ class UserAccount(Base):
     user_preferences: Mapped[UserPreferences] = relationship('UserPreferences', back_populates='user_account',
                                                              uselist=False)
     sessions: Mapped[List[UserSession]] = relationship('UserSession', back_populates='user_account', uselist=True)
-    participations: Mapped[List[Participation]] = relationship('Participation', back_populates='user_account',
-                                                               uselist=True)
     competition_leaderboard_entries: Mapped[List[CompetitionLeaderboardEntry]] = relationship(
         'CompetitionLeaderboardEntry', back_populates='user_account', uselist=True)
     algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry',
@@ -84,7 +82,6 @@ class BaseEvent(Base):
                                                                uselist=False)
     question_instances: Mapped[List[QuestionInstance]] = relationship('QuestionInstance', back_populates='event',
                                                                       uselist=True)
-    participations: Mapped[List[Participation]] = relationship('Participation', back_populates='event', uselist=True)
 
     __table_args__ = (
         CheckConstraint('event_end_date > event_start_date', name='chk_event_dates'),
@@ -224,22 +221,6 @@ class QuestionInstance(Base):
 
     __table_args__ = (
         UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
-    )
-
-
-class Participation(Base):
-    __tablename__ = 'participation'
-
-    participation_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete='CASCADE'))
-    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'))
-    total_score: Mapped[int] = mapped_column(default=0)
-
-    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='participations', uselist=False)
-    event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='participations', uselist=False)
-
-    __table_args__ = (
-        UniqueConstraint('user_id', 'event_id', name='uix_participation'),
     )
 
 
