@@ -1,6 +1,5 @@
 import logging
 from typing import Annotated
-from pydantic import BaseModel
 from DB_Methods.database import get_db
 from models.schema import Submission
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -8,19 +7,6 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 logger = logging.getLogger(__name__)
 
 submission_router = APIRouter(tags=["Attempts"])
-
-class SubmissionModel(BaseModel):
-    user_id: int
-    question_instance_id: int
-    compile_output: str
-    submitted_on: str
-    runtime: float | None = None
-    status: str | None = None
-    memory: int | None = None
-    stdout: str | None = None
-    stderr: str | None = None
-    message: str | None = None
-
 
 @submission_router.get("/all",
     responses={500: {"description": "Error retrieving submissions."}}

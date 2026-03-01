@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
-  Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload
+  Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload, UndoDot
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
@@ -24,15 +24,21 @@ import ConsoleOutput from '../components/codingPage/ConsoleOutput';
 import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
+import type { MostRecentSub } from '@/types/MostRecentSub.type';
+import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
+
   const { testcases } = useTestcases(question.id)
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+  const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+  const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
   const outputTabs = [
@@ -68,8 +74,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const { judge0Response, submissionResponse } = await submitAttempt(question?.id, 1, null, code, judgeID, testcases)
-      if (submissionResponse.status_code) {
+      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, null, code, judgeID, testcases)
+      if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
           style: { backgroundColor: '#DAE9DA' }
@@ -77,17 +83,24 @@ const CodingView = () => {
       } else {
         toast.warning(submissionResponse.message, {
           position: 'top-right',
-          style: { backgroundColor: '#E9DADA' }
+          style: { backgroundColor: '#E9E2DA' }
         })
       }
 
-      setLogs(prev => [...prev, judge0Response])
+      setLogs(prev => [...prev, codeRunResponse.judge0Response])
+      setMostRecentSub(codeRunResponse.mostRecentSubResponse)
       setCurrentOutputTab("results")
 
       trackCodeSubmitted(
         question.id,
         selectedLang,
       )
+    } catch (err) {
+      toast.error("Error when submitting the code.", {
+        position: 'top-right',
+        style: { backgroundColor: '#E9DADA' }
+      })
+      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -98,19 +111,29 @@ const CodingView = () => {
     try {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
-      const response = await submitToJudge0(code, judgeID, testcases)
-      setLogs(prev => [...prev, response])
+
+      const instance = await getQuestionInstance(question?.id, null)
+      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(instance[0].question_instance_id, code, judgeID, testcases)
+      
+      setLogs(prev => [...prev, judge0Response])
+      setMostRecentSub(mostRecentSubResponse)
       setCurrentOutputTab("results")
 
       // Capture run result — status comes directly from Judge0 response
-      const passed = response.status.description === "Accepted"
+      const passed = judge0Response.status.description === "Accepted"
       trackCodeRun(
         question.id,
         selectedLang,
-        response.status.description,
+        judge0Response.status.description,
         passed,
-        response.time ?? undefined
+        judge0Response.time ?? undefined
       )
+    } catch (err) {
+      toast.error("Error when running the code.", {
+        position: 'top-right',
+        style: { backgroundColor: '#E9DADA' }
+      })
+      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -135,6 +158,13 @@ const CodingView = () => {
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (mostRecentSub) {
+      setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
+    } else {
+      setMostRecentSubGroupClass("grid grid-cols-2 gap-4")
+    }
+  }, [mostRecentSub])
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
     trackLanguageChanged(question.id, prevLangRef.current, lang)
@@ -220,9 +250,9 @@ const CodingView = () => {
                     border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium">Code</span>
-                  <div className="grid grid-cols-5 gap-1">
+                  <div className="grid grid-cols-4 gap-1">
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={runCode}
+                      onClick={runCode} data-testid="play-btn"
                     >
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
@@ -322,7 +352,24 @@ const CodingView = () => {
                       </TabsTrigger>
                     ))}
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pr-5">
+                  <div className={`pr-5 ${mostRecentSubGroupClass}`} >
+                    {mostRecentSub && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || templateCode) }}
+                              className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                              <UndoDot size={22} color='black' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className='z-99999999999999 p-1.5 text-sm bg-white border rounded-3xl' >
+                              Go back to the most recently ran code
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                     <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                       className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
                       {fullOutput

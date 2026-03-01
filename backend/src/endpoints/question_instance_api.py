@@ -1,6 +1,5 @@
 import logging
 from typing import Annotated, Optional
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from DB_Methods.database import get_db
 from models.schema import QuestionInstance
@@ -10,13 +9,6 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 logger = logging.getLogger(__name__)
 
 question_instance_router = APIRouter(tags=["Instances"])
-
-class QuestionInstanceModel(BaseModel):
-    question_id: int
-    event_id: int | None = None
-    points: int | None = None
-    riddle_id: int | None = None
-    is_riddle_completed: bool = False
 
 def query_get_question_instance(
     db: Session, question_id: int,
