@@ -192,7 +192,12 @@ function ProfilePage() {
           setPreferences(prefs);
           setSavedPreferences(prefs);
         } catch {
-          // Silently fall back to defaults if preferences fetch fails
+          logFrontend({
+            level: "ERROR",
+            message: `Failed fetch preferences`,
+            component: "ProfilePage.ts",
+            url: globalThis.location.href,
+        });
         }
       } catch (error) {
         logFrontend({
