@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import UserAccount
+from models.schema import UserAccount, UserPreferences
 from DB_Methods.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Optional
@@ -20,6 +20,11 @@ class UpdateAccountRequest(BaseModel):
     last_name: Optional[str] = None
     email: Optional[str] = None
     user_type: Optional[str] = None
+
+
+class UpdatePreferencesRequest(BaseModel):
+    theme: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
 
 
 @accounts_router.get("/users")
@@ -113,3 +118,58 @@ def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annot
     )
 
     return account
+
+@accounts_router.get(
+    "/users/{user_id}/preferences",
+    responses={404: {"description": "Preferences not found."}}
+)
+def get_user_preferences(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    prefs = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
+    if not prefs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preferences not found.")
+    logger.info(f"Fetched preferences for user ID {user_id}.")
+    return {
+        "theme": prefs.theme,
+        "notifications_enabled": prefs.notifications_enabled,
+    }
+
+
+@accounts_router.patch(
+    "/users/{user_id}/preferences",
+    responses={
+        400: {"description": "No fields to update."},
+        404: {"description": "Preferences not found."},
+    }
+)
+def update_user_preferences(
+    user_id: int,
+    updated_fields: UpdatePreferencesRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    prefs = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
+    if not prefs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preferences not found.")
+
+    update_data = updated_fields.dict(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update.")
+
+    for key, value in update_data.items():
+        setattr(prefs, key, value)
+
+    db.commit()
+    db.refresh(prefs)
+    logger.info(f"Updated preferences for user ID {user_id}.")
+
+    track_custom_event(
+        user_id=str(user_id),
+        event_name="preferences_updated",
+        properties={
+            "updated_fields": list(update_data.keys()),
+        }
+    )
+
+    return {
+        "theme": prefs.theme,
+        "notifications_enabled": prefs.notifications_enabled,
+    }

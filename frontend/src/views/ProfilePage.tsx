@@ -1,6 +1,7 @@
 import React from "react";
 import { getProfile, isGoogleAccount } from "@/api/AuthAPI";
-import { updateAccount } from "@/api/AccountsAPI";
+import { updateAccount, getUserPreferences, updateUserPreferences } from "@/api/AccountsAPI";
+import type { UserPreferences } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,10 @@ import {
   KeyRound,
   Check,
   X,
+  Bell,
+  Sun,
+  Moon,
+  Settings2,
 } from "lucide-react";
 import { AvatarInitials } from "@/components/helpers/AvatarInitials";
 import { Button } from "@/components/ui/button";
@@ -127,6 +132,15 @@ function ProfilePage() {
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [preferences, setPreferences] = React.useState<UserPreferences>({
+    theme: "light",
+    notifications_enabled: true,
+  });
+  const [savedPreferences, setSavedPreferences] = React.useState<UserPreferences>({
+    theme: "light",
+    notifications_enabled: true,
+  });
+  const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
   const navigate = useNavigate();
   const outlet = useOutlet();
   const {
@@ -171,6 +185,20 @@ function ProfilePage() {
           accountType: currentAccount.accountType,
           isGoogleUser: googleStatus.isGoogleUser,
         });
+
+        // Fetch preferences after we have the user id
+        try {
+          const prefs = await getUserPreferences(currentAccount.id);
+          setPreferences(prefs);
+          setSavedPreferences(prefs);
+        } catch {
+          logFrontend({
+            level: "ERROR",
+            message: `Failed fetch preferences`,
+            component: "ProfilePage.ts",
+            url: globalThis.location.href,
+        });
+        }
       } catch (error) {
         logFrontend({
           level: "ERROR",
@@ -199,6 +227,25 @@ function ProfilePage() {
   const cancelEditing = () => {
     setEditingField(null);
     setTempValue("");
+  };
+
+  const preferencesChanged =
+    preferences.theme !== savedPreferences.theme ||
+    preferences.notifications_enabled !== savedPreferences.notifications_enabled;
+
+  const savePreferences = async () => {
+    if (!user) return;
+    setIsSavingPrefs(true);
+    try {
+      const updated = await updateUserPreferences(user.id, preferences);
+      setPreferences(updated);
+      setSavedPreferences(updated);
+      toast.success("Preferences saved.");
+    } catch {
+      toast.error("Failed to save preferences.");
+    } finally {
+      setIsSavingPrefs(false);
+    }
   };
 
   const saveField = async () => {
@@ -404,6 +451,104 @@ function ProfilePage() {
             </p>
           </div>
         )}
+
+        {/* Preferences Section */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Settings2 className="h-5 w-5 text-primary" />
+            Preferences
+          </h2>
+        </div>
+
+        <Card className="rounded-3xl overflow-hidden">
+          <CardContent className="p-8 space-y-8">
+            {/* Theme */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                {preferences.theme === "dark"
+                  ? <Moon className="h-4 w-4 opacity-70 text-primary" />
+                  : <Sun className="h-4 w-4 opacity-70 text-primary" />}
+                Theme
+              </Label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreferences((p) => ({ ...p, theme: "light" }))}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
+                    preferences.theme === "light"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  <Sun className="h-4 w-4" /> Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreferences((p) => ({ ...p, theme: "dark" }))}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
+                    preferences.theme === "dark"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                  }`}
+                >
+                  <Moon className="h-4 w-4" /> Dark
+                </button>
+              </div>
+            </div>
+
+            <Separator className="opacity-60" />
+
+            {/* Notifications */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold flex items-center gap-2">
+                <Bell className="h-4 w-4 opacity-70 text-primary" /> Notifications
+              </Label>
+              <div className="flex items-center justify-between min-h-10">
+                <Label className="text-muted-foreground text-base font-normal">
+                  Enable email notifications
+                </Label>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={preferences.notifications_enabled}
+                  onClick={() =>
+                    setPreferences((p) => ({
+                      ...p,
+                      notifications_enabled: !p.notifications_enabled,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                    preferences.notifications_enabled ? "bg-primary" : "bg-input"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${
+                      preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="flex justify-end pt-2">
+              <Button
+                onClick={savePreferences}
+                disabled={!preferencesChanged || isSavingPrefs}
+                className="h-9 px-6 text-sm font-medium cursor-pointer disabled:opacity-40"
+              >
+                {isSavingPrefs ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />{' '}
+                    Saving…
+                  </span>
+                ) : (
+                  "Save Preferences"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -99,11 +99,7 @@ def create_user(db: Session, email: str, password_hash: str, first_name: str, la
     db.add(new_user)
     _commit_or_rollback(db)
     db.refresh(new_user)
-    new_user_preferences = UserPreferences(
-        user_id=new_user.user_id,
-        theme="light",
-        notifications_enabled=True
-    )
+    new_user_preferences = UserPreferences(user_id=new_user.user_id)
     db.add(new_user_preferences)
     _commit_or_rollback(db)
     db.refresh(new_user_preferences)

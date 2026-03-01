@@ -86,3 +86,36 @@ export async function updateAccount(
     throw err;
   }
 }
+
+export interface UserPreferences {
+  theme: "light" | "dark";
+  notifications_enabled: boolean;
+}
+
+export async function getUserPreferences(userId: number): Promise<UserPreferences> {
+  try {
+    const response = await axiosClient.get<UserPreferences>(
+      `/manage-accounts/users/${userId}/preferences`
+    );
+    return response.data;
+  } catch (err) {
+    console.error("Error fetching user preferences:", err);
+    throw err;
+  }
+}
+
+export async function updateUserPreferences(
+  userId: number,
+  updatedFields: Partial<UserPreferences>
+): Promise<UserPreferences> {
+  try {
+    const response = await axiosClient.patch<UserPreferences>(
+      `/manage-accounts/users/${userId}/preferences`,
+      updatedFields
+    );
+    return response.data;
+  } catch (err) {
+    console.error("Error updating user preferences:", err);
+    throw err;
+  }
+}

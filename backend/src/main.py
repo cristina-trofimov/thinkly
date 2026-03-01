@@ -17,17 +17,20 @@ from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
 from dotenv import load_dotenv
+import logging
 import time
 
 
 load_dotenv()
 JUDGE0_URL = os.getenv("JUDGE0_URL")
 
-
 setup_logging()
+logger = logging.getLogger(__name__)
 
 
 # Modern lifespan event handler (replaces deprecated on_event)
@@ -38,10 +41,17 @@ async def lifespan(app: FastAPI):
     init_posthog()
     print("✓ PostHog analytics initialized")
 
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
+    scheduler.start()
+    print("✓ Email scheduler started (polling every 60s)")
+
     yield  # Application runs here
 
     # Shutdown
     print("🛑 Shutting down...")
+    scheduler.shutdown(wait=False)
+    print("✓ Email scheduler stopped")
     shutdown_posthog()
     print("✓ PostHog analytics shut down")
 
@@ -144,4 +154,3 @@ except AttributeError:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
-    
