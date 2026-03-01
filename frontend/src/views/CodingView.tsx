@@ -28,13 +28,78 @@ import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getProfile } from '@/api/AuthAPI';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
+import type { Competition } from '@/types/competition/Competition.type';
+import type { AlgoTimeSeries } from '@/types/algoTime/AlgoTime.type';
+import type { BaseEvent } from '@/types/BaseEvent.type';
+import { getEventByName } from '@/api/BaseEventAPI';
 
 
 const CodingView = () => {
   const location = useLocation()
-  const question: Question = location?.state?.problem
+  // const comp: Competition = location?.state?.comp
+  // const algo: AlgoTimeSeries = location?.state?.algo
+  // AlgoTimeSession
 
-  const { testcases } = useTestcases(question.id)
+  const question: Question = location?.state?.problem
+  const questions = useState<Question[]>([])
+  const [ event, setEvent ] = useState<BaseEvent | null>(null)
+
+
+  const comp = location?.state?.comp
+  const compString = JSON.stringify(comp)
+  console.log('comp: ', comp)
+
+  useEffect(() => {
+    console.log('initializing useEffect')
+
+    setIsQuestionLoading(true)
+
+    const InitializeEvent = async () => {
+      console.log(`initializing:`)
+      
+      if (!location?.state?.comp) {
+        console.log('comp is undefined, cannot fetch event')
+        setIsQuestionLoading(false)
+        return
+      }
+
+      try {
+        console.log('comp 1: ')
+        
+        const ev = await getEventByName(location?.state?.comp.competitionTitle)
+        
+        console.log('ev: ', ev)
+
+        setEvent(ev)
+      } catch (err) {
+        console.error("Failed to fetch event: ", err)
+      } finally {
+        setIsQuestionLoading(false)
+      }
+    }
+    InitializeEvent()
+  }, [compString])
+
+  // console.log(`event:`)
+  // console.log(event)
+
+  // Track page open once on mount — question is available from location state
+  // useEffect(() => {
+  //   if (question?.id) {
+  //     trackCodingPageOpened(
+  //       question.title,
+  //       question.id,
+  //       question.difficulty ?? "unknown"
+  //     )
+  //     setIsQuestionLoading(false)
+  //   } else {
+  //     setIsQuestionLoading(true)
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [question?.id])
+
+
+  const { testcases } = useTestcases(question?.id)
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
@@ -54,21 +119,6 @@ const CodingView = () => {
     trackCodeRun,
     trackCodeSubmitted,
   } = useAnalytics()
-
-  // Track page open once on mount — question is available from location state
-  useEffect(() => {
-    if (question?.id) {
-      trackCodingPageOpened(
-        question.title,
-        question.id,
-        question.difficulty ?? "unknown"
-      )
-      setIsQuestionLoading(false)
-    } else {
-      setIsQuestionLoading(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question?.id])
 
   const submitCode = async () => {
     try {

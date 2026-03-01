@@ -10,36 +10,53 @@ logger = logging.getLogger(__name__)
 
 base_event_router = APIRouter(tags=["Events"])
 
-def query_get_event(db: Session, event_id: int ):  
+def query_get_event_by_id(db: Session, event_id: int ):  
     try:
         query = db.query(BaseEvent).filter_by(event_id = event_id).first()
 
-        logger.info("Fetched event.")
+        logger.info("Fetched event by id.")
         
         return query
     except SQLAlchemyError as e:
-        logger.error(f"Database: getting event query error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database: getting event query error: {str(e)}")
+        logger.error(f"Database: getting event by id query error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database: getting event by id query error: {str(e)}")
 
 
 @base_event_router.get("/find", response_model = dict,
-    responses={500: {"description": "Error retrieving event."}}
+    responses={500: {"description": "Error retrieving event by id."}}
 )
-def get_event(
+def get_event_by_id(
     db: Annotated[Session, Depends(get_db)],
     event_id: int,
 ):
     try:
-        query = query_get_event(db, event_id)
+        query = query_get_event_by_id(db, event_id)
 
-        logger.info("Fetched event from the database.")
+        logger.info("Fetched event by id from the database.")
 
         return {"status_code": 200, 'data': query}
     except Exception as e:
-        logger.error(f"Error fetching event: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve event. Exception: {str(e)}")
-        
-    
+        logger.error(f"Error fetching event by id: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve event by id. Exception: {str(e)}")
+
+
+@base_event_router.get("/get", response_model = dict,
+    responses={500: {"description": "Error retrieving event by id."}}
+)
+def get_event_by_name(
+    db: Annotated[Session, Depends(get_db)],
+    event_name: str,
+):
+    try:
+        query = db.query(BaseEvent).filter_by(event_name = event_name).first()
+
+        logger.info("Fetched event by name from the database.")
+
+        return {"status_code": 200, 'data': query}
+    except Exception as e:
+        logger.error(f"Error fetching event by name: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve event by name. Exception: {str(e)}")
+
 
 @base_event_router.post("/update",
     status_code=201,
@@ -50,7 +67,7 @@ def create_event(
     request: dict,
 ):
     try:
-        instance = query_get_event(db, request['event_id'])
+        instance = query_get_event_by_id(db, request['event_id'])
 
         if instance is None:
             instance = BaseEvent(

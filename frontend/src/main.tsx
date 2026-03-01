@@ -108,6 +108,20 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: "comp/:comp_name",
+            element: <CodingView />,
+            handle: {
+              crumb: { title: "Competition" },
+            },
+          },
+          // {
+          //   path: "comp/:comp_name",
+          //   element: <CodingView />,
+          //   handle: {
+          //     crumb: { title: "Competition" },
+          //   },
+          // },
+          {
             path: "leaderboards",
             element: <Leaderboards />,
             handle: { crumb: { title: "Leaderboards" } },
