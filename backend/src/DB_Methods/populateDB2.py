@@ -1,11 +1,11 @@
-# nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
+# # nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
 # from sqlalchemy.orm import Session
 # from sqlalchemy import text
 # from datetime import datetime, timedelta, timezone
 # import random
-#
+
 # from db import engine, Base, SessionLocal
-#
+
 # from models.schema import (
 #     UserAccount,
 #     BaseEvent,
@@ -23,10 +23,10 @@
 #     AlgoTimeSession,
 #     AlgoTimeLeaderboardEntry,
 # )
-#
+
 # DIFFICULTIES = ["easy", "medium", "hard"]
-#
-#
+
+
 # def main():
 #     print("Dropping and recreating schema...")
 #     with engine.connect() as conn:
@@ -34,9 +34,9 @@
 #         conn.execute(text("CREATE SCHEMA public"))
 #         conn.commit()
 #     Base.metadata.create_all(bind=engine)
-#
+
 #     db: Session = SessionLocal()
-#
+
 #     try:
 #         # ---------------- LANGUAGES ----------------
 #         # Required by UserPreferences.last_used_programming_language and MostRecentSubmission.lang_judge_id
@@ -56,11 +56,11 @@
 #                 active=True,
 #             )
 #             languages.append(lang)
-#
+
 #         db.add_all(languages)
 #         db.commit()
 #         print(f"✅ {len(languages)} Languages created")
-#
+
 #         # ---------------- USERS ----------------
 #         users = []
 #         for i in range(1, 21):
@@ -73,19 +73,19 @@
 #             )
 #             db.add(user)
 #             users.append(user)
-#
+
 #         db.commit()
 #         print(f"✅ {len(users)} Users created")
-#
+
 #         # ---------------- EVENTS + COMPETITIONS ----------------
 #         competitions = []
 #         base_events = []
 #         now = datetime.now(timezone.utc)
-#
+
 #         for i in range(1, 6):
 #             event_start_date = now - timedelta(days=i * 7)
 #             event_end_date = event_start_date + timedelta(hours=2)
-#
+
 #             base_event = BaseEvent(
 #                 event_name=f"Competition {i}",
 #                 event_location="Online",
@@ -97,14 +97,14 @@
 #             )
 #             db.add(base_event)
 #             db.flush()
-#
+
 #             competition = Competition(
 #                 event_id=base_event.event_id,
 #                 riddle_cooldown=30,
 #             )
 #             db.add(competition)
 #             db.flush()
-#
+
 #             # CompetitionEmail — one reminder per competition
 #             email = CompetitionEmail(
 #                 competition_id=competition.event_id,
@@ -121,7 +121,7 @@
 #
 #         db.commit()
 #         print("✅ BaseEvents + Competitions + CompetitionEmails created")
-#
+
 #         # ---------------- TAGS ----------------
 #         tag_names = ["arrays", "strings", "dynamic-programming", "graphs", "sorting", "recursion"]
 #         tags = []
@@ -129,10 +129,10 @@
 #             tag = Tag(tag_name=name)
 #             db.add(tag)
 #             tags.append(tag)
-#
+
 #         db.commit()
 #         print(f"✅ {len(tags)} Tags created")
-#
+
 #         # ---------------- QUESTIONS + TESTCASES ----------------
 #         questions = []
 #         for i in range(6):
@@ -151,7 +151,7 @@
 #             )
 #             db.add(q)
 #             db.flush()
-#
+
 #             # TestCase — now its own model, not a simple field
 #             for j in range(3):
 #                 tc = TestCase(
@@ -160,12 +160,12 @@
 #                     expected_output=f"output_{i}_{j}",
 #                 )
 #                 db.add(tc)
-#
+
 #             questions.append(q)
-#
+
 #         db.commit()
 #         print("✅ Questions + TestCases + Tags created")
-#
+
 #         # ---------------- RIDDLES ----------------
 #         riddles_data = [
 #             ("I speak without a mouth and hear without ears. What am I?", "An echo"),
@@ -175,7 +175,7 @@
 #             ("What can travel around the world while staying in one spot?", "A stamp"),
 #             ("What has a heart that doesn't beat?", "An artichoke"),
 #         ]
-#
+
 #         riddles = []
 #         for question, answer in riddles_data:
 #             riddle = Riddle(
@@ -184,11 +184,11 @@
 #                 riddle_file=None
 #             )
 #             riddles.append(riddle)
-#
+
 #         db.add_all(riddles)
 #         db.commit()
 #         print(f"✅ {len(riddles)} Riddles created")
-#
+
 #         # ---------------- QUESTION INSTANCES ----------------
 #         # Track QIs per event so we can create submissions against them later
 #         question_instances_by_event: dict[int, list] = {}
@@ -232,7 +232,7 @@
 #                         total_time=random.randint(15, 120),
 #                     )
 #                 )
-#
+
 #         db.commit()
 #         print("✅ Competition leaderboard entries created")
 #
@@ -302,7 +302,7 @@
 #             )
 #             db.add(session)
 #             db.flush()
-#
+
 #             participants = random.sample(users, random.randint(6, 10))
 #             algotime_participants_per_event[event_id] = participants
 #
@@ -358,7 +358,7 @@
 #         for user_id in all_algotime_participant_ids:
 #             user = user_map[user_id]
 #             score = random.randint(500, 2500)
-#
+
 #             db.add(
 #                 AlgoTimeLeaderboardEntry(
 #                     algotime_series_id=series.algotime_series_id,
@@ -370,18 +370,18 @@
 #                     last_updated=now,
 #                 )
 #             )
-#
+
 #         db.commit()
 #         print(f"✅ AlgoTime leaderboard created with {len(all_algotime_participant_ids)} participants")
 #         print("🎉 Seeding completed successfully")
-#
+
 #     except Exception as e:
 #         db.rollback()
 #         print(f"❌ Error: {e}")
 #         raise
 #     finally:
 #         db.close()
-#
-#
+
+
 # if __name__ == "__main__":
 #     main()
