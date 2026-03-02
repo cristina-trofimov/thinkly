@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from models.schema import Question, Riddle, Tag, TestCase
+from models.schema import Language, Question, QuestionPresetCode, Riddle, Tag, TestCase
 from DB_Methods.database import get_db
 import logging
 from posthog_analytics import track_custom_event
@@ -19,7 +19,25 @@ def get_all_questions(db: Annotated[str, Depends(get_db)]):
     try:
         questions = db.query(Question).all()
         logger.info(f"Fetched {len(questions)} questions from the database.")
-        return questions
+        return [
+            {
+                "question_id": q.question_id,
+                "question_name": q.question_name,
+                "question_description": q.question_description,
+                "media": q.media,
+                "difficulty": q.difficulty,
+                "template_solution": q.template_solution,
+                "from_string_function": q.from_string_function,
+                "to_string_function": q.to_string_function,
+                "created_at": q.created_at,
+                "last_modified_at": q.last_modified_at,
+                "preset_codes": {
+                    pc.language.display_name: pc.code
+                    for pc in q.preset_codes
+                },
+            }
+            for q in questions
+        ]
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
@@ -30,29 +48,41 @@ class CreateQuestionRequest(BaseModel):
     question_description: str
     media: str | None = None
     difficulty: str = "Easy"
-    preset_code: str = ""
     from_string_function: str = ""
     to_string_function: str = ""
     template_solution: str
     tags: list[str] = []
     testcases: list[tuple[str, str]] = []  # input-output pairs
+    preset_codes: dict[str, str] = {}  # display_name -> starter code, e.g. {"Java": "class ..."}
 
 
 def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Question:
     existing_tags = db.query(Tag).filter(Tag.tag_name.in_(request.tags)).all()
     new_tags = [Tag(tag_name=tag_name) for tag_name in request.tags if
                 tag_name not in [tag.tag_name for tag in existing_tags]]
+
+    lang_map: dict[str, Language] = {
+        lang.display_name: lang
+        for lang in db.query(Language).filter(Language.display_name.in_(request.preset_codes.keys())).all()
+    }
+
+    preset_code_rows = [
+        QuestionPresetCode(lang_judge_id=lang_map[name].lang_judge_id, code=code)
+        for name, code in request.preset_codes.items()
+        if name in lang_map
+    ]
+
     return Question(
         question_name=request.question_name,
         question_description=request.question_description,
         media=request.media,
         difficulty=request.difficulty,
-        preset_code=request.preset_code,
         from_string_function=request.from_string_function,
         to_string_function=request.to_string_function,
         template_solution=request.template_solution,
         tags=existing_tags + new_tags,
-        test_cases=[TestCase(input_data=tc[0], expected_output=tc[1]) for tc in request.testcases]
+        test_cases=[TestCase(input_data=tc[0], expected_output=tc[1]) for tc in request.testcases],
+        preset_codes=preset_code_rows,
     )
 
 
