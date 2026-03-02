@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from db import Base
 from typing import List, Optional
@@ -171,6 +171,8 @@ class Question(Base):
     tags: Mapped[List[Tag]] = relationship('Tag', secondary=question_tag, back_populates='questions', uselist=True)
     question_instances: Mapped[List[QuestionInstance]] = relationship('QuestionInstance', back_populates='question',
                                                                       uselist=True)
+    preset_codes: Mapped[List['QuestionPresetCode']] = relationship('QuestionPresetCode', back_populates='question',
+                                                                     uselist=True, cascade='all, delete-orphan')
 
 
 class TestCase(Base):
@@ -182,6 +184,22 @@ class TestCase(Base):
     expected_output: Mapped[str] = mapped_column()
 
     question: Mapped[Question] = relationship('Question', back_populates='test_cases', uselist=False)
+
+
+class QuestionPresetCode(Base):
+    __tablename__ = 'question_preset_code'
+
+    preset_code_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
+    lang_judge_id: Mapped[int] = mapped_column(ForeignKey('language.lang_judge_id', ondelete='CASCADE'))
+    code: Mapped[str] = mapped_column(Text)
+
+    question: Mapped['Question'] = relationship('Question', back_populates='preset_codes', uselist=False)
+    language: Mapped['Language'] = relationship('Language', uselist=False)
+
+    __table_args__ = (
+        UniqueConstraint('question_id', 'lang_judge_id', name='uix_question_preset_code'),
+    )
 
 
 class Tag(Base):
