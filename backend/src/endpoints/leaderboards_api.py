@@ -417,47 +417,72 @@ def get_current_competition_leaderboard(
 
 
 @leaderboards_router.get("/algotime")
-def get_all_algotime_leaderboard_entries(
+def get_algotime_leaderboard(
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None,
+        search: Optional[str] = Query(default=None, max_length=200),
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=15, ge=1, le=100),
 ):
     """
-    Returns AlgoTime leaderboard entries.
-    Applies the same top-10 + user-context window logic used by competition endpoints.
-    Ranks are calculated based on total_score (highest score = rank 1).
+    Returns a paginated slice of the AlgoTime leaderboard.
+
+    Ranks are always computed globally (highest total_score = rank 1) so a rank
+    number is stable regardless of the page being viewed.
+
+    - **search**: case-insensitive substring match on participant name
+    - **page** / **page_size**: 1-based pagination (default page_size=15, max=100)
+    - **current_user_id**: when provided the matching row is highlighted by the client
     """
     logger.info(
-        f"Accessing /leaderboards/algotime endpoint — current_user_id={current_user_id}"
+        f"Accessing /leaderboards/algotime — current_user_id={current_user_id}, "
+        f"search={search!r}, page={page}, page_size={page_size}"
     )
 
     try:
-        entries = db.query(AlgoTimeLeaderboardEntry).all()
+        # 1. Load ALL entries so ranks can be computed globally.
+        #    Only lightweight scalar columns are needed for rank assignment.
+        all_entries = db.query(AlgoTimeLeaderboardEntry).all()
 
-        # Apply top-10 + user-context filtering (same logic as competition endpoints)
-        filtered_entries, show_separator = get_filtered_leaderboard_entries(entries, current_user_id)
+        # 2. Compute global ranks (sets .calculated_rank on each entry in-place).
+        ranked_entries = calculate_rank(all_entries)
 
-        result = []
-        for entry in filtered_entries:
+        # 3. Resolve display names once (avoids repeated attribute access in the loop).
+        def display_name(entry) -> str:
             if entry.user_account:
-                user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
-            else:
-                user_name = entry.name
+                return f"{entry.user_account.first_name} {entry.user_account.last_name}"
+            return entry.name
 
-            result.append({
+        # 4. Apply optional name search *after* ranking so rank numbers are unaffected.
+        if search and search.strip():
+            needle = search.strip().lower()
+            ranked_entries = [e for e in ranked_entries if needle in display_name(e).lower()]
+
+        # 5. Total count for pagination metadata.
+        total = len(ranked_entries)
+
+        # 6. Slice for the requested page.
+        offset = (page - 1) * page_size
+        page_entries = ranked_entries[offset: offset + page_size]
+
+        result = [
+            {
                 "entryId": entry.algotime_leaderboard_entry_id,
                 "algoTimeSeriesId": entry.algotime_series_id,
-                "name": user_name,
+                "name": display_name(entry),
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,
                 "problemsSolved": entry.problems_solved,
                 "totalTime": entry.total_time,
                 "rank": entry.calculated_rank,
                 "lastUpdated": entry.last_updated.isoformat(),
-            })
+            }
+            for entry in page_entries
+        ]
 
         logger.info(
             f"Returning {len(result)} AlgoTime entries "
-            f"(show_separator={show_separator}, total_entries={len(entries)})."
+            f"(page {page}, total={total}, search={search!r})."
         )
 
         track_custom_event(
@@ -465,18 +490,71 @@ def get_all_algotime_leaderboard_entries(
             event_name="algotime_leaderboard_viewed",
             properties={
                 "entries_shown": len(result),
-                "total_entries": len(entries),
+                "total_entries": len(all_entries),
+                "filtered_total": total,
+                "page": page,
+                "search": search,
                 "is_authenticated": current_user_id is not None,
-                "has_separator": show_separator,
-                "unique_series": len({entry.algotime_series_id for entry in entries}),
+                "unique_series": len({e.algotime_series_id for e in all_entries}),
             }
         )
 
-        return {"entries": result, "showSeparator": show_separator}
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "entries": result,
+        }
 
     except Exception:
         logger.exception("FATAL error while fetching AlgoTime leaderboard entries.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve AlgoTime leaderboard entries."
+        )
+
+
+@leaderboards_router.get("/algotime/all")
+def get_all_algotime_entries_export(db: Annotated[Session, Depends(get_db)]):
+    """
+    Returns ALL AlgoTime entries with globally-computed ranks.
+    No pagination — intended exclusively for copy/download exports.
+    """
+    logger.info("=== /leaderboards/algotime/all export endpoint ===")
+
+    try:
+        all_entries = db.query(AlgoTimeLeaderboardEntry).all()
+        ranked_entries = calculate_rank(all_entries)
+
+        result = []
+        for entry in ranked_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "entryId": entry.algotime_leaderboard_entry_id,
+                "name": user_name,
+                "userId": entry.user_id,
+                "totalScore": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(f"Returning {len(result)} AlgoTime entries for export.")
+
+        track_custom_event(
+            user_id="anonymous",
+            event_name="algotime_leaderboard_exported",
+            properties={"total_entries": len(result), "is_export": True},
+        )
+
+        return result
+
+    except Exception:
+        logger.exception("FATAL error while exporting AlgoTime leaderboard entries.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export AlgoTime leaderboard entries."
         )

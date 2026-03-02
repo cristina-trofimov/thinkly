@@ -9,16 +9,14 @@ import type { CompetitionWithParticipants } from "@/types/competition/Competitio
 import {
   getCompetitionsDetails,
   getCurrentCompetitionLeaderboard,
-  getAllAlgoTimeEntries,
   type CompetitionsPage,
 } from "@/api/LeaderboardsAPI";
 import { getProfile } from "@/api/AuthAPI";
-import type { Participant } from "@/types/account/Participant.type.tsx";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 type LeaderboardType = "competition" | "algotime";
 
-const PAGE_SIZE = 20;
+const COMPETITION_PAGE_SIZE = 20;
 
 export function Leaderboards() {
   const [leaderboardType, setLeaderboardType] =
@@ -30,11 +28,7 @@ export function Leaderboards() {
   const [currentCompetition, setCurrentCompetition] =
     useState<CompetitionWithParticipants | null>(null);
 
-  // AlgoTime state
-  const [algoTimeEntries, setAlgoTimeEntries] = useState<Participant[]>([]);
-  const [algoTimeShowSeparator, setAlgoTimeShowSeparator] = useState(false);
-
-  // Query params — set here, sent to backend (no client-side filtering)
+  // Competition query params — sent to backend, no client-side filtering
   const [search, setSearch] = useState("");
   const [sortAsc, setSortAsc] = useState(false);
   const [page, setPage] = useState(1);
@@ -79,103 +73,83 @@ export function Leaderboards() {
     fetchCurrentUser();
   }, []);
 
-  // ─── Data loading ──────────────────────────────────────────────────────────
-  // All filtering, sorting, and pagination is delegated to the backend.
-  // This effect re-runs whenever any query param or the user ID changes.
-  const loadLeaderboards = useCallback(async () => {
+  // ─── Competition data loading ──────────────────────────────────────────────
+  // AlgoTime data is managed entirely inside AlgoTimeCard.
+  const loadCompetitions = useCallback(async () => {
+    if (leaderboardType !== "competition") return;
+
     try {
       setLoading(true);
       setError(null);
 
-      if (leaderboardType === "competition") {
-        const [currentStandings, page_data] = await Promise.all([
-          getCurrentCompetitionLeaderboard(currentUserId),
-          getCompetitionsDetails({
-            currentUserId,
-            search,
-            sort: sortAsc ? "asc" : "desc",
-            page,
-            pageSize: PAGE_SIZE,
-          }),
-        ]);
+      const [currentStandings, pageData] = await Promise.all([
+        getCurrentCompetitionLeaderboard(currentUserId),
+        getCompetitionsDetails({
+          currentUserId,
+          search,
+          sort: sortAsc ? "asc" : "desc",
+          page,
+          pageSize: COMPETITION_PAGE_SIZE,
+        }),
+      ]);
 
-        if (
-          currentStandings.competitionName !== "No Active Competition" &&
-          currentStandings.participants.length > 0
-        ) {
-          const current: CompetitionWithParticipants = {
-            id: 0,
-            competitionTitle: currentStandings.competitionName,
-            date: new Date(),
-            participants: currentStandings.participants,
-            showSeparator: currentStandings.showSeparator,
-          };
-          setCurrentCompetition(current);
-          // Exclude the active competition from past competitions (server already
-          // filters by date, but deduplicate by title as a safety net)
-          setCompetitions(
-            page_data.competitions.filter(
-              (c) => c.competitionTitle !== current.competitionTitle
-            )
-          );
-        } else {
-          setCurrentCompetition(null);
-          setCompetitions(page_data.competitions);
-        }
-
-        setCompetitionsPage(page_data);
-      } else {
-        const { entries, showSeparator } = await getAllAlgoTimeEntries(currentUserId);
-        setAlgoTimeShowSeparator(showSeparator);
-        setAlgoTimeEntries(
-          entries.map((e) => ({
-            entryId: e.entryId,
-            name: e.name,
-            user_id: e.user_id,
-            total_score: e.total_score,
-            problems_solved: e.problems_solved,
-            total_time: e.total_time,
-            rank: e.rank,
-          }))
+      if (
+        currentStandings.competitionName !== "No Active Competition" &&
+        currentStandings.participants.length > 0
+      ) {
+        const current: CompetitionWithParticipants = {
+          id: 0,
+          competitionTitle: currentStandings.competitionName,
+          date: new Date(),
+          participants: currentStandings.participants,
+          showSeparator: currentStandings.showSeparator,
+        };
+        setCurrentCompetition(current);
+        setCompetitions(
+          pageData.competitions.filter(
+            (c) => c.competitionTitle !== current.competitionTitle
+          )
         );
+      } else {
+        setCurrentCompetition(null);
+        setCompetitions(pageData.competitions);
       }
+
+      setCompetitionsPage(pageData);
     } catch (err) {
-      console.error("Error loading leaderboards:", err);
-      setError("Failed to load leaderboards");
+      console.error("Error loading competitions:", err);
+      setError("Failed to load competitions");
     } finally {
       setLoading(false);
     }
   }, [leaderboardType, currentUserId, search, sortAsc, page]);
 
   useEffect(() => {
-    loadLeaderboards();
-  }, [loadLeaderboards]);
+    loadCompetitions();
+  }, [loadCompetitions]);
 
   // ─── Event handlers ────────────────────────────────────────────────────────
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    setPage(1); // Reset to first page on new search
-    if (value.trim()) {
-      trackLeaderboardSearched(value.trim());
-    }
+    setPage(1);
+    if (value.trim()) trackLeaderboardSearched(value.trim());
   };
 
   const handleSortChange = (newSortAsc: boolean) => {
     setSortAsc(newSortAsc);
-    setPage(1); // Reset to first page on sort change
+    setPage(1);
     trackLeaderboardSortChanged(newSortAsc ? "asc" : "desc");
   };
 
   const totalPages = competitionsPage
-    ? Math.ceil(competitionsPage.total / PAGE_SIZE)
+    ? Math.ceil(competitionsPage.total / COMPETITION_PAGE_SIZE)
     : 1;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col flex-1 w-full max-w-full px-4 space-y-4">
-      {/* Toggle between Competition and AlgoTime */}
       <div className="flex items-center">
         <Tabs value={leaderboardType} onValueChange={handleTabChange}>
           <TabsList className="space-x-1">
@@ -206,7 +180,7 @@ export function Leaderboards() {
         />
       )}
 
-      {loading && (
+      {loading && leaderboardType === "competition" && (
         <div className="text-center py-8 text-gray-600">
           Loading leaderboards...
         </div>
@@ -251,13 +225,10 @@ export function Leaderboards() {
 
           {competitions.length === 0 && !currentCompetition && (
             <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-              {search
-                ? "No competitions match your search"
-                : "No competitions found"}
+              {search ? "No competitions match your search" : "No competitions found"}
             </div>
           )}
 
-          {/* Pagination controls — only shown when there is more than one page */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
@@ -267,11 +238,9 @@ export function Leaderboards() {
               >
                 Previous
               </button>
-
               <span className="text-sm text-gray-600">
                 Page {page} of {totalPages}
               </span>
-
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
@@ -284,21 +253,10 @@ export function Leaderboards() {
         </>
       )}
 
-      {!loading && !error && leaderboardType === "algotime" && (
-        <>
-          {algoTimeEntries.length === 0 && (
-            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-              No AlgoTime entries found
-            </div>
-          )}
-          {algoTimeEntries.length > 0 && (
-            <AlgoTimeCard
-              participants={algoTimeEntries}
-              currentUserId={currentUserId}
-              showSeparator={algoTimeShowSeparator}
-            />
-          )}
-        </>
+      {/* AlgoTimeCard is self-contained: it owns its own data fetching, pagination,
+          and search state. Leaderboards.tsx only passes the user identity. */}
+      {leaderboardType === "algotime" && (
+        <AlgoTimeCard currentUserId={currentUserId} />
       )}
     </div>
   );

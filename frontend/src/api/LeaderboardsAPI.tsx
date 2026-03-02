@@ -47,7 +47,9 @@ interface CurrentCompetitionResponse {
     showSeparator?: boolean;
 }
 
-interface AlgoTimeLeaderboardResponse {
+// ─── Public types ─────────────────────────────────────────────────────────────
+
+export interface AlgoTimeEntry {
     entryId: number;
     seriesId: number;
     name: string;
@@ -58,12 +60,19 @@ interface AlgoTimeLeaderboardResponse {
     total_time: string;
 }
 
-interface PaginatedAlgoTimeResponse {
-    entries: AlgoTimeLeaderboardResponse[];
-    showSeparator: boolean;
+export interface AlgoTimeQueryParams {
+    currentUserId?: number;
+    search?: string;
+    page?: number;
+    pageSize?: number;
 }
 
-// ─── Public types ─────────────────────────────────────────────────────────────
+export interface AlgoTimePage {
+    total: number;
+    page: number;
+    pageSize: number;
+    entries: AlgoTimeEntry[];
+}
 
 export interface CompetitionsPage {
     total: number;
@@ -116,24 +125,14 @@ export async function getCurrentCompetitionLeaderboard(
 
 /**
  * Get a paginated, optionally filtered and sorted list of past competitions.
- * All filtering and sorting is performed on the backend — do not re-filter on the client.
+ * All filtering and sorting is performed on the backend.
  */
 export async function getCompetitionsDetails(
     params: CompetitionsQueryParams = {}
 ): Promise<CompetitionsPage> {
-    const {
-        currentUserId,
-        search,
-        sort = "desc",
-        page = 1,
-        pageSize = 20,
-    } = params;
+    const { currentUserId, search, sort = "desc", page = 1, pageSize = 20 } = params;
 
-    const queryParams: Record<string, string | number> = {
-        sort,
-        page,
-        page_size: pageSize,
-    };
+    const queryParams: Record<string, string | number> = { sort, page, page_size: pageSize };
     if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
     if (search?.trim()) queryParams.search = search.trim();
 
@@ -187,30 +186,73 @@ export async function getAllCompetitionEntries(
 }
 
 /**
- * Get AlgoTime leaderboard entries.
- * The backend applies the same top-10 + user-context window filtering used by competition
- * endpoints, so the client receives only the rows it needs to display.
+ * Get a single page of AlgoTime leaderboard entries.
+ * All filtering and pagination is performed on the backend — a new request is
+ * made only when the user changes page or updates the search query.
  */
-export async function getAllAlgoTimeEntries(
-    currentUserId?: number
-): Promise<{ entries: AlgoTimeLeaderboardResponse[]; showSeparator: boolean }> {
-    const params = currentUserId ? { current_user_id: currentUserId } : {};
-    const response = await axiosClient.get<PaginatedAlgoTimeResponse>(
-        "/leaderboards/algotime",
-        { params }
-    );
+export async function getAlgoTimeEntries(
+    params: AlgoTimeQueryParams = {}
+): Promise<AlgoTimePage> {
+    const { currentUserId, search, page = 1, pageSize = 15 } = params;
+
+    const queryParams: Record<string, string | number> = { page, page_size: pageSize };
+    if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
+    if (search?.trim()) queryParams.search = search.trim();
+
+    const response = await axiosClient.get<{
+        total: number;
+        page: number;
+        page_size: number;
+        entries: Array<{
+            entryId: number;
+            algoTimeSeriesId: number;
+            name: string;
+            userId: number;
+            totalScore: number;
+            problemsSolved: number;
+            totalTime: number;
+            rank: number;
+            lastUpdated: string;
+        }>;
+    }>("/leaderboards/algotime", { params: queryParams });
 
     return {
-        showSeparator: response.data.showSeparator,
-        entries: response.data.entries.map((entry) => ({
-            entryId: entry.entryId,
-            seriesId: entry.seriesId,
-            name: entry.name,
-            user_id: entry.user_id,
-            total_score: entry.total_score,
-            problems_solved: entry.problems_solved,
-            rank: entry.rank,
-            total_time: entry.total_time,
+        total: response.data.total,
+        page: response.data.page,
+        pageSize: response.data.page_size,
+        entries: response.data.entries.map((e) => ({
+            entryId: e.entryId,
+            seriesId: e.algoTimeSeriesId,
+            name: e.name,
+            user_id: e.userId,
+            total_score: e.totalScore,
+            problems_solved: e.problemsSolved,
+            rank: e.rank,
+            total_time: formatSecondsToTime(e.totalTime),
         })),
     };
+}
+
+/** Fetch ALL AlgoTime entries without pagination — used only for copy/download exports. */
+export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]> {
+    const response = await axiosClient.get<Array<{
+        entryId: number;
+        name: string;
+        userId: number;
+        totalScore: number;
+        problemsSolved: number;
+        totalTime: number;
+        rank: number;
+    }>>("/leaderboards/algotime/all");
+
+    return response.data.map((e) => ({
+        entryId: e.entryId,
+        seriesId: 0,
+        name: e.name,
+        user_id: e.userId,
+        total_score: e.totalScore,
+        problems_solved: e.problemsSolved,
+        rank: e.rank,
+        total_time: formatSecondsToTime(e.totalTime),
+    }));
 }
