@@ -155,10 +155,7 @@ def get_leaderboards(
     - **page** / **page_size**: 1-based pagination (default page_size=20, max=100)
     """
     logger.info("=== /leaderboards/competitions endpoint ===")
-    logger.info(
-        f"Params — current_user_id={current_user_id}, search={search!r}, "
-        f"sort={sort}, page={page}, page_size={page_size}"
-    )
+    logger.info(f"Params — sort={sort}, page={page}, page_size={page_size}")
 
     try:
         query = db.query(Competition).join(BaseEvent)
