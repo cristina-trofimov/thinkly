@@ -7,6 +7,7 @@ import type { Participant } from "@/types/account/Participant.type";
 import { Copy, Check, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { Button } from "../ui/button";
 
 interface Props {
   readonly participants: Participant[];
@@ -81,10 +82,10 @@ export function AlgoTimeCard({ participants, currentUserId }: Props) {
   };
 
   return (
-    <Card className="mb-6 shadow-sm border border-[#8065CD] bg-white">
+    <Card className="mb-6 bg-white">
       <CardHeader className="flex flex-row items-center justify-between px-6 py-4">
         <div>
-          <CardTitle className="text-lg font-semibold text-[#8065CD]">
+          <CardTitle className="text-lg font-semibold text-primary">
             AlgoTime Leaderboard
           </CardTitle>
           <p className="text-sm text-gray-500">All-time rankings</p>
@@ -92,32 +93,34 @@ export function AlgoTimeCard({ participants, currentUserId }: Props) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={handleCopy}
             title="Copy entire table to clipboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-[#8065CD] hover:text-[#8065CD] transition-colors"
+            variant="outline"
+            className="flex items-center gap-1.5 transition-colors"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-green-500">Copied!</span>
+                <Check className="w-4 h-4 text-emerald-500" />
+                <span className="text-emerald-500">Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4" />
+                <Copy className="w-4 h-4 text-primary" />
                 Copy
               </>
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleDownload}
             title="Download as Excel file"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-[#8065CD] text-white hover:bg-[#6a52b3] transition-colors"
+            variant="default"
+            className="flex items-center gap-1.5 text-sm transition-colors"
           >
             <Download className="w-4 h-4" />
             Download
-          </button>
+          </Button>
         </div>
       </CardHeader>
 
