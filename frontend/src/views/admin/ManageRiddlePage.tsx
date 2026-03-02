@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Pencil,
   Trash2,
+  Puzzle,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -159,12 +160,12 @@ export default function ManageRiddles() {
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Search question or answer..."
             value={searchQuery}
             onChange={(event) => handleSearchChange(event.target.value)}
-            className="pl-9"
+            className="pl-9 w-xs"
           />
         </div>
       </div>
@@ -216,7 +217,7 @@ export default function ManageRiddles() {
             <CardHeader className="bg-muted/30 pb-4">
               <div className="flex justify-between items-start gap-2">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <HelpCircle className="w-5 h-5 text-primary" />
+                  <Puzzle className="w-5 h-5 text-primary" />
                 </div>
 
                 <div className="flex items-center gap-2">
