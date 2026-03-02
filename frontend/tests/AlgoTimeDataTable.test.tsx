@@ -309,10 +309,10 @@ describe("AlgoTimeDataTable", () => {
       const bobRow = rows[1]; // Bob is the second row
 
       expect(bobRow).toHaveClass(
-        "bg-[#8065CD]/20",
+        "bg-primary/20",
         "border-t-2",
         "border-b-2",
-        "border-[#8065CD]",
+        "border-primary",
         "font-semibold"
       );
     });
@@ -369,7 +369,7 @@ describe("AlgoTimeDataTable", () => {
       const aliceRow = rows[0];
 
       // Should have current user styling, not podium styling
-      expect(aliceRow).toHaveClass("bg-[#8065CD]/20");
+      expect(aliceRow).toHaveClass("bg-primary/20");
       expect(aliceRow).not.toHaveClass("bg-yellow-100");
     });
   });
