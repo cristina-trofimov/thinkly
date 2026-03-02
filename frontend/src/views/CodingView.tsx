@@ -36,7 +36,6 @@ import { getEventByName } from '@/api/BaseEventAPI';
 
 const CodingView = () => {
   const location = useLocation()
-  // const comp: Competition = location?.state?.comp
   // const algo: AlgoTimeSeries = location?.state?.algo
   // AlgoTimeSession
 
@@ -47,44 +46,62 @@ const CodingView = () => {
 
   const comp = location?.state?.comp
   const compString = JSON.stringify(comp)
+
+  const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
+  const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+  const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+
   console.log('comp: ', comp)
+  console.log('question: ', question)
+
+  const [mostRecentSub, setMostRecentSub] = useState<MostRecentSub>()
+  const [mostRecentSubGroupClass, setMostRecentSubGroupClass] = useState<string>('grid grid-cols-2 gap-4')
+  const [logs, setLogs] = useState<Judge0Response[]>([])
+  const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
 
   useEffect(() => {
-    console.log('initializing useEffect')
+    console.log('in useEffect')
+    // setIsQuestionLoading(true)
 
-    setIsQuestionLoading(true)
+    // const InitializeEvent = () => {
+    //   console.log('initializeEvent')
 
-    const InitializeEvent = async () => {
-      console.log(`initializing:`)
-      
-      if (!location?.state?.comp) {
-        console.log('comp is undefined, cannot fetch event')
-        setIsQuestionLoading(false)
-        return
-      }
+    //   try {
+    //     console.log('useEffect try')
+    //     // const ev = await getEventByName(location?.state?.comp?.competitionTitle)
+    //     // setEvent(ev)
+    //   } catch (err) {
+    //     console.error("Failed to fetch event: ", err)
+    //   } finally {
+    //     setIsQuestionLoading(false)
+    //   }
+    // }
+    // // const InitializeEvent = async () => {
+    // //   console.log('initializeEvent')
 
-      try {
-        console.log('comp 1: ')
-        
-        const ev = await getEventByName(location?.state?.comp.competitionTitle)
-        
-        console.log('ev: ', ev)
+    // //   try {
+    // //     console.log('useEffect try')
+    // //     const ev = await getEventByName(location?.state?.comp?.competitionTitle)
+    // //     setEvent(ev)
+    // //   } catch (err) {
+    // //     console.error("Failed to fetch event: ", err)
+    // //   } finally {
+    // //     setIsQuestionLoading(false)
+    // //   }
+    // // }
 
-        setEvent(ev)
-      } catch (err) {
-        console.error("Failed to fetch event: ", err)
-      } finally {
-        setIsQuestionLoading(false)
-      }
-    }
-    InitializeEvent()
-  }, [compString])
+    // InitializeEvent()
+  }, [comp?.id])
+
 
   // console.log(`event:`)
   // console.log(event)
 
+
   // Track page open once on mount — question is available from location state
   // useEffect(() => {
+  //   setIsQuestionLoading(true)
+
   //   if (question?.id) {
   //     trackCodingPageOpened(
   //       question.title,
@@ -92,21 +109,12 @@ const CodingView = () => {
   //       question.difficulty ?? "unknown"
   //     )
   //     setIsQuestionLoading(false)
-  //   } else {
-  //     setIsQuestionLoading(true)
   //   }
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [question?.id])
 
 
   const { testcases } = useTestcases(question?.id)
-  const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
-  const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
-  const [ loadingMsg, setLoadingMsg ] = useState<string>("")
-  const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
-  const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
-  const [ logs, setLogs ] = useState<Judge0Response[]>([])
-  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
