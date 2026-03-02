@@ -2,8 +2,7 @@
 
 import React from "react";
 
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { Hash, User, Star, ListChecks, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Hash, User, Star, ListChecks, Clock } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
 import {
   type ColumnDef,
