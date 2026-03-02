@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Hash, User, Star, ListChecks, Clock } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
@@ -88,6 +90,57 @@ const NameCellRenderer = (props: CellContext<Participant, unknown>) => (
   <span className="font-medium">{props.row.original.name}</span>
 );
 
+// ─── Table body renderer ──────────────────────────────────────────────────────
+
+function renderTableBody(
+  loading: boolean,
+  rows: ReturnType<ReturnType<typeof useReactTable<Participant>>["getRowModel"]>["rows"],
+  columns: ColumnDef<Participant>[],
+  currentUserId: number | undefined,
+  search: string
+): React.ReactNode {
+  if (loading) {
+    return (
+      <TableRow>
+        <TableCell colSpan={columns.length} className="text-center py-8 text-gray-400">
+          Loading...
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <TableRow>
+        <TableCell colSpan={columns.length} className="text-center py-6 text-gray-400">
+          {search ? "No participants match your search" : "No participants found"}
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return rows.map((row) => {
+    const isCurrentUser =
+      currentUserId !== undefined &&
+      row.original.user_id === currentUserId;
+    const rank = row.original.rank;
+
+    const rowClass = isCurrentUser
+      ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
+      : getRowBgClass(rank);
+
+    return (
+      <TableRow key={row.id} className={rowClass}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  });
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function AlgoTimeDataTable({
@@ -149,40 +202,7 @@ export function AlgoTimeDataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-gray-400">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => {
-                const isCurrentUser =
-                  currentUserId !== undefined &&
-                  row.original.user_id === currentUserId;
-                const rank = row.original.rank;
-
-                const rowClass = isCurrentUser
-                  ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
-                  : getRowBgClass(rank);
-
-                return (
-                  <TableRow key={row.id} className={rowClass}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-6 text-gray-400">
-                  {search ? "No participants match your search" : "No participants found"}
-                </TableCell>
-              </TableRow>
-            )}
+            {renderTableBody(loading, table.getRowModel().rows, columns, currentUserId, search)}
           </TableBody>
         </Table>
       </div>
@@ -192,7 +212,7 @@ export function AlgoTimeDataTable({
         <div className="flex items-center justify-between px-2 py-4">
           <p className="text-sm text-gray-600">
             Page {page} of {totalPages}
-            {search && ` — ${total} result${total !== 1 ? "s" : ""}`}
+            {search && ` — ${total} result${total === 1 ? "" : "s"}`}
           </p>
 
           <div className="flex items-center gap-2">
