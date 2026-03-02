@@ -2,7 +2,6 @@ import axiosClient from "@/lib/axiosClient";
 import type { CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { formatSecondsToTime } from '@/utils/formatTime';
-import type { AlgoTimeLeaderboardBackendEntry } from "@/types/algoTime/AlgoTimeLeaderboard.type";
 
 // ─── Backend response types ───────────────────────────────────────────────────
 
