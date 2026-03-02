@@ -14,7 +14,6 @@ import {
   Search,
   FileText,
   Image as ImageIcon,
-  HelpCircle,
   Pencil,
   Trash2,
   Puzzle,
