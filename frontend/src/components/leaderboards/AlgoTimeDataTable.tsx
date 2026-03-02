@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Participant } from "../../types/account/Participant.type";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 interface Props {
   readonly participants: Participant[];
@@ -154,13 +156,13 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
       {/* Search Bar */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-primary" />
+          <Input
             type="text"
             placeholder="Search by name..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8065CD] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2"
           />
         </div>
       </div>
@@ -192,7 +194,7 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
                 // Determine row styling based on user and rank
                 let rowClass = "";
                 if (isCurrentUser) {
-                  rowClass = "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold";
+                  rowClass = "bg-primary/20 border-t-2 border-b-2 border-primary font-semibold";
                 } else if (currentPage === 0 && !searchQuery) {
                   // Only apply medal colors on first page when not searching
                   rowClass = getRowBgClass(rank);
@@ -230,34 +232,38 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
             {searchQuery && ` (${filteredParticipants.length} results)`}
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={() => setCurrentPage(0)}
               disabled={currentPage === 0}
-              className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               First
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 0}
-              className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage >= totalPages - 1}
-              className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setCurrentPage(totalPages - 1)}
               disabled={currentPage >= totalPages - 1}
-              className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               Last
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -196,8 +196,8 @@ export function Leaderboards() {
       {!loading && !error && leaderboardType === "competition" && (
         <>
           {currentCompetition && (
-            <div className="border-4 border-[#8065CD] rounded-lg p-4 bg-gradient-to-r from-purple-50 to-indigo-50">
-              <h2 className="text-lg font-semibold text-[#8065CD] mb-3">
+            <div className="border-3 border-primary rounded-lg p-4 bg-linear-to-r from-purple-50 to-indigo-50">
+              <h2 className="text-lg font-semibold text-primary mb-3">
                 Current Competition
               </h2>
               <CompetitionCard
