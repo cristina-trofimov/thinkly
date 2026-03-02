@@ -1,6 +1,6 @@
-"use client";
+"use c"use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AlgoTimeDataTable } from "./AlgoTimeDataTable";
 import { Copy, Check, Download } from "lucide-react";
@@ -99,7 +99,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
         ta.focus();
         ta.select();
         try {
-          const ok = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
+          const ok = document.execCommand("copy"); // NOSONAR(typescript:S1874) - intentional fallback when Clipboard API is unavailable
           if (!ok) throw new Error("execCommand copy failed");
         } finally {
           ta.remove();
@@ -132,6 +132,30 @@ export function AlgoTimeCard({ currentUserId }: Props) {
   const isBusy = exportState !== "idle";
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
 
+  let copyButtonContent: React.ReactNode;
+  if (exportState === "copied") {
+    copyButtonContent = (
+      <>
+        <Check className="w-4 h-4 text-green-500" />
+        <span className="text-green-500">Copied!</span>
+      </>
+    );
+  } else if (exportState === "exporting") {
+    copyButtonContent = (
+      <>
+        <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />{" "}
+        Fetching...
+      </>
+    );
+  } else {
+    copyButtonContent = (
+      <>
+        <Copy className="w-4 h-4" />
+        Copy
+      </>
+    );
+  }
+
   return (
     <Card className="mb-6 shadow-sm border border-[#8065CD] bg-white">
       <CardHeader className="flex flex-row items-center justify-between px-6 py-4">
@@ -149,22 +173,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
             title="Copy entire table to clipboard"
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-[#8065CD] hover:text-[#8065CD] transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
-            {exportState === "copied" ? (
-              <>
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-green-500">Copied!</span>
-              </>
-            ) : exportState === "exporting" ? (
-              <>
-                <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                Fetching...
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                Copy
-              </>
-            )}
+            {copyButtonContent}
           </button>
 
           <button
@@ -175,7 +184,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
           >
             {exportState === "exporting" ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{" "}
                 Fetching...
               </>
             ) : (
