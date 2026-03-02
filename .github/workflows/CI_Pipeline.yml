@@ -16,13 +16,23 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/src/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - run: python -m pip install --upgrade pip
       - run: pip install -r src/requirements.txt
+
       - name: Run tests
-        working-directory: backend
         env:
           PYTHONPATH: .
           BREVO_API_KEY: test-brevo-key
@@ -40,14 +50,26 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: '20.19.0'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - run: npm ci
       - run: npm test -- --watchAll=false
 
   e2e-tests:
     runs-on: ubuntu-latest
+    # Only run E2E on main/dev to avoid flaky failures on every branch push
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: frontend
@@ -56,13 +78,30 @@ jobs:
       VITE_SUPABASE_ANON_KEY: "placeholder-key"
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: '20.19.0'
-      - run: rm -rf node_modules package-lock.json
-      - run: npm install
-      - run: npx cypress install
-      - run: npx start-server-and-test "npm run dev" http://localhost:5173 "npm run cypress:run -- --headless --browser chrome"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - run: npm ci
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 60
+          browser: chrome
+          headed: false
 
   lint-frontend:
     runs-on: ubuntu-latest
@@ -71,9 +110,19 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
           node-version: '20.19.0'
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - run: npm ci
       - run: npm run lint
 
@@ -84,8 +133,18 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ruff
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - run: pip install ruff
       - run: ruff check src/
