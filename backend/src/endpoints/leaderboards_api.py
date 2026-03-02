@@ -142,10 +142,10 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 def get_leaderboards(
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None,
-        search: Optional[str] = Query(default=None, max_length=200),
-        sort: str = Query(default="desc", pattern="^(asc|desc)$"),
-        page: int = Query(default=1, ge=1),
-        page_size: int = Query(default=DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+        search: Annotated[Optional[str], Query(max_length=200)] = None,
+        sort: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ):
     """
     Returns a paginated, optionally filtered and sorted list of competition leaderboards.
@@ -420,9 +420,9 @@ def get_current_competition_leaderboard(
 def get_algotime_leaderboard(
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None,
-        search: Optional[str] = Query(default=None, max_length=200),
-        page: int = Query(default=1, ge=1),
-        page_size: int = Query(default=15, ge=1, le=100),
+        search: Annotated[Optional[str], Query(max_length=200)] = None,
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=100)] = 15,
 ):
     """
     Returns a paginated slice of the AlgoTime leaderboard.
@@ -436,7 +436,7 @@ def get_algotime_leaderboard(
     """
     logger.info(
         f"Accessing /leaderboards/algotime — current_user_id={current_user_id}, "
-        f"search={search!r}, page={page}, page_size={page_size}"
+        f"page={page}, page_size={page_size}"
     )
 
     try:
@@ -482,7 +482,7 @@ def get_algotime_leaderboard(
 
         logger.info(
             f"Returning {len(result)} AlgoTime entries "
-            f"(page {page}, total={total}, search={search!r})."
+            f"(page {page}, total={total})."
         )
 
         track_custom_event(
