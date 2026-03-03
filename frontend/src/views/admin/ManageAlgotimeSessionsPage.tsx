@@ -82,12 +82,12 @@ export default function ManageAlgotimeSessionsPage() {
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Search algotime session name"
             value={searchQuery}
             onChange={(event) => handleSearchChange(event.target.value)}
-            className="pl-9"
+            className="pl-9 w-xs"
           />
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
 } from "@/api/LeaderboardsAPI";
 
 const PAGE_SIZE = 15;
+import { Button } from "../ui/button";
 
 interface Props {
   readonly currentUserId?: number;
@@ -136,8 +137,8 @@ export function AlgoTimeCard({ currentUserId }: Props) {
   if (exportState === "copied") {
     copyButtonContent = (
       <>
-        <Check className="w-4 h-4 text-green-500" />
-        <span className="text-green-500">Copied!</span>
+        <Check className="w-4 h-4 text-emerald-500" />
+        <span className="text-emerald-500">Copied!</span>
       </>
     );
   } else if (exportState === "exporting") {
@@ -150,37 +151,39 @@ export function AlgoTimeCard({ currentUserId }: Props) {
   } else {
     copyButtonContent = (
       <>
-        <Copy className="w-4 h-4" />
+        <Copy className="w-4 h-4 text-primary" />
         Copy
       </>
     );
   }
 
   return (
-    <Card className="mb-6 shadow-sm border border-[#8065CD] bg-white">
+    <Card className="mb-6 bg-white">
       <CardHeader className="flex flex-row items-center justify-between px-6 py-4">
         <div>
-          <CardTitle className="text-lg font-semibold text-[#8065CD]">
+          <CardTitle className="text-lg font-semibold text-primary">
             AlgoTime Leaderboard
           </CardTitle>
           <p className="text-sm text-gray-500">All-time rankings</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={handleCopy}
             disabled={isBusy}
             title="Copy entire table to clipboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-[#8065CD] hover:text-[#8065CD] transition-colors disabled:opacity-50 disabled:cursor-wait"
+            variant="outline"
+            className="flex items-center gap-1.5  disabled:opacity-50 disabled:cursor-wait"
           >
             {copyButtonContent}
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleDownload}
             disabled={isBusy}
             title="Download as Excel file"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-[#8065CD] text-white hover:bg-[#6a52b3] transition-colors disabled:opacity-50 disabled:cursor-wait"
+            variant="default"
+            className="flex items-center gap-1.5 text-sm transition-colors"
           >
             {exportState === "exporting" ? (
               <>
@@ -193,7 +196,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
                 Download
               </>
             )}
-          </button>
+          </Button>
         </div>
       </CardHeader>
 
