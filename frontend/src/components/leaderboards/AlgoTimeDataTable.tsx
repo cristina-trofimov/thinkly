@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Hash, User, Star, ListChecks, Clock, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import React from "react";
+
+import { ChevronLeft, ChevronRight, Search, Hash, User, Star, ListChecks, Clock } from "lucide-react";
 import { NumberCircle } from "@/components/ui/NumberCircle";
 import {
   type ColumnDef,
@@ -9,7 +10,6 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getPaginationRowModel,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -24,7 +24,18 @@ import type { Participant } from "../../types/account/Participant.type";
 interface Props {
   readonly participants: Participant[];
   readonly currentUserId?: number;
+  readonly loading?: boolean;
+  // Search — controlled by parent (AlgoTimeCard), executed on the backend
+  readonly search: string;
+  readonly onSearchChange: (value: string) => void;
+  // Pagination — controlled by parent; page numbers are 1-based
+  readonly page: number;
+  readonly totalPages: number;
+  readonly total: number;
+  readonly onPageChange: (page: number) => void;
 }
+
+// ─── Column headers ───────────────────────────────────────────────────────────
 
 const RankHeader = () => (
   <div className="flex items-center gap-1">
@@ -61,6 +72,8 @@ const TotalTimeHeader = () => (
   </div>
 );
 
+// ─── Cell renderers ───────────────────────────────────────────────────────────
+
 const getRowBgClass = (rank: number) => {
   if (rank === 1) return "bg-yellow-100";
   if (rank === 2) return "bg-gray-100";
@@ -68,98 +81,105 @@ const getRowBgClass = (rank: number) => {
   return "";
 };
 
-const RankCellRenderer = (props: CellContext<Participant, unknown>) => {
-  return <NumberCircle number={props.row.original.rank} />;
-};
+const RankCellRenderer = (props: CellContext<Participant, unknown>) => (
+  <NumberCircle number={props.row.original.rank} />
+);
 
-const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
-  return <span className="font-medium">{props.row.original.name}</span>;
-};
+const NameCellRenderer = (props: CellContext<Participant, unknown>) => (
+  <span className="font-medium">{props.row.original.name}</span>
+);
 
-export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const pageSize = 15;
+// ─── Table body renderer ──────────────────────────────────────────────────────
 
-  // Filter participants based on search query
-  // Note: participants are already sorted by rank from the API
-  const filteredParticipants = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return participants;
-    }
-    return participants.filter(p =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+function renderTableBody(
+  loading: boolean,
+  rows: ReturnType<ReturnType<typeof useReactTable<Participant>>["getRowModel"]>["rows"],
+  columns: ColumnDef<Participant>[],
+  currentUserId: number | undefined,
+  search: string
+): React.ReactNode {
+  if (loading) {
+    return (
+      <TableRow>
+        <TableCell colSpan={columns.length} className="text-center py-8 text-gray-400">
+          Loading...
+        </TableCell>
+      </TableRow>
     );
-  }, [participants, searchQuery]);
+  }
 
+  if (rows.length === 0) {
+    return (
+      <TableRow>
+        <TableCell colSpan={columns.length} className="text-center py-6 text-gray-400">
+          {search ? "No participants match your search" : "No participants found"}
+        </TableCell>
+      </TableRow>
+    );
+  }
+
+  return rows.map((row) => {
+    const isCurrentUser =
+      currentUserId !== undefined &&
+      row.original.user_id === currentUserId;
+    const rank = row.original.rank;
+
+    const rowClass = isCurrentUser
+      ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
+      : getRowBgClass(rank);
+
+    return (
+      <TableRow key={row.id} className={rowClass}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  });
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function AlgoTimeDataTable({
+  participants,
+  currentUserId,
+  loading = false,
+  search,
+  onSearchChange,
+  page,
+  totalPages,
+  total,
+  onPageChange,
+}: Props) {
   const columns: ColumnDef<Participant>[] = [
-    {
-      id: "rank",
-      header: RankHeader,
-      cell: RankCellRenderer,
-    },
-    {
-      accessorKey: "name",
-      header: NameHeader,
-      cell: NameCellRenderer,
-    },
-    {
-      accessorKey: "total_score",
-      header: PointsHeader,
-    },
-    {
-      accessorKey: "problems_solved",
-      header: ProblemsSolvedHeader,
-    },
-    {
-      accessorKey: "total_time",
-      header: TotalTimeHeader,
-    }
+    { id: "rank", header: RankHeader, cell: RankCellRenderer },
+    { accessorKey: "name", header: NameHeader, cell: NameCellRenderer },
+    { accessorKey: "total_score", header: PointsHeader },
+    { accessorKey: "problems_solved", header: ProblemsSolvedHeader },
+    { accessorKey: "total_time", header: TotalTimeHeader },
   ];
 
   const table = useReactTable({
-    data: filteredParticipants,
+    data: participants,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: {
-        pageSize,
-      },
-    },
-    state: {
-      pagination: {
-        pageIndex: currentPage,
-        pageSize,
-      },
-    },
-    onPaginationChange: (updater) => {
-      if (typeof updater === 'function') {
-        const newState = updater({ pageIndex: currentPage, pageSize });
-        setCurrentPage(newState.pageIndex);
-      }
-    },
+    // Pagination is fully server-driven; tanstack-table is used only for rendering
+    manualPagination: true,
   });
-
-  const totalPages = table.getPageCount();
-
-  // Reset to first page when search changes
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(0);
-  };
 
   return (
     <div>
-      {/* Search Bar */}
+      {/* Search bar — debouncing is acceptable here; the actual fetch is in AlgoTimeCard */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search by name..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8065CD] focus:border-transparent"
           />
         </div>
@@ -174,86 +194,51 @@ export function AlgoTimeDataTable({ participants, currentUserId }: Props) {
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => {
-                const isCurrentUser = currentUserId && row.original.user_id === currentUserId;
-                const rank = row.original.rank;
-
-                // Determine row styling based on user and rank
-                let rowClass = "";
-                if (isCurrentUser) {
-                  rowClass = "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold";
-                } else if (currentPage === 0 && !searchQuery) {
-                  // Only apply medal colors on first page when not searching
-                  rowClass = getRowBgClass(rank);
-                }
-
-                return (
-                  <TableRow key={row.id} className={rowClass}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-center py-6 text-gray-400"
-                >
-                  {searchQuery ? "No participants match your search" : "No participants found"}
-                </TableCell>
-              </TableRow>
-            )}
+            {renderTableBody(loading, table.getRowModel().rows, columns, currentUserId, search)}
           </TableBody>
         </Table>
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination controls — only rendered when there is more than one page */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-4">
-          <div className="text-sm text-gray-600">
-            Page {currentPage + 1} of {totalPages}
-            {searchQuery && ` (${filteredParticipants.length} results)`}
-          </div>
+          <p className="text-sm text-gray-600">
+            Page {page} of {totalPages}
+            {search && ` — ${total} result${total === 1 ? "" : "s"}`}
+          </p>
+
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentPage(0)}
-              disabled={currentPage === 0}
+              onClick={() => onPageChange(1)}
+              disabled={page === 1 || loading}
               className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               First
             </button>
             <button
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 0}
+              onClick={() => onPageChange(page - 1)}
+              disabled={page === 1 || loading}
               className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage >= totalPages - 1}
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages || loading}
               className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setCurrentPage(totalPages - 1)}
-              disabled={currentPage >= totalPages - 1}
+              onClick={() => onPageChange(totalPages)}
+              disabled={page >= totalPages || loading}
               className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Last

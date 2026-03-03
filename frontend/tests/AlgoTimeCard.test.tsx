@@ -1,35 +1,41 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { AlgoTimeCard } from "../src/components/leaderboards/AlgoTimeCard";
-import type { Participant } from "../src/types/account/Participant.type";
+import * as LeaderboardsAPI from "../src/api/LeaderboardsAPI";
+import type { AlgoTimePage, AlgoTimeEntry } from "../src/api/LeaderboardsAPI";
 import * as XLSX from "xlsx";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
+jest.mock("../src/api/LeaderboardsAPI", () => ({
+  getAlgoTimeEntries: jest.fn(),
+  getAllAlgoTimeEntriesForExport: jest.fn(),
+}));
+
+jest.mock("../src/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackLeaderboardCopied: jest.fn(),
+    trackLeaderboardDownloaded: jest.fn(),
+  }),
+}));
+
 jest.mock("../src/components/leaderboards/AlgoTimeDataTable", () => ({
-  AlgoTimeDataTable: jest.fn(({ participants, currentUserId }) => (
+  AlgoTimeDataTable: jest.fn((props: any) => (
     <div data-testid="algo-time-data-table">
-      Mock Table: {participants.length} participants
-      {currentUserId && ` | Current User: ${currentUserId}`}
+      {props.loading
+        ? "loading"
+        : `${props.participants.length} participants`}
+      {props.currentUserId !== undefined && ` | uid:${props.currentUserId}`}
     </div>
   )),
 }));
 
 jest.mock("../src/components/ui/card", () => ({
-  Card: ({ children, className }: any) => (
-    <div data-testid="card" className={className}>{children}</div>
-  ),
-  CardHeader: ({ children, className }: any) => (
-    <div data-testid="card-header" className={className}>{children}</div>
-  ),
-  CardTitle: ({ children, className }: any) => (
-    <h2 data-testid="card-title" className={className}>{children}</h2>
-  ),
-  CardContent: ({ children, className }: any) => (
-    <div data-testid="card-content" className={className}>{children}</div>
-  ),
+  Card: ({ children, className }: any) => <div data-testid="card" className={className}>{children}</div>,
+  CardHeader: ({ children, className }: any) => <div data-testid="card-header" className={className}>{children}</div>,
+  CardTitle: ({ children, className }: any) => <h2 data-testid="card-title" className={className}>{children}</h2>,
+  CardContent: ({ children, className }: any) => <div data-testid="card-content" className={className}>{children}</div>,
 }));
 
 jest.mock("xlsx", () => ({
@@ -45,36 +51,37 @@ jest.mock("xlsx", () => ({
 // Fixtures
 // ---------------------------------------------------------------------------
 
-const mockParticipants: Participant[] = [
-  {
-    user_id: 1,
-    name: "Alice Smith",
-    rank: 1,
-    total_score: 1500,
-    problems_solved: 25,
-    total_time: "10:30:45",
-  },
-  {
-    user_id: 2,
-    name: "Bob Johnson",
-    rank: 2,
-    total_score: 1200,
+const makeEntries = (n: number): AlgoTimeEntry[] =>
+  Array.from({ length: n }, (_, i) => ({
+    entryId: i + 1,
+    seriesId: 1,
+    name: `User ${i + 1}`,
+    user_id: i + 1,
+    total_score: 1000 - i * 10,
     problems_solved: 20,
-    total_time: "08:15:30",
-  },
-  {
-    user_id: 3,
-    name: "Charlie Brown",
-    rank: 3,
-    total_score: 1000,
-    problems_solved: 18,
-    total_time: "07:45:20",
-  },
-];
+    rank: i + 1,
+    total_time: "01:00:00",
+  }));
+
+const mockPage = (entries = makeEntries(3)): AlgoTimePage => ({
+  total: entries.length,
+  page: 1,
+  pageSize: 15,
+  entries,
+});
+
+// ---------------------------------------------------------------------------
+// Setup helpers
+// ---------------------------------------------------------------------------
+
+const getAlgoTimeEntries = LeaderboardsAPI.getAlgoTimeEntries as jest.Mock;
+const getAllAlgoTimeEntriesForExport = LeaderboardsAPI.getAllAlgoTimeEntriesForExport as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers();
+  getAlgoTimeEntries.mockResolvedValue(mockPage());
+  getAllAlgoTimeEntriesForExport.mockResolvedValue(makeEntries(3));
 });
 
 afterEach(() => {
@@ -83,101 +90,196 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// Copy button — happy path (Clipboard API available)
+// Initial load
+// ---------------------------------------------------------------------------
+
+describe("Initial data loading", () => {
+  it("calls getAlgoTimeEntries on mount", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(getAlgoTimeEntries).toHaveBeenCalledTimes(1));
+  });
+
+  it("passes currentUserId to getAlgoTimeEntries", async () => {
+    render(<AlgoTimeCard currentUserId={42} />);
+    await waitFor(() =>
+      expect(getAlgoTimeEntries).toHaveBeenCalledWith(
+        expect.objectContaining({ currentUserId: 42 })
+      )
+    );
+  });
+
+  it("shows loading state via AlgoTimeDataTable while data is fetching", () => {
+    // Never resolves → stays loading
+    getAlgoTimeEntries.mockReturnValue(new Promise(() => {}));
+    render(<AlgoTimeCard />);
+    expect(screen.getByTestId("algo-time-data-table")).toHaveTextContent("loading");
+  });
+
+  it("renders participant count once data loads", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() =>
+      expect(screen.getByTestId("algo-time-data-table")).toHaveTextContent("3 participants")
+    );
+  });
+
+  it("shows an error message when the API rejects", async () => {
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    getAlgoTimeEntries.mockRejectedValue(new Error("network failure"));
+    render(<AlgoTimeCard />);
+    await waitFor(() =>
+      expect(screen.getByText("Failed to load AlgoTime leaderboard")).toBeInTheDocument()
+    );
+  });
+
+  it("forwards currentUserId to AlgoTimeDataTable", async () => {
+    render(<AlgoTimeCard currentUserId={7} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("algo-time-data-table")).toHaveTextContent("uid:7")
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Card chrome
+// ---------------------------------------------------------------------------
+
+describe("Card chrome", () => {
+  it("renders the card title", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByTestId("card-title")).toBeInTheDocument());
+    expect(screen.getByText("AlgoTime Leaderboard")).toBeInTheDocument();
+  });
+
+  it("renders both action buttons", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByTitle("Copy entire table to clipboard")).toBeInTheDocument());
+    expect(screen.getByTitle("Download as Excel file")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Copy button
 // ---------------------------------------------------------------------------
 
 describe("Copy button", () => {
   const setupClipboard = () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, {
-      clipboard: { writeText },
-    });
+    Object.assign(navigator, { clipboard: { writeText } });
     return writeText;
   };
 
-  it("renders with 'Copy' label initially", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTitle("Copy entire table to clipboard")).toBeInTheDocument();
+  it("shows 'Copy' label initially (after data loads)", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByTitle("Copy entire table to clipboard")).toBeInTheDocument());
     expect(screen.getByText("Copy")).toBeInTheDocument();
   });
 
-  it("shows 'Copied!' immediately after click and reverts after 2 s", async () => {
+  it("shows 'Fetching...' immediately after click while export is in progress", async () => {
     setupClipboard();
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    const btn = screen.getByTitle("Copy entire table to clipboard");
+    // Keep the export call pending
+    getAllAlgoTimeEntriesForExport.mockReturnValue(new Promise(() => {}));
+
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
+
+    expect(screen.getAllByText("Fetching...").length).toBeGreaterThan(0);
+  });
+
+  it("calls getAllAlgoTimeEntriesForExport (not the paginated endpoint) when copying", async () => {
+    setupClipboard();
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
     await act(async () => {
-      fireEvent.click(btn);
+      fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
     });
 
-    expect(screen.getByText("Copied!")).toBeInTheDocument();
-
-    act(() => {
-      jest.advanceTimersByTime(2000);
-    });
-
-    expect(screen.getByText("Copy")).toBeInTheDocument();
-    expect(screen.queryByText("Copied!")).not.toBeInTheDocument();
+    expect(getAllAlgoTimeEntriesForExport).toHaveBeenCalledTimes(1);
   });
 
-  it("passes the correct tab-separated text to clipboard.writeText", async () => {
+  it("writes the correct TSV text (header + one row per entry) to the clipboard", async () => {
     const writeText = setupClipboard();
-    render(<AlgoTimeCard participants={mockParticipants} />);
+    const entries = makeEntries(2);
+    getAllAlgoTimeEntriesForExport.mockResolvedValue(entries);
+
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
     await act(async () => {
       fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
     });
 
     expect(writeText).toHaveBeenCalledTimes(1);
-    const clipboardText: string = writeText.mock.calls[0][0];
-
-    // Header row
-    expect(clipboardText).toMatch(/Rank\tName\tTotal Points\tProblems Solved\tTotal Time/);
-    // Each participant appears as a data row
-    for (const p of mockParticipants) {
-      expect(clipboardText).toContain(
-        `${p.rank}\t${p.name}\t${p.total_score}\t${p.problems_solved}\t${p.total_time}`
+    const text: string = writeText.mock.calls[0][0];
+    expect(text).toMatch(/Rank\tName\tTotal Points\tProblems Solved\tTotal Time/);
+    for (const e of entries) {
+      expect(text).toContain(
+        `${e.rank}\t${e.name}\t${e.total_score}\t${e.problems_solved}\t${e.total_time}`
       );
     }
   });
 
-  it("does NOT revert 'Copied!' before 2 s have elapsed", async () => {
+  it("shows 'Copied!' after the clipboard write succeeds", async () => {
     setupClipboard();
-    render(<AlgoTimeCard participants={mockParticipants} />);
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
     await act(async () => {
       fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
     });
 
-    act(() => {
-      jest.advanceTimersByTime(1999);
-    });
-
     expect(screen.getByText("Copied!")).toBeInTheDocument();
   });
 
-  it("can be clicked multiple times and still reverts correctly each time", async () => {
+  it("reverts back to 'Copy' after 2 s", async () => {
     setupClipboard();
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    const btn = screen.getByTitle("Copy entire table to clipboard");
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
-    for (let i = 0; i < 3; i++) {
-      await act(async () => {
-        fireEvent.click(btn);
-      });
-      act(() => jest.advanceTimersByTime(2000));
-      expect(screen.getByText("Copy")).toBeInTheDocument();
-    }
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
+    });
+
+    act(() => jest.advanceTimersByTime(2000));
+    expect(screen.getByText("Copy")).toBeInTheDocument();
+    expect(screen.queryByText("Copied!")).not.toBeInTheDocument();
+  });
+
+  it("does NOT revert before 2 s have elapsed", async () => {
+    setupClipboard();
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
+    });
+
+    act(() => jest.advanceTimersByTime(1999));
+    expect(screen.getByText("Copied!")).toBeInTheDocument();
+  });
+
+  it("disables both buttons while copying", async () => {
+    setupClipboard();
+    getAllAlgoTimeEntriesForExport.mockReturnValue(new Promise(() => {}));
+
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
+
+    expect(screen.getByTitle("Copy entire table to clipboard")).toBeDisabled();
+    expect(screen.getByTitle("Download as Excel file")).toBeDisabled();
   });
 });
 
 // ---------------------------------------------------------------------------
-// Copy button — fallback path (Clipboard API unavailable)
+// Copy button — execCommand fallback
 // ---------------------------------------------------------------------------
 
 describe("Copy button — execCommand fallback", () => {
   beforeEach(() => {
-    // Remove clipboard API to trigger fallback
     Object.defineProperty(navigator, "clipboard", {
       value: undefined,
       writable: true,
@@ -186,19 +288,20 @@ describe("Copy button — execCommand fallback", () => {
     document.execCommand = jest.fn().mockReturnValue(true);
   });
 
-  it("uses execCommand when clipboard API is unavailable", async () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
+  it("uses execCommand when the Clipboard API is unavailable", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
     await act(async () => {
       fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
     });
 
     expect(document.execCommand).toHaveBeenCalledWith("copy");
-    expect(screen.getByText("Copied!")).toBeInTheDocument();
   });
 
-  it("still sets the 'Copied!' state on fallback success", async () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
+  it("shows 'Copied!' after the execCommand fallback succeeds", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Copy")).toBeInTheDocument());
 
     await act(async () => {
       fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
@@ -213,32 +316,52 @@ describe("Copy button — execCommand fallback", () => {
 // ---------------------------------------------------------------------------
 
 describe("Download button", () => {
-  it("renders with 'Download' label", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTitle("Download as Excel file")).toBeInTheDocument();
+  it("renders with 'Download' label after data loads", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByTitle("Download as Excel file")).toBeInTheDocument());
     expect(screen.getByText("Download")).toBeInTheDocument();
   });
 
-  it("calls XLSX.utils.json_to_sheet with correct rows on click", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    fireEvent.click(screen.getByTitle("Download as Excel file"));
+  it("calls getAllAlgoTimeEntriesForExport when download is clicked", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
 
-    expect(XLSX.utils.json_to_sheet).toHaveBeenCalledTimes(1);
-    const rows: any[] = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
 
-    expect(rows).toHaveLength(mockParticipants.length);
+    expect(getAllAlgoTimeEntriesForExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls XLSX.utils.json_to_sheet with the correct row shape", async () => {
+    const entries = makeEntries(2);
+    getAllAlgoTimeEntriesForExport.mockResolvedValue(entries);
+
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
+
+    const rows = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
+    expect(rows).toHaveLength(entries.length);
     expect(rows[0]).toEqual({
-      Rank: mockParticipants[0].rank,
-      Name: mockParticipants[0].name,
-      "Total Points": mockParticipants[0].total_score,
-      "Problems Solved": mockParticipants[0].problems_solved,
-      "Total Time": mockParticipants[0].total_time,
+      Rank: entries[0].rank,
+      Name: entries[0].name,
+      "Total Points": entries[0].total_score,
+      "Problems Solved": entries[0].problems_solved,
+      "Total Time": entries[0].total_time,
     });
   });
 
-  it("calls XLSX.utils.book_append_sheet with correct sheet name", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    fireEvent.click(screen.getByTitle("Download as Excel file"));
+  it("appends a sheet named 'AlgoTime Leaderboard'", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
 
     expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(
       expect.anything(),
@@ -247,133 +370,55 @@ describe("Download button", () => {
     );
   });
 
-  it("calls XLSX.writeFile with the correct filename", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    fireEvent.click(screen.getByTitle("Download as Excel file"));
+  it("calls XLSX.writeFile with the correct filename", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
 
     expect(XLSX.writeFile).toHaveBeenCalledWith(
       expect.anything(),
-      "algotme-leaderboard.xlsx"
+      "algotime-leaderboard.xlsx"
     );
   });
 
-  it("sets column widths on the worksheet", () => {
+  it("sets column widths on the worksheet", async () => {
     const mockSheet: any = {};
     (XLSX.utils.json_to_sheet as jest.Mock).mockReturnValue(mockSheet);
 
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    fireEvent.click(screen.getByTitle("Download as Excel file"));
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
 
     expect(mockSheet["!cols"]).toEqual([
-      { wch: 6 },
-      { wch: 24 },
-      { wch: 14 },
-      { wch: 17 },
-      { wch: 14 },
+      { wch: 6 }, { wch: 24 }, { wch: 14 }, { wch: 17 }, { wch: 14 },
     ]);
   });
 
-  it("does not change button state after download (no 'Downloaded!' label)", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
+  it("shows 'Fetching...' on the download button while the export is in progress", async () => {
+    getAllAlgoTimeEntriesForExport.mockReturnValue(new Promise(() => {}));
+
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
     fireEvent.click(screen.getByTitle("Download as Excel file"));
 
-    // Download button stays as-is; no state flip expected
+    expect(screen.getAllByText("Fetching...").length).toBeGreaterThan(0);
+  });
+
+  it("reverts the download button to 'Download' after export completes", async () => {
+    render(<AlgoTimeCard />);
+    await waitFor(() => expect(screen.getByText("Download")).toBeInTheDocument());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Download as Excel file"));
+    });
+
     expect(screen.getByText("Download")).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Button accessibility and layout
-// ---------------------------------------------------------------------------
-
-describe("Button accessibility", () => {
-  it("Copy button has a descriptive title attribute", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(
-      screen.getByTitle("Copy entire table to clipboard")
-    ).toBeInTheDocument();
-  });
-
-  it("Download button has a descriptive title attribute", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTitle("Download as Excel file")).toBeInTheDocument();
-  });
-
-  it("both action buttons are rendered", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTitle("Copy entire table to clipboard")).toBeInTheDocument();
-    expect(screen.getByTitle("Download as Excel file")).toBeInTheDocument();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Props forwarding
-// ---------------------------------------------------------------------------
-
-describe("Props forwarding", () => {
-  it("forwards all participants to AlgoTimeDataTable", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTestId("algo-time-data-table")).toHaveTextContent(
-      `Mock Table: ${mockParticipants.length} participants`
-    );
-  });
-
-  it("forwards currentUserId to AlgoTimeDataTable", () => {
-    render(<AlgoTimeCard participants={mockParticipants} currentUserId={2} />);
-    expect(screen.getByTestId("algo-time-data-table")).toHaveTextContent(
-      "Current User: 2"
-    );
-  });
-
-  it("does not forward currentUserId when omitted", () => {
-    render(<AlgoTimeCard participants={mockParticipants} />);
-    expect(screen.getByTestId("algo-time-data-table")).not.toHaveTextContent(
-      "Current User:"
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Participant data integrity in copy output
-// ---------------------------------------------------------------------------
-
-describe("Copy output includes all participants", () => {
-  it("single participant produces one data row", async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    render(<AlgoTimeCard participants={[mockParticipants[0]]} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
-    });
-
-    const text: string = writeText.mock.calls[0][0];
-    const lines = text.split("\n");
-    // Header + 1 data row
-    expect(lines).toHaveLength(2);
-  });
-
-  it("100-participant list produces 101 lines (header + 100 rows)", async () => {
-    const writeText = jest.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    const big: Participant[] = Array.from({ length: 100 }, (_, i) => ({
-      user_id: i + 1,
-      name: `User ${i + 1}`,
-      rank: i + 1,
-      total_score: 1000 - i,
-      problems_solved: 10,
-      total_time: "01:00:00",
-    }));
-
-    render(<AlgoTimeCard participants={big} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
-    });
-
-    const lines: string[] = writeText.mock.calls[0][0].split("\n");
-    expect(lines).toHaveLength(101);
   });
 });
