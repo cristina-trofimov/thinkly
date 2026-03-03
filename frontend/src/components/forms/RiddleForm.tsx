@@ -1,4 +1,4 @@
-import { HelpCircle, CheckCircle2} from "lucide-react";
+import { HelpCircle, CheckCircle2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -16,15 +16,17 @@ interface RiddleProps {
     onSolved?: () => void;
 }
 
+
+function normalizeString(str: string) {
+    // Remove all whitespace and convert to lowercase for loose comparison
+    return str.replaceAll(/\s+/g, "").toLowerCase();
+}
+
 export default function RiddleUserForm({ riddle, onSolved }: Readonly<RiddleProps>) {
     const [guess, setGuess] = useState("");
     const [isSolved, setIsSolved] = useState(false);
 
-    // --- Validation Logic ---
-    function normalizeString(str: string) {
-        // Remove all whitespace and convert to lowercase for loose comparison
-        return str.replace(/\s+/g, "").toLowerCase();
-    }
+
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -51,26 +53,33 @@ export default function RiddleUserForm({ riddle, onSolved }: Readonly<RiddleProp
     function renderAttachment(url: string) {
         // Strip query parameters to reliably check the extension
         const cleanUrl = url.split("?")[0].toLowerCase();
-
-        if (cleanUrl.match(/\.(mp4|webm|ogg|mov)$/)) {
+        
+        const videoRegex = /\.(mp4|webm|ogg|mov)$/i;
+        if (videoRegex.exec(cleanUrl)) {
             return (
                 <video controls className="w-full rounded-lg max-h-96 object-contain bg-black/5 border">
                     <source src={url} />
                     Your browser does not support the video tag.
+                    <track kind="captions" srcLang="en" label="English captions" />
                 </video>
             );
         }
 
-        if (cleanUrl.match(/\.(mp3|wav|ogg)$/)) {
+        
+        const audioRegex = /\.(mp3|wav|ogg)$/i;
+        if (audioRegex.exec(cleanUrl)) {
             return (
                 <audio controls className="w-full outline-none">
                     <source src={url} />
                     Your browser does not support the audio element.
+                    <track kind="captions" srcLang="en" label="English captions" />
                 </audio>
             );
         }
 
-        if (cleanUrl.match(/\.pdf$/)) {
+        
+        const pdfRegex = /\.pdf$/i;
+        if (pdfRegex.exec(cleanUrl)) {
             return (
                 <iframe
                     src={`${url}#toolbar=0`}
@@ -80,7 +89,7 @@ export default function RiddleUserForm({ riddle, onSolved }: Readonly<RiddleProp
             );
         }
 
-        // Fallback to Image
+        
         return (
             <img
                 src={url}
@@ -141,15 +150,16 @@ export default function RiddleUserForm({ riddle, onSolved }: Readonly<RiddleProp
                             />
                         </div>
 
-                        {!isSolved ? (
-                            <Button type="submit" className="w-full" size="lg">
-                                Submit Answer
-                            </Button>
-                        ) : (
+                        {isSolved ? (
+                            
                             <div className="w-full p-3 rounded-lg bg-green-500/10 text-green-700 border border-green-500/20 text-center font-medium flex items-center justify-center gap-2">
                                 <CheckCircle2 className="w-5 h-5" />
                                 Riddle Solved!
                             </div>
+                        ) : (
+                            <Button type="submit" className="w-full" size="lg">
+                                Submit Answer
+                            </Button>
                         )}
                     </form>
                 </CardContent>

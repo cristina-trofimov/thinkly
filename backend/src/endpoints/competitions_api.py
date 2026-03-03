@@ -382,7 +382,7 @@ async def create_competition(
         current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
+    logger.info(f"User attempting to create competition: {request.name}")
 
     if check_competition_name_exists(db, request.name):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -600,7 +600,7 @@ async def update_competition(
         current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
+    logger.info(f"User attempting to update competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
@@ -735,7 +735,7 @@ async def delete_competition(
     Cascade delete handles related records.
     """
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to delete competition ID: {competition_id}")
+    logger.info(f"User attempting to delete competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
