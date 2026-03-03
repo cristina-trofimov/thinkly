@@ -146,7 +146,7 @@ try:
     app.include_router(judge0_router, prefix="/judge0")
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
-    app.include_router(user_preferences_router, prefix="/prefs")
+    app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 
