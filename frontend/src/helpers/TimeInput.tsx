@@ -77,7 +77,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
           id={id}
           type="text"
           readOnly
-          value={value ? currentParsed.display : ""} 
+          value={value ? currentParsed.display : ""}
           placeholder={placeholder || "hh:mm"}
           className="pr-10 cursor-pointer"
           onClick={() => setOpen(true)}
@@ -103,22 +103,20 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
             <div className="flex border-b">
               <button
                 type="button"
-                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                  viewPeriod === "AM"
+                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${viewPeriod === "AM"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
-                }`}
+                  }`}
                 onClick={() => setViewPeriod("AM")}
               >
                 AM
               </button>
               <button
                 type="button"
-                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                  viewPeriod === "PM"
+                className={`flex-1 py-2 text-sm font-medium transition-colors cursor-pointer ${viewPeriod === "PM"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
-                }`}
+                  }`}
                 onClick={() => setViewPeriod("PM")}
               >
                 PM
@@ -128,18 +126,17 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
             {/* Time list */}
             <div ref={listRef} className="max-h-52 overflow-y-auto">
               {times.map((t) => (
-                <div
+                <button
                   key={t.value24}
                   data-selected={value === t.value24}
                   onClick={() => handleSelect(t.value24)}
-                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
-                    value === t.value24
+                  className={`w-full text-left px-3 py-2 text-sm transition-colors ${value === t.value24
                       ? "bg-primary/15 font-semibold text-primary"
                       : "hover:bg-primary/5"
-                  }`}
+                    }`}
                 >
                   {t.label}
-                </div>
+                </button>
               ))}
             </div>
           </PopoverContent>
