@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 import logging
-from posthog_analytics import track_custom_event
+from backend.src.services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 algotime_router = APIRouter(tags=["Algotime"])

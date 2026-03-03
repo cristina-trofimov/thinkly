@@ -8,7 +8,7 @@ import os
 import time
 import re
 from urllib.parse import urlparse
-from posthog_analytics import track_custom_event
+from backend.src.services.posthog_analytics import track_custom_event
 
 from supabase import create_client, Client
 

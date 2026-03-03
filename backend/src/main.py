@@ -16,8 +16,8 @@ from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from logging_config import setup_logging
-from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
-from email_scheduler import run_scheduled_emails
+from backend.src.services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from backend.src.services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os

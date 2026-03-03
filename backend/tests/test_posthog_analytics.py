@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, MagicMock, AsyncMock, call
 from datetime import datetime, timezone
 from fastapi import Request
 
-from src.posthog_analytics import (
+from backend.src.services.posthog_analytics import (
     init_posthog,
     get_user_id_from_request,
     get_user_type_from_request,
@@ -26,7 +26,7 @@ from src.posthog_analytics import (
 @pytest.fixture(autouse=True)
 def reset_posthog_client():
     """Ensure the global posthog_client is None before every test."""
-    import src.posthog_analytics as module
+    import backend.src.services.posthog_analytics as module
     original = module.posthog_client
     module.posthog_client = None
     yield
@@ -36,7 +36,7 @@ def reset_posthog_client():
 @pytest.fixture
 def mock_client():
     """A mock Posthog client already injected into the module."""
-    import src.posthog_analytics as module
+    import backend.src.services.posthog_analytics as module
     client = Mock()
     module.posthog_client = client
     return client
@@ -94,7 +94,7 @@ class TestInitPosthog:
         assert result is mock_instance
 
     def test_sets_global_client_on_success(self):
-        import src.posthog_analytics as module
+        import backend.src.services.posthog_analytics as module
         with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
              patch("src.posthog_analytics.Posthog") as MockPosthog:
             MockPosthog.return_value = Mock()
@@ -108,7 +108,7 @@ class TestInitPosthog:
         assert result is None
 
     def test_global_client_remains_none_on_exception(self):
-        import src.posthog_analytics as module
+        import backend.src.services.posthog_analytics as module
         with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
              patch("src.posthog_analytics.Posthog", side_effect=Exception("boom")):
             init_posthog()
@@ -573,6 +573,6 @@ class TestShutdownPosthog:
 
     def test_client_still_set_after_shutdown(self, mock_client):
         """shutdown_posthog does not clear the global reference."""
-        import src.posthog_analytics as module
+        import backend.src.services.posthog_analytics as module
         shutdown_posthog()
         assert module.posthog_client is mock_client
