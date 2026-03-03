@@ -1,4 +1,4 @@
-import { HelpCircle, CheckCircle2, Play, FileText, Image as ImageIcon } from "lucide-react";
+import { HelpCircle, CheckCircle2} from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
