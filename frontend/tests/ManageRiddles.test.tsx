@@ -97,6 +97,7 @@ jest.mock("lucide-react", () => ({
   HelpCircle: () => <span>?</span>,
   Pencil: () => <span>Pencil</span>,
   Trash2: () => <span>Trash</span>,
+  Puzzle: () => <span>Puzzle</span>,
   X: () => <span>X</span>,
 }));
 
