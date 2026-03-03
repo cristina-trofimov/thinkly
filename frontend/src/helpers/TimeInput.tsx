@@ -87,7 +87,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
             <Button
               id={id ? `${id}-picker` : "time-picker"}
               variant="ghost"
-              className="absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
+              className="cursor-pointer absolute top-1/2 right-2 h-6 w-6 -translate-y-1/2 p-0"
             >
               <Clock className="size-3.5" />
               <span className="sr-only">Select time</span>
@@ -132,7 +132,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
                   key={t.value24}
                   data-selected={value === t.value24}
                   onClick={() => handleSelect(t.value24)}
-                  className={`px-3 py-2 text-sm transition-colors ${
+                  className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
                     value === t.value24
                       ? "bg-primary/15 font-semibold text-primary"
                       : "hover:bg-primary/5"

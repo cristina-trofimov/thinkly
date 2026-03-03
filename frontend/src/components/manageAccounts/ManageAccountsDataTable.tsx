@@ -227,7 +227,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className=""
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue(undefined)
               }
@@ -235,7 +235,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               All
             </DropdownMenuItem>
             <DropdownMenuItem
-              className=""
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Participant")
               }
@@ -243,7 +243,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               Participant
             </DropdownMenuItem>
             <DropdownMenuItem
-              className=""
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Admin")
               }
@@ -251,7 +251,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               Admin
             </DropdownMenuItem>
             <DropdownMenuItem
-              className=""
+              className="cursor-pointer"
               onClick={() =>
                 table.getColumn("accountType")?.setFilterValue("Owner")
               }
@@ -266,7 +266,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               <AlertDialogTrigger asChild>
                 <Button
                 size="icon"
-                  className="text-destructive bg-destructive/10 hover:bg-destructive/20"
+                  className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
                 >
                   <Trash2/>
                 </Button>
@@ -280,11 +280,11 @@ export function ManageAccountsDataTable<TData, TValue>({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="">
+                  <AlertDialogCancel className="cursor-pointer">
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90"
+                    className="bg-destructive cursor-pointer hover:bg-destructive/90"
                     onClick={handleDelete}
                   >
                     Delete
@@ -364,7 +364,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => table.setPageSize(Number(value))}
             >
-              <SelectTrigger className="">
+              <SelectTrigger className="cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -395,7 +395,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                 }}
                 className={
                   table.getCanPreviousPage()
-                    ? ""
+                    ? "cursor-pointer"
                     : "pointer-events-none opacity-50"
                 }
               />
@@ -413,7 +413,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                       event.preventDefault();
                       table.setPageIndex(item);
                     }}
-                    className=""
+                    className="cursor-pointer"
                   >
                     {item + 1}
                   </PaginationLink>
@@ -431,7 +431,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                 }}
                 className={
                   table.getCanNextPage()
-                    ? ""
+                    ? "cursor-pointer"
                     : "pointer-events-none opacity-50"
                 }
               />

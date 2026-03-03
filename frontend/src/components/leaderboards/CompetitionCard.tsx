@@ -202,7 +202,7 @@ export function CompetitionCard({
     >
       <CardHeader
         onClick={handleToggle}
-        className="flex flex-row items-center justify-between px-6 py-4"
+        className="flex flex-row items-center justify-between px-6 py-4 cursor-pointer"
       >
         <div>
           <CardTitle className="text-lg font-semibold text-[#8065CD]">

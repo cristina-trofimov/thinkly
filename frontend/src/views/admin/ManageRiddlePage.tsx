@@ -179,7 +179,7 @@ export default function ManageRiddles() {
           }}
         >
           <DialogTrigger asChild>
-            <Card className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
+            <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
               <div className="h-full flex flex-col items-center justify-center p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <Plus className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />

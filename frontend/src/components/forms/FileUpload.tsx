@@ -317,7 +317,7 @@ export default function RiddleForm({ mode, onSuccess, initial }: Readonly<Riddle
                                 onDragLeave={onDragLeave}
                                 htmlFor="file-input"
                                 className={[
-                                    "rounded-lg border-2 border-dashed p-8 transition flex flex-col items-center justify-center text-center gap-2",
+                                    "rounded-lg border-2 border-dashed p-8 cursor-pointer transition flex flex-col items-center justify-center text-center gap-2",
                                     isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-muted/30",
                                     isSubmitting ? "opacity-50 pointer-events-none" : "",
                                 ].join(" ")}
