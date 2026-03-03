@@ -179,13 +179,13 @@ export function AdminDashboard() {
                   <TabsList>
                     <TabsTrigger
                       value="algotime"
-                      className="rounded-md font-semibold text-muted-foreground cursor-pointer p-4 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
+                      className="rounded-md font-semibold text-muted-foreground p-4 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
                     >
                       Algotime
                     </TabsTrigger>
                     <TabsTrigger
                       value="competitions"
-                      className="rounded-md font-semibold text-muted-foreground cursor-pointer p-3 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
+                      className="rounded-md font-semibold text-muted-foreground p-3 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
                     >
                       Competitions
                     </TabsTrigger>

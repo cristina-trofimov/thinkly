@@ -108,7 +108,7 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
         </p>
         <Button
           variant="outline"
-          className="rounded-lg font-semibold cursor-pointer text-primary hover:text-primary"
+          className="rounded-lg font-semibold text-primary hover:text-primary"
         >
           Join Competition →
         </Button>

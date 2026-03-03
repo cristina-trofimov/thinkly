@@ -15,7 +15,7 @@ export interface ManageCardProps {
 }
 
 export const ManageCard = ({ title, icon: Icon }: ManageCardProps) => (
-  <Item variant="outline" className="bg-white hover:bg-primary/5 cursor-pointer transition-colors">
+  <Item variant="outline" className="bg-white hover:bg-primary/5 transition-colors">
     <ItemMedia>
       <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
         <Icon className="size-4" />
