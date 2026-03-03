@@ -432,7 +432,7 @@ def get_algotime_leaderboard(
     - **current_user_id**: when provided the matching row is highlighted by the client
     """
     logger.info(
-        f"Accessing /leaderboards/algotime — current_user_id={current_user_id}, "
+        f"Accessing /leaderboards/algotime, "
         f"page={page}, page_size={page_size}"
     )
 
