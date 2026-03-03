@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 import uuid
-from DB_Methods.database import get_db, _commit_or_rollback
+from database_operations.database import get_db, _commit_or_rollback
 import logging
 from .send_email_api import send_email_via_brevo
 from posthog_analytics import identify_user, track_custom_event

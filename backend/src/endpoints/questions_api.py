@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from models.schema import Question, Riddle, Tag, TestCase
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 import logging
 from posthog_analytics import track_custom_event
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
     CompetitionLeaderboardEntry
-from DB_Methods.database import get_db, _commit_or_rollback
+from database_operations.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
 import logging

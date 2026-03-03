@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import UserAccount, UserPreferences
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Optional
 import logging

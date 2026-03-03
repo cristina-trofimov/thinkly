@@ -3,13 +3,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from unittest.mock import patch, MagicMock
 
-from src.endpoints import log
+from backend.src.endpoints import log_api
 
 
 @pytest.fixture
 def app():
     app = FastAPI()
-    app.include_router(log.log_router, prefix="/log")
+    app.include_router(log_api.log_router, prefix="/log")
     return app
 
 

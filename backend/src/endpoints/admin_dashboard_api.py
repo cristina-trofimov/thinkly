@@ -5,7 +5,7 @@ from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
     AlgoTimeSession, QuestionInstance, Submission, UserSession
 )
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from endpoints.authentification_api import role_required
 from pydantic import BaseModel
 from typing import List, Optional, Literal

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import (
     CompetitionLeaderboardEntry,
     AlgoTimeLeaderboardEntry,

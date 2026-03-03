@@ -1,6 +1,6 @@
 import logging
 from typing import Annotated
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import Submission
 from fastapi import APIRouter, HTTPException, Depends, Query
 

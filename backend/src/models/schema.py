@@ -1,7 +1,7 @@
 from __future__ import annotations
 from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from db import Base
+from backend.src.database_operations.db import Base
 from typing import List, Optional
 from datetime import datetime, timezone
 
