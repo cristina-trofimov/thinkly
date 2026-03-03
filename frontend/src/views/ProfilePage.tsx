@@ -79,7 +79,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
             <Input
               value={tempValue}
               onChange={(e) => onTempValueChange(e.target.value)}
-              className="h-9 focus-visible:ring-primary focus-visible:ring-1"
+              className="h-9"
               disabled={isSaving}
               autoFocus
             />
@@ -330,7 +330,7 @@ function ProfilePage() {
             <h1 className="text-3xl font-bold tracking-tight text-primary">
               {user?.firstName} {user?.lastName}
             </h1>
-            <Badge className="bg-secondary text-primary capitalize rounded-full px-4 py-0.5">
+            <Badge className="bg-white text-primary capitalize rounded-full px-4 py-0.5">
               {user?.accountType ?? "Participant"}
             </Badge>
           </div>

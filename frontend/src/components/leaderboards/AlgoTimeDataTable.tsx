@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Participant } from "../../types/account/Participant.type";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 interface Props {
   readonly participants: Participant[];
@@ -174,13 +176,13 @@ export function AlgoTimeDataTable({
       {/* Search bar — debouncing is acceptable here; the actual fetch is in AlgoTimeCard */}
       <div className="mb-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-primary" />
+          <Input
             type="text"
             placeholder="Search by name..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8065CD] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2"
           />
         </div>
       </div>
@@ -215,34 +217,38 @@ export function AlgoTimeDataTable({
           </p>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               onClick={() => onPageChange(1)}
               disabled={page === 1 || loading}
-              className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               First
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => onPageChange(page - 1)}
               disabled={page === 1 || loading}
-              className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages || loading}
-              className="p-2 rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               <ChevronRight className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => onPageChange(totalPages)}
               disabled={page >= totalPages || loading}
-              className="px-3 py-1 text-sm rounded border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              variant="outline"
+              className="hover:text-primary"
             >
               Last
-            </button>
+            </Button>
           </div>
         </div>
       )}
