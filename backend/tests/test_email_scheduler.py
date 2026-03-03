@@ -33,7 +33,7 @@ FUTURE = NOW + timedelta(hours=1)
 # ---------------------------------------------------------------------------
 # Patch targets
 # ---------------------------------------------------------------------------
-MOD = "src.email_scheduler"
+MOD = "backend.src.services.email_scheduler"
 PATCH_BREVO = f"{MOD}.send_email_via_brevo"
 PATCH_SESSION = f"{MOD}.SessionLocal"
 PATCH_CE_MODEL = f"{MOD}.CompetitionEmail"
@@ -75,7 +75,7 @@ class TestSendReminder:
 
     def test_logs_error_on_exception(self):
         with patch(PATCH_BREVO, side_effect=Exception("boom")), \
-             patch(PATCH_LOGGER) as mock_logger:
+            patch(PATCH_LOGGER) as mock_logger:
             from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(42, ["a@b.com"], "Subject", "Body")
             mock_logger.error.assert_called_once()
@@ -88,7 +88,7 @@ class TestSendReminder:
 
     def test_logs_error_message_contains_exception_text(self):
         with patch(PATCH_BREVO, side_effect=Exception("smtp timeout")), \
-             patch(PATCH_LOGGER) as mock_logger:
+            patch(PATCH_LOGGER) as mock_logger:
             from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(7, ["x@y.com"], "Sub", "Body")
             error_msg = mock_logger.error.call_args[0][0]

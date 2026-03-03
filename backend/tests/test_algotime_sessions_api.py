@@ -10,9 +10,10 @@ import sys
 import os
 
 from endpoints.algotime_sessions_api import algotime_router
-from DB_Methods import database
+from database_operations import database
 from endpoints.authentification_api import role_required, get_current_user
 from models.schema import AlgoTimeSession,AlgoTimeSeries,BaseEvent, QuestionInstance, Question
+
 
 @pytest.fixture
 def mock_db():

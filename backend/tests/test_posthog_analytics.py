@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch, MagicMock, AsyncMock, call
 from datetime import datetime, timezone
 from fastapi import Request
 
+
 from backend.src.services.posthog_analytics import (
     init_posthog,
     get_user_id_from_request,
@@ -23,10 +24,12 @@ from backend.src.services.posthog_analytics import (
 # Shared fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def reset_posthog_client():
     """Ensure the global posthog_client is None before every test."""
     import backend.src.services.posthog_analytics as module
+
     original = module.posthog_client
     module.posthog_client = None
     yield
@@ -37,6 +40,7 @@ def reset_posthog_client():
 def mock_client():
     """A mock Posthog client already injected into the module."""
     import backend.src.services.posthog_analytics as module
+
     client = Mock()
     module.posthog_client = client
     return client
@@ -78,16 +82,18 @@ def make_request(
 # TestInitPosthog
 # ---------------------------------------------------------------------------
 
+
 class TestInitPosthog:
 
     def test_returns_none_when_api_key_missing(self):
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", None):
+        with patch("backend.src.services.posthog_analytics.POSTHOG_API_KEY", None):
             result = init_posthog()
         assert result is None
 
     def test_returns_client_when_api_key_present(self):
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
-             patch("src.posthog_analytics.Posthog") as MockPosthog:
+        with patch(
+            "backend.src.services.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"
+        ), patch("backend.src.services.posthog_analytics.Posthog") as MockPosthog:
             mock_instance = Mock()
             MockPosthog.return_value = mock_instance
             result = init_posthog()
@@ -95,29 +101,37 @@ class TestInitPosthog:
 
     def test_sets_global_client_on_success(self):
         import backend.src.services.posthog_analytics as module
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
-             patch("src.posthog_analytics.Posthog") as MockPosthog:
+
+        with patch(
+            "backend.src.services.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"
+        ), patch("backend.src.services.posthog_analytics.Posthog") as MockPosthog:
             MockPosthog.return_value = Mock()
             init_posthog()
         assert module.posthog_client is not None
 
     def test_returns_none_on_init_exception(self):
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
-             patch("src.posthog_analytics.Posthog", side_effect=Exception("connection refused")):
+        with patch(
+            "backend.src.services.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"
+        ), patch(
+            "backend.src.services.posthog_analytics.Posthog",
+            side_effect=Exception("connection refused"),
+        ):
             result = init_posthog()
         assert result is None
 
     def test_global_client_remains_none_on_exception(self):
         import backend.src.services.posthog_analytics as module
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
-             patch("src.posthog_analytics.Posthog", side_effect=Exception("boom")):
+
+        with patch("backend.src.services.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), patch(
+            "backend.src.services.posthog_analytics.Posthog", side_effect=Exception("boom")
+        ):
             init_posthog()
         assert module.posthog_client is None
 
     def test_passes_host_to_posthog_constructor(self):
-        with patch("src.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), \
-             patch("src.posthog_analytics.POSTHOG_HOST", "https://eu.posthog.com"), \
-             patch("src.posthog_analytics.Posthog") as MockPosthog:
+        with patch("backend.src.services.posthog_analytics.POSTHOG_API_KEY", "phc_testkey"), patch(
+            "backend.src.services.posthog_analytics.POSTHOG_HOST", "https://eu.posthog.com"
+        ), patch("backend.src.services.posthog_analytics.Posthog") as MockPosthog:
             MockPosthog.return_value = Mock()
             init_posthog()
         _, kwargs = MockPosthog.call_args
@@ -127,6 +141,7 @@ class TestInitPosthog:
 # ---------------------------------------------------------------------------
 # TestGetUserIdFromRequest
 # ---------------------------------------------------------------------------
+
 
 class TestGetUserIdFromRequest:
 
@@ -155,7 +170,9 @@ class TestGetUserIdFromRequest:
         req.state = Mock()
         req.state.user = Mock(side_effect=Exception("broken"))
         # Force hasattr to be True but accessing .user raises
-        type(req.state).user = property(lambda self: (_ for _ in ()).throw(Exception("broken")))
+        type(req.state).user = property(
+            lambda self: (_ for _ in ()).throw(Exception("broken"))
+        )
         result = get_user_id_from_request(req)
         assert result == "anonymous"
 
@@ -166,13 +183,16 @@ class TestGetUserIdFromRequest:
 
     def test_state_dict_without_user_id_key_falls_through(self):
         """A state dict that lacks 'user_id' should not crash; falls to path_params."""
-        req = make_request(user_state={"email": "x@example.com"}, path_params={"user_id": "5"})
+        req = make_request(
+            user_state={"email": "x@example.com"}, path_params={"user_id": "5"}
+        )
         assert get_user_id_from_request(req) == "5"
 
 
 # ---------------------------------------------------------------------------
 # TestGetUserTypeFromRequest
 # ---------------------------------------------------------------------------
+
 
 class TestGetUserTypeFromRequest:
 
@@ -196,13 +216,16 @@ class TestGetUserTypeFromRequest:
 
     def test_returns_anonymous_on_exception(self):
         req = Mock(spec=Request)
-        type(req.state).user = property(lambda self: (_ for _ in ()).throw(Exception("err")))
+        type(req.state).user = property(
+            lambda self: (_ for _ in ()).throw(Exception("err"))
+        )
         assert get_user_type_from_request(req) == "anonymous"
 
 
 # ---------------------------------------------------------------------------
 # TestSanitizeRequestBody
 # ---------------------------------------------------------------------------
+
 
 class TestSanitizeRequestBody:
 
@@ -233,6 +256,7 @@ class TestSanitizeRequestBody:
         class Unserializable:
             def __repr__(self):
                 raise Exception("cannot repr")
+
         result = sanitize_request_body(Unserializable())
         # Falls back to str(); if that also fails the except path returns fallback string
         assert isinstance(result, str)
@@ -251,25 +275,29 @@ class TestSanitizeRequestBody:
 # TestCategorizeEndpoint
 # ---------------------------------------------------------------------------
 
+
 class TestCategorizeEndpoint:
 
-    @pytest.mark.parametrize("path, expected", [
-        ("/auth/login",                  "authentication"),
-        ("/auth/signup",                 "authentication"),
-        ("/competitions/create",         "competitions"),
-        ("/algotime/leaderboard",        "algotime"),
-        ("/leaderboards/all",            "leaderboards"),
-        ("/questions/1",                 "questions"),
-        ("/riddles/create",              "riddles"),
-        ("/judge0/submit",               "code_execution"),
-        ("/manage-accounts/users",       "user_management"),
-        ("/users/profile",               "user_management"),
-        ("/email/send",                  "email"),
-        ("/admin/dashboard",             "admin"),
-        ("/log/errors",                  "logging"),
-        ("/healthcheck",                 "other"),
-        ("/",                            "other"),
-    ])
+    @pytest.mark.parametrize(
+        "path, expected",
+        [
+            ("/auth/login", "authentication"),
+            ("/auth/signup", "authentication"),
+            ("/competitions/create", "competitions"),
+            ("/algotime/leaderboard", "algotime"),
+            ("/leaderboards/all", "leaderboards"),
+            ("/questions/1", "questions"),
+            ("/riddles/create", "riddles"),
+            ("/judge0/submit", "code_execution"),
+            ("/manage-accounts/users", "user_management"),
+            ("/users/profile", "user_management"),
+            ("/email/send", "email"),
+            ("/admin/dashboard", "admin"),
+            ("/log/errors", "logging"),
+            ("/healthcheck", "other"),
+            ("/", "other"),
+        ],
+    )
     def test_known_paths(self, path, expected):
         assert categorize_endpoint(path) == expected
 
@@ -285,28 +313,32 @@ class TestCategorizeEndpoint:
 # TestResolveFeatureEvent
 # ---------------------------------------------------------------------------
 
+
 class TestResolveFeatureEvent:
 
-    @pytest.mark.parametrize("path, method, expected_event", [
-        ("/competitions/create",          "POST",   "competition_created"),
-        ("/competitions/5",               "PUT",    "competition_updated"),
-        ("/competitions/5",               "DELETE", "competition_deleted"),
-        ("/algotime/create",              "POST",   "algotime_created"),
-        ("/leaderboards/all",             "GET",    "leaderboard_viewed"),
-        ("/auth/login",                   "POST",   "user_login"),
-        ("/auth/logout",                  "POST",   "user_logout"),
-        ("/auth/signup",                  "POST",   "user_signup"),
-        ("/auth/forgot-password",         "POST",   "password_reset_requested"),
-        ("/auth/reset-password",          "POST",   "password_reset_completed"),
-        ("/auth/change-password",         "POST",   "password_changed"),
-        ("/questions/all",                "GET",    "questions_viewed"),
-        ("/riddles/new",                  "POST",   "riddle_created"),
-        ("/email/send",                   "POST",   "email_sent"),
-        ("/admin/dashboard",              "GET",    "admin_dashboard_accessed"),
-        ("/admin/dashboard",              "POST",   "admin_dashboard_accessed"),  # method-agnostic
-        ("/judge0/submit",                "POST",   "code_submitted"),
-        ("/manage-accounts/users/batch-delete", "DELETE", "users_deleted"),
-    ])
+    @pytest.mark.parametrize(
+        "path, method, expected_event",
+        [
+            ("/competitions/create", "POST", "competition_created"),
+            ("/competitions/5", "PUT", "competition_updated"),
+            ("/competitions/5", "DELETE", "competition_deleted"),
+            ("/algotime/create", "POST", "algotime_created"),
+            ("/leaderboards/all", "GET", "leaderboard_viewed"),
+            ("/auth/login", "POST", "user_login"),
+            ("/auth/logout", "POST", "user_logout"),
+            ("/auth/signup", "POST", "user_signup"),
+            ("/auth/forgot-password", "POST", "password_reset_requested"),
+            ("/auth/reset-password", "POST", "password_reset_completed"),
+            ("/auth/change-password", "POST", "password_changed"),
+            ("/questions/all", "GET", "questions_viewed"),
+            ("/riddles/new", "POST", "riddle_created"),
+            ("/email/send", "POST", "email_sent"),
+            ("/admin/dashboard", "GET", "admin_dashboard_accessed"),
+            ("/admin/dashboard", "POST", "admin_dashboard_accessed"),  # method-agnostic
+            ("/judge0/submit", "POST", "code_submitted"),
+            ("/manage-accounts/users/batch-delete", "DELETE", "users_deleted"),
+        ],
+    )
     def test_known_routes_return_correct_event(self, path, method, expected_event):
         assert _resolve_feature_event(path, method) == expected_event
 
@@ -325,12 +357,16 @@ class TestResolveFeatureEvent:
     def test_batch_delete_requires_both_path_fragments(self):
         assert _resolve_feature_event("/manage-accounts/users", "DELETE") is None
         assert _resolve_feature_event("/batch-delete", "DELETE") is None
-        assert _resolve_feature_event("/manage-accounts/users/batch-delete", "DELETE") == "users_deleted"
+        assert (
+            _resolve_feature_event("/manage-accounts/users/batch-delete", "DELETE")
+            == "users_deleted"
+        )
 
 
 # ---------------------------------------------------------------------------
 # TestTrackFeatureEvent
 # ---------------------------------------------------------------------------
+
 
 class TestTrackFeatureEvent:
 
@@ -338,9 +374,7 @@ class TestTrackFeatureEvent:
         props = {"status_code": 200}
         track_feature_event("user-1", "/auth/login", "POST", props)
         mock_client.capture.assert_called_once_with(
-            distinct_id="user-1",
-            event="user_login",
-            properties=props
+            distinct_id="user-1", event="user_login", properties=props
         )
 
     def test_no_capture_when_path_not_matched(self, mock_client):
@@ -357,11 +391,11 @@ class TestTrackFeatureEvent:
         track_feature_event("user-1", "/auth/login", "POST", {})
 
     def test_batch_delete_emits_users_deleted(self, mock_client):
-        track_feature_event("admin-1", "/manage-accounts/users/batch-delete", "DELETE", {})
+        track_feature_event(
+            "admin-1", "/manage-accounts/users/batch-delete", "DELETE", {}
+        )
         mock_client.capture.assert_called_once_with(
-            distinct_id="admin-1",
-            event="users_deleted",
-            properties={}
+            distinct_id="admin-1", event="users_deleted", properties={}
         )
 
     def test_base_properties_forwarded_unchanged(self, mock_client):
@@ -375,6 +409,7 @@ class TestTrackFeatureEvent:
 # TestTrackApiCall
 # ---------------------------------------------------------------------------
 
+
 class TestTrackApiCall:
 
     def _run(self, coro):
@@ -385,7 +420,9 @@ class TestTrackApiCall:
         self._run(track_api_call(req, 200, 12.5))  # should not raise
 
     def test_capture_called_with_api_call_event(self, mock_client):
-        with patch("src.posthog_analytics.asyncio.to_thread", new=AsyncMock()) as mock_thread:
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", new=AsyncMock()
+        ) as mock_thread:
             req = make_request("/auth/login", "POST", user_state={"user_id": 1})
             self._run(track_api_call(req, 200, 10.0))
             # First to_thread call is the capture
@@ -400,7 +437,9 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             req = make_request()
             self._run(track_api_call(req, 200, 5.0))
 
@@ -414,7 +453,9 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             self._run(track_api_call(make_request(), 200, 1.0))
 
         assert captured_props["has_error"] is False
@@ -427,8 +468,12 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
-            self._run(track_api_call(make_request(), 500, 1.0, error="Something went wrong"))
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
+            self._run(
+                track_api_call(make_request(), 500, 1.0, error="Something went wrong")
+            )
 
         assert captured_props["has_error"] is True
         assert captured_props["error"] == "Something went wrong"
@@ -440,7 +485,9 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             req = make_request(query_params={"page": "1", "limit": "10"})
             self._run(track_api_call(req, 200, 3.0))
 
@@ -454,7 +501,9 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             self._run(track_api_call(make_request(query_params={}), 200, 1.0))
 
         assert "query_params" not in captured_props
@@ -466,7 +515,9 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             self._run(track_api_call(make_request(), 200, 12.3456789))
 
         assert captured_props["response_time_ms"] == 12.35
@@ -475,7 +526,9 @@ class TestTrackApiCall:
         async def exploding_thread(fn, *args, **kwargs):
             raise Exception("network timeout")
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=exploding_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=exploding_thread
+        ):
             self._run(track_api_call(make_request(), 200, 1.0))  # must not propagate
 
     def test_feature_event_also_dispatched(self, mock_client):
@@ -484,7 +537,9 @@ class TestTrackApiCall:
         async def fake_to_thread(fn, *args, **kwargs):
             dispatched_fns.append(fn)
 
-        with patch("src.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread):
+        with patch(
+            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
+        ):
             self._run(track_api_call(make_request("/auth/signup", "POST"), 201, 5.0))
 
         assert track_feature_event in dispatched_fns
@@ -494,15 +549,13 @@ class TestTrackApiCall:
 # TestIdentifyUser
 # ---------------------------------------------------------------------------
 
+
 class TestIdentifyUser:
 
     def test_calls_identify_with_correct_args(self, mock_client):
         props = {"email": "test@example.com", "$name": "Test User"}
         identify_user("42", props)
-        mock_client.identify.assert_called_once_with(
-            distinct_id="42",
-            properties=props
-        )
+        mock_client.identify.assert_called_once_with(distinct_id="42", properties=props)
 
     def test_user_id_coerced_to_string(self, mock_client):
         identify_user(7, {"email": "x@x.com"})
@@ -521,14 +574,13 @@ class TestIdentifyUser:
 # TestTrackCustomEvent
 # ---------------------------------------------------------------------------
 
+
 class TestTrackCustomEvent:
 
     def test_calls_capture_with_event_name(self, mock_client):
         track_custom_event("user-1", "my_event", {"foo": "bar"})
         mock_client.capture.assert_called_once_with(
-            distinct_id="user-1",
-            event="my_event",
-            properties={"foo": "bar"}
+            distinct_id="user-1", event="my_event", properties={"foo": "bar"}
         )
 
     def test_properties_defaults_to_empty_dict(self, mock_client):
@@ -558,6 +610,7 @@ class TestTrackCustomEvent:
 # TestShutdownPosthog
 # ---------------------------------------------------------------------------
 
+
 class TestShutdownPosthog:
 
     def test_calls_shutdown_on_client(self, mock_client):
@@ -574,5 +627,6 @@ class TestShutdownPosthog:
     def test_client_still_set_after_shutdown(self, mock_client):
         """shutdown_posthog does not clear the global reference."""
         import backend.src.services.posthog_analytics as module
+
         shutdown_posthog()
         assert module.posthog_client is mock_client

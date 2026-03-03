@@ -28,7 +28,7 @@ class TestClientLogEndpoint:
             "url": "/test/url",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
@@ -49,7 +49,7 @@ class TestClientLogEndpoint:
             "stack": "Traceback line 1\nTraceback line 2",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
@@ -68,7 +68,7 @@ class TestClientLogEndpoint:
             "url": "/weird",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
@@ -94,7 +94,7 @@ class TestClientLogEndpoint:
             "url": "/fail",
         }
 
-        with patch("src.endpoints.log.logger.info", side_effect=Exception("Boom")):
+        with patch("backend.src.endpoints.log_api.logger.info", side_effect=Exception("Boom")):
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 500
