@@ -255,7 +255,7 @@ describe('ManageCompetitions', () => {
 
       await waitFor(() => screen.getByText(/Create New Competition/i));
 
-      const createCard = screen.getByText(/Create New Competition/i).closest('div[class*=""]');
+      const createCard = screen.getByText(/Create New Competition/i).closest('div[class*="cursor-pointer"]');
       fireEvent.click(createCard!);
 
       expect(mockNavigate).toHaveBeenCalledWith("createCompetition");
@@ -266,7 +266,7 @@ describe('ManageCompetitions', () => {
 
       await waitFor(() => screen.getByText(/Math Contest/i));
 
-      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*=""]');
+      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*="cursor-pointer"]');
       fireEvent.click(mathCard!);
 
       expect(screen.getByTestId('edit-competition-dialog')).toBeInTheDocument();
@@ -280,7 +280,7 @@ describe('ManageCompetitions', () => {
 
       await waitFor(() => screen.getByText(/Math Contest/i));
 
-      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*=""]');
+      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*="cursor-pointer"]');
       fireEvent.click(mathCard!);
 
       expect(screen.getByTestId('edit-competition-dialog')).toBeInTheDocument();
@@ -300,7 +300,7 @@ describe('ManageCompetitions', () => {
 
       mockedGetCompetitions.mockClear();
 
-      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*=""]');
+      const mathCard = screen.getByText(/Math Contest/i).closest('div[class*="cursor-pointer"]');
       fireEvent.click(mathCard!);
 
       const saveButton = screen.getByText('Save');
