@@ -175,14 +175,15 @@ export default function RiddleForm({ mode, onSuccess, initial }: Readonly<Riddle
                 removeSelectedFile();
             }
         } catch (err: unknown) {
-            const msg =
-                axios.isAxiosError(err)
-                    ? (err.response?.data?.detail ?? err.response?.data ?? err.message)
-                    : err instanceof Error
-                        ? err.message
-                        : isEdit
-                            ? "Failed to update riddle"
-                            : "Failed to create riddle";
+let msg;
+
+if (axios.isAxiosError(err)) {
+    msg = err.response?.data?.detail ?? err.response?.data ?? err.message;
+} else if (err instanceof Error) {
+    msg = err.message;
+} else {
+    msg = isEdit ? "Failed to update riddle" : "Failed to create riddle";
+}
 
             logFrontend({
                 level: "ERROR",

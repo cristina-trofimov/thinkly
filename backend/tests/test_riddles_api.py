@@ -119,7 +119,7 @@ def app_and_module(monkeypatch):
 
     # Override get_db to return fake db session
     fake_db = FakeSession()
-    from DB_Methods.database import get_db
+    from database_operations.database import get_db
 
     def override_get_db():
         yield fake_db

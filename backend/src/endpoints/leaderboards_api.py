@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import (
     CompetitionLeaderboardEntry,
     AlgoTimeLeaderboardEntry,
@@ -10,7 +10,7 @@ from models.schema import (
     BaseEvent
 )
 import logging
-from posthog_analytics import track_custom_event
+from backend.src.services.posthog_analytics import track_custom_event
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
