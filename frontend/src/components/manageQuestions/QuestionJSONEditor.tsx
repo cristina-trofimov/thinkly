@@ -4,6 +4,16 @@ import { useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 import { toast } from "sonner";
 import { IconArrowBack } from "@tabler/icons-react";
@@ -13,6 +23,7 @@ interface QuestionJSONEditorState {
   initialValue: string | null;
   isLoading: boolean;
   isSubmitting: boolean;
+  isBackWarningOpen: boolean;
 }
 
 const QuestionJSONEditor: FC = () => {
@@ -24,9 +35,10 @@ const QuestionJSONEditor: FC = () => {
     initialValue: null,
     isLoading: true,
     isSubmitting: false,
+    isBackWarningOpen: false,
   });
 
-  const { value, initialValue, isLoading, isSubmitting } = state;
+  const { value, initialValue, isLoading, isSubmitting, isBackWarningOpen } = state;
   const parsedQuestionId = Number(questionId);
 
   useEffect(() => {
@@ -133,12 +145,21 @@ const QuestionJSONEditor: FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canSubmit, handleSubmit]);
 
+  const handleBackClick = () => {
+    if (canSubmit) {
+      setState((prev) => ({ ...prev, isBackWarningOpen: true }));
+      return;
+    }
+
+    navigate("/app/dashboard/manageQuestions");
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Edit Question (id: {questionId ?? "-"})</h1>
         <div className="flex gap-2">
-        <Button variant="outline" onClick={() => navigate("/app/dashboard/manageQuestions")}><IconArrowBack/>Back</Button>
+        <Button variant="outline" onClick={handleBackClick}><IconArrowBack/>Back</Button>
         <Button onClick={handleSubmit} disabled={!canSubmit}>
           {isSubmitting ? "Submitting..." : "Submit"}
         </Button>
@@ -155,6 +176,26 @@ const QuestionJSONEditor: FC = () => {
           }))
         }
       />
+
+      <AlertDialog
+        open={isBackWarningOpen}
+        onOpenChange={(open) => setState((prev) => ({ ...prev, isBackWarningOpen: open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsubmitted edits. If you go back now, your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate("/app/dashboard/manageQuestions")}>
+              Discard and go back
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
