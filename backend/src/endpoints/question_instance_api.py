@@ -15,13 +15,10 @@ def query_get_question_instance(
     event_id: Annotated[Optional[int], Query()] = None,
 ):  
     try:
-        query = db.query(QuestionInstance).filter_by(question_id = question_id)
-
-        if event_id is not None:
-            query = query.filter_by(event_id = event_id)
+        query = db.query(QuestionInstance).filter_by(question_id = question_id, event_id = event_id)
 
         logger.info("Fetched question instance from the database.")
-        
+
         return query
     except SQLAlchemyError as e:
         logger.error(f"Database: getting question instance query error: {e}")
@@ -29,7 +26,7 @@ def query_get_question_instance(
 
 
 @question_instance_router.get("/find", response_model = dict,
-    responses={500: {"description": "Error retrieving question instance."}}
+    responses={500: {"description": "Error retrieving a question instance."}}
 )
 def get_question_instance(
     db: Annotated[Session, Depends(get_db)],
@@ -37,11 +34,11 @@ def get_question_instance(
     event_id: Annotated[Optional[int], Query()] = None,
 ):
     try:
-        query = query_get_question_instance(db, question_id, event_id)
+        query = query_get_question_instance(db, question_id, event_id).all()
 
-        instances = query.all()
-
-        data = [
+        logger.info("Fetched question instance from the database.")
+        
+        instances = [
             {
                 "question_instance_id": inst.question_instance_id,
                 "event_id": inst.event_id,
@@ -50,17 +47,44 @@ def get_question_instance(
                 "riddle_id": inst.riddle_id,
                 "is_riddle_completed": inst.is_riddle_completed,
             }
-            for inst in instances
+            for inst in query
         ]
 
-        logger.info("Fetched question instance from the database.")
-
-        return {"status_code": 200, 'data': data}
+        return {"status_code": 200, 'data': instances}
     except Exception as e:
         logger.error(f"Error fetching question instance: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve question instance. Exception: {str(e)}")
+
+
+@question_instance_router.get("/by-event", response_model = dict,
+    responses={500: {"description": "Error retrieving question instances associated to an event."}}
+)
+def get_all_question_instances_by_event_id(
+    db: Annotated[Session, Depends(get_db)],
+    event_id: int
+):
+    try:
+        query = db.query(QuestionInstance).filter_by(event_id = event_id).all()
+
+        instances = [
+            {
+                "question_instance_id": inst.question_instance_id,
+                "event_id": inst.event_id,
+                "question_id": inst.question_id,
+                "points": inst.points,
+                "riddle_id": inst.riddle_id,
+                "is_riddle_completed": inst.is_riddle_completed,
+            }
+            for inst in query
+        ]
+
+        logger.info("Fetched question instances associated to an event from the database.")
+
+        return {"status_code": 200, 'data': instances}
+    except Exception as e:
+        logger.error(f"Error fetching question instances associated to an event: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question instances associated to an event. Exception: {str(e)}")
         
-    
 
 @question_instance_router.post("/update",
     status_code=201,

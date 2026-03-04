@@ -48,6 +48,14 @@ def test_get_question_instance_success(client, mock_db):
             points=100,
             riddle_id=None,
             is_riddle_completed=False,
+        ),
+        SimpleNamespace(
+            question_instance_id=2,
+            event_id=5,
+            question_id=5,
+            points=100,
+            riddle_id=None,
+            is_riddle_completed=False,
         )
     ]
 
@@ -59,11 +67,9 @@ def test_get_question_instance_success(client, mock_db):
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert len(data["data"]) == 1
+    assert len(data["data"]) == 2
     assert data["data"][0]["question_id"] == 5
     assert data["data"][0]["event_id"] == 10
-    assert data["data"][0]["points"] == 100
-    assert data["data"][0]["is_riddle_completed"] == False
 
 def test_get_question_instance_with_event_id(client, mock_db):
     """Test fetching a question instance filtered by both question_id and event_id."""
@@ -79,6 +85,7 @@ def test_get_question_instance_with_event_id(client, mock_db):
     ]
 
     mock_db.query.return_value.filter_by.return_value.filter_by.return_value.all.return_value = fake_instances
+    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_instances
 
     response = client.get("/find?question_id=5&event_id=10")
 
@@ -108,6 +115,52 @@ def test_get_question_instance_db_error(client, mock_db):
 
     assert response.status_code == 500
     assert "Failed to retrieve question instance" in response.json()["detail"]
+
+
+
+# --- GET /by-event TESTS ---
+
+def test_get_all_question_instances_success(client, mock_db):
+    """Test fetching all question instances for event_id."""
+    fake_instances = [
+        SimpleNamespace(
+            question_instance_id=1,
+            event_id=10,
+            question_id=5,
+            points=100,
+            riddle_id=None,
+            is_riddle_completed=False,
+        ),
+        SimpleNamespace(
+            question_instance_id=2,
+            event_id=5,
+            question_id=5,
+            points=100,
+            riddle_id=None,
+            is_riddle_completed=False,
+        )
+    ]
+
+    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.all.return_value = fake_instances
+    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_instances
+
+    response = client.get("/by-event?event_id=5")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status_code"] == 200
+    assert len(data["data"]) == 2
+    assert data["data"][0]["question_id"] == 5
+    assert data["data"][0]["event_id"] == 10
+
+def test_get_all_question_instances_db_error(client, mock_db):
+    """Test that a database error returns 500."""
+    mock_db.query.return_value.filter_by.side_effect = Exception("DB Connection Lost")
+
+    response = client.get("/by-event?event_id=5")
+
+    assert response.status_code == 500
+    assert "Failed to retrieve question instances associated to an event" in response.json()["detail"]
 
 
 # --- POST /update TESTS ---

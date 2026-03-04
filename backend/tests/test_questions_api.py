@@ -60,13 +60,13 @@ def test_get_all_questions_success(client, mock_db):
     fake_questions = [
         SimpleNamespace(
             question_id=1, 
-            title="Two Sum", 
+            question_name="Two Sum", 
             difficulty="Easy",
             created_at=datetime(2025, 1, 10, 12, 0, 0)
         ),
         SimpleNamespace(
             question_id=2, 
-            title="Reverse Linked List", 
+            question_name="Reverse Linked List", 
             difficulty="Medium",
             created_at=datetime(2025, 2, 15, 14, 30, 0)
         )
@@ -87,7 +87,7 @@ def test_get_all_questions_success(client, mock_db):
     
     # Verify the content of the first item
     assert data[0]["question_id"] == 1
-    assert data[0]["title"] == "Two Sum"
+    assert data[0]["question_name"] == "Two Sum"
     assert data[0]["difficulty"] == "Easy"
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
     assert "2025-01-10" in data[0]["created_at"]
@@ -117,6 +117,50 @@ def test_get_all_questions_db_error(client, mock_db):
     assert response.status_code == 500
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
+    assert "Exception" in response.json()["detail"]
+
+def test_get_question_success(client, mock_db):
+    """Test the path where the question is returned correctly."""
+    
+    fake_question = {
+            'question_id': 1,
+            'question_name': "Two Sum", 
+            'question_description': 'question.question_description',
+            'difficulty': "Easy",
+            'created_at': datetime(2025, 1, 10, 12, 0, 0),
+    }
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = fake_question
+
+    response = client.get("/question?question_id=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['data']["question_id"] == 1
+    assert data['data']["question_name"] == "Two Sum"
+    assert data['data']["difficulty"] == "Easy"
+    assert "2025-01-10" in data['data']["created_at"]
+
+def test_get_question_empty(client, mock_db):
+    """Test when the database doesn't have the question."""
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.get("/question?question_id=10")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['data'] == None
+
+def test_get_question_db_error(client, mock_db):
+    """Test how the endpoint handles a database exception."""
+    
+    mock_db.query.return_value.filter_by.side_effect = Exception("Database Timeout")
+
+    response = client.get("/question?question_id=10")
+
+    assert response.status_code == 500
+    assert "Failed to retrieve question" in response.json()["detail"]
     assert "Exception" in response.json()["detail"]
 
 def test_upload_question_success(client, mock_db):

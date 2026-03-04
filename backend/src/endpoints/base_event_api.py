@@ -41,7 +41,7 @@ def get_event_by_id(
 
 
 @base_event_router.get("/get", response_model = dict,
-    responses={500: {"description": "Error retrieving event by id."}}
+    responses={500: {"description": "Error retrieving event by name."}}
 )
 def get_event_by_name(
     db: Annotated[Session, Depends(get_db)],

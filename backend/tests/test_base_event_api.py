@@ -98,15 +98,16 @@ def test_get_event_by_name_success(client, mock_db):
         'updated_at': '2026-01-27 03:54:26.585121+00',
     }
 
+
     mock_db.query.return_value.filter_by.return_value.first.return_value = instance
 
-    response = client.get("/get?event_name='Competition 10'")
+    response = client.get("/get?event_name=Competition 10")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
     assert data["data"]["event_name"] == "Competition 10"
-    assert data["data"]["event_location"] == None
+    assert data["data"]["event_location"] is None
     assert data["data"]["question_cooldown"] == 5
 
 def test_get_event_by_name_empty(client, mock_db):
