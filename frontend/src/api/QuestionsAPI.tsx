@@ -17,6 +17,7 @@ export async function getQuestions(): Promise<Question[]> {
       tags: string[];
       from_string_function: string;
       to_string_function: string;
+      testcases: Array<[string, string]>;
     }[]>(`/questions/get-all-questions`);
 
     const formatted: Question[] = response.data.map(q => ({
@@ -28,10 +29,10 @@ export async function getQuestions(): Promise<Question[]> {
       template_solution: q.template_solution,
       difficulty: q.difficulty,
       date: new Date(q.last_modified_at),
-      from_string_function: "",
-      to_string_function: "",
+      from_string_function: q.from_string_function,
+      to_string_function: q.to_string_function,
       tags: q.tags,
-      testcases: [],
+      testcases: q.testcases,
     }));
 
     return formatted;

@@ -10,6 +10,13 @@ const mockQuestion: Question = {
   difficulty: "Easy",
   preset_code: "function twoSum(nums, target) {\n  // Your code here\n}",
   template_solution: "function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n    map.set(nums[i], i);\n  }\n  return [];\n}",
+  from_string_function: "def from_string(s): pass",
+  to_string_function: "def to_string(): pass",
+  tags: ["array", "hash-table"],
+  testcases: [
+    ["[2,7,11,15], 9", "[0,1]"],
+    ["[3,2,4], 6", "[1,2]"],
+  ],
   media: null,
   date: new Date(),
 };
@@ -102,7 +109,7 @@ describe("Question Columns", () => {
   });
 
   describe("Title Column", () => {
-    const titleColumn = columns[1];
+    const titleColumn = columns[2];
 
     it("renders title", () => {
       const row = createMockRow();
@@ -114,7 +121,7 @@ describe("Question Columns", () => {
   });
 
   describe("Description Column", () => {
-    const descriptionColumn = columns[2];
+    const descriptionColumn = columns[3];
 
     it("renders descriptions header", () => {
       const column = createMockColumn();
@@ -134,7 +141,7 @@ describe("Question Columns", () => {
   });
 
   describe("Difficulty Column", () => {
-    const difficultyColumn = columns[3];
+    const difficultyColumn = columns[4];
 
     it("renders difficulty", () => {
       const row = createMockRow();
