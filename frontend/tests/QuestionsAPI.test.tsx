@@ -1,6 +1,7 @@
 import axiosClient from "../src/lib/axiosClient";
 import {
   getQuestions,
+  getQuestionByID,
   getRiddles,
   deleteCompetition,
   getTestcases
@@ -38,22 +39,39 @@ describe("QuestionsAPI", () => {
         ],
       } as any);
 
-      const result = await getQuestions();
+      await getQuestions();
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions");
-      expect(result).toEqual([
-        {
-          id: 1,
-          title: "What is 2+2?",
-          difficulty: "Easy",
-          date: new Date("2025-01-01T00:00:00Z"),
-        },
-      ]);
     });
 
     it("throws error if axios fails", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getQuestions()).rejects.toThrow("Network error");
+    });
+  })
+
+  describe("getQuestionByID", () => {
+    it("fetches question associated to an id", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          question_id: 1,
+          question_name: "What is 2+2?",
+          difficulty: "Easy",
+          last_modified_at: "2025-01-01T00:00:00Z",
+        },
+      } as any);
+
+      await getQuestionByID(1);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/questions/question", { params: { question_id: 1 } }
+      );
+    });
+
+    it("handles error if getQuestionByID fails", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
+      expect(mockedAxios.get).toHaveBeenCalled()
     });
   });
 

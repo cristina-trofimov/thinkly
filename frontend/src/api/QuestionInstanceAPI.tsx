@@ -23,7 +23,7 @@ export async function updateQuestionInstance(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating most recent submission:", err)
+    console.error("Error updating question instance:", err)
     throw err
   }
 }
@@ -31,11 +31,11 @@ export async function updateQuestionInstance(
 export async function getQuestionInstance(
   question_id: number,
   event_id: number | null,
-): Promise<QuestionInstance[]> {
+): Promise<QuestionInstance> {
   try {
     const response = await axiosClient.get<{
       status_code: number
-      data: QuestionInstance[]
+      data: QuestionInstance
     }>(`/instances/find`, {
           params: {
             question_id: question_id,
@@ -43,9 +43,25 @@ export async function getQuestionInstance(
           }
       })
 
+    return response['data']['data']
+  } catch (err) {
+    console.error("Error fetching question instance:", err);
+    throw err;
+  }
+}
+
+export async function getAllQuestionInstancesByEventID(event_id: number): Promise<QuestionInstance[]> {
+  try {
+    const response = await axiosClient.get<{
+      status_code: number
+      data: QuestionInstance[]
+    }>(`/instances/by-event`, {
+          params: { event_id: event_id }
+      })
+
     return response['data']['data'] || []
   } catch (err) {
-    console.error("Error fetching most recent submission:", err);
+    console.error("Error fetching all question instances of an event:", err);
     throw err;
   }
 }

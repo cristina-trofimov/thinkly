@@ -9,25 +9,52 @@ export async function getQuestions(): Promise<Question[]> {
       question_id: number;
       question_name: string;
       question_description: string;
-      media: string;
-      preset_code: string;
+      media: string | null
+      preset_code: string | null
       template_solution: string;
-      difficulty: "Easy" | "Medium" | "Hard",
-      last_modified_at: string;
+      difficulty: "Easy"|"Medium"|"Hard";
+      from_string_function: string
+      to_string_function: string
+      created_at: Date
+      last_modified_at: Date
     }[]>(`/questions/get-all-questions`);
 
     const formatted: Question[] = response.data.map(q => ({
-      id: q.question_id,
-      title: q.question_name,
-      description: q.question_description,
+      question_id: q.question_id,
+      question_name: q.question_name,
+      question_description: q.question_description,
       media: q.media,
       preset_code: q.preset_code,
       template_solution: q.template_solution,
       difficulty: q.difficulty,
-      date: new Date(q.last_modified_at),
-    }));
+      from_string_function: q.from_string_function,
+      to_string_function: q.to_string_function,
+      created_at: new Date(q.created_at),
+      last_modified_at: new Date(q.last_modified_at),
+    }))
 
-    return formatted;
+    return formatted
+    // return response['data']['data']
+  } catch (err) {
+    console.error("Error fetching questions:", err);
+    throw err;
+  }
+}
+
+export async function getQuestionByID(question_id: number): Promise<Question> {
+  try {
+    const response = await axiosClient.get<{
+      status_code: number
+      data: Question
+    }>(`/questions/question`, {
+      params: {
+        question_id: question_id,
+      }
+  })
+
+  console.log('getQuestionByID')
+
+    return response['data']['data']
   } catch (err) {
     console.error("Error fetching questions:", err);
     throw err;

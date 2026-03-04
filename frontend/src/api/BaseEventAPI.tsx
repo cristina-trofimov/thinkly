@@ -57,9 +57,6 @@ export async function getEventByName(event_name: string): Promise<BaseEvent> {
           }
       })
 
-      console.log("getEventByName")
-      console.log(response)
-
     return response['data']['data']
   } catch (err) {
     console.error("Error fetching event by id:", err);
