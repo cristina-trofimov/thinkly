@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.log import log_router
 from endpoints.authentification_api import auth_router
@@ -15,6 +15,7 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints import authentification_api
 from logging_config import setup_logging
 from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from email_scheduler import run_scheduled_emails
@@ -57,6 +58,32 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+    
+PUBLIC_PATHS = [
+    "/",               
+    "/auth/signup",    
+    "/auth/login",
+    "/auth/google-auth",
+    "/auth/refresh",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+]
+
+async def global_auth_dependency(request: Request):
+    # Check if the current path is in our public list
+    if request.url.path in PUBLIC_PATHS:
+        return None
+    
+    # Otherwise, trigger your existing token verification logic
+    return await authentification_api.get_current_user(request)
+
+
+app = FastAPI(
+    title="My Backend API", 
+    lifespan=lifespan,
+    dependencies=[Depends(global_auth_dependency)] # This enforces it on every route
+)
 
 
 # --- Allow frontend requests (CORS setup) ---
@@ -153,4 +180,4 @@ except AttributeError:
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
