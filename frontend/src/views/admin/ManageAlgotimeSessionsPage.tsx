@@ -1,13 +1,25 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader , CardFooter} from "@/components/ui/card";
+import { Input} from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useOutlet, useNavigate } from "react-router-dom";
-import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
+import { getAllAlgotimeSessions, deleteAlgotime,updateAlgotime,getAlgotimeById } from "@/api/AlgotimeAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,6 +77,16 @@ export default function ManageAlgotimeSessionsPage() {
     setSearchQuery(value);
     if (value.trim()) {
       trackAdminAlgotimeSearched(value.trim());
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteAlgotime(id);
+      toast.success("Session deleted successfully");
+      loadATsessions();
+    } catch (err) {
+      toast.error("Failed to delete session");
     }
   };
 
@@ -145,6 +167,65 @@ export default function ManageAlgotimeSessionsPage() {
                 </p>
               </div>
             </CardContent>
+              <CardFooter>
+              <div className="flex justify-end gap-2 pt-3 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`view/${ATsession.id}`);
+                  }}
+                >
+                  View
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Delete "{ATsession.eventName}"?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete
+                        this algotime session.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                      <AlertDialogAction
+                        className="bg-destructive text-white hover:bg-destructive/90"
+                        onClick={async () => {
+                          try {
+                            await deleteAlgotime(ATsession.id);
+                            toast.success("Session deleted successfully");
+                            loadATsessions();
+                          } catch (err) {
+                            toast.error("Failed to delete session");
+                          }
+                        }}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              </CardFooter>
+
           </Card>
         ))}
       </div>

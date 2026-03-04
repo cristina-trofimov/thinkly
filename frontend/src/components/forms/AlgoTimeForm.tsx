@@ -219,11 +219,22 @@ export const AlgoTimeSessionForm = () => {
       return false;
     }
 
-    if (generalData.name.trim() === '') {
-      toast.error("Please enter a session name.");
+    // if (generalData.name.trim() === '') {
+    //   toast.error("Please enter a session name.");
+    //   return false;
+    // }
+    const sessionsWithoutNames = repeatSessions.filter(
+      session => !sessionNames[session.sessionNumber]?.trim()
+    );
+    
+    if (sessionsWithoutNames.length > 0) {
+      const missingNumbers = sessionsWithoutNames
+        .map(s => s.sessionNumber)
+        .join(", ");
+    
+      toast.error(`Session(s) ${missingNumbers} must have a name.`);
       return false;
     }
-
     // Check that no session has more than 6 question
     const sessionsWithTooMany = repeatSessions.filter(
       session => (sessionQuestions[session.sessionNumber]?.length || 0) > 6
