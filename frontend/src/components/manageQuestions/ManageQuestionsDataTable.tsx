@@ -5,6 +5,7 @@ import type {
   ColumnDef,
   SortingState,
   ColumnFiltersState,
+  TableMeta,
 } from "@tanstack/react-table";
 
 import {
@@ -56,8 +57,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
-import { deleteQuestion, deleteQuestions, updateQuestion } from "@/api/QuestionsAPI";
+import type { Question } from "@/types/questions/Question.type";
+import { deleteQuestion, deleteQuestions } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 
@@ -96,9 +97,8 @@ export function ManageQuestionsDataTable<TData, TValue>({
       rowSelection,
     },
     meta: {
-      handleQuestionUpdate,
       handleQuestionDelete,
-    } as any
+    } as TableMeta<TData>
   });
 
   const handleDelete = async () => {
@@ -337,19 +337,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
       </div>
     </div>
   );
-}
-
-async function handleQuestionUpdate(questionId: number, updatedQuestionFields: EditableQuestionFields): boolean {
-  try {
-    await updateQuestion(questionId, updatedQuestionFields);
-    toast.success(`Question ${questionId} updated successfully!`);
-    return true;
-  } catch (error) {
-    const message = parseAxiosErrorMessage(error);
-    toast.error(`Failed to update question ${questionId}: ${message}`);
-    console.error(`Error updating question ${questionId}:`, error);
-    return false;
-  }
 }
 
 function handleQuestionDelete(questionId: number): void {

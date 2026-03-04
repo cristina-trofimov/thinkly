@@ -1,6 +1,6 @@
 import { Editor } from "@monaco-editor/react";
 import { getQuestions, updateQuestion } from "@/api/QuestionsAPI";
-import { useEffect, useState, type FC } from "react";
+import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ const QuestionJSONEditor: FC = () => {
     loadQuestion();
   }, [parsedQuestionId]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!Number.isFinite(parsedQuestionId)) {
       toast.error("Invalid question id");
       return;
@@ -119,7 +119,7 @@ const QuestionJSONEditor: FC = () => {
     } finally {
       setState((prev) => ({ ...prev, isSubmitting: false }));
     }
-  };
+  }, [parsedQuestionId, value]);
 
   const canSubmit =
     !isLoading &&
