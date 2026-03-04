@@ -34,12 +34,16 @@ export function parse_input_output(testcases: TestcaseType[]) {
 
 export async function submitToJudge0(
     user_id: number,
-    question_instance_id: number,
+    question_instance_id: number | undefined,
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
 ): Promise<CodeRunResponse> {
     try {
+        if (!question_instance_id) {
+            throw new Error("RunCode: Question instance id cannot be undefined")
+        }
+        
         const { stdin, expected_output } = parse_input_output(testcases)
 
         const response = await axiosClient.post(

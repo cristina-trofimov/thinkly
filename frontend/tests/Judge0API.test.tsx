@@ -87,4 +87,12 @@ describe("Judge0API", () => {
     await expect(submitToJudge0(user_id, question_instance_id, code, language_id, testcases))
       .rejects.toThrow("Network error")
   })
+
+  it("throws an error if the given question instance id is undefined", async () => {
+    await expect(submitToJudge0(user_id, undefined, code, language_id, testcases))
+                .rejects.toThrow("Question instance id cannot be undefined")
+    expect(updateLastProgLang).not.toHaveBeenCalled()
+    expect(updateMostRecentSub).not.toHaveBeenCalled()
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+  })
 })
