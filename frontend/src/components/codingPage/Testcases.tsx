@@ -10,8 +10,11 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const Testcases = (
     { question_id }:
-    { question_id: number }
+    { question_id: number | undefined }
 ) => {
+    if (!question_id) {
+        return
+    }
 
     const {
         testcases, addTestcase, removeTestcase, loading,

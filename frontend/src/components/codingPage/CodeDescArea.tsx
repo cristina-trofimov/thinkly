@@ -13,8 +13,11 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const CodeDescArea = (
     { question }:
-    { question: Question }
+    { question: Question | undefined }
 ) => {
+    if(!question) {
+        return
+    }
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -22,7 +25,7 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { testcases } = useTestcases(question?.id)
+    const { testcases } = useTestcases(question?.question_id)
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useStateCallback("description")
@@ -55,7 +58,7 @@ const CodeDescArea = (
     const handleTabChange = (tab: string) => {
         setActiveTab(tab)
         trackCodingTabSwitched(
-            question.id,
+            question.question_id,
             tab as "description" | "submissions" | "leaderboard"
         )
     }
@@ -99,10 +102,10 @@ const CodeDescArea = (
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-6'>
                     <h1 className='font-bold mb-3'>
-                        {question.title}
+                        {question.question_name}
                     </h1>
                     <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
-                        {question.description}
+                        {question.question_description}
                     </p>
                     {testcases?.map((t, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
