@@ -62,6 +62,17 @@ import { deleteQuestion, deleteQuestions } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 
+async function handleQuestionDelete(questionId: number): Promise<void> {
+  try {
+    await deleteQuestion(questionId);
+    toast.success(`Question ${questionId} deleted successfully!`);
+  } catch (error) {
+    const message = parseAxiosErrorMessage(error);
+    console.error("Error deleting questions:", error);
+    toast.error(`Failed to delete question ${questionId}: ${message}`);
+  }
+}
+
 interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -337,15 +348,4 @@ export function ManageQuestionsDataTable<TData, TValue>({
       </div>
     </div>
   );
-}
-
-function handleQuestionDelete(questionId: number): void {
-  try {
-    deleteQuestion(questionId);
-    toast.success(`Question ${questionId} deleted successfully!`);
-  } catch (error) {
-    const message = parseAxiosErrorMessage(error);
-    console.error("Error deleting questions:", error);
-    toast.error(`Failed to delete question ${questionId}: ${message}`);
-  }
 }

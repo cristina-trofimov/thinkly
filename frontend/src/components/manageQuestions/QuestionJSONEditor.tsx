@@ -1,5 +1,5 @@
 import { Editor } from "@monaco-editor/react";
-import { getQuestions, updateQuestion } from "@/api/QuestionsAPI";
+import { getQuestionByID, getQuestions, updateQuestion } from "@/api/QuestionsAPI";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
@@ -56,8 +56,7 @@ const QuestionJSONEditor: FC = () => {
 
       try {
         setState((prev) => ({ ...prev, isLoading: true }));
-        const questions = await getQuestions();
-        const question = questions.find((item) => item.id === parsedQuestionId);
+        const question = await getQuestionByID(parsedQuestionId);
 
         if (!question) {
           const errorValue = JSON.stringify({ error: `Question ${parsedQuestionId} not found` }, null, 2);

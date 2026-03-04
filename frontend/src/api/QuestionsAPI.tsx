@@ -3,6 +3,44 @@ import type { EditableQuestionFields, Question } from "../types/questions/Questi
 import type { Riddle } from "../types/riddle/Riddle.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 
+export async function getQuestionByID(questionId: number): Promise<Question> {
+  try {
+    const response = await axiosClient.get<{
+      question_id: number;
+      question_name: string;
+      question_description: string;
+      media: string;
+      preset_code: string;
+      template_solution: string;
+      difficulty: "easy" | "medium" | "hard",
+      last_modified_at: string;
+      tags: string[];
+      from_string_function: string;
+      to_string_function: string;
+      testcases: Array<[string, string]>;
+    }>(`/questions/get-question-by-id/${questionId}`);
+
+    const formatted: Question = {
+      id: response.data.question_id,
+      title: response.data.question_name,
+      description: response.data.question_description,
+      media: response.data.media,
+      preset_code: response.data.preset_code,
+      template_solution: response.data.template_solution,
+      difficulty: response.data.difficulty.charAt(0).toUpperCase() + response.data.difficulty.slice(1) as "Easy" | "Medium" | "Hard",
+      date: new Date(response.data.last_modified_at),
+      from_string_function: response.data.from_string_function,
+      to_string_function: response.data.to_string_function,
+      tags: response.data.tags,
+      testcases: response.data.testcases,
+    };
+    return formatted;
+  } catch (err) {
+    console.error(`Error fetching question with id ${questionId}:`, err);
+    throw err;
+  }
+}
+
 export async function getQuestions(): Promise<Question[]> {
   try {
     const response = await axiosClient.get<{
@@ -12,7 +50,7 @@ export async function getQuestions(): Promise<Question[]> {
       media: string;
       preset_code: string;
       template_solution: string;
-      difficulty: "Easy" | "Medium" | "Hard",
+      difficulty: "easy" | "medium" | "hard",
       last_modified_at: string;
       tags: string[];
       from_string_function: string;
@@ -27,7 +65,7 @@ export async function getQuestions(): Promise<Question[]> {
       media: q.media,
       preset_code: q.preset_code,
       template_solution: q.template_solution,
-      difficulty: q.difficulty,
+      difficulty: q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1) as "Easy" | "Medium" | "Hard",
       date: new Date(q.last_modified_at),
       from_string_function: q.from_string_function,
       to_string_function: q.to_string_function,

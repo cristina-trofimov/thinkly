@@ -1,4 +1,5 @@
-from typing import Annotated
+from typing import Annotated, Optional, List
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -11,16 +12,70 @@ from posthog_analytics import track_custom_event
 logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])
 
+class QuestionResponse(BaseModel):
+    question_id: int
+    question_name: str
+    question_description: str
+    media: Optional[str]
+    difficulty: str
+    preset_code: Optional[str]
+    from_string_function: str
+    to_string_function: str
+    template_solution: str
+    created_at: datetime
+    last_modified_at: datetime
+    tags: List[str]
+    testcases: List[tuple[str, str]]
+
+    @staticmethod
+    def from_question(question: Question) -> "QuestionResponse":
+        return QuestionResponse(
+            question_id=question.question_id,
+            question_name=question.question_name,
+            question_description=question.question_description,
+            media=question.media,
+            difficulty=question.difficulty,
+            preset_code=question.preset_code,
+            from_string_function=question.from_string_function,
+            to_string_function=question.to_string_function,
+            template_solution=question.template_solution,
+            created_at=question.created_at,
+            last_modified_at=question.last_modified_at,
+            tags=[tag.tag_name for tag in question.tags],
+            testcases=[(tc.input_data, tc.expected_output) for tc in question.test_cases],
+        )
+        
+
+@questions_router.get(
+    "/get-question-by-id/{question_id}",
+    response_model=QuestionResponse,
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Failed to retrieve question."},
+    }
+)
+def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]):
+    try:
+        question: Question = db.query(Question).filter(Question.question_id == question_id).first()
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
+        logger.info(f"Fetched question with ID {question_id}")
+        return QuestionResponse.from_question(question)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching question with ID: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question with id {question_id}")
 
 @questions_router.get(
     "/get-all-questions",
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_questions(db: Annotated[str, Depends(get_db)]):
+def get_all_questions(db: Annotated[Session, Depends(get_db)]):
     try:
         questions = db.query(Question).all()
         logger.info(f"Fetched {len(questions)} questions from the database.")
-        return questions
+        return [QuestionResponse.from_question(question) for question in questions]
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
@@ -61,7 +116,7 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
     "/upload-question", status_code=201,
     responses={500: {"description": "Failed to upload question."}}
 )
-def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, Depends(get_db)]):
+def upload_question(question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         question = get_question_from_request(db, question_request)
         db.add(question)
@@ -93,7 +148,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
     responses={ 500: { "description": "Failed to upload question batch." } }
 )
 def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
-                          db: Annotated[str, Depends(get_db)] = None):
+                          db: Annotated[Session, Depends(get_db)] = None):
     error_message = None
     error_code = 500
     try:
@@ -135,7 +190,7 @@ def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(.
     "/get-all-riddles",
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_riddles(db: Annotated[str, Depends(get_db)]):
+def get_all_riddles(db: Annotated[Session, Depends(get_db)]):
     try:
         riddles = db.query(Riddle).all()
         logger.info(f"Fetched {len(riddles)} riddles from the database.")
@@ -149,7 +204,7 @@ def get_all_riddles(db: Annotated[str, Depends(get_db)]):
     "/get-all-testcases/{question_id}",
     responses={500: {"description": "Failed to upload test cases."}}
 )
-def get_all_testcases(question_id: int, db: Annotated[str, Depends(get_db)]):
+def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)]):
     try:
         testcases = db.query(TestCase).filter_by(question_id=question_id).all()
         logger.info(f"Fetched {len(testcases)} test cases from the database.")
