@@ -63,6 +63,15 @@ const mockData: TestData[] = [
   },
 ];
 
+const createManyRows = (count: number): TestData[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: index + 1,
+    firstName: `First${index + 1}`,
+    lastName: `Last${index + 1}`,
+    email: `user${index + 1}@example.com`,
+    accountType: index % 3 === 0 ? "Admin" : index % 3 === 1 ? "Participant" : "Owner",
+  }));
+
 const createMockColumns = (): ColumnDef<TestData>[] => [
   {
     id: "select",
@@ -95,6 +104,18 @@ describe("ManageAccountsDataTable", () => {
   });
 
   const mockColumns = createMockColumns();
+
+  const getDeleteTriggerButton = () => {
+    const button = screen
+      .getAllByRole("button")
+      .find((btn) => btn.className.includes("text-destructive"));
+
+    if (!button) {
+      throw new Error("Delete trigger button not found");
+    }
+
+    return button;
+  };
 
   it("renders all rows correctly", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
@@ -212,67 +233,55 @@ describe("ManageAccountsDataTable", () => {
     });
   });
 
-  it("enters edit mode when edit button is clicked", async () => {
+  it("shows delete and cancel actions after selecting at least one row", async () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
 
-    expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument();
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
     expect(screen.getByRole("button", { name: /cancel/i })).toBeInTheDocument();
+    expect(getDeleteTriggerButton()).toBeInTheDocument();
   });
 
-  it("exits edit mode when cancel button is clicked", async () => {
+  it("clears row selection when cancel button is clicked", async () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    expect(screen.getByText(/1 of 3 row\(s\) selected/i)).toBeInTheDocument();
 
     const cancelButton = screen.getByRole("button", { name: /cancel/i });
     await user.click(cancelButton);
 
+    expect(screen.queryByText(/row\(s\) selected/i)).not.toBeInTheDocument();
+  });
+
+  it("shows row selection count when rows are selected", async () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    expect(screen.getByText(/1 of 3 row\(s\) selected/i)).toBeInTheDocument();
+  });
+
+  it("does not show delete/cancel actions when no rows are selected", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    expect(screen.queryByRole("button", { name: /cancel/i })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /delete/i })
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+      screen
+        .getAllByRole("button")
+        .some((btn) => btn.className.includes("text-destructive"))
+    ).toBe(false);
   });
 
-  it("shows row selection count in edit mode", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
-    expect(screen.getByText(/0 of 3 row\(s\) selected/i)).toBeInTheDocument();
-  });
-
-  it("delete button is disabled when no rows are selected", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    expect(deleteButton).toBeDisabled();
-  });
-
-  it("hides select column when not in edit mode", () => {
+  it("always shows select column", () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
     const rows = screen.getAllByRole("row");
     const firstDataRow = rows[1]; // Skip header row
-    const cells = within(firstDataRow).getAllByRole("cell");
-
-    expect(cells.length).toBe(4);
-  });
-
-  it("shows select column when in edit mode", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
-    const rows = screen.getAllByRole("row");
-    const firstDataRow = rows[1];
     const cells = within(firstDataRow).getAllByRole("cell");
 
     expect(cells.length).toBe(5);
@@ -296,16 +305,12 @@ describe("ManageAccountsDataTable", () => {
       />
     );
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -335,17 +340,13 @@ describe("ManageAccountsDataTable", () => {
       />
     );
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
     await user.click(checkboxes[2]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -379,16 +380,12 @@ describe("ManageAccountsDataTable", () => {
       />
     );
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -412,16 +409,12 @@ describe("ManageAccountsDataTable", () => {
       />
     );
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -435,16 +428,12 @@ describe("ManageAccountsDataTable", () => {
   it("cancels delete operation from alert dialog", async () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const cancelButton = within(dialog).getByRole("button", { name: /cancel/i });
     await user.click(cancelButton);
 
     expect(deleteAccounts).not.toHaveBeenCalled();
@@ -461,55 +450,83 @@ describe("ManageAccountsDataTable", () => {
 
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
     expect(screen.getByText(/1 of 3 row\(s\) selected/i)).toBeInTheDocument();
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
       expect(screen.queryByText(/row\(s\) selected/i)).not.toBeInTheDocument();
     });
   });
 
-  it("exits edit mode after error", async () => {
+  it("clears selection after error", async () => {
     const mockError = new Error("Network error");
     (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
 
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /edit/i })).toBeInTheDocument();
+      expect(screen.queryByText(/row\(s\) selected/i)).not.toBeInTheDocument();
     });
   });
 
   it("handles pagination buttons", async () => {
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-    const nextBtn = screen.getByRole("button", { name: /next/i });
-    const prevBtn = screen.getByRole("button", { name: /previous/i });
+    const nextBtn = screen.getByRole("link", { name: /go to next page/i });
+    const prevBtn = screen.getByRole("link", { name: /go to previous page/i });
     expect(nextBtn).toBeInTheDocument();
     expect(prevBtn).toBeInTheDocument();
+  });
+
+  it("shows page label and disables prev/next when there is one page", () => {
+    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+
+    expect(screen.getByText("Page 1 of 1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /go to previous page/i }).className
+    ).toContain("pointer-events-none");
+    expect(
+      screen.getByRole("link", { name: /go to next page/i }).className
+    ).toContain("pointer-events-none");
+  });
+
+  it("updates page label and ellipsis layout across pagination ranges", async () => {
+    render(
+      <ManageAccountsDataTable columns={mockColumns} data={createManyRows(200)} />
+    );
+
+    expect(screen.getByText("Page 1 of 8")).toBeInTheDocument();
+    expect(screen.getAllByText("More pages")).toHaveLength(1);
+
+    const nextButton = screen.getByRole("link", { name: /go to next page/i });
+    await user.click(nextButton);
+    await user.click(nextButton);
+    await user.click(nextButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("Page 4 of 8")).toBeInTheDocument();
+      expect(screen.getAllByText("More pages")).toHaveLength(2);
+    });
+
+    await user.click(screen.getByRole("link", { name: "8" }));
+    await waitFor(() => {
+      expect(screen.getByText("Page 8 of 8")).toBeInTheDocument();
+      expect(screen.getAllByText("More pages")).toHaveLength(1);
+    });
   });
 
   it("handles column header clicks (sorting)", async () => {
@@ -546,16 +563,12 @@ describe("ManageAccountsDataTable", () => {
 
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -586,17 +599,13 @@ describe("ManageAccountsDataTable", () => {
 
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
     await user.click(checkboxes[2]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {
@@ -617,16 +626,12 @@ describe("ManageAccountsDataTable", () => {
 
     render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
 
-    const editButton = screen.getByRole("button", { name: /edit/i });
-    await user.click(editButton);
-
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[1]);
 
-    const deleteButton = screen.getByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
-    const confirmButton = screen.getByRole("button", { name: /^delete$/i });
+    await user.click(getDeleteTriggerButton());
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmButton = within(dialog).getByRole("button", { name: /^delete$/i });
     await user.click(confirmButton);
 
     await waitFor(() => {

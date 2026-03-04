@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
-    AlgoTimeSession, Participation, Submission, UserSession
+    AlgoTimeSession, QuestionInstance, Submission, UserSession
 )
 from DB_Methods.database import get_db
 from endpoints.authentification_api import role_required
@@ -12,12 +12,13 @@ from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
 import logging
 from typing import Annotated
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])
 
 
-# ---------------- Response Models ----------------
+# ---------------- Response Models -----------------
 
 class RecentAccountItem(BaseModel):
     name: str
@@ -232,6 +233,19 @@ async def get_dashboard_overview(
             for base_event, algo in recent_algos
         ]
 
+        # Track admin dashboard access
+        track_custom_event(
+            user_id=str(current_user.get("id")),
+            event_name="admin_dashboard_accessed",
+            properties={
+                "user_email": user_email,
+                "recent_users_count": len(recent_accounts),
+                "recent_competitions_count": len(recent_competitions),
+                "recent_questions_count": len(recent_questions),
+                "recent_algotime_count": len(recent_algotime_sessions),
+            }
+        )
+
         return DashboardOverviewResponse(
             recent_accounts=recent_accounts,
             recent_competitions=recent_competitions,
@@ -321,8 +335,6 @@ async def get_questions_solved_stats(
         range_start = get_time_range_start(time_range)
 
         # Query successful submissions grouped by question difficulty
-        from models.schema import QuestionInstance
-
         results = (
             db.query(
                 Question.difficulty,
@@ -331,8 +343,8 @@ async def get_questions_solved_stats(
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
             .filter(
-                Submission.successful.is_(True),
-                Submission.submission_time >= range_start
+                Submission.status == 'Accepted',
+                Submission.submitted_on >= range_start
             )
             .group_by(Question.difficulty)
             .all()
@@ -374,24 +386,22 @@ async def get_time_to_solve_stats(
 
     try:
         range_start = get_time_range_start(time_range)
-        from models.schema import QuestionInstance
 
         # Calculate average time to solve by difficulty
-        # Time = submission_time - event_start_date (in minutes)
+        # Time = submitted_on - event_start_date (in minutes)
         results = (
             db.query(
                 Question.difficulty,
                 func.avg(
-                    func.extract('epoch', Submission.submission_time - BaseEvent.event_start_date) / 60
+                    func.extract('epoch', Submission.submitted_on - BaseEvent.event_start_date) / 60
                 ).label('avg_minutes')
             )
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
             .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
-            .join(Participation, Submission.participation_id == Participation.participation_id)
-            .join(BaseEvent, Participation.event_id == BaseEvent.event_id)
+            .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
             .filter(
-                Submission.successful.is_(True),
-                Submission.submission_time >= range_start
+                Submission.status == 'Accepted',
+                Submission.submitted_on >= range_start
             )
             .group_by(Question.difficulty)
             .all()
@@ -527,26 +537,26 @@ async def get_participation_stats(
         def get_submission_count(day_start, day_end):
             query = (
                 db.query(func.count(Submission.submission_id))
-                .join(Participation, Submission.participation_id == Participation.participation_id)
+                .join(QuestionInstance, Submission.question_instance_id == QuestionInstance.question_instance_id)
             )
 
             # Filter by event type
             if event_type == "competitions":
                 query = query.filter(
-                    Participation.event_id.in_(
+                    QuestionInstance.event_id.in_(
                         db.query(Competition.event_id)
                     )
                 )
             else:  # algotime
                 query = query.filter(
-                    Participation.event_id.in_(
+                    QuestionInstance.event_id.in_(
                         db.query(AlgoTimeSession.event_id)
                     )
                 )
 
             return query.filter(
-                Submission.submission_time >= day_start,
-                Submission.submission_time < day_end
+                Submission.submitted_on >= day_start,
+                Submission.submitted_on < day_end
             ).scalar() or 0
 
         if time_range == "7days":

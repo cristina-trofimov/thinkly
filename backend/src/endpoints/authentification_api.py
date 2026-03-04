@@ -1,5 +1,5 @@
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, EmailStr, constr
 from sqlalchemy.orm import Session
 from typing import Annotated, Optional
@@ -14,6 +14,7 @@ import uuid
 from DB_Methods.database import get_db, _commit_or_rollback
 import logging
 from .send_email_api import send_email_via_brevo
+from posthog_analytics import identify_user, track_custom_event
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
@@ -23,12 +24,17 @@ logger = logging.getLogger(__name__)
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # ---------------- Error Messages ----------------
 ERROR_USER_NOT_FOUND = "User not found"
 ERROR_INVALID_TOKEN = "Invalid token"
 
+# ---------------- PostHog Property Keys ----------------
+POSTHOG_NAME_KEY = "$name"
+POSTHOG_EMAIL_KEY = "$email"
 
 # ---------------- Models ----------------
 class SignupRequest(BaseModel):
@@ -37,27 +43,34 @@ class SignupRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class GoogleAuthRequest(BaseModel):
     credential: str
 
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
+
 
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: constr(min_length=8)
 
+
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: constr(min_length=8)
 
+
 # ---------------- DB helpers ----------------
 def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
     return db.query(UserAccount).filter(UserAccount.email == email).first()
+
 
 def update_user_password(db: Session, email: str, new_hashed_password: str) -> None:
     """Update the hashed_password field for a given user email"""
@@ -68,7 +81,8 @@ def update_user_password(db: Session, email: str, new_hashed_password: str) -> N
     db.commit()
 
 
-def create_user(db: Session, email: str, password_hash: str, first_name: str, last_name: str, type: str = 'participant'):
+def create_user(db: Session, email: str, password_hash: str, first_name: str, last_name: str,
+                type: str = 'participant'):
     if type == 'owner':
         existing_owner = db.query(UserAccount).filter(UserAccount.user_type == 'owner').first()
         if existing_owner:
@@ -82,19 +96,15 @@ def create_user(db: Session, email: str, password_hash: str, first_name: str, la
         user_type=type
     )
 
-
     db.add(new_user)
     _commit_or_rollback(db)
     db.refresh(new_user)
-    new_user_preferences = UserPreferences(
-        user_id=new_user.user_id,
-        theme="light",
-        notifications_enabled=True
-    )
+    new_user_preferences = UserPreferences(user_id=new_user.user_id)
     db.add(new_user_preferences)
     _commit_or_rollback(db)
     db.refresh(new_user_preferences)
     return new_user
+
 
 def verify_token(token: str):
     try:
@@ -105,8 +115,9 @@ def verify_token(token: str):
         return email
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token expired")
-    except jwt.PyJWTError:
+    except jwt.JWTError:
         raise HTTPException(status_code=400, detail=ERROR_INVALID_TOKEN)
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(
@@ -114,19 +125,29 @@ def hash_password(password: str) -> str:
         bcrypt.gensalt()
     ).decode("utf-8")
 
+
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(
         password.encode("utf-8"),
         hashed.encode("utf-8")
     )
+
+
 # ---------------- JWT helpers ----------------
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (
+        expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({
         "exp": expire,
         "jti": str(uuid.uuid4())  # Add unique JWT ID
     })
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "jti": str(uuid.uuid4()), "type": "refresh"})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 def decode_access_token(token: str):
@@ -141,6 +162,7 @@ def decode_access_token(token: str):
         logger.error(f"Token validation failed. Error: {e.__class__.__name__}. Token snippet: {token[:10]}...")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_INVALID_TOKEN)
 
+
 def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
@@ -150,13 +172,17 @@ def get_current_user(request: Request):
     claims = decode_access_token(token)
     return claims
 
+
 def role_required(required_role: str):
     def role_checker(current_user: Annotated[dict, Depends(get_current_user)]):
         if current_user.get("role") != required_role:
-            logger.warning(f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
+            logger.warning(
+                f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
             raise HTTPException(status_code=403, detail="Forbidden")
         return current_user
+
     return role_checker
+
 
 # ---------------- Routes ----------------
 @auth_router.post("/signup")
@@ -165,42 +191,115 @@ async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]
     if get_user_by_email(db, request.email):
         logger.warning(f"Signup denied: User already exists with email: {request.email}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
-    
+
     try:
         password_hash = bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode()
-        create_user(db, request.email, password_hash, request.firstName, request.lastName)
+        new_user = create_user(db, request.email, password_hash, request.firstName, request.lastName)
         logger.info(f"SUCCESSFUL SIGNUP: New user '{request.email}' created.")
+
+        # Track signup in PostHog
+        identify_user(
+            user_id=str(new_user.user_id),
+            properties={
+                "email": new_user.email,
+                "first_name": new_user.first_name,
+                "last_name": new_user.last_name,
+                "user_type": new_user.user_type,
+                "signup_date": datetime.now(timezone.utc).isoformat(),
+                POSTHOG_NAME_KEY: f"{new_user.first_name} {new_user.last_name}",
+                POSTHOG_EMAIL_KEY: new_user.email,
+            }
+        )
+
+        track_custom_event(
+            user_id=str(new_user.user_id),
+            event_name="user_signup_completed",
+            properties={
+                "user_type": new_user.user_type,
+                "signup_method": "email_password",
+            }
+        )
+
         return {"message": "User created"}
     except Exception:
         logger.exception(f"FATAL error during user creation for email: {request.email}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during signup")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Internal server error during signup")
+
 
 @auth_router.post("/login")
-async def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
-    logger.info(f"Attempting password login for email: {request.email}")
+async def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = get_user_by_email(db, request.email)
 
     if not user or not bcrypt.checkpw(request.password.encode(), user.hashed_password.encode()):
         logger.warning(f"Login failed: Invalid credentials for email: {request.email}")
+
+        # Track failed login attempt
+        track_custom_event(
+            user_id=request.email,  # Use email for anonymous tracking
+            event_name="login_failed",
+            properties={
+                "reason": "invalid_credentials",
+                "email": request.email,
+                "login_method": "email_password",
+            }
+        )
+
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+    token_data = {"sub": user.email, "role": user.user_type, "id": user.user_id}
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token({"sub": user.email})
+
+    # Identify user in PostHog
+    identify_user(
+        user_id=str(user.user_id),
+        properties={
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "user_type": user.user_type,
+            POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+            POSTHOG_EMAIL_KEY: user.email,
+        }
+    )
+
+    # Track successful login
+    track_custom_event(
+        user_id=str(user.user_id),
+        event_name="user_login_success",
+        properties={
+            "user_type": user.user_type,
+            "login_method": "email_password",
+        }
+    )
 
     # Create a session record for tracking logins
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     session = UserSession(
         user_id=user.user_id,
-        jwt_token=token,
+        jwt_token=access_token,
         expires_at=expires_at,
         is_active=True
     )
     db.add(session)
     _commit_or_rollback(db)
 
-    logger.info(f"SUCCESSFUL LOGIN: User '{user.email}' logged in. Role: {user.user_type}")
-    return {"token": token}
+    # Set Refresh Token in HttpOnly Cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+        samesite="lax",
+        secure=True # Set to True in production when using HTTPS
+    )
+
+    return {"access_token": access_token}
+
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
+
 
 @auth_router.post("/google-auth")
 async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
@@ -210,23 +309,74 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         email = idinfo["email"]
         first_name = idinfo.get("given_name", "Google")
         last_name = idinfo.get("family_name", "User")
-        
+
         user = get_user_by_email(db, email)
+        is_new_user = False
 
         if not user:
+            is_new_user = True
             logger.info(f"New user registration via Google OAuth: {email} {first_name} {last_name}")
             create_user(
-                db, 
-                email=email, 
-                password_hash="", 
-                first_name=first_name, 
-                last_name=last_name, 
+                db,
+                email=email,
+                password_hash="",
+                first_name=first_name,
+                last_name=last_name,
                 type="participant"
             )
             user = get_user_by_email(db, email)
-        
+
+            # Track new Google signup
+            if user:
+                identify_user(
+                    user_id=str(user.user_id),
+                    properties={
+                        "email": user.email,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "user_type": user.user_type,
+                        "signup_date": datetime.now(timezone.utc).isoformat(),
+                        POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+                        POSTHOG_EMAIL_KEY: user.email,
+                    }
+                )
+
+                track_custom_event(
+                    user_id=str(user.user_id),
+                    event_name="user_signup_completed",
+                    properties={
+                        "user_type": user.user_type,
+                        "signup_method": "google_oauth",
+                    }
+                )
+
         if not user:
-             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create or retrieve user")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="Failed to create or retrieve user")
+
+        # Identify existing user
+        identify_user(
+            user_id=str(user.user_id),
+            properties={
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "user_type": user.user_type,
+                POSTHOG_NAME_KEY: f"{user.first_name} {user.last_name}",
+                POSTHOG_EMAIL_KEY: user.email,
+            }
+        )
+
+        # Track Google login
+        track_custom_event(
+            user_id=str(user.user_id),
+            event_name="user_login_success",
+            properties={
+                "user_type": user.user_type,
+                "login_method": "google_oauth",
+                "is_new_user": is_new_user,
+            }
+        )
 
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
 
@@ -242,59 +392,131 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         _commit_or_rollback(db)
 
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
-        return {"token": token}
+        return {"access_token": token}
     except ValueError as e:
-        logger.error(f"Google token verification failed: {e.__class__.__name__}. Credential length: {len(request.credential)}")
+        logger.error(
+            f"Google token verification failed: {e.__class__.__name__}. Credential length: {len(request.credential)}")
+
+        # Track failed Google auth
+        track_custom_event(
+            user_id="anonymous",
+            event_name="login_failed",
+            properties={
+                "reason": "google_token_verification_failed",
+                "login_method": "google_oauth",
+            }
+        )
+
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
+    
+@auth_router.post("/refresh", responses={401: {"description": "Refresh failed due to missing, invalid, or expired token"}})
+async def refresh_token(request: Request, db: Session = Depends(get_db)):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
+    try:
+        payload = jwt.decode(refresh_token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        email = payload.get("sub")
+        user = get_user_by_email(db, email)
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+
+        # Create a new access token
+        new_access_token = create_access_token(
+            {"sub": user.email, "role": user.user_type, "id": user.user_id}
+        )
+        return {"access_token": new_access_token}
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired. Please login again.")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
 
 @auth_router.get("/profile")
 async def profile(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     logger.info(f"Fetching profile for user: {user_email}")
-    
+
     user = get_user_by_email(db, user_email)
-    
+
     if not user:
         logger.warning(f"Profile failed: User not found in DB for email: {user_email}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
-        
-    logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
-    return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email, "role": user.user_type}
 
+    logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
+    return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email,
+            "role": user.user_type}
 
 @auth_router.post("/logout")
-async def logout(request: Request, current_user: Annotated[dict, Depends(get_current_user)]):
+async def logout(
+    request: Request, 
+    response: Response, 
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
     user_email = current_user.get("sub", "N/A")
-    user_id = current_user.get("id", "N/A")
-    logger.info(f"Attempting logout/token revocation for user: {user_email} (ID: {user_id})")
+    user_id = current_user.get("id")
     
     auth_header = request.headers.get("Authorization")
+    # This check is technically redundant because get_current_user already checks this, 
+    # but it doesn't hurt.
     if not auth_header:
-        # This case should ideally be caught by get_current_user, but we log defensively.
-        logger.warning("Logout failure: Missing Authorization header.")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Authorization header")
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
 
     token = auth_header.split(" ")[1]
     
-    # We rely on decode_access_token to handle JWTError and HTTPException
-    payload = decode_access_token(token)
-    jti = payload.get("jti")
+    # Use a try-except or check the payload manually if you want to ensure 
+    # logout finishes even if the token is "dirty"
+    try:
+        payload = decode_access_token(token)
+        jti = payload.get("jti")
+        if jti:
+            token_blocklist.add(jti)
+    except HTTPException:
+        # If the token is already invalid/revoked, we still want to proceed 
+        # to clear the cookies on the client side.
+        jti = None
 
-    if not jti:
-        logger.warning(f"Logout complete for user {user_email}, but token is stateless (no JTI for revocation).")
-        return {"msg": "Token does not support logout / already stateless"}
+    # 1. Clear the Refresh Token Cookie (CRITICAL)
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        samesite="lax",
+        secure=True 
+    )
 
-    token_blocklist.add(jti)
-    logger.info(f"SUCCESSFUL LOGOUT: Token JTI '{jti[:8]}...' revoked for user: {user_email}")
+    # 2. Database Cleanup
+    if user_id:
+        db.query(UserSession).filter(
+            UserSession.user_id == user_id, 
+            UserSession.is_active
+        ).update({"is_active": False})
+        db.commit()
+
+    # 3. Analytics
+    track_custom_event(
+        user_id=str(user_id) if user_id else "anonymous",
+        event_name="user_logout",
+        properties={"user_email": user_email}
+    )
+
+    jti_display = jti[:8] if jti else "N/A"
+    logger.info(f"SUCCESSFUL LOGOUT: User {user_email} (JTI: {jti_display})")
+    
     return {"msg": "Successfully logged out"}
 
 @auth_router.get("/admin/dashboard")
 async def admin_dashboard(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
     user_email = current_user.get("sub", "N/A")
     logger.info(f"Admin dashboard accessed successfully by user: {user_email}")
@@ -337,6 +559,15 @@ async def forgot_password(request: ForgotPasswordRequest, db: Annotated[Session,
                             """
             )
             logger.info(f"Password reset email sent to: {request.email}")
+
+            # Track password reset request
+            track_custom_event(
+                user_id=str(user.user_id),
+                event_name="password_reset_requested",
+                properties={
+                    "email": user.email,
+                }
+            )
         except Exception as e:
             logger.error(f"Failed to send password reset email to {request.email}: {str(e)}")
     else:
@@ -349,7 +580,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: Annotated[Session,
 @auth_router.post(
     "/reset-password",
     responses={
-        400: { "description": "Invalid or expired reset token" }
+        400: {"description": "Invalid or expired reset token"}
     }
 )
 async def reset_password(request: ResetPasswordRequest, db: Annotated[Session, Depends(get_db)]):
@@ -371,6 +602,16 @@ async def reset_password(request: ResetPasswordRequest, db: Annotated[Session, D
         update_user_password(db, email, hashed_password)
 
         logger.info(f"Password successfully reset for user: {email}")
+
+        # Track password reset completion
+        track_custom_event(
+            user_id=str(user.user_id),
+            event_name="password_reset_completed",
+            properties={
+                "email": user.email,
+            }
+        )
+
         return {"message": "Password has been reset successfully."}
 
     except jwt.ExpiredSignatureError:
@@ -380,16 +621,17 @@ async def reset_password(request: ResetPasswordRequest, db: Annotated[Session, D
         logger.error(f"Invalid reset token: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid reset token")
 
+
 @auth_router.post(
     "/change-password",
     responses={
-        400: { "description": "User not found or incorrect old password" }
+        400: {"description": "User not found or incorrect old password"}
     }
 )
 async def change_password(
-    request: ChangePasswordRequest, 
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        request: ChangePasswordRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     user = get_user_by_email(db, user_email)
@@ -407,25 +649,36 @@ async def change_password(
     update_user_password(db, user_email, new_hashed_password)
 
     logger.info(f"Password changed successfully for user: {user_email}")
+
+    # Track password change
+    track_custom_event(
+        user_id=str(current_user.get("id")),
+        event_name="password_changed",
+        properties={
+            "user_email": user_email,
+        }
+    )
+
     return {"message": "Password changed successfully."}
+
 
 @auth_router.get(
     "/is-google-account",
     responses={
-        status.HTTP_404_NOT_FOUND: { "description": ERROR_USER_NOT_FOUND }
+        status.HTTP_404_NOT_FOUND: {"description": ERROR_USER_NOT_FOUND}
     }
 )
 async def is_google_account(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
     user = get_user_by_email(db, user_email)
-    
+
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
-        
+
     # As per your requirement: Google users have an empty string as password in the DB
     is_google = user.hashed_password == ""
-    
+
     return {"isGoogleUser": is_google}

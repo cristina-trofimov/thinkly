@@ -1,7 +1,7 @@
-import { Trash2, UploadCloud, FileText } from "lucide-react";
-import { useRef, useState, type DragEvent, type ChangeEvent } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { Trash2, UploadCloud, FileText, X } from "lucide-react";
+import { useRef, useState, useEffect, type DragEvent, type ChangeEvent } from "react";
 import { toast } from "sonner";
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,46 +12,67 @@ import { Separator } from "@/components/ui/separator";
 import { logFrontend } from "../../api/LoggerAPI";
 
 // Services
-import { createRiddle } from "@/api/RiddlesAPI";
+import { createRiddle, updateRiddle } from "@/api/RiddlesAPI";
 
-// Supabase setup
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnon);
+type Mode = "create" | "edit";
 
-interface CreateRiddleFormProps {
+type InitialRiddle = {
+    id: number;
+    question: string;
+    answer: string;
+    file: string | null;
+};
+
+interface RiddleFormProps {
+    mode: Mode;
     onSuccess?: () => void;
+
+    /** Required in edit mode */
+    initial?: InitialRiddle;
 }
 
-export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFormProps>) {
+export default function RiddleForm({ mode, onSuccess, initial }: Readonly<RiddleFormProps>) {
+    const isEdit = mode === "edit";
+
     // Form State
-    const [question, setQuestion] = useState("");
-    const [answer, setAnswer] = useState("");
-    
-    // File State (Single file only)
+    const [question, setQuestion] = useState(initial?.question ?? "");
+    const [answer, setAnswer] = useState(initial?.answer ?? "");
+
+    // Existing backend file (edit mode only)
+    const [existingFileUrl, setExistingFileUrl] = useState<string | null>(initial?.file ?? null);
+    const [removeExistingFile, setRemoveExistingFile] = useState(false);
+
+    // New file selection (create OR edit)
     const [file, setFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    
+
     // UI State
     const [isOver, setIsOver] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
 
-    // Config
-    const bucket = "uploads";
-    const folder = "public";
+    // If parent changes initial (opening different riddle), sync state
+    useEffect(() => {
+        setQuestion(initial?.question ?? "");
+        setAnswer(initial?.answer ?? "");
+        setExistingFileUrl(initial?.file ?? null);
+        setRemoveExistingFile(false);
+        setFile(null);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initial?.id]);
 
     // --- File Handling ---
-
-    function validateFile(file: File) {
+    function validateFile(f: File) {
         const maxMB = 100;
-        if (file.size > maxMB * 1024 * 1024) return `File too large. Max ${maxMB}MB.`;
-        
+        if (f.size > maxMB * 1024 * 1024) return `File too large. Max ${maxMB}MB.`;
+
         const ok =
-            file.type.startsWith("image/") ||
-            file.type.startsWith("audio/") ||
-            file.type.startsWith("video/") ||
-            file.type === "application/pdf";
+            f.type.startsWith("image/") ||
+            f.type.startsWith("audio/") ||
+            f.type.startsWith("video/") ||
+            f.type === "application/pdf";
 
         if (!ok) return "Unsupported file type. Use image/audio/video/pdf.";
         return "";
@@ -61,119 +82,130 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
         const error = validateFile(selectedFile);
         if (error) {
             logFrontend({
-                level: 'ERROR',
-                message: `Failed to load riddles: ${error}`,
-                component: 'ManageRiddlesPage.tsx',
+                level: "ERROR",
+                message: `Invalid riddle attachment: ${error}`,
+                component: "RiddleForm.tsx",
                 url: globalThis.location.href,
-        });
+            });
             toast.error(error);
             return;
         }
 
-        // Create a local preview URL
+        // Selecting a new file means: do NOT remove existing; it will be replaced
+        setRemoveExistingFile(false);
+
+        // Replace previous preview URL if any
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+
         const objectUrl = URL.createObjectURL(selectedFile);
-        
         setFile(selectedFile);
         setPreviewUrl(objectUrl);
     }
 
     function onPick(e: ChangeEvent<HTMLInputElement>) {
-        if (e.target.files?.[0]) {
-            handleFileSelect(e.target.files[0]);
-        }
-        e.target.value = ""; // reset input
+        if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
+        e.target.value = "";
     }
 
     function onDrop(e: DragEvent<HTMLLabelElement>) {
         e.preventDefault();
         e.stopPropagation();
         setIsOver(false);
-        if (e.dataTransfer.files?.[0]) {
-            handleFileSelect(e.dataTransfer.files[0]);
-        }
+        if (e.dataTransfer.files?.[0]) handleFileSelect(e.dataTransfer.files[0]);
     }
 
-    function removeFile() {
+    function removeSelectedFile() {
         setFile(null);
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
     }
 
     // --- Drag Visuals ---
-    function onDragOver(e: DragEvent<HTMLLabelElement>) { e.preventDefault(); setIsOver(true); }
-    function onDragLeave(e: DragEvent<HTMLLabelElement>) { e.preventDefault(); setIsOver(false); }
+    function onDragOver(e: DragEvent<HTMLLabelElement>) {
+        e.preventDefault();
+        setIsOver(true);
+    }
+    function onDragLeave(e: DragEvent<HTMLLabelElement>) {
+        e.preventDefault();
+        setIsOver(false);
+    }
 
     // --- Submission Logic ---
-
     async function handleSubmit() {
-        // 1. Basic Validation
         if (!question.trim() || !answer.trim()) {
             toast.error("Question and Answer are required.");
             return;
         }
 
+        if (isEdit && !initial?.id) {
+            toast.error("Missing riddle id for edit.");
+            return;
+        }
+
         setIsSubmitting(true);
-        let uploadedPublicUrl: string | null = null;
 
         try {
-            // 2. Upload File (if exists)
-            if (file) {
-                const safeName = file.name.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
-                const path = `${folder}/${Date.now()}_${safeName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from(bucket)
-                    .upload(path, file, {
-                        upsert: false,
-                        contentType: file.type,
-                        cacheControl: "3600",
-                    });
-
-                if (uploadError) throw uploadError;
-                
-
-                const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-                uploadedPublicUrl = data.publicUrl;
-                
+            if (isEdit) {
+                await updateRiddle({
+                    riddleId: initial!.id,
+                    question,
+                    answer,
+                    file, // replace if present
+                    removeFile: removeExistingFile, // remove if true
+                });
+                toast.success("Riddle updated successfully!");
+            } else {
+                await createRiddle({
+                    question,
+                    answer,
+                    file,
+                });
+                toast.success("Riddle created successfully!");
             }
 
-            // 3. Create Riddle in Backend
-            await createRiddle({
-                question: question,
-                answer: answer,
-                file: uploadedPublicUrl
+            onSuccess?.();
+
+            // Reset after create; for edit you usually close the modal anyway
+            if (!isEdit) {
+                setQuestion("");
+                setAnswer("");
+                removeSelectedFile();
+            } else {
+                // If edit succeeded and we removed file / replaced file, clear local selection state.
+                removeSelectedFile();
+            }
+        } catch (err: unknown) {
+            const msg =
+                axios.isAxiosError(err)
+                    ? (err.response?.data?.detail ?? err.response?.data ?? err.message)
+                    : err instanceof Error
+                        ? err.message
+                        : isEdit
+                            ? "Failed to update riddle"
+                            : "Failed to create riddle";
+
+            logFrontend({
+                level: "ERROR",
+                message: `${isEdit ? "Failed to update riddle" : "Failed to create riddle"}: ${String(msg)}`,
+                component: "RiddleForm.tsx",
+                url: globalThis.location.href,
             });
 
-            toast.success("Riddle created successfully!");
-            if (onSuccess) onSuccess();
-            
-            // 4. Reset Form
-            setQuestion("");
-            setAnswer("");
-            removeFile();
-
-        } catch (err: unknown) {
-            logFrontend({
-                    level: 'ERROR',
-                    message: `Failed to load riddles: ${(err as Error).message}`,
-                    component: 'ManageRiddlesPage.tsx',
-                    url: globalThis.location.href,
-                    });
-            
-            const errorMessage = err instanceof Error ? err.message : "Failed to create riddle";
-            toast.error(errorMessage);
+            toast.error(typeof msg === "string" ? msg : "Request failed");
         } finally {
             setIsSubmitting(false);
         }
     }
 
+    const title = isEdit ? "Edit Riddle" : "Create New Riddle";
+
     return (
-        <div className="max-w-2xl mx-auto py-10">
+        <div className="max-w-2xl mx-auto py-6">
             <Card className="rounded-2xl shadow-sm">
                 <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
                         <FileText className="w-5 h-5" />
-                        Create New Riddle
+                        {title}
                     </CardTitle>
                 </CardHeader>
 
@@ -181,10 +213,12 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
                     {/* Inputs */}
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="question">Riddle Question <span className="text-red-500">*</span></Label>
-                            <Input 
-                                id="question" 
-                                placeholder="e.g., What has keys but can't open locks?" 
+                            <Label htmlFor="question">
+                                Riddle Question <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="question"
+                                placeholder="e.g., What has keys but can't open locks?"
                                 value={question}
                                 onChange={(e) => setQuestion(e.target.value)}
                                 disabled={isSubmitting}
@@ -192,10 +226,12 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="answer">Answer <span className="text-red-500">*</span></Label>
-                            <Input 
-                                id="answer" 
-                                placeholder="e.g., A piano" 
+                            <Label htmlFor="answer">
+                                Answer <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                                id="answer"
+                                placeholder="e.g., A piano"
                                 value={answer}
                                 onChange={(e) => setAnswer(e.target.value)}
                                 disabled={isSubmitting}
@@ -205,15 +241,53 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
 
                     <Separator />
 
-                    {/* File Dropzone */}
+                    {/* Existing attachment (edit mode) */}
+                    {isEdit && existingFileUrl && (
+                        <div className="space-y-2">
+                            <Label>Current Attachment</Label>
+                            <div className="flex items-center justify-between gap-3 p-3 border rounded-lg bg-muted/20">
+                                <a
+                                    href={existingFileUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-xs text-blue-600 underline break-all"
+                                >
+                                    {existingFileUrl}
+                                </a>
+
+                                <Button
+                                    type="button"
+                                    variant={removeExistingFile ? "destructive" : "outline"}
+                                    size="sm"
+                                    disabled={isSubmitting}
+                                    onClick={() => {
+                                        // if you remove existing, also clear any newly selected replacement
+                                        setRemoveExistingFile((v) => !v);
+                                        removeSelectedFile();
+                                    }}
+                                    className="gap-2"
+                                    title="Remove current attachment"
+                                >
+                                    <X className="w-4 h-4" />
+                                    {removeExistingFile ? "Will remove" : "Remove"}
+                                </Button>
+                            </div>
+
+                            {removeExistingFile && (
+                                <p className="text-xs text-destructive">
+                                    Attachment will be deleted when you save.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* File Dropzone (new file for create, or replacement for edit) */}
                     <div className="space-y-2">
-                        <Label>Attachment (Optional)</Label>
-                        
+                        <Label>{isEdit ? "Replace Attachment (Optional)" : "Attachment (Optional)"}</Label>
+
                         {file ? (
-                            // Selected File View
                             <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
                                 <div className="flex items-center gap-3 overflow-hidden">
-                                    {/* Mini Preview Thumbnail */}
                                     {file.type.startsWith("image/") && previewUrl && (
                                         <img src={previewUrl} alt="preview" className="h-10 w-10 object-cover rounded-md" />
                                     )}
@@ -228,9 +302,10 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={removeFile}
+                                    onClick={removeSelectedFile}
                                     disabled={isSubmitting}
                                     className="text-muted-foreground hover:text-destructive"
+                                    type="button"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -244,10 +319,11 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
                                 className={[
                                     "rounded-lg border-2 border-dashed p-8 cursor-pointer transition flex flex-col items-center justify-center text-center gap-2",
                                     isOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-muted/30",
-                                    isSubmitting ? "opacity-50 pointer-events-none" : ""
+                                    isSubmitting ? "opacity-50 pointer-events-none" : "",
                                 ].join(" ")}
                             >
                                 <input
+                                    id="file-input"
                                     ref={inputRef}
                                     type="file"
                                     onChange={onPick}
@@ -263,14 +339,8 @@ export default function CreateRiddleForm({ onSuccess }: Readonly<CreateRiddleFor
                         )}
                     </div>
 
-                    {/* Submit Button */}
-                    <Button 
-                        onClick={handleSubmit} 
-                        className="w-full" 
-                        size="lg"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? "Uploading & Creating..." : "Create Riddle"}
+                    <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isSubmitting}>
+                        {isSubmitting ? (isEdit ? "Saving..." : "Uploading & Creating...") : isEdit ? "Save Changes" : "Create Riddle"}
                     </Button>
                 </CardContent>
             </Card>

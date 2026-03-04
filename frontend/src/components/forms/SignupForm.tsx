@@ -13,6 +13,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 function getSignupErrorMessage(err: unknown): string {
   if (typeof err === "object" && err !== null && "response" in err) {
@@ -45,6 +46,12 @@ function handleLoginError(err: unknown, setError: (msg: string) => void): void {
 
 export function SignupForm() {
   const navigate = useNavigate();
+  const {
+    identifyUser,
+    trackSignupAttempt,
+    trackSignupSuccess,
+    trackSignupFailed,
+  } = useAnalytics();
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -58,7 +65,7 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
 
   async function loginAfterSignup(): Promise<void> {
-    const { token } = await login({
+    const { access_token: token } = await login({
       email: formData.email,
       password: formData.password,
     });
@@ -68,16 +75,23 @@ export function SignupForm() {
     }
 
     localStorage.setItem("token", token);
-    console.log(localStorage.getItem("token"));
 
     const decoded = jwtDecode<DecodedToken>(token);
-    console.log("Logged in as:", decoded.sub);
 
     logFrontend({
       level: "INFO",
       message: `Logged in as: ${decoded.sub}`,
       component: "SignupForm",
       url: globalThis.location.href,
+    });
+
+    // Identify the new user so all future events are tied to them
+    identifyUser({
+      id: decoded.sub,
+      email: formData.email,
+      firstName: formData.first_name,
+      lastName: formData.last_name,
+      role: decoded.role ?? "participant",
     });
 
     if (decoded) {
@@ -89,12 +103,19 @@ export function SignupForm() {
     e.preventDefault();
     setError(null);
 
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     if (formData.password !== formData.confirm_password) {
       setError("Passwords do not match");
       return;
     }
 
+    trackSignupAttempt();
     setLoading(true);
+
     try {
       await signup({
         email: formData.email,
@@ -103,6 +124,7 @@ export function SignupForm() {
         lastName: formData.last_name,
       });
 
+      trackSignupSuccess();
       toast.success("Account created successfully!");
 
       try {
@@ -111,7 +133,9 @@ export function SignupForm() {
         handleLoginError(err, setError);
       }
     } catch (err: unknown) {
-      toast.error(getSignupErrorMessage(err));
+      const errorMessage = getSignupErrorMessage(err);
+      trackSignupFailed(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -185,12 +209,19 @@ export function SignupForm() {
           <Input
             id="password"
             type="password"
+            placeholder="At least 8 characters"
             value={formData.password}
             onChange={(e) =>
               setFormData({ ...formData, password: e.target.value })
             }
+            className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${formData.password && formData.password.length < 8 ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             required
           />
+          {formData.password && formData.password.length < 8 && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              Password must be at least 8 characters
+            </p>
+          )}
         </Field>
 
         <Field>
@@ -204,8 +235,14 @@ export function SignupForm() {
             onChange={(e) =>
               setFormData({ ...formData, confirm_password: e.target.value })
             }
+            className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${formData.confirm_password && formData.password !== formData.confirm_password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             required
           />
+          {formData.confirm_password && formData.password !== formData.confirm_password && (
+            <p className="text-red-500 text-xs font-medium mt-1">
+              Passwords do not match
+            </p>
+          )}
         </Field>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}

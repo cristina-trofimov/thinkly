@@ -8,6 +8,21 @@ import type { CompetitionFormPayload } from "../src/types/competition/Competitio
 import type { Question } from "../src/types/questions/Question.type";
 import type { Riddle } from "../src/types/riddle/Riddle.type";
 import type { DropResult } from "@hello-pangea/dnd";
+import axiosClient from '../src/lib/axiosClient';
+
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
+
+const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 // Mock dependencies
 jest.mock("../src/api/QuestionsAPI");
@@ -905,7 +920,7 @@ describe("CompetitionForm", () => {
         selectedRiddles: [1],
         emailEnabled: true,
         emailNotification: {
-          to: "all participants",
+          to: "all",
           subject: "Competition Alert",
           body: "Get ready!",
           sendInOneMinute: false,
@@ -1220,7 +1235,7 @@ describe("CompetitionForm", () => {
         expect(mockOnSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
             emailNotification: expect.objectContaining({
-              to: "all participants",
+              to: "all",
               subject: "Competition Reminder",
               sendInOneMinute: false,
             }),

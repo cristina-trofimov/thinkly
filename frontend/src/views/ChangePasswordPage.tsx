@@ -114,7 +114,7 @@ function ChangePasswordPage() {
                 placeholder="Enter your current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="h-10 focus-visible:ring-primary focus-visible:ring-1"
+                className="h-10"
                 disabled={isSubmitting}
               />
             </div>
@@ -130,9 +130,14 @@ function ChangePasswordPage() {
                   placeholder="At least 8 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="h-10 focus-visible:ring-primary focus-visible:ring-1"
+                  className={`h-10 ${newPassword && newPassword.length < 8 ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/70" : ""}`}
                   disabled={isSubmitting}
                 />
+                {newPassword && newPassword.length < 8 && (
+                  <p className="text-xs text-red-500 font-medium ml-1">
+                    Password must be at least 8 characters
+                  </p>
+                )}
               </div>
 
               {/* Confirm New Password */}
@@ -145,7 +150,7 @@ function ChangePasswordPage() {
                   placeholder="Repeat your new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`h-10 focus-visible:ring-primary focus-visible:ring-1 ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""
+                  className={`h-10 ${confirmPassword && newPassword !== confirmPassword ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/70" : ""
                     }`}
                   disabled={isSubmitting}
                 />

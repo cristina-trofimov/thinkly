@@ -12,25 +12,68 @@ from endpoints.send_email_api import email_router
 from endpoints.riddles_api import riddles_router
 from endpoints.algotime_sessions_api import algotime_router
 from endpoints.admin_dashboard_api import admin_dashboard_router
+from endpoints.judge0_api import judge0_router
+from endpoints.submission_api import submission_router
+from endpoints.question_instance_api import question_instance_router
+from endpoints.most_recent_sub_api import most_recent_sub_router
+from endpoints.user_preferences_api import user_preferences_router
 from logging_config import setup_logging
+from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from email_scheduler import run_scheduled_emails
+from contextlib import asynccontextmanager
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
+from dotenv import load_dotenv
+import logging
+import time
+
+
+load_dotenv()
+JUDGE0_URL = os.getenv("JUDGE0_URL")
 
 setup_logging()
-app = FastAPI(title="My Backend API")
+logger = logging.getLogger(__name__)
 
-# --- Request Logging Middleware ---
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    print(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
-    response = await call_next(request)
-    return response
+
+# Modern lifespan event handler (replaces deprecated on_event)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("🚀 Starting up...")
+    init_posthog()
+    print("✓ PostHog analytics initialized")
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
+    scheduler.start()
+    print("✓ Email scheduler started (polling every 60s)")
+
+    yield  # Application runs here
+
+    # Shutdown
+    print("🛑 Shutting down...")
+    scheduler.shutdown(wait=False)
+    print("✓ Email scheduler stopped")
+    shutdown_posthog()
+    print("✓ PostHog analytics shut down")
+
+
+app = FastAPI(title="My Backend API", lifespan=lifespan)
+
 
 # --- Allow frontend requests (CORS setup) ---
+# ✅ CORS must be registered FIRST so it wraps all other middleware.
+# If CORS is added after custom middlewares, unhandled exceptions will
+# propagate out before CORS headers are attached, causing browser CORS errors.
 origins = [
     "https://thinklyscs.com",
-    "https://www.thinklyscs.com",  # Create React App
-    "http://localhost:5173"
+    "https://www.thinklyscs.com",
+    "http://localhost:5173",
 ]
+# Guard against JUDGE0_URL being None if env var is not set
+if JUDGE0_URL:
+    origins.append(JUDGE0_URL)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -40,6 +83,43 @@ app.add_middleware(
     max_age=3600,  # Allow browser to cache preflight for 1 hour
     expose_headers=["*"],
 )
+
+
+# --- PostHog Analytics Middleware ---
+@app.middleware("http")
+async def analytics_middleware(request: Request, call_next):
+    """Track all API calls with PostHog analytics"""
+    start_time = time.time()
+    error = None
+    response = None
+
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        error = str(e)
+        raise
+    finally:
+        # Calculate response time
+        response_time_ms = (time.time() - start_time) * 1000
+
+        # Track the API call in PostHog
+        status_code = response.status_code if response else 500
+        await track_api_call(
+            request=request,
+            response_status=status_code,
+            response_time_ms=response_time_ms,
+            error=error
+        )
+
+
+# --- Request Logging Middleware ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
+    response = await call_next(request)
+    return response
+
 
 # Root route (for testing)
 @app.get("/")
@@ -68,6 +148,7 @@ try:
     app.include_router(log_router, prefix="/log")
     app.include_router(auth_router, prefix="/auth")
     app.include_router(questions_router, prefix="/questions")
+    app.include_router(question_instance_router, prefix="/instances")
     app.include_router(competitions_router, prefix="/competitions")
     app.include_router(accounts_router, prefix="/manage-accounts")
     app.include_router(email_router, prefix="/email")
@@ -75,10 +156,14 @@ try:
     app.include_router(riddles_router, prefix="/riddles")
     app.include_router(algotime_router, prefix="/algotime")
     app.include_router(admin_dashboard_router, prefix="/admin/dashboard")
+    app.include_router(judge0_router, prefix="/judge0")
+    app.include_router(submission_router, prefix="/attempts")
+    app.include_router(most_recent_sub_router, prefix="/recent-sub")
+    app.include_router(user_preferences_router, prefix="/prefs")
 except AttributeError:
-    print("⚠️ No router found in leaderboards_api.py or questions_api.py. Make sure it defines `router = APIRouter()`.")
+    print("⚠️ No router found. Make sure all routers are properly defined.")
 
-#  Run server
+# Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

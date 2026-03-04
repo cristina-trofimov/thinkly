@@ -2,7 +2,7 @@ import { Outlet, useMatches } from 'react-router-dom'
 import { SidebarProvider, SidebarTrigger } from '../ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppBreadcrumbs } from './AppBreadcrumb';
-import { Separator } from '../ui/separator';
+import { NavUser } from './NavUser'
 
 // Define the shape of route handle data
 interface RouteHandle {
@@ -35,11 +35,13 @@ export function Layout() {
     <SidebarProvider defaultOpen={getSidebarCookie()}>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1">
-          <header className="sticky top-0 z-50 flex h-12 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <SidebarTrigger className="-ml-1 text-primary" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+        <main className="flex-1 min-w-0">
+          <header className="sticky top-0 z-50 flex pt-2 pb-2 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/60">
+            <SidebarTrigger className="-ml-1 text-primary hover:text-primary hover:bg-accent/50" />
             <AppBreadcrumbs items={breadcrumbItems} />
+            <div className="ml-auto flex items-center">
+              <NavUser />
+            </div>
           </header>
           <div className="mt-4">
             <Outlet />

@@ -1,52 +1,72 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import type { DecodedToken } from "@/types/Auth.type";
+import { getProfile } from "@/api/AuthAPI"; // We use this to trigger the refresh logic
 import { logFrontend } from "@/api/LoggerAPI";
 
 interface ProtectedRouteProps {
-    allowedRoles: string[]; // e.g. ['admin', 'owner']
+    allowedRoles: string[];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
+    const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
+    const [userRole, setUserRole] = useState<string | null>(null);
     const token = localStorage.getItem("token");
 
-    // 1. No token? Redirect to login.
-    if (!token) {
+    useEffect(() => {
+        const verifySession = async () => {
+            // If no token exists at all, we don't even try to refresh
+            if (!token) {
+                setStatus('unauthorized');
+                return;
+            }
+
+            try {
+                /**
+                 * We call getProfile(). 
+                 * If the token is expired (15 mins), our Axios Interceptor will 
+                 * catch the 401, refresh the token via the cookie, and then 
+                 * this call will eventually succeed.
+                 */
+                const user = await getProfile();
+                setUserRole(user.accountType.toLowerCase());
+                setStatus('authorized');
+            } catch (error) {
+                // If getProfile fails even after the interceptor tried to refresh,
+                // it means the 7-day refresh token is also expired.
+                logFrontend({
+                    level: 'ERROR',
+                    message: `Auth verification failed: ${(error as Error).message}`,
+                    component: 'ProtectedRoute.tsx',
+                    url: globalThis.location.href,
+                });
+                setStatus('unauthorized');
+            }
+        };
+
+        verifySession();
+    }, [token]);
+
+    // 1. While checking (or refreshing), show nothing or a spinner
+    if (status === 'loading') {
+        return (
+            <div className="flex h-screen w-full items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+            </div>
+        );
+    }
+
+    // 2. Redirect to login if unauthorized
+    if (status === 'unauthorized') {
         return <Navigate to="/" replace />;
     }
 
-    try {
-        const decoded = jwtDecode<DecodedToken>(token);
-        const currentTime = Date.now() / 1000;
-
-        // 2. Token expired? Redirect to login.
-        if (decoded.exp < currentTime) {
-            localStorage.removeItem("token");
-            return <Navigate to="/" replace />;
-        }
-
-        // 3. Check Role
-        // ⚠️ Note: Your Python backend uses 'participant', not 'user'. 
-        // Ensure allowedRoles matches your DB strings exactly.
-        if (!allowedRoles.includes(decoded.role)) {
-            return <Navigate to="/unauthorized" replace />;
-        }
-
-        // 4. Authorized: Render the page
-        return <Outlet />;
-
-    } catch (error) {
-        // 5. Corrupt token? Clear it and redirect.
-        localStorage.removeItem("token");
-        logFrontend({
-            level: 'ERROR',
-            message: `Corrupt token: ${(error as Error).message}`,
-            component: 'ProtectedRoute.tsx',
-            url: globalThis.location.href,
-        })
-        return <Navigate to="/" replace />;
+    // 3. Check Role
+    if (userRole && !allowedRoles.includes(userRole)) {
+        return <Navigate to="/unauthorized" replace />;
     }
+
+    // 4. Authorized: Render the children
+    return <Outlet />;
 };
 
 export default ProtectedRoute;

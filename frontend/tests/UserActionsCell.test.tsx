@@ -46,18 +46,18 @@ describe("UserActionsCell", () => {
     expect(icon).toBeInTheDocument();
   });
 
- 
-  it("copies user ID to clipboard", async () => {
+  it("shows only edit action in dropdown menu", async () => {
     const user = userEvent.setup();
-    const writeTextMock = jest.fn();
-    Object.defineProperty(navigator, "clipboard", {
-      value: { writeText: writeTextMock },
-      writable: true,
-    });
+
     render(<ActionsCell user={mockUser} />);
     await user.click(screen.getByRole("button", { name: /open menu/i }));
-    await user.click(await screen.findByRole("menuitem", { name: /copy user id/i }));
-    expect(writeTextMock).toHaveBeenCalledWith("1");
+
+    expect(
+      await screen.findByRole("menuitem", { name: /edit user/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /copy user id/i })
+    ).not.toBeInTheDocument();
   });
  
   it("skips API call when no changes made", async () => {

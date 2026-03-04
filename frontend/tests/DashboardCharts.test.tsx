@@ -1,103 +1,174 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
-// Mock the project's Chart helpers (shadcn wrappers)
 jest.mock("@/components/ui/chart", () => ({
-  ChartContainer: ({ children }: any) => <div data-testid="chart-container">{children}</div>,
+  ChartContainer: ({ children, style }: any) => (
+    <div data-testid="chart-container" data-opacity={String(style?.opacity)}>
+      {children}
+    </div>
+  ),
   ChartTooltip: ({ content }: any) => <div data-testid="chart-tooltip">{content}</div>,
   ChartTooltipContent: () => <div data-testid="chart-tooltip-content">Tooltip</div>,
 }));
 
-// Mock recharts primitives used by the charts. We provide simple testable wrappers
 jest.mock("recharts", () => {
   const React = require("react");
 
   return {
     PieChart: ({ children }: any) => <div data-testid="piechart">{children}</div>,
     Pie: ({ children }: any) => <div data-testid="pie">{children}</div>,
-    Cell: ({ fill }: any) => <div data-testid="pie-cell" data-fill={fill} />,
-    LineChart: ({ children }: any) => <div data-testid="linechart">{children}</div>,
-    Line: ({ children }: any) => <div data-testid="line">{children}</div>,
-    XAxis: () => <div data-testid="x-axis" />, 
-    YAxis: () => <div data-testid="y-axis" />, 
-    CartesianGrid: () => <div data-testid="grid" />, 
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive">{children}</div>,
-    BarChart: ({ children }: any) => <div data-testid="barchart">{children}</div>,
+    Label: ({ content }: any) => (
+      <div data-testid="pie-label">
+        {React.isValidElement(content) ? React.cloneElement(content, {}) : null}
+        {React.isValidElement(content)
+          ? React.cloneElement(content, { viewBox: { cx: 100, cy: 100 } })
+          : null}
+      </div>
+    ),
+    Cell: ({ fill }: any) => <div data-testid="chart-cell" data-fill={fill} />,
+    LineChart: ({ children, data }: any) => (
+      <div data-testid="linechart" data-points={String(data?.length ?? 0)}>
+        {children}
+      </div>
+    ),
+    Line: () => <div data-testid="line" />,
+    XAxis: ({ interval }: any) => (
+      <div data-testid="x-axis" data-interval={interval === undefined ? "none" : String(interval)} />
+    ),
+    YAxis: () => <div data-testid="y-axis" />,
+    CartesianGrid: () => <div data-testid="grid" />,
+    BarChart: ({ children, data }: any) => (
+      <div data-testid="barchart" data-points={String(data?.length ?? 0)}>
+        {children}
+      </div>
+    ),
     Bar: ({ children }: any) => <div data-testid="bar">{children}</div>,
   };
 });
 
-// Import the chart components under test (after mocks)
 import { QuestionsSolvedChart } from "../src/components/dashboardCharts/QuestionsSolvedChart";
 import { TimeToSolveChart } from "../src/components/dashboardCharts/TimeToSolveChart";
 import { NumberOfLoginsChart } from "../src/components/dashboardCharts/NumberOfLoginsChart";
-import { ParticipationOverTimeChart } from "../src/components/dashboardCharts/ParticipationOverTimeChart";  
+import { ParticipationOverTimeChart } from "../src/components/dashboardCharts/ParticipationOverTimeChart";
 
 describe("DashboardCharts", () => {
-  // Sample data for tests
-  const questionsSolvedData = [
-    { name: "Easy", value: 10, color: "var(--chart-1)" },
-    { name: "Medium", value: 20, color: "var(--chart-2)" },
-    { name: "Hard", value: 5, color: "var(--chart-3)" },
-  ];
+  it("renders QuestionsSolvedChart with mapped colors, center total, and tooltip when total is positive", () => {
+    render(
+      <QuestionsSolvedChart
+        data={[
+          { name: "easy", value: 2 },
+          { name: "MEDIUM", value: 3 },
+          { name: "Unknown", value: 1 },
+        ]}
+      />,
+    );
 
-  const timeToSolveData = [
-    { type: "Easy", time: 5, color: "var(--chart-1)" },
-    { type: "Medium", time: 15, color: "var(--chart-2)" },
-    { type: "Hard", time: 30, color: "var(--chart-3)" },
-  ];
-
-  const loginsData = [
-    { month: "Mon", logins: 100 },
-    { month: "Tue", logins: 150 },
-    { month: "Wed", logins: 120 },
-  ];
-
-  const participationData = [
-    { date: "Mon", participation: 50 },
-    { date: "Tue", participation: 75 },
-    { date: "Wed", participation: 60 },
-  ];
-
-  it("renders pie chart with cells for QuestionsSolvedChart", () => {
-    render(<QuestionsSolvedChart data={questionsSolvedData} />);
-
-    // Expect chart container and pie to be rendered
-    expect(screen.getByTestId("chart-container")).toBeInTheDocument();
     expect(screen.getByTestId("piechart")).toBeInTheDocument();
+    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("Questions")).toBeInTheDocument();
 
-    // There are three entries in the dataset => 3 cells
-    const cells = screen.getAllByTestId("pie-cell");
-    expect(cells.length).toBe(3);
-  });
+    const fills = screen
+      .getAllByTestId("chart-cell")
+      .map((node) => node.getAttribute("data-fill"));
+    expect(fills).toEqual(["#10b981", "#f59e0b", "#ef4444"]);
 
-  it("renders vertical bar chart for TimeToSolveChart with bar cells", () => {
-    render(<TimeToSolveChart data={timeToSolveData} />);
-
-    expect(screen.getByTestId("chart-container")).toBeInTheDocument();
-    expect(screen.getByTestId("barchart")).toBeInTheDocument();
-
-    // The mock Bar renders children (Cells) — expect at least one bar element
-    expect(screen.getByTestId("bar")).toBeInTheDocument();
-  });
-
-  it("renders line chart for NumberOfLoginsChart and shows tooltip content", () => {
-    render(<NumberOfLoginsChart data={loginsData} />);
-
-    expect(screen.getByTestId("chart-container")).toBeInTheDocument();
-    expect(screen.getByTestId("linechart")).toBeInTheDocument();
-
-    // ChartTooltip content should be rendered by our ChartTooltip mock
     expect(screen.getByTestId("chart-tooltip")).toBeInTheDocument();
     expect(screen.getByTestId("chart-tooltip-content")).toBeInTheDocument();
   });
 
-  it("renders participation over time bar chart", () => {
-    render(<ParticipationOverTimeChart data={participationData} timeRange="7days" />);
+  it("uses placeholder slices and hides tooltip when QuestionsSolvedChart has no usable data", () => {
+    const { rerender } = render(<QuestionsSolvedChart data={[]} loading />);
 
-    expect(screen.getByTestId("chart-container")).toBeInTheDocument();
-    expect(screen.getByTestId("barchart")).toBeInTheDocument();
-    expect(screen.getByTestId("bar")).toBeInTheDocument();
+    const firstContainer = screen.getByTestId("chart-container");
+    expect(firstContainer).toHaveAttribute("data-opacity", "0.5");
+    expect(screen.queryByTestId("chart-tooltip")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("chart-cell")).toHaveLength(3);
+
+    rerender(
+      <QuestionsSolvedChart
+        data={[
+          { name: "Easy", value: 0 },
+          { name: "Medium", value: 0 },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByTestId("chart-tooltip")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("chart-cell")).toHaveLength(3);
+  });
+
+  it("uses fallback data in NumberOfLoginsChart when data is empty and supports loading opacity", () => {
+    render(<NumberOfLoginsChart data={[]} loading />);
+
+    expect(screen.getByTestId("linechart")).toHaveAttribute("data-points", "7");
+    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
+    expect(screen.getByTestId("line")).toBeInTheDocument();
+    expect(screen.getByTestId("chart-tooltip")).toBeInTheDocument();
+  });
+
+  it("uses provided NumberOfLoginsChart data when available", () => {
+    render(
+      <NumberOfLoginsChart
+        data={[
+          { month: "Mon", logins: 10 },
+          { month: "Tue", logins: 12 },
+          { month: "Wed", logins: 8 },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("linechart")).toHaveAttribute("data-points", "3");
+    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "1");
+  });
+
+  it("renders TimeToSolveChart with fallback color for unknown type and placeholder fallback", () => {
+    const { rerender } = render(
+      <TimeToSolveChart
+        data={[
+          { type: "Easy", time: 5 },
+          { type: "Custom", time: 10 },
+        ]}
+      />,
+    );
+
+    let cells = within(screen.getByTestId("bar"))
+      .getAllByTestId("chart-cell")
+      .map((node) => node.getAttribute("data-fill"));
+    expect(cells).toEqual(["#10b981", "var(--chart-3)"]);
+
+    rerender(<TimeToSolveChart data={[]} loading />);
+
+    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
+    cells = within(screen.getByTestId("bar"))
+      .getAllByTestId("chart-cell")
+      .map((node) => node.getAttribute("data-fill"));
+    expect(cells).toEqual(["#10b981", "#f59e0b", "#ef4444"]);
+  });
+
+  it("uses 7days placeholder and interval 0 in ParticipationOverTimeChart", () => {
+    render(<ParticipationOverTimeChart data={[]} timeRange="7days" loading />);
+
+    expect(screen.getByText(/Participation over time/i)).toBeInTheDocument();
+    expect(screen.getByTestId("barchart")).toHaveAttribute("data-points", "7");
+    expect(screen.getByTestId("x-axis")).toHaveAttribute("data-interval", "0");
+    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
+  });
+
+  it("sets interval 2 for 30days and default interval 4 for 3months in ParticipationOverTimeChart", () => {
+    const { rerender } = render(<ParticipationOverTimeChart data={[]} timeRange="30days" />);
+
+    expect(screen.getByTestId("barchart")).toHaveAttribute("data-points", "30");
+    expect(screen.getByTestId("x-axis")).toHaveAttribute("data-interval", "2");
+
+    rerender(
+      <ParticipationOverTimeChart
+        data={[{ date: "Day 1", participation: 11 }]}
+        timeRange="3months"
+      />,
+    );
+
+    expect(screen.getByTestId("barchart")).toHaveAttribute("data-points", "1");
+    expect(screen.getByTestId("x-axis")).toHaveAttribute("data-interval", "4");
   });
 });

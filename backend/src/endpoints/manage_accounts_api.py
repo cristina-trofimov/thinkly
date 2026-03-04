@@ -1,16 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import UserAccount
+from models.schema import UserAccount, UserPreferences
 from DB_Methods.database import get_db
 from pydantic import BaseModel, Field
 from typing import Annotated, Optional
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 accounts_router = APIRouter(tags=["Accounts"])
 
+
 class DeleteAccountsRequest(BaseModel):
     user_ids: list[int] = Field(..., min_items=1)
+
 
 class UpdateAccountRequest(BaseModel):
     first_name: Optional[str] = None
@@ -18,15 +21,22 @@ class UpdateAccountRequest(BaseModel):
     email: Optional[str] = None
     user_type: Optional[str] = None
 
+
+class UpdatePreferencesRequest(BaseModel):
+    theme: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
+
+
 @accounts_router.get("/users")
 def get_all_accounts(db: Annotated[Session, Depends(get_db)]):
     accounts = db.query(UserAccount).all()
     logger.info(f"Fetched {len(accounts)} accounts from the database.")
     return accounts
 
+
 @accounts_router.delete(
     "/users/batch-delete",
-    responses={ 500: { "description": "Error deleting accounts." } }
+    responses={500: {"description": "Error deleting accounts."}}
 )
 def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Session, Depends(get_db)]):
     try:
@@ -51,7 +61,16 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
         existing_set = set(existing_ids)
         missing_ids = [user_id for user_id in requested_ids if user_id not in existing_set]
         errors = [{"user_id": user_id, "error": "User not found."} for user_id in missing_ids]
-
+        # Track user deletion
+        track_custom_event(
+            user_id="admin",  # This endpoint is typically admin-only
+            event_name="users_batch_deleted",
+            properties={
+                "deleted_count": deleted_count,
+                "requested_count": len(requested_ids),
+                "failed_count": len(missing_ids),
+            }
+        )
         return {
             "deleted_count": deleted_count,
             "deleted_users": [{"user_id": user_id} for user_id in existing_ids],
@@ -63,12 +82,13 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error deleting accounts.")
 
+
 @accounts_router.patch(
     "/users/{user_id}",
-    responses={ 
-               400: { "description": "No fields to update." },
-               404: { "description": "Account not found." }
-            }
+    responses={
+        400: {"description": "No fields to update."},
+        404: {"description": "Account not found."}
+    }
 )
 def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[Session, Depends(get_db)]):
     account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
@@ -86,4 +106,70 @@ def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annot
     db.commit()
     db.refresh(account)
     logger.info(f"Updated account with ID {user_id}.")
+
+    # Track account update
+    track_custom_event(
+        user_id=str(user_id),
+        event_name="account_updated",
+        properties={
+            "updated_fields": list(update_data.keys()),
+            "field_count": len(update_data),
+        }
+    )
+
     return account
+
+@accounts_router.get(
+    "/users/{user_id}/preferences",
+    responses={404: {"description": "Preferences not found."}}
+)
+def get_user_preferences(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    prefs = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
+    if not prefs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preferences not found.")
+    logger.info(f"Fetched preferences for user ID {user_id}.")
+    return {
+        "theme": prefs.theme,
+        "notifications_enabled": prefs.notifications_enabled,
+    }
+
+
+@accounts_router.patch(
+    "/users/{user_id}/preferences",
+    responses={
+        400: {"description": "No fields to update."},
+        404: {"description": "Preferences not found."},
+    }
+)
+def update_user_preferences(
+    user_id: int,
+    updated_fields: UpdatePreferencesRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    prefs = db.query(UserPreferences).filter(UserPreferences.user_id == user_id).first()
+    if not prefs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Preferences not found.")
+
+    update_data = updated_fields.dict(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update.")
+
+    for key, value in update_data.items():
+        setattr(prefs, key, value)
+
+    db.commit()
+    db.refresh(prefs)
+    logger.info(f"Updated preferences for user ID {user_id}.")
+
+    track_custom_event(
+        user_id=str(user_id),
+        event_name="preferences_updated",
+        properties={
+            "updated_fields": list(update_data.keys()),
+        }
+    )
+
+    return {
+        "theme": prefs.theme,
+        "notifications_enabled": prefs.notifications_enabled,
+    }

@@ -1,11 +1,11 @@
 import axios from "axios";
 
 const getApiUrl = (): string => {
-  // 1. Safe access using optional chaining
-  const win = globalThis.window as Window & { VITE_BACKEND_URL?: string };
-
-  if (win?.VITE_BACKEND_URL !== undefined) {
-    return win.VITE_BACKEND_URL;
+  // retrieve .env VITE_BACKEND_URL variable if exists (for development)
+  // NOSONAR: import.meta is provided by Vite build system
+  const url = import.meta.env.VITE_BACKEND_URL
+  if (url) {
+    return url;
   }
 
   // 2. Fallback for production
@@ -22,7 +22,7 @@ const axiosClient = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor to add auth token
+// Request interceptor
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -31,27 +31,74 @@ axiosClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Variables to track refresh state
+let isRefreshing = false;
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const status = error.response?.status;
-    const url = error.config?.url ?? "";
+  async (error) => {
+    const originalRequest = error.config;
 
-    // Only redirect for protected routes
-    const isAuthEndpoint =
-      url.includes("/auth/login") ||
-      url.includes("/auth/signup") ||
-      url.includes("/auth/google-auth");
+    // Check if error is 401 and not already retried
+    if (error.response?.status === 401 && !originalRequest._retry) {
 
-    if (status === 401 && !isAuthEndpoint) {
-      localStorage.removeItem("token");
-      globalThis.location.href = "/";
+      if (isRefreshing) {
+        // 1. If refresh is already happening, return a promise that 
+        // resolves when the refresh finishes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axiosClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      return new Promise((resolve, reject) => {
+        axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true })
+          .then(({ data }) => {
+            const newToken = data.token || data.access_token; // Ensure this matches backend
+            localStorage.setItem("token", newToken);
+
+            // 2. Refresh headers and process the waiting queue
+            axiosClient.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+            processQueue(null, newToken);
+
+            resolve(axiosClient(originalRequest));
+          })
+          .catch((err) => {
+            processQueue(err, null);
+            localStorage.removeItem("token");
+
+            // 3. ONLY redirect if we are not already on the login page
+            if (window.location.pathname !== "/") {
+              window.location.href = "/";
+            }
+            reject(err);
+          })
+          .finally(() => {
+            isRefreshing = false;
+          });
+      });
     }
 
     return Promise.reject(error);

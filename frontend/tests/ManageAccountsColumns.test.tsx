@@ -20,6 +20,23 @@ jest.mock('../src/lib/axiosClient', () => ({
   },
   API_URL: 'http://localhost:8000',
 }))
+
+jest.mock("../src/components/manageAccounts/UserActionsCell", () => ({
+  ActionsCell: ({
+    user,
+    onUserUpdate,
+  }: {
+    user: Account;
+    onUserUpdate?: (updatedUser: Account) => void;
+  }) => (
+    <div
+      data-testid="actions-cell"
+      data-user-id={user.id}
+      data-has-user-update={onUserUpdate ? "true" : "false"}
+    />
+  ),
+}));
+
 const createMockTable = (overrides = {}) => ({
   getIsAllRowsSelected: jest.fn(() => false),
   getIsSomeRowsSelected: jest.fn(() => false),
@@ -100,6 +117,22 @@ describe("Account Columns", () => {
 
   describe("Name Column", () => {
     const nameColumn = columns[1];
+
+    it("combines first and last name in accessorFn", () => {
+      const accessorFn = (
+        nameColumn as unknown as { accessorFn: (row: Account, index: number) => string }
+      ).accessorFn;
+      expect(accessorFn(mockAccount, 0)).toBe("John Doe");
+    });
+
+    it("toggles sorting from name header", () => {
+      const column = createMockColumn();
+      const Header = nameColumn.header as Function;
+      render(<>{Header({ column })}</>);
+
+      fireEvent.click(screen.getByRole("button", { name: /name/i }));
+      expect(column.toggleSorting).toHaveBeenCalledWith(false);
+    });
 
     it("renders name with initials from firstName and lastName", () => {
       const row = createMockRow();
@@ -186,9 +219,10 @@ describe("Account Columns", () => {
   describe("Actions Column", () => {
     const actionsColumn = columns[4];
 
-    it("renders dropdown menu trigger", () => {
+    it("passes user and onUserUpdate to ActionsCell", () => {
       const row = createMockRow();
-      const table = createMockTable();
+      const onUserUpdate = jest.fn();
+      const table = createMockTable({ options: { meta: { onUserUpdate } } });
 
       const TestComponent = () => {
         const Cell = actionsColumn.cell as Function;
@@ -197,7 +231,9 @@ describe("Account Columns", () => {
 
       render(<TestComponent />);
 
-      expect(screen.getByRole("button")).toBeInTheDocument();
+      const actionsCell = screen.getByTestId("actions-cell");
+      expect(actionsCell).toHaveAttribute("data-user-id", "1");
+      expect(actionsCell).toHaveAttribute("data-has-user-update", "true");
     });
   });
 });

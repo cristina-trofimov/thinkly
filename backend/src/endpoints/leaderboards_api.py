@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
@@ -10,9 +10,13 @@ from models.schema import (
     BaseEvent
 )
 import logging
+from posthog_analytics import track_custom_event
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
+
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
 
 
 def get_all_competitions(db: Session) -> List[Competition]:
@@ -136,22 +140,46 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 @leaderboards_router.get("/competitions")
 def get_leaderboards(
-    db: Annotated[Session, Depends(get_db)],
-    current_user_id: Optional[int] = None
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None,
+        search: Annotated[Optional[str], Query(max_length=200)] = None,
+        sort: Annotated[str, Query(pattern="^(asc|desc)$")] = "desc",
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ):
+    """
+    Returns a paginated, optionally filtered and sorted list of competition leaderboards.
+
+    - **search**: case-insensitive substring match on competition name
+    - **sort**: `asc` or `desc` by competition date (default: `desc`)
+    - **page** / **page_size**: 1-based pagination (default page_size=20, max=100)
+    """
     logger.info("=== /leaderboards/competitions endpoint ===")
-    logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
+    logger.info(f"Params — sort={sort}, page={page}, page_size={page_size}")
 
     try:
-        competitions = (
-            db.query(Competition)
-            .join(BaseEvent)
-            .all()
-        )
+        query = db.query(Competition).join(BaseEvent)
+
+        # --- Backend filtering ---
+        if search:
+            query = query.filter(BaseEvent.event_name.ilike(f"%{search}%"))
+
+        # --- Backend sorting ---
+        if sort == "asc":
+            query = query.order_by(BaseEvent.event_start_date.asc())
+        else:
+            query = query.order_by(BaseEvent.event_start_date.desc())
+
+        # --- Total count (for the client to know how many pages exist) ---
+        total_count = query.count()
+
+        # --- Pagination ---
+        offset = (page - 1) * page_size
+        competitions = query.offset(offset).limit(page_size).all()
 
         if not competitions:
-            logger.info("No competitions found.")
-            return []
+            logger.info("No competitions found for the given parameters.")
+            return {"total": total_count, "page": page, "page_size": page_size, "competitions": []}
 
         result = []
 
@@ -161,23 +189,18 @@ def get_leaderboards(
 
             logger.debug(f"Processing Competition Event ID {comp_id}")
 
-            # Get all entries (will be sorted by total_score in filtering function)
             all_entries = list(comp.competition_leaderboard_entries)
-
             logger.debug(f"Competition has {len(all_entries)} total entries")
 
-            # Filter entries based on user position (this also calculates ranks)
             filtered_entries, show_separator = get_filtered_leaderboard_entries(all_entries, current_user_id)
-
             logger.debug(f"After filtering: {len(filtered_entries)} entries, show_separator={show_separator}")
 
             participants = []
             for entry in filtered_entries:
-                # Prefer live user data if user exists, else fallback to stored name
                 if entry.user_account:
                     user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
                 else:
-                    user_name = entry.name  # fallback snapshot
+                    user_name = entry.name
 
                 participants.append({
                     "name": user_name,
@@ -196,8 +219,28 @@ def get_leaderboards(
                 "showSeparator": show_separator,
             })
 
-        logger.info(f"Successfully returned {len(result)} leaderboards.")
-        return result
+        logger.info(f"Successfully returned {len(result)} leaderboards (page {page}/{-(-total_count // page_size)}).")
+
+        # Track leaderboard view
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="competitions_leaderboard_viewed",
+            properties={
+                "competition_count": len(result),
+                "total_participants": sum(len(comp["participants"]) for comp in result),
+                "is_authenticated": current_user_id is not None,
+                "page": page,
+                "search": search,
+                "sort": sort,
+            }
+        )
+
+        return {
+            "total": total_count,
+            "page": page,
+            "page_size": page_size,
+            "competitions": result,
+        }
 
     except Exception:
         logger.exception("FATAL error during leaderboard aggregation.")
@@ -207,10 +250,79 @@ def get_leaderboards(
         )
 
 
+@leaderboards_router.get("/competitions/{competition_id}/all")
+def get_all_competition_entries(
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Returns ALL entries for a specific competition (no top-10 filtering).
+    Used for copy/download exports.
+    """
+    logger.info(f"=== /leaderboards/competitions/{competition_id}/all endpoint ===")
+
+    try:
+        competition = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(Competition.event_id == competition_id)
+            .first()
+        )
+
+        if not competition:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Competition {competition_id} not found."
+            )
+
+        all_entries = list(competition.competition_leaderboard_entries)
+        ranked_entries = calculate_rank(all_entries)
+
+        result = []
+        for entry in ranked_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "name": user_name,
+                "userId": entry.user_id,
+                "points": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(f"Returning {len(result)} total entries for competition {competition_id}.")
+
+        # Track full leaderboard export/view
+        track_custom_event(
+            user_id="anonymous",
+            event_name="competition_full_leaderboard_viewed",
+            properties={
+                "competition_id": competition_id,
+                "competition_name": competition.base_event.event_name,
+                "total_entries": len(result),
+                "is_export": True,
+            }
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception(f"FATAL error fetching all entries for competition {competition_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve competition entries."
+        )
+
+
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
-    db: Annotated[Session, Depends(get_db)],
-    current_user_id: Optional[int] = None
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions/current endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
@@ -218,7 +330,6 @@ def get_current_competition_leaderboard(
     try:
         now = datetime.now(timezone.utc)
 
-        # Find current competition (event that is currently ongoing)
         current_competition = (
             db.query(Competition)
             .join(BaseEvent)
@@ -239,7 +350,6 @@ def get_current_competition_leaderboard(
 
         logger.debug(f"Found current competition with ID {current_competition.event_id}.")
 
-        # Get all leaderboard entries for this competition
         all_entries = (
             db.query(CompetitionLeaderboardEntry)
             .filter(CompetitionLeaderboardEntry.competition_id == current_competition.event_id)
@@ -248,17 +358,14 @@ def get_current_competition_leaderboard(
 
         logger.debug(f"Competition has {len(all_entries)} total entries")
 
-        # Filter entries based on user position (this also calculates ranks)
         filtered_entries, show_separator = get_filtered_leaderboard_entries(all_entries, current_user_id)
 
         logger.debug(f"After filtering: {len(filtered_entries)} entries, show_separator={show_separator}")
-
         logger.info(
             f"SUCCESSFUL FETCH: Retrieved {len(filtered_entries)} entries for current competition '{current_competition.base_event.event_name}'.")
 
         result_entries = []
         for entry in filtered_entries:
-            # Prefer live user data if user exists, else fallback to stored name
             if entry.user_account:
                 user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
             else:
@@ -273,6 +380,19 @@ def get_current_competition_leaderboard(
                 "totalTime": entry.total_time,
                 "rank": entry.calculated_rank
             })
+
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="current_competition_leaderboard_viewed",
+            properties={
+                "competition_id": current_competition.event_id,
+                "competition_name": current_competition.base_event.event_name,
+                "entries_shown": len(result_entries),
+                "total_participants": len(all_entries),
+                "is_authenticated": current_user_id is not None,
+                "has_separator": show_separator,
+            }
+        )
 
         return {
             "competition": {
@@ -294,43 +414,144 @@ def get_current_competition_leaderboard(
 
 
 @leaderboards_router.get("/algotime")
-def get_all_algotime_leaderboard_entries(db: Annotated[Session, Depends(get_db)]):
+def get_algotime_leaderboard(
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None,
+        search: Annotated[Optional[str], Query(max_length=200)] = None,
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=100)] = 15,
+):
     """
-    Returns all entries in the AlgoTime leaderboard table.
-    Ranks are calculated based on total_score (highest score = rank 1).
+    Returns a paginated slice of the AlgoTime leaderboard.
+
+    Ranks are always computed globally (highest total_score = rank 1) so a rank
+    number is stable regardless of the page being viewed.
+
+    - **search**: case-insensitive substring match on participant name
+    - **page** / **page_size**: 1-based pagination (default page_size=15, max=100)
+    - **current_user_id**: when provided the matching row is highlighted by the client
     """
-    logger.info("Accessing /leaderboards/algotime endpoint to fetch all AlgoTime leaderboard entries.")
+    logger.info(
+        f"Accessing /leaderboards/algotime, "
+        f"page={page}, page_size={page_size}"
+    )
 
     try:
-        entries = db.query(AlgoTimeLeaderboardEntry).all()
+        # 1. Load ALL entries so ranks can be computed globally.
+        #    Only lightweight scalar columns are needed for rank assignment.
+        all_entries = db.query(AlgoTimeLeaderboardEntry).all()
 
-        # Calculate ranks based on total_score
-        ranked_entries = calculate_rank(entries)
+        # 2. Compute global ranks (sets .calculated_rank on each entry in-place).
+        ranked_entries = calculate_rank(all_entries)
 
-        result = []
-        for entry in ranked_entries:
+        # 3. Resolve display names once (avoids repeated attribute access in the loop).
+        def display_name(entry) -> str:
             if entry.user_account:
-                user_name = f"{entry.user_account.first_name} {entry.user_account.last_name}"
-            else:
-                user_name = entry.name
+                return f"{entry.user_account.first_name} {entry.user_account.last_name}"
+            return entry.name
 
-            result.append({
+        # 4. Apply optional name search *after* ranking so rank numbers are unaffected.
+        if search and search.strip():
+            needle = search.strip().lower()
+            ranked_entries = [e for e in ranked_entries if needle in display_name(e).lower()]
+
+        # 5. Total count for pagination metadata.
+        total = len(ranked_entries)
+
+        # 6. Slice for the requested page.
+        offset = (page - 1) * page_size
+        page_entries = ranked_entries[offset: offset + page_size]
+
+        result = [
+            {
                 "entryId": entry.algotime_leaderboard_entry_id,
                 "algoTimeSeriesId": entry.algotime_series_id,
-                "name": user_name,
+                "name": display_name(entry),
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,
                 "problemsSolved": entry.problems_solved,
                 "totalTime": entry.total_time,
                 "rank": entry.calculated_rank,
-                "lastUpdated": entry.last_updated.isoformat()
-            })
+                "lastUpdated": entry.last_updated.isoformat(),
+            }
+            for entry in page_entries
+        ]
 
-        return result
+        logger.info(
+            f"Returning {len(result)} AlgoTime entries "
+            f"(page {page}, total={total})."
+        )
+
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="algotime_leaderboard_viewed",
+            properties={
+                "entries_shown": len(result),
+                "total_entries": len(all_entries),
+                "filtered_total": total,
+                "page": page,
+                "search": search,
+                "is_authenticated": current_user_id is not None,
+                "unique_series": len({e.algotime_series_id for e in all_entries}),
+            }
+        )
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "entries": result,
+        }
 
     except Exception:
         logger.exception("FATAL error while fetching AlgoTime leaderboard entries.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve AlgoTime leaderboard entries."
+        )
+
+
+@leaderboards_router.get("/algotime/all")
+def get_all_algotime_entries_export(db: Annotated[Session, Depends(get_db)]):
+    """
+    Returns ALL AlgoTime entries with globally-computed ranks.
+    No pagination — intended exclusively for copy/download exports.
+    """
+    logger.info("=== /leaderboards/algotime/all export endpoint ===")
+
+    try:
+        all_entries = db.query(AlgoTimeLeaderboardEntry).all()
+        ranked_entries = calculate_rank(all_entries)
+
+        result = []
+        for entry in ranked_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "entryId": entry.algotime_leaderboard_entry_id,
+                "name": user_name,
+                "userId": entry.user_id,
+                "totalScore": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(f"Returning {len(result)} AlgoTime entries for export.")
+
+        track_custom_event(
+            user_id="anonymous",
+            event_name="algotime_leaderboard_exported",
+            properties={"total_entries": len(result), "is_export": True},
+        )
+
+        return result
+
+    except Exception:
+        logger.exception("FATAL error while exporting AlgoTime leaderboard entries.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export AlgoTime leaderboard entries."
         )

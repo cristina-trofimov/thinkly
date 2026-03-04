@@ -1,12 +1,12 @@
 import os
 import requests
-from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
-from typing import List, Optional
+from typing import List
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 import logging
+from posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 DEFAULT_SENDER_EMAIL = os.getenv("DEFAULT_SENDER_EMAIL")
-DEFAULT_SENDER_NAME  = os.getenv("DEFAULT_SENDER_NAME", "My App")
+DEFAULT_SENDER_NAME = os.getenv("DEFAULT_SENDER_NAME", "My App")
 
 if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
     logger.critical("FATAL: Missing BREVO_API_KEY or DEFAULT_SENDER_EMAIL in environment.")
@@ -24,12 +24,12 @@ BREVO_SEND_URL = "https://api.brevo.com/v3/smtp/email"
 
 email_router = APIRouter(tags=["Email"])
 
-#Ensure recipients is a non-empty list (Validation)
+
+# Ensure recipients is a non-empty list (Validation)
 class SendEmailRequest(BaseModel):
     to: List[str]
     subject: str
     text: str
-    sendAt: Optional[str] = None
 
     @field_validator('to')
     @classmethod
@@ -61,24 +61,6 @@ class SendEmailRequest(BaseModel):
             raise ValueError("Provide at least one of 'text'.")
         return v.strip()
 
-# Normalize ISO8601 timestamp to UTC with 'Z' suffix
-def normalize_iso_utc(iso_str):
-    if not iso_str:
-        return None
-    try:
-        s = iso_str.strip()
-        if s.endswith("Z"):
-            s = s.replace("Z", "+00:00")
-        dt = datetime.fromisoformat(s)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        # Return canonical Brevo format (ISO8601 with Z suffix)
-        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-    except Exception:
-        # Log failure inside the helper function
-        logger.warning(f"Failed to parse or normalize ISO8601 timestamp: '{iso_str}'")
-        return None
-
 
 def _validate_email_inputs(to: list[str], subject: str, text: str):
     """Validate all email inputs before sending."""
@@ -104,12 +86,10 @@ def _validate_email_inputs(to: list[str], subject: str, text: str):
         raise ValueError("Email body text is required")
 
 
-def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | None = None,
+def send_email_via_brevo(to: list[str], subject: str, text: str,
                          html: str | None = None) -> dict:
-    """Send an email via Brevo with full logging and validation."""
+    """Send an email via Brevo immediately with full logging and validation."""
     _validate_email_inputs(to, subject, text)
-
-    scheduled_at = normalize_iso_utc(send_at)
 
     payload = {
         "sender": {"email": DEFAULT_SENDER_EMAIL, "name": DEFAULT_SENDER_NAME},
@@ -118,14 +98,9 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | 
         "textContent": text
     }
 
-    # Add HTML content if provided
     if html:
         payload["htmlContent"] = html
         logger.debug("HTML content included in email")
-
-    if scheduled_at:
-        payload["scheduledAt"] = scheduled_at
-        logger.info(f"Email scheduled for {scheduled_at}")
 
     headers = {
         "accept": "application/json",
@@ -149,22 +124,33 @@ def send_email_via_brevo(to: list[str], subject: str, text: str, send_at: str | 
         raise RuntimeError(f"Brevo API error {resp.status_code}: {detail}")
 
     logger.info(f"SUCCESS: Email sent successfully. Message ID: {resp.json().get('messageId')}")
-    return {"brevo": resp.json(), "scheduledAt": scheduled_at}
+    return {"brevo": resp.json()}
+
 
 # Routes
 
 @email_router.post(
     "/send",
-    responses={ 400: { "description": "Error sending email." } }
+    responses={400: {"description": "Error sending email."}}
 )
 async def send_email(request: SendEmailRequest):
     try:
         result = send_email_via_brevo(
             to=request.to,
             subject=request.subject,
-            text=request.text,
-            send_at=request.sendAt
+            text=request.text
         )
+
+        # Track email sent
+        track_custom_event(
+            user_id="system",
+            event_name="email_sent",
+            properties={
+                "recipient_count": len(request.to),
+                "subject": request.subject[:50],
+            }
+        )
+
         return {"ok": True, **result}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -174,6 +160,7 @@ async def send_email(request: SendEmailRequest):
 def health():
     logger.debug("Health check accessed.")
     return {"ok": True}
+
 
 @email_router.get("/")
 def index():
