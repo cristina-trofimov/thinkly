@@ -149,7 +149,7 @@ export function AdminDashboard() {
               <ManageCard title="Manage Algotime Sessions" icon={Timer} />
             </Link>
             <Link
-              to="#"
+              to="/app/dashboard/manageQuestions"
               className="xl:col-start-2 xl:row-start-1"
               onClick={() => trackAdminManageCardClicked("questions")}
             >
