@@ -65,6 +65,20 @@ class AlgoTimeSessionResponse(BaseModel):
     seriesName: Optional[str] = None
     questions: List[AlgoTimeQuestionResponse]
 
+class DetailedAlgoTimeSessionResponse(BaseModel):
+    """Response model for editing algotime sessions - includes all necessary details"""
+    id: int
+    sessionName: str
+    date: str
+    startTime: str
+    endTime: str
+    questionCooldown: int
+    selectedQuestions: List[int]
+    seriesId: Optional[int] = None
+    seriesName: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 # ------Functions to help
 def validate_questions_exist(db: Session, question_ids: List[int]):
@@ -280,3 +294,150 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve AlgoTime sessions. Exception: {str(e)}"
         )
+
+@algotime_router.get("/{session_id}", response_model=AlgoTimeSessionResponse)
+def get_algotime_session(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
+):
+    logger.info(
+        f"Admin {current_user['email']} requested AlgoTime session {session_id}"
+    )
+
+    session = db.query(AlgoTimeSession).filter(
+        AlgoTimeSession.event_id == session_id
+    ).first()
+
+    if not session:
+        logger.warning(
+            f"AlgoTime session {session_id} not found"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="AlgoTime session not found"
+        )
+
+    event = session.base_event
+
+    questions = db.query(QuestionInstance).filter(
+        QuestionInstance.event_id == session_id
+    ).all()
+
+    logger.info(
+        f"AlgoTime session {session_id} fetched successfully"
+    )
+
+    return {
+        "id": session_id,
+        "eventName": event.event_name,
+        "startTime": event.event_start_date,
+        "endTime": event.event_end_date,
+        "questionCooldown": event.question_cooldown,
+        "seriesId": session.algotime_series_id,
+        "seriesName": (
+            session.algotime_series.algotime_series_name
+            if session.algotime_series else None
+        ),
+        "questions": questions
+    }
+
+@algotime_router.put("/{session_id}", response_model=AlgoTimeSessionResponse)
+def update_algotime_session(
+    session_id: int,
+    request: CreateAlgotimeSessionRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
+):
+    logger.info(
+        f"Admin {current_user['email']} updating AlgoTime session {session_id}"
+    )
+
+    session = db.query(AlgoTimeSession).filter(
+        AlgoTimeSession.event_id == session_id
+    ).first()
+
+    if not session:
+        logger.warning(
+            f"AlgoTime session {session_id} not found for update"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="AlgoTime session not found"
+        )
+
+    event = session.base_event
+
+    start_dt = parse_datetime_from_request(request.date, request.startTime)
+    end_dt = parse_datetime_from_request(request.date, request.endTime)
+    validate_competition_times(start_dt, end_dt)
+
+    # Update BaseEvent
+    event.event_name = request.name
+    event.event_start_date = start_dt
+    event.event_end_date = end_dt
+    event.question_cooldown = request.questionCooldown
+    event.updated_at = datetime.now(timezone.utc)
+
+    # Replace questions
+    db.query(QuestionInstance).filter(
+        QuestionInstance.event_id == session_id
+    ).delete()
+
+    for question_id in request.selectedQuestions:
+        qi = QuestionInstance(
+            event_id=session_id,
+            question_id=question_id,
+            points=0
+        )
+        db.add(qi)
+
+    db.commit()
+
+    logger.info(
+        f"AlgoTime session {session_id} updated successfully"
+    )
+
+    return {
+        "id": session_id,
+        "eventName": event.event_name,
+        "startTime": event.event_start_date,
+        "endTime": event.event_end_date,
+        "questionCooldown": event.question_cooldown,
+        "seriesId": session.algotime_series_id,
+        "seriesName": (
+            session.algotime_series.algotime_series_name
+            if session.algotime_series else None
+        ),
+        "questions": []
+    }
+
+@algotime_router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_algotime_session(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(role_required("admin"))]
+):
+    logger.info(
+        f"Admin {current_user['email']} deleting AlgoTime session {session_id}"
+    )
+
+    event = db.query(BaseEvent).filter(
+        BaseEvent.event_id == session_id
+    ).first()
+
+    if not event:
+        logger.warning(
+            f"AlgoTime session {session_id} not found for deletion"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="AlgoTime session not found"
+        )
+
+    db.delete(event)
+    db.commit()
+
+    logger.info(
+        f"AlgoTime session {session_id} deleted successfully"
+    )
