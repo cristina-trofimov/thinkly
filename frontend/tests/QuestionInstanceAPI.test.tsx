@@ -1,6 +1,6 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
-import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
+import { getQuestionInstance, getAllQuestionInstancesByEventID, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
 
 beforeAll(() => {
     Object.defineProperty(global, 'import', {
@@ -28,7 +28,6 @@ jest.mock('../src/lib/axiosClient', () => ({
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 
 const question_id = 1
-const user_id = 1
 const event_id = 1
 
 const mockQuestionInstances: QuestionInstance[] = [
@@ -122,10 +121,10 @@ describe("Question Instance", () => {
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     })
 
-    it("getQuestionInstance: returns a list of the instances associated between a question and an event", async () => {
+    it("getQuestionInstance: returns the instance associated to a question and an event", async () => {
         mockedAxios.get.mockImplementation(async () => ({ data: mockUpdateResponse }))
 
-        const result = await getQuestionInstance(question_id, event_id)
+        await getQuestionInstance(question_id, event_id)
 
         expect(mockedAxios.get).toHaveBeenCalledTimes(1)
         expect(mockedAxios.get).toHaveBeenCalledWith(
@@ -138,6 +137,26 @@ describe("Question Instance", () => {
 
         await expect(getQuestionInstance(question_id, event_id))
                     .rejects.toThrow("Error fetching question instance")
+
+        expect(mockedAxios.get).toHaveBeenCalled()
+    })
+
+    it("getAllQuestionInstancesByEventID: returns a list of the instances associated to an event", async () => {
+        mockedAxios.get.mockImplementation(async () => ({ data: [mockQuestionInstances[0]] }))
+
+        await getAllQuestionInstancesByEventID(event_id)
+
+        expect(mockedAxios.get).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+            "/instances/by-event", {"params": { "event_id": event_id }}
+        )
+    })
+
+    it("handles errors from getAllQuestionInstancesByEventID", async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching question instances for an event"))
+
+        await expect(getAllQuestionInstancesByEventID(event_id))
+                    .rejects.toThrow("Error fetching question instances for an event")
 
         expect(mockedAxios.get).toHaveBeenCalled()
     })
