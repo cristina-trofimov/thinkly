@@ -10,10 +10,24 @@ import { format, addDays, addWeeks, addMonths } from "date-fns"
 import { SessionQuestionSelector } from "@/components/algotime/SessionQuestionSelector"
 import type { Session, CreateAlgotimeRequest, CreateAlgotimeSession } from "@/types/algoTime/AlgoTime.type";
 import { getQuestions } from "@/api/QuestionsAPI";
-import {createAlgotime} from "@/api/AlgotimeAPI"
+import {createAlgotime, updateAlgotime} from "@/api/AlgotimeAPI"
 import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent} from "@/components/ui/tabs"
+
+interface AlgoTimeSessionFormProps {
+  mode?: "create" | "edit";
+  initialData?: {
+    sessionId: number;
+    name: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    questionCooldown: number;
+    selectedQuestions: number[];
+  };
+  onSuccess?: () => void;
+}
 
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty.toLowerCase()) {
@@ -24,21 +38,26 @@ const getDifficultyColor = (difficulty: string) => {
   }
 };
 
-export const AlgoTimeSessionForm = () => {
+
+export const AlgoTimeSessionForm = ({
+  mode = "create",
+  initialData,
+  onSuccess,
+}: AlgoTimeSessionFormProps) => {
   const [formData, setFormData] = useState({
     date: format(new Date(), "yyyy-MM-dd"),
     startTime: "",
     endTime: "",
-    questionCooldownTime: "",
-    repeatType: "none", // none, daily, weekly, biweekly, monthly
+    questionCooldownTime: initialData?.questionCooldown?.toString() ?? "",
+    repeatType: "none",
     repeatEndDate: "",
   });
 
   const [generalData, setGeneralData] = useState({
-    name: "",
-    date: "",
-    startTime: "",
-    endTime: "",
+    name: initialData?.name ?? "",
+    date: initialData?.date ?? "",
+    startTime: initialData?.startTime ?? "",
+    endTime: initialData?.endTime ?? "",
     location: ""
   });
   const navigate = useNavigate();
@@ -46,10 +65,10 @@ export const AlgoTimeSessionForm = () => {
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [searchQueries, setSearchQueries] = useState<{ [key: number]: string }>({});
   const [sessionQuestions, setSessionQuestions] = useState<{ [key: number]: number[] }>({
-    1: []
+    1: initialData?.selectedQuestions ??[]
   });
   const [difficultyFilters, setDifficultyFilters] = useState<{ [key: number]: string | undefined }>({});
-  const [sessionNames, setSessionNames] = useState<{ [key: number]: string }>({});
+  const [sessionNames, setSessionNames] = useState<{ [key: number]: string }>({  1: initialData?.name ?? ""});
   const [hasSubmitted, setHasSubmitted] = useState(false); 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const handleGeneralChange = (updates: Partial<typeof generalData>) => {
@@ -142,6 +161,7 @@ export const AlgoTimeSessionForm = () => {
   )
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  
 
   useEffect(() => {
     const getAllQuestions = async () => {
@@ -181,6 +201,15 @@ export const AlgoTimeSessionForm = () => {
 
     getAllQuestions()
   }, [])
+
+  useEffect(() => {
+    if (mode === "edit") {
+      setSessionNames(prev => ({
+        ...prev,
+        1: generalData.name ?? ""
+      }));
+    }
+  }, [generalData.name, mode]);
 
   const isSessionComplete = (sessionNum: number) => {
     const hasQuestions = (sessionQuestions[sessionNum]?.length || 0) > 0;
@@ -305,78 +334,66 @@ export const AlgoTimeSessionForm = () => {
       return; // Stop submission if validation fails
     }
     try {
-      const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
-        name:
-          sessionNames[session.sessionNumber] ||
-          generalData.name ||
-          "AlgoTime Session",
-      
-        date: session.date,
-      
-        startTime: generalData.startTime,
-        endTime: generalData.endTime,
-      
-        selectedQuestions:
-          sessionQuestions[session.sessionNumber] || []
-      }));
-
-      const payload: CreateAlgotimeRequest = {
-        seriesName: `AlgoTime Session (${getDateRangeString()})`,
-        questionCooldown: Number(formData.questionCooldownTime) || 300,
-        sessions: sessions,
-      };
-
       setIsSubmitting(true);
-
-      await createAlgotime(payload);
-
-      logFrontend({
-        level: "INFO",
-        message: "AlgoTime sessions created successfully",
-        component: "AlgoTimeSessionForm",
-        url: globalThis.location.href,
-      });
-
-      // Navigate to main page 
-      navigate("/app/dashboard");
-      // Show success message
-      toast.success("AlgoTime Session created successfully!");
-
-      handleReset();
-
+  
+      if (mode === "edit" && initialData) {
+        await updateAlgotime(initialData.sessionId, {
+          name: sessionNames[1] || generalData.name || "AlgoTime Session",
+          date: generalData.date,
+          startTime: generalData.startTime,
+          endTime: generalData.endTime,
+          selectedQuestions: sessionQuestions[1] || [],
+        });
+  
+        toast.success("Session updated successfully!");
+        onSuccess?.();
+  
+      } else {
+        // existing create logic unchanged
+        const sessions: CreateAlgotimeSession[] = repeatSessions.map(session => ({
+          name:
+            sessionNames[session.sessionNumber] ||
+            generalData.name ||
+            "AlgoTime Session",
+          date: session.date,
+          startTime: generalData.startTime,
+          endTime: generalData.endTime,
+          selectedQuestions: sessionQuestions[session.sessionNumber] || [],
+        }));
+  
+        const payload: CreateAlgotimeRequest = {
+          seriesName: `AlgoTime Session (${getDateRangeString()})`,
+          questionCooldown: Number(formData.questionCooldownTime) || 300,
+          sessions,
+        };
+  
+        await createAlgotime(payload);
+        toast.success("AlgoTime Session created successfully!");
+        navigate("/app/dashboard");
+        handleReset();
+      }
+  
     } catch (error: unknown) {
       setIsSubmitting(false);
-
+  
       const isAxiosError = (err: unknown): err is { response?: { status?: number; data?: { detail?: string } } } => {
-        return typeof err === 'object' && err !== null && 'response' in err;
+        return typeof err === "object" && err !== null && "response" in err;
       };
-
-      // 409 handling
+  
       if (isAxiosError(error) && error.response?.status === 409) {
-        toast.error(
-          error.response?.data?.detail || 
-          'A series with this name already exists. Please try again.'
-        );
-
+        toast.error(error.response?.data?.detail || "A session with this name already exists.");
       } else {
-      console.error('Session creation failed:', error);
-      toast.error('Failed to create session. Please try again.');
-      toast.error("Failed to create session");
+        toast.error("Failed to save session. Please try again.");
       }
-      setTimeout(() => {
-        errorRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }, 100);
+    } finally {
+      setIsSubmitting(false);
     }
-
   };
 
 
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-1 space-y-6">
+    <div className="w-full px-2 py-1 space-y-6">
       <form onSubmit={(e) => {
         e.preventDefault();
         handleSubmit();
@@ -385,26 +402,25 @@ export const AlgoTimeSessionForm = () => {
       <div className="flex justify-between items-center mb-2">
           <div>
                 <h2 className="text-2xl font-bold text-primary">
-                  Create a New AlgoTime Session
+                  {mode === "edit" ? "Edit AlgoTime Session" : "Create a New AlgoTime Session"}
                 </h2>
-                <p className="text-muted-foreground text-sm">Fill in the details below to create a new Session.</p>
+                <p className="text-muted-foreground text-sm">
+                {mode === "edit"
+                  ? "Update the session details below."
+                  : "Fill in the details below to create a new Session."}
+                </p>
           </div>
           {/* Action Buttons */}
           <div className=" justify-end flex gap-2 pt-4 gap pb-4 ">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleReset}
-              className="cursor-pointer"
-            >
-              Reset
-            </Button>
-            <Button
-              type="submit"
-              className="cursor-pointer"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Creating..." : "Create"}
+          {mode === "create" && (
+              <Button type="button" variant="outline" onClick={handleReset}>
+                Reset
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? mode === "edit" ? "Saving..." : "Creating..."
+                : mode === "edit" ? "Save Changes" : "Create"}
             </Button>
 
           </div>
@@ -422,7 +438,7 @@ export const AlgoTimeSessionForm = () => {
       </div>
 
         {/* Form Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <div className="grid grid-cols-5 gap-6 items-start">
 
           <div className="lg:col-span-2 space-y-4 text-sm h-full">
          <GeneralInfoCard
@@ -435,14 +451,17 @@ export const AlgoTimeSessionForm = () => {
           } : {}}
           onChange={handleGeneralChange}
 
-          repeatData={{
+          repeatData={mode === "create" ? {
             repeatType: formData.repeatType,
             repeatEndDate: formData.repeatEndDate
-          }}
-          onRepeatChange={handleRepeatChange}
-
+          } : undefined}
+          onRepeatChange={mode === "create" ? handleRepeatChange : undefined}
+        
           cooldown={formData.questionCooldownTime}
           onCooldownChange={handleCooldownChange}
+        
+          showName={mode === "edit"}
+          nameRequired={mode === "edit"}
         />
 
         </div>
@@ -455,7 +474,22 @@ export const AlgoTimeSessionForm = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {formData.repeatType !== "none" && formData.repeatEndDate && generalData.date ? (
+            {mode === "edit" ? (
+                  <SessionQuestionSelector
+                    sessionNumber={1}
+                    sessionDate={generalData.date || ""}
+                    questions={questions}
+                    sessionQuestions={sessionQuestions}
+                    searchQueries={searchQueries}
+                    setSearchQueries={setSearchQueries}
+                    difficultyFilters={difficultyFilters}
+                    setDifficultyFilters={setDifficultyFilters}
+                    toggleQuestionForSession={toggleQuestionForSession}
+                    getDifficultyColor={getDifficultyColor}
+                    sessionNames={sessionNames}
+                    setSessionNames={setSessionNames}
+                  />
+                ) : formData.repeatType !== "none" && formData.repeatEndDate && generalData.date ? (
                 <Tabs
                   value={activeSession}
                   onValueChange={setActiveSession}

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useOutlet, useNavigate } from "react-router-dom";
-import { getAllAlgotimeSessions, deleteAlgotime,updateAlgotime,getAlgotimeById } from "@/api/AlgotimeAPI";
+import { getAllAlgotimeSessions, deleteAlgotime} from "@/api/AlgotimeAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import {
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +28,8 @@ export default function ManageAlgotimeSessionsPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const outlet = useOutlet();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
 
   const {
     trackAdminAlgotimeSessionsViewed,
@@ -174,7 +177,8 @@ export default function ManageAlgotimeSessionsPage() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`view/${ATsession.id}`);
+                    setSelectedSessionId(ATsession.id);
+                    setEditDialogOpen(true);
                   }}
                 >
                   View
@@ -225,10 +229,28 @@ export default function ManageAlgotimeSessionsPage() {
                 </AlertDialog>
               </div>
               </CardFooter>
+              {/* {selectedSessionId && (
+              <EditAlgoTimeSessionDialog
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                sessionId={selectedSessionId}
+                onSuccess={loadATsessions}
+                key={editDialogOpen ? selectedSessionId : "closed"}
+              />
+            )} */}
 
           </Card>
         ))}
       </div>
+      {selectedSessionId && (
+        <EditAlgoTimeSessionDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          sessionId={selectedSessionId}
+          onSuccess={loadATsessions}
+          key={editDialogOpen ? selectedSessionId : "closed"}
+        />
+      )}
     </div>
   );
 }

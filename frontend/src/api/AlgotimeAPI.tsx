@@ -4,6 +4,7 @@ import {
   type CreateAlgotimeResponse,
   type AlgoTimeQuestion,
   type AlgoTimeSession,
+  type CreateAlgotimeSession,
 } from "../types/algoTime/AlgoTime.type"
 import { logFrontend } from "./LoggerAPI";
 
@@ -88,7 +89,7 @@ export const getAlgotimeById = async (sessionId: number) => {
 
 export const updateAlgotime = async (
   sessionId: number,
-  payload: CreateAlgotimeRequest
+  payload: CreateAlgotimeSession
 ) => {
   try {
     const response = await axiosClient.put(
