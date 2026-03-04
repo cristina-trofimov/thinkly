@@ -25,3 +25,18 @@ export interface EditableQuestionFields {
   tags: string[];
   testcases: Array<[string, string]>;
 }
+
+export function getQuestionFields(question: Question): EditableQuestionFields {
+  return {
+    question_name: question.title,
+    question_description: question.description,
+    media: question.media,
+    difficulty: question.difficulty.toLowerCase() as "easy" | "medium" | "hard",
+    preset_code: question.preset_code,
+    from_string_function: question.from_string_function,
+    to_string_function: question.to_string_function,
+    template_solution: question.template_solution,
+    tags: question.tags || [],
+    testcases: question.testcases,
+  };
+}

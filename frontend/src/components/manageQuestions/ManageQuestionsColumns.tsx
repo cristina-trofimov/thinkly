@@ -109,7 +109,7 @@ export const columns: ColumnDef<Question>[] = [
     header: () => <div className="text-left">Description</div>,
     cell: ({ row }) => (
       <div
-        className="max-w-[200px] truncate text-left font-medium"
+        className="max-w-[500px] max-h-[100px] overflow-y-auto whitespace-normal break-words text-left font-medium"
         title={row.getValue("description")}
       >{row.getValue("description")}</div>
     ),
@@ -149,11 +149,11 @@ export const columns: ColumnDef<Question>[] = [
       cell: ({ row, table }) => {
         const question = row.original;
         const meta = table.options.meta as TableMeta;
-        const { handleQuestionUpdate, handleQuestionDelete } = meta;
+        const { handleQuestionDelete } = meta;
   
         return (
           <div className="flex justify-center">
-            <ActionsCell question={question} onUpdate={handleQuestionUpdate} onDelete={handleQuestionDelete} />
+            <ActionsCell question={question} onDelete={handleQuestionDelete} />
           </div>
         );
       },

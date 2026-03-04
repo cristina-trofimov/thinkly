@@ -32,6 +32,7 @@ import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
 import ManageQuestionsPage from "./views/admin/ManageQuestionsPage.tsx";
+import QuestionJSONEditor from "./components/manageQuestions/QuestionJSONEditor.tsx";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ;
 
@@ -153,6 +154,11 @@ const router = createBrowserRouter([
                 path: "manageQuestions",
                 element: <ManageQuestionsPage />,
                 handle: { crumb: { title: "Manage Questions" } },
+              },
+              {
+                path: "manageQuestions/editQuestion/:questionId",
+                element: <QuestionJSONEditor />,
+                handle: { crumb: { title: "Edit Question" } },
               },
               {
                 path: "algoTimeSessions",
