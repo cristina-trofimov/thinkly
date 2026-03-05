@@ -9,6 +9,9 @@ from src.endpoints import authentification_api
 from src.DB_Methods import database
 from fastapi import FastAPI
 import bcrypt
+from fastapi import FastAPI, HTTPException 
+from src.db import Base # Import your SQLAlchemy Base
+from src.DB_Methods.database import engine
 
 
 # Note: Environment variables are set in conftest.py which loads first
@@ -28,6 +31,22 @@ app.include_router(authentification_api.auth_router)
 def mock_db_session():
     """Mocks the SQLAlchemy database session."""
     return MagicMock()
+
+@pytest.fixture(autouse=True) # auto-run for all tests in this file
+def setup_database():
+    """Create all tables in the mock SQLite database before running tests."""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+    
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """
+    Creates all tables in the test SQLite database once per session.
+    """
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Optional: Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture
 def client(mock_db_session):
@@ -257,6 +276,14 @@ def test_global_auth_dependency_public_path(client):
     # It shouldn't return 401 'Missing Token' even without headers
     assert response.status_code != 401
 
+
+def test_verify_token_malformed(client):
+    """Covers JWTError in verify_token helper"""
+    from src.endpoints.authentification_api import verify_token
+    with pytest.raises(HTTPException) as exc:
+        verify_token("not-a-real-jwt")
+    assert exc.value.status_code == 400
+    assert "Invalid token" in exc.value.detail
 
 def test_forgot_password_user_exists(client, mock_user):
     """Covers the email sending block in /forgot-password"""
