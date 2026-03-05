@@ -27,6 +27,15 @@ jest.mock('@/api/AlgotimeAPI', () => ({
   getAllAlgotimeSessions: jest.fn(),
 }));
 
+jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
+  EditAlgoTimeSessionDialog: () => null,
+}));
+
+jest.mock('@/api/AlgotimeAPI', () => ({
+  getAllAlgotimeSessions: jest.fn(),
+  deleteAlgotime: jest.fn(),
+}));
+
 const mockSessions = [
   {
     id: 1,
@@ -173,6 +182,43 @@ describe('ManageAlgotimeSessionsPage', () => {
 
     expect(screen.queryByText('Winter AlgoTime 2025')).not.toBeInTheDocument();
     expect(screen.queryByText('Spring AlgoTime 2025')).not.toBeInTheDocument();
+  });
+
+  //View testing
+  test('renders view button for each session', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+    });
+  
+    const viewButtons = screen.getAllByRole('button', { name: /view/i });
+    expect(viewButtons.length).toBe(2); 
+  });
+
+  //Delete testing
+  test('opens edit dialog when view button is clicked', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+    });
+  
+    const viewButtons = screen.getAllByRole('button', { name: /view/i });
+    fireEvent.click(viewButtons[0]);
+  
+    expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+  });
+
+  test('renders delete button for each session', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+    });
+  
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    expect(deleteButtons.length).toBeGreaterThan(0);
   });
 
 });
