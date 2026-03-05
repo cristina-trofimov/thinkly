@@ -5,6 +5,7 @@ import {
 
 import axiosClient from "../src/lib/axiosClient";
 import { logFrontend } from "../src/api/LoggerAPI";
+import { getAlgotimeById, updateAlgotime, deleteAlgotime } from '../src/api/AlgotimeAPI';
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -146,6 +147,109 @@ describe("AlgotimeAPI", () => {
           level: "ERROR",
           component: "AlgotimeAPI",
         })
+      );
+    });
+  });
+
+  describe("getAlgotimeById", () => {
+    it("fetches and formats a single session", async () => {
+      const backendResponse = {
+        id: 1,
+        eventName: "Algo 101",
+        startTime: "2026-01-01T10:00:00Z",
+        endTime: "2026-01-01T11:00:00Z",
+        questionCooldown: 300,
+        location: "Room 101",
+        questions: [{ questionId: 1 }],
+      };
+  
+      mockedAxios.get.mockResolvedValueOnce({ data: backendResponse } as any);
+  
+      const result = await getAlgotimeById(1);
+  
+      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/1");
+      expect(result.startTime).toBeInstanceOf(Date);
+      expect(result.endTime).toBeInstanceOf(Date);
+      expect(result.location).toBe("Room 101");
+      expect(result.eventName).toBe("Algo 101");
+    });
+  
+    it("defaults location to empty string when null", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          id: 1,
+          eventName: "Algo 101",
+          startTime: "2026-01-01T10:00:00Z",
+          endTime: "2026-01-01T11:00:00Z",
+          location: null,
+        },
+      } as any);
+  
+      const result = await getAlgotimeById(1);
+  
+      expect(result.location).toBe("");
+    });
+  
+    it("logs and rethrows error on failure", async () => {
+      const error = new Error("Fetch failed");
+      mockedAxios.get.mockRejectedValueOnce(error);
+  
+      await expect(getAlgotimeById(1)).rejects.toThrow("Fetch failed");
+  
+      expect(mockedLogger).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "ERROR", component: "AlgotimeAPI" })
+      );
+    });
+  });
+  
+  describe("updateAlgotime", () => {
+    it("sends update request and returns data", async () => {
+      const payload = {
+        name: "Updated Session",
+        date: "2026-01-01",
+        startTime: "10:00",
+        endTime: "11:00",
+        selectedQuestions: [1, 2],
+      };
+      const responseData = { id: 1, eventName: "Updated Session" };
+  
+      mockedAxios.put.mockResolvedValueOnce({ data: responseData } as any);
+  
+      const result = await updateAlgotime(1, payload as any);
+  
+      expect(mockedAxios.put).toHaveBeenCalledWith("/algotime/1", payload);
+      expect(result).toEqual(responseData);
+    });
+  
+    it("logs and rethrows error on failure", async () => {
+      const error = new Error("Update failed");
+      mockedAxios.put.mockRejectedValueOnce(error);
+  
+      await expect(updateAlgotime(1, {} as any)).rejects.toThrow("Update failed");
+  
+      expect(mockedLogger).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "ERROR", component: "AlgotimeAPI" })
+      );
+    });
+  });
+  
+  describe("deleteAlgotime", () => {
+    it("sends delete request successfully", async () => {
+      mockedAxios.delete.mockResolvedValueOnce({} as any);
+  
+      await deleteAlgotime(1);
+  
+      expect(mockedAxios.delete).toHaveBeenCalledWith("/algotime/1");
+    });
+  
+    it("logs and rethrows error on failure", async () => {
+      const error = new Error("Delete failed");
+      mockedAxios.delete.mockRejectedValueOnce(error);
+  
+      await expect(deleteAlgotime(1)).rejects.toThrow("Delete failed");
+  
+      expect(mockedLogger).toHaveBeenCalledWith(
+        expect.objectContaining({ level: "ERROR", component: "AlgotimeAPI" })
       );
     });
   });
