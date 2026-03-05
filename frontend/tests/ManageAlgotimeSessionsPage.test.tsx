@@ -217,8 +217,11 @@ describe('ManageAlgotimeSessionsPage', () => {
       expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
     });
   
-    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-    expect(deleteButtons.length).toBeGreaterThan(0);
-  });
+    const viewButtons = screen.getAllByText('View');
+    const deleteButtons = screen.getAllByText('Delete');
+    
+    expect(viewButtons.length).toBe(2);
+    expect(deleteButtons.length).toBe(2);
+    });
 
 });
