@@ -67,26 +67,50 @@ def sample_preferences():
 class TestGetAllAccounts:
 
     def test_get_all_accounts_success(self, mock_db, sample_user_accounts):
-        mock_db.query.return_value.all.return_value = sample_user_accounts
-        result = get_all_accounts(mock_db)
-        assert result == sample_user_accounts
-        assert len(result) == 5
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = len(sample_user_accounts)
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = sample_user_accounts
+
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert result["total"] == 5
+        assert result["page"] == 1
+        assert result["page_size"] == 25
+        assert len(result["items"]) == 5
 
     def test_get_all_accounts_empty(self, mock_db):
-        mock_db.query.return_value.all.return_value = []
-        result = get_all_accounts(mock_db)
-        assert result == []
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = 0
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = []
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert result["items"] == []
+        assert result["total"] == 0
 
     def test_get_all_accounts_database_called(self, mock_db, sample_user_accounts):
-        mock_db.query.return_value.all.return_value = sample_user_accounts
-        get_all_accounts(mock_db)
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = len(sample_user_accounts)
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = sample_user_accounts
+        get_all_accounts(mock_db, page=1, page_size=25)
         mock_db.query.assert_called_once()
 
     def test_get_all_accounts_single_result(self, mock_db, sample_user_account):
-        mock_db.query.return_value.all.return_value = [sample_user_account]
-        result = get_all_accounts(mock_db)
-        assert len(result) == 1
-        assert result[0].user_id == 1
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = 1
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = [sample_user_account]
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert len(result["items"]) == 1
+        assert result["items"][0]["user_id"] == 1
 
 
 # ---------------------------------------------------------------------------

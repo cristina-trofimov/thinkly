@@ -12,6 +12,7 @@ jest.mock('../src/lib/axiosClient', () => ({
 }))
 jest.mock('./../src/api/AccountsAPI', () => ({
   getAccounts: jest.fn(),
+  getAccountsPage: jest.fn(),
   updateAccount: jest.fn(),
   deleteAccounts: jest.fn(),
 }));
@@ -22,7 +23,7 @@ describe('ManageAccountsPage', () => {
 
   beforeAll(() => {
     const apiModule = require('./../src/api/AccountsAPI');
-    getAccounts = apiModule.getAccounts;
+    getAccounts = apiModule.getAccountsPage || apiModule.getAccounts;
     
     ManageAccountsPage = require('./../src/views/admin/ManageAccountsPage').default;
   });
@@ -33,9 +34,14 @@ describe('ManageAccountsPage', () => {
 
   describe('Initial Render', () => {
     it('renders without crashing', async () => {
-      const mockAccounts = [
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      const mockAccounts = {
+        total: 1,
+        page: 1,
+        pageSize: 25,
+        items: [
+          { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
+        ],
+      };
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
