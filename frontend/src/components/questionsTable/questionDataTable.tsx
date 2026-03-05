@@ -4,10 +4,9 @@ import {
   flexRender,
   getCoreRowModel,
   useReactTable,
-  getFilteredRowModel,
 } from "@tanstack/react-table";
 
-import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 
 import {
   Table,
@@ -30,30 +29,83 @@ import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { Question } from "@/types/questions/Question.type";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  total: number;
+  page: number;
+  pageSize: number;
+  search: string;
+  difficultyFilter: "all" | "easy" | "medium" | "hard";
+  onSearchChange: (value: string) => void;
+  onDifficultyFilterChange: (
+    value: "all" | "easy" | "medium" | "hard"
+  ) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 export function DataTable<TData extends Question, TValue>({
   columns,
   data,
+  total,
+  page,
+  pageSize,
+  search,
+  difficultyFilter,
+  onSearchChange,
+  onDifficultyFilterChange,
+  onPageChange,
+  onPageSizeChange,
 }: Readonly<DataTableProps<TData, TValue>>) {
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      columnFilters,
-    },
   });
+  const pageSizeOptions = ["10", "25", "50", "100"];
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = page;
+  const pageItems = React.useMemo(() => {
+    if (pageCount <= 3) {
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
+    }
+
+    if (currentPage <= 2) {
+      return [1, 2, 3, "ellipsis-right", pageCount] as const;
+    }
+
+    if (currentPage >= pageCount - 1) {
+      return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
+    }
+
+    return [
+      1,
+      "ellipsis-left",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "ellipsis-right",
+      pageCount,
+    ] as const;
+  }, [currentPage, pageCount]);
 
   const nav = useNavigate();
   const {
@@ -66,7 +118,7 @@ export function DataTable<TData extends Question, TValue>({
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearchChange = (value: string) => {
-    table.getColumn("title")?.setFilterValue(value);
+    onSearchChange(value);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -78,8 +130,8 @@ export function DataTable<TData extends Question, TValue>({
     }
   };
 
-  const handleDifficultyFilter = (difficulty: string | undefined) => {
-    table.getColumn("difficulty")?.setFilterValue(difficulty);
+  const handleDifficultyFilter = (difficulty: "all" | "easy" | "medium" | "hard") => {
+    onDifficultyFilterChange(difficulty);
     trackQuestionFilteredByDifficulty(difficulty);
   };
 
@@ -88,9 +140,7 @@ export function DataTable<TData extends Question, TValue>({
       <div className="flex items-center mb-3 gap-3">
         <Input
           placeholder="Search questions..."
-          value={
-            (table.getColumn("title")?.getFilterValue() as string) ?? ""
-          }
+          value={search}
           onChange={(event) => handleSearchChange(event.target.value)}
           className="max-w-sm w-[250px]"
         />
@@ -99,8 +149,9 @@ export function DataTable<TData extends Question, TValue>({
             <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
-                {(table.getColumn("difficulty")?.getFilterValue() as string) ??
-                  "Filter Difficulties"}
+                {difficultyFilter === "all"
+                  ? "Filter Difficulties"
+                  : difficultyFilter.charAt(0).toUpperCase() + difficultyFilter.slice(1)}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -108,24 +159,24 @@ export function DataTable<TData extends Question, TValue>({
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleDifficultyFilter(undefined)}>
+            <DropdownMenuItem onClick={() => handleDifficultyFilter("all")}>
               All
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-easy"
-              onClick={() => handleDifficultyFilter("Easy")}
+              onClick={() => handleDifficultyFilter("easy")}
             >
               Easy
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-medium"
-              onClick={() => handleDifficultyFilter("Medium")}
+              onClick={() => handleDifficultyFilter("medium")}
             >
               Medium
             </DropdownMenuItem>
             <DropdownMenuItem
               data-testid="filter-hard"
-              onClick={() => handleDifficultyFilter("Hard")}
+              onClick={() => handleDifficultyFilter("hard")}
             >
               Hard
             </DropdownMenuItem>
@@ -194,6 +245,81 @@ export function DataTable<TData extends Question, TValue>({
           )}
         </TableBody>
       </Table>
+      <div className="flex flex-row items-center justify-between gap-3 py-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Rows per page</span>
+          <Select
+            value={`${pageSize}`}
+            onValueChange={(value) => onPageSizeChange(Number(value))}
+          >
+            <SelectTrigger className="cursor-pointer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Pagination className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(Math.max(1, currentPage - 1));
+                }}
+                className={
+                  currentPage > 1
+                    ? "cursor-pointer"
+                    : "pointer-events-none opacity-50"
+                }
+              />
+            </PaginationItem>
+            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
+              Page {currentPage} of {pageCount}
+            </PaginationItem>
+            {pageItems.map((item, index) => (
+              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
+                {typeof item === "number" ? (
+                  <PaginationLink
+                    href="#"
+                    isActive={currentPage === item}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      onPageChange(item);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {item}
+                  </PaginationLink>
+                ) : (
+                  <PaginationEllipsis />
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onPageChange(Math.min(pageCount, currentPage + 1));
+                }}
+                className={
+                  currentPage < pageCount
+                    ? "cursor-pointer"
+                    : "pointer-events-none opacity-50"
+                }
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     </div>
   );
 }
