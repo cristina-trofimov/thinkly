@@ -56,19 +56,42 @@ def test_get_all_questions_success(client, mock_db):
     """Test the happy path where questions are returned correctly."""
     
     # 1. Arrange: Create fake question objects
-    # We use SimpleNamespace so we can access attributes like q.title via dot notation
+    # We use SimpleNamespace so we can access attributes like q.question_name via dot notation
     fake_questions = [
         SimpleNamespace(
             question_id=1, 
-            title="Two Sum", 
+            question_name="Two Sum",
+            question_description="Given an array of integers, return indices of two numbers that add to target.",
+            media=None,
             difficulty="Easy",
-            created_at=datetime(2025, 1, 10, 12, 0, 0)
+            preset_code="def two_sum(nums, target):\n    pass",
+            from_string_function="def from_string(s):\n    return s",
+            to_string_function="def to_string(result):\n    return str(result)",
+            template_solution="def two_sum(nums, target):\n    return []",
+            created_at=datetime(2025, 1, 10, 12, 0, 0),
+            last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
+            tags=[SimpleNamespace(tag_name="array"), SimpleNamespace(tag_name="hashmap")],
+            test_cases=[
+                SimpleNamespace(input_data="[2,7,11,15],9", expected_output="[0,1]"),
+                SimpleNamespace(input_data="[3,2,4],6", expected_output="[1,2]")
+            ]
         ),
         SimpleNamespace(
             question_id=2, 
-            title="Reverse Linked List", 
+            question_name="Reverse Linked List",
+            question_description="Reverse a singly linked list.",
+            media=None,
             difficulty="Medium",
-            created_at=datetime(2025, 2, 15, 14, 30, 0)
+            preset_code="def reverse_list(head):\n    pass",
+            from_string_function="def from_string(s):\n    return s",
+            to_string_function="def to_string(result):\n    return str(result)",
+            template_solution="def reverse_list(head):\n    return head",
+            created_at=datetime(2025, 2, 15, 14, 30, 0),
+            last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
+            tags=[SimpleNamespace(tag_name="linked-list")],
+            test_cases=[
+                SimpleNamespace(input_data="[1,2,3,4,5]", expected_output="[5,4,3,2,1]")
+            ]
         )
     ]
 
@@ -87,10 +110,14 @@ def test_get_all_questions_success(client, mock_db):
     
     # Verify the content of the first item
     assert data[0]["question_id"] == 1
-    assert data[0]["title"] == "Two Sum"
+    assert data[0]["question_name"] == "Two Sum"
     assert data[0]["difficulty"] == "Easy"
+    assert data[0]["question_description"].startswith("Given an array")
+    assert data[0]["tags"] == ["array", "hashmap"]
+    assert data[0]["testcases"] == [["[2,7,11,15],9", "[0,1]"], ["[3,2,4],6", "[1,2]"]]
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
     assert "2025-01-10" in data[0]["created_at"]
+    assert "2025-01-10" in data[0]["last_modified_at"]
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
     
