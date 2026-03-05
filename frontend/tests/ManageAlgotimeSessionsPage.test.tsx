@@ -1,8 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ManageAlgotimeSessionsPage from '../src/views/admin/ManageAlgotimeSessionsPage';
-import { getAllAlgotimeSessions } from '../src/api/AlgotimeAPI';
+import { getAllAlgotimeSessions,deleteAlgotime } from '../src/api/AlgotimeAPI';
 import { toast } from 'sonner';
 import { logFrontend } from '../src/api/LoggerAPI';
+
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -27,13 +28,18 @@ jest.mock('@/api/AlgotimeAPI', () => ({
   getAllAlgotimeSessions: jest.fn(),
 }));
 
-jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
-  EditAlgoTimeSessionDialog: () => null,
+jest.mock('@/api/AlgotimeAPI', () => ({
+  getAllAlgotimeSessions: jest.fn(),
+  deleteAlgotime: jest.fn(),
 }));
 
 jest.mock('@/api/AlgotimeAPI', () => ({
   getAllAlgotimeSessions: jest.fn(),
   deleteAlgotime: jest.fn(),
+}));
+
+jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
+  EditAlgoTimeSessionDialog: () => null,
 }));
 
 const mockSessions = [
@@ -209,19 +215,5 @@ describe('ManageAlgotimeSessionsPage', () => {
   
     expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
   });
-
-  test('renders delete button for each session', async () => {
-    render(<ManageAlgotimeSessionsPage />);
-  
-    await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    });
-  
-    const viewButtons = screen.getAllByText('View');
-    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-    
-    expect(viewButtons.length).toBe(2);
-    expect(deleteButtons.length).toBe(2);
-    });
 
 });

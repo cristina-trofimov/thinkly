@@ -83,16 +83,6 @@ export default function ManageAlgotimeSessionsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await deleteAlgotime(id);
-      toast.success("Session deleted successfully");
-      loadATsessions();
-    } catch (err) {
-      toast.error("Failed to delete session");
-    }
-  };
-
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
       <div className="mb-6">
@@ -218,7 +208,7 @@ export default function ManageAlgotimeSessionsPage() {
                             await deleteAlgotime(ATsession.id);
                             toast.success("Session deleted successfully");
                             loadATsessions();
-                          } catch (err) {
+                          } catch {
                             toast.error("Failed to delete session");
                           }
                         }}
