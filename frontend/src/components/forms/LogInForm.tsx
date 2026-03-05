@@ -201,7 +201,7 @@ export function LoginForm({
             <FieldDescription className="text-right">
               <button
                 type="button"
-                className="text-sm text-gray-500 underline hover:text-gray-700"
+                className="cursor-pointer text-sm text-gray-500 underline hover:text-gray-700"
                 onClick={() => navigate("/forgot-password")}
               >
                 Forgot password?
@@ -224,7 +224,7 @@ export function LoginForm({
               Don&apos;t have an account?{" "}
               <button
                 type="button"
-                className="text-gray-500 underline"
+                className="text-gray-500 underline cursor-pointer"
                 onClick={() => navigate("/signup")}
               >
                 Sign up

@@ -89,7 +89,7 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
+        <button className="cursor-pointer flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
           <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
           </div>
