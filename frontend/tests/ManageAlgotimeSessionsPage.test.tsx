@@ -218,7 +218,7 @@ describe('ManageAlgotimeSessionsPage', () => {
     });
   
     const viewButtons = screen.getAllByText('View');
-    const deleteButtons = screen.getAllByText('Delete');
+    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
     
     expect(viewButtons.length).toBe(2);
     expect(deleteButtons.length).toBe(2);

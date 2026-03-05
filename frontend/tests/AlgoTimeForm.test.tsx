@@ -95,7 +95,7 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
         value: cooldown || '',
         onChange: (e: any) => onCooldownChange(e.target.value),
       }),
-      React.createElement('select', {
+      repeatData ? React.createElement('select',{
         key: 'repeat',
         role: 'combobox',
         value: repeatData?.repeatType || 'none',
@@ -106,7 +106,7 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
         React.createElement('option', { key: 'weekly', value: 'weekly' }, 'Weekly'),
         React.createElement('option', { key: 'biweekly', value: 'biweekly' }, 'Biweekly'),
         React.createElement('option', { key: 'monthly', value: 'monthly' }, 'Monthly'),
-      ]),
+      ]): null ,
       (repeatData?.repeatType && repeatData.repeatType !== 'none')
         ? React.createElement('input', {
          key: 'repeatEndDate',
@@ -545,6 +545,8 @@ describe('AlgoTimeSessionForm', () => {
       fireEvent.change(screen.getByTestId('date'), { target: { value: '2025-01-20' } });
       fireEvent.change(screen.getByLabelText('Start Time'), { target: { value: '14:00' } });
       fireEvent.change(screen.getByLabelText('End Time'), { target: { value: '16:00' } });
+      const sessionNameInput = screen.getByLabelText('Session Name');
+      fireEvent.change(sessionNameInput, { target: { value: 'My Session' } });
       fireEvent.change(screen.getByTestId('name'), { target: { value: 'My Session' } });
       const checkbox = screen.getByTestId('question-1-1');
       fireEvent.click(checkbox);
