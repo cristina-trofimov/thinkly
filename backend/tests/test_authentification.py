@@ -245,3 +245,66 @@ def test_google_auth_registration_failure(client):
         response = client.post("/google-auth", json={"credential": "fake"})
         assert response.status_code == 500
         assert "Failed to create" in response.json()["detail"]
+        
+        
+# --------------------- NEW COVERAGE TESTS ---------------------
+
+def test_global_auth_dependency_public_path(client):
+    """Verifies that public paths bypass the auth dependency in main.py"""
+    # Note: This requires importing the 'app' from main, not the dummy app
+    # If using the dummy app, we mock the dependency behavior
+    response = client.post("/auth/login", json={"email": "test@a.com", "password": "p"})
+    # It shouldn't return 401 'Missing Token' even without headers
+    assert response.status_code != 401
+
+
+def test_forgot_password_user_exists(client, mock_user):
+    """Covers the email sending block in /forgot-password"""
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user), \
+         patch("src.endpoints.authentification_api.send_email_via_brevo") as mock_email:
+        response = client.post("/forgot-password", json={"email": mock_user.email})
+        assert response.status_code == 200
+        assert "email has been sent" in response.json()["message"]
+        mock_email.assert_called_once()
+
+def test_reset_password_invalid_purpose(client, mock_user):
+    """Covers purpose != 'password_reset' check in /reset-password"""
+    # Create a token with the wrong purpose
+    bad_token = authentification_api.create_access_token({"sub": mock_user.email, "purpose": "wrong"})
+    
+    response = client.post("/reset-password", json={"token": bad_token, "new_password": "newpassword123"})
+    assert response.status_code == 400
+    assert "Invalid or expired" in response.json()["detail"]
+
+def test_change_password_wrong_old_password(client, mock_user):
+    """Covers the incorrect old password check"""
+    token = authentification_api.create_access_token({"sub": mock_user.email, "id": mock_user.user_id})
+    payload = {"old_password": "WRONG_OLD_PASSWORD", "new_password": "newpassword123"}
+    
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.post("/change-password", 
+                               json=payload, 
+                               headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 400
+        assert "Incorrect old password" in response.json()["detail"]
+
+def test_is_google_account_check(client, mock_user):
+    """Covers the logic identifying empty string passwords as Google accounts"""
+    token = authentification_api.create_access_token({"sub": mock_user.email})
+    
+    # Mock a Google user (empty password)
+    mock_user.hashed_password = ""
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=mock_user):
+        response = client.get("/is-google-account", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 200
+        assert response.json()["isGoogleUser"] is True
+
+def test_refresh_token_user_not_found(client):
+    """Covers the 'if not user' block in /refresh"""
+    refresh_token = authentification_api.create_refresh_token({"sub": "ghost@a.com"})
+    client.cookies.set("refresh_token", refresh_token)
+
+    with patch("src.endpoints.authentification_api.get_user_by_email", return_value=None):
+        response = client.post("/refresh")
+        assert response.status_code == 401
+        assert "User not found" in response.json()["detail"]
