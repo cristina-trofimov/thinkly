@@ -5,6 +5,7 @@ import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageA
 import { getAccountsPage } from "@/api/AccountsAPI";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
@@ -93,7 +94,7 @@ export default function ManageAccountsPage() {
   }, [page, pageSize, search, userTypeFilter, refreshToken]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <ManageAccountsTableSkeleton />;
   }
   if (error) {
     return <div>Error: {error}</div>;
