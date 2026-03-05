@@ -9,6 +9,7 @@ os.environ["BREVO_API_KEY"] = "mock_key"
 os.environ["DEFAULT_SENDER_EMAIL"] = "test_sender@example.com"
 os.environ["SUPABASE_URL"] = "https://mock.supabase.co"
 os.environ["SUPABASE_ANON_KEY"] = "mock_key"
+os.environ["JUDGE0_URL"] = "http://mock-judge0.com"
 
 # 2. NOW import the app
 from main import app 
