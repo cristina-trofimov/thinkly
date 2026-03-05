@@ -57,7 +57,7 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [, setCreateDialogOpen] = useState(false);
+  const [_, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<{
     id: number;
@@ -260,7 +260,7 @@ const ManageCompetitions = () => {
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Search competitions..."
             value={searchQuery}
@@ -271,7 +271,7 @@ const ManageCompetitions = () => {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2 sm:w-auto w-full">
-              <Filter className="h-4 w-4" />
+              <Filter className="h-4 w-4 text-primary" />
               <span>{statusFilter ?? "All competitions"}</span>
             </Button>
           </DropdownMenuTrigger>
@@ -297,7 +297,7 @@ const ManageCompetitions = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Create Button Card */}
         <Card
-          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+          className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
           onClick={handleCreateNavigation}
         >
           <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
@@ -329,7 +329,7 @@ const ManageCompetitions = () => {
           return (
             <Card
               key={comp.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col"
+              className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col"
               onClick={() => handleCardClick(comp.id, title)}
             >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">

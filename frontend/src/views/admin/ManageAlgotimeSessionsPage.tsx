@@ -82,19 +82,19 @@ export default function ManageAlgotimeSessionsPage() {
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Search algotime session name"
             value={searchQuery}
             onChange={(event) => handleSearchChange(event.target.value)}
-            className="pl-9"
+            className="pl-9 w-xs"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <Card
-          className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+          className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
           onClick={handleCreateNavigation}
         >
           <CardHeader className="pb-0 flex items-center justify-center">

@@ -3,6 +3,7 @@ import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
 import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
+import { getProfile } from "./AuthAPI";
 
 
 export function parse_input_output(testcases: TestcaseType[]) {
@@ -33,7 +34,6 @@ export function parse_input_output(testcases: TestcaseType[]) {
 }
 
 export async function submitToJudge0(
-    user_id: number,
     question_instance_id: number | undefined,
     source_code: string,
     language_id: string,
@@ -56,9 +56,11 @@ export async function submitToJudge0(
             }
         )
 
-        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, Number.parseInt(language_id))
+        const user = await getProfile()
 
-        const userPref = await updateLastProgLang(user_id, Number.parseInt(language_id))
+        const mostRecentSubResponse = await updateMostRecentSub(user.id, question_instance_id, source_code, Number.parseInt(language_id))
+
+        const userPref = await updateLastProgLang(user.id, Number.parseInt(language_id))
 
         return {
             judge0Response: response['data'],

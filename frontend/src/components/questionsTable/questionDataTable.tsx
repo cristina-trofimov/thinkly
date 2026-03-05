@@ -173,7 +173,7 @@ export function DataTable<TData extends Question, TValue>({
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-left">
+                  <TableCell key={cell.id} className="text-left cursor-pointer">
                     {flexRender(
                       cell.column.columnDef.cell,
                       cell.getContext()

@@ -215,7 +215,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-0.5 cursor-pointer">
+            <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
                 {(table.getColumn("accountType")?.getFilterValue() as string) ??
@@ -266,7 +266,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               <AlertDialogTrigger asChild>
                 <Button
                 size="icon"
-                  className="cursor-pointer text-destructive bg-destructive/10 hover:bg-destructive/20"
+                  className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
                 >
                   <Trash2/>
                 </Button>
@@ -284,7 +284,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+                    className="bg-destructive cursor-pointer hover:bg-destructive/90"
                     onClick={handleDelete}
                   >
                     Delete
@@ -294,7 +294,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             </AlertDialog>
             <Button
               variant="outline"
-              className="cursor-pointer"
+              className=""
               onClick={handleCancelSelection}
             >
               Cancel

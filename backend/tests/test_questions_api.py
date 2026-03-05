@@ -16,7 +16,7 @@ sys.path.append(parent_dir)
 
 # --- IMPORTS ---
 # 1. Import the dependency you need to override (Must match source exactly!)
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 
 # 2. Import the router you want to test
 # (Replace 'src.endpoints.questions_api' with the actual path to your file)

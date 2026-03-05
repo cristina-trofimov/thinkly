@@ -141,7 +141,7 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
 
                 // If current user, use purple highlight, otherwise use podium colors based on rank
                 const rowClass = isCurrentUser
-                  ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
+                  ? "bg-primary/20 border-t-2 border-b-2 border-primary font-semibold"
                   : getRowBgClass(rank);
 
                 // Insert separator after rank 10 (when we transition from top 10 to user context)

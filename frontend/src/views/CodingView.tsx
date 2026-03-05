@@ -25,7 +25,6 @@ import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
-import { getProfile } from '@/api/AuthAPI';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
@@ -133,9 +132,7 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const user = await getProfile()
-
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, user.id, null, code, judgeID, testcases)
+      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, null, code, judgeID, testcases)
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -173,9 +170,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
-      const user = await getProfile()
       const instance = await getQuestionInstance(question?.id, null)
-      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, instance[0].question_instance_id, code, judgeID, testcases)
+      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(instance[0].question_instance_id, code, judgeID, testcases)
       
       setLogs(prev => [...prev, judge0Response])
       setMostRecentSub(mostRecentSubResponse)

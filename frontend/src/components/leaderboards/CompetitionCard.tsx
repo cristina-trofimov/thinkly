@@ -8,6 +8,7 @@ import type { CompetitionWithParticipants } from "@/types/competition/Competitio
 import * as XLSX from "xlsx";
 import { getAllCompetitionEntries } from "@/api/LeaderboardsAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { Button } from "../ui/button";
 
 interface Props {
   readonly competition: CompetitionWithParticipants;
@@ -21,8 +22,8 @@ function CopyButtonContent({ state }: { readonly state: CopyButtonState }) {
   if (state === "copied") {
     return (
       <>
-        <Check className="w-4 h-4 text-green-500" />
-        <span className="text-green-500">Copied!</span>
+        <Check className="w-4 h-4 text-emerald-500" />
+        <span className="text-emerald-500">Copied!</span>
       </>
     );
   }
@@ -36,7 +37,7 @@ function CopyButtonContent({ state }: { readonly state: CopyButtonState }) {
   }
   return (
     <>
-      <Copy className="w-4 h-4" />
+      <Copy className="w-4 h-4 text-primary" />
       Copy
     </>
   );
@@ -198,14 +199,14 @@ export function CompetitionCard({
 
   return (
     <Card
-      className={`mb-6 shadow-sm border ${isCurrent ? "border-[#8065CD]" : "border-gray-200"} ${backgroundColor}`}
+      className={`mb-6 shadow-sm border ${isCurrent ? "border-primary" : "border-gray-200"} ${backgroundColor}`}
     >
       <CardHeader
         onClick={handleToggle}
         className="flex flex-row items-center justify-between px-6 py-4 cursor-pointer"
       >
         <div>
-          <CardTitle className="text-lg font-semibold text-[#8065CD]">
+          <CardTitle className="text-lg font-semibold text-primary">
             {competition.competitionTitle}
           </CardTitle>
           <p className="text-sm text-gray-500">
@@ -222,23 +223,24 @@ export function CompetitionCard({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={handleCopy}
             disabled={exporting}
             title="Copy leaderboard to clipboard"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-[#8065CD] hover:text-[#8065CD] transition-colors disabled:opacity-50 disabled:cursor-wait"
+            variant="outline"
+            className="flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-wait"
           >
             <CopyButtonContent state={copyButtonState} />
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={handleDownload}
             disabled={exporting}
             title="Download as Excel file"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-[#8065CD] text-white hover:bg-[#6a52b3] transition-colors disabled:opacity-50 disabled:cursor-wait"
+            className="flex items-center gap-1.5 transition-colors disabled:cursor-wait"
           >
             <DownloadButtonContent exporting={exporting} />
-          </button>
+          </Button>
 
           {statusIndicator}
         </div>
