@@ -4,15 +4,12 @@ import * as React from "react";
 import type {
   ColumnDef,
   SortingState,
-  ColumnFiltersState,
 } from "@tanstack/react-table";
 
 import {
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -82,6 +79,17 @@ declare module "@tanstack/react-table" {
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  total: number;
+  page: number;
+  pageSize: number;
+  search: string;
+  userTypeFilter: "all" | "owner" | "admin" | "participant";
+  onSearchChange: (value: string) => void;
+  onUserTypeFilterChange: (
+    value: "all" | "owner" | "admin" | "participant"
+  ) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
 }
@@ -89,14 +97,20 @@ interface ManageAccountsDataTableProps<TData, TValue> {
 export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
+  total,
+  page,
+  pageSize,
+  search,
+  userTypeFilter,
+  onSearchChange,
+  onUserTypeFilterChange,
+  onPageChange,
+  onPageSizeChange,
   onDeleteUsers,
   onUserUpdate,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const pageSizeOptions = ["10", "25", "50", "100"];
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
   const [rowSelection, setRowSelection] = React.useState({});
   const selectedCount = Object.keys(rowSelection).length;
 
@@ -104,49 +118,40 @@ export function ManageAccountsDataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     meta: {
       onUserUpdate,
     },
     state: {
       sorting,
-      columnFilters,
       rowSelection,
     },
-    initialState: {
-      pagination: {
-        pageSize: 25,
-      },
-    },
   });
-  const currentPage = table.getState().pagination.pageIndex;
-  const pageCount = table.getPageCount();
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = page;
   const pageItems = React.useMemo(() => {
     if (pageCount <= 3) {
-      return Array.from({ length: pageCount }, (_, index) => index);
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
     }
 
-    if (currentPage <= 1) {
-      return [0, 1, 2, "ellipsis-right", pageCount - 1] as const;
+    if (currentPage <= 2) {
+      return [1, 2, 3, "ellipsis-right", pageCount] as const;
     }
 
-    if (currentPage >= pageCount - 3) {
-      return [0, "ellipsis-left", pageCount - 3, pageCount - 2, pageCount - 1] as const;
+    if (currentPage >= pageCount - 1) {
+      return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
     }
 
     return [
-      0,
+      1,
       "ellipsis-left",
       currentPage - 1,
       currentPage,
       currentPage + 1,
       "ellipsis-right",
-      pageCount - 1,
+      pageCount,
     ] as const;
   }, [currentPage, pageCount]);
 
@@ -206,10 +211,8 @@ export function ManageAccountsDataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Filter emails..."
-            value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("email")?.setFilterValue(event.target.value)
-            }
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
             className="pl-9 w-xs"
           />
         </div>
@@ -218,8 +221,9 @@ export function ManageAccountsDataTable<TData, TValue>({
             <Button variant="outline" className="gap-0.5 cursor-pointer">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
-                {(table.getColumn("accountType")?.getFilterValue() as string) ??
-                  "All Account Types"}
+                {userTypeFilter === "all"
+                  ? "All Account Types"
+                  : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1)}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -228,33 +232,25 @@ export function ManageAccountsDataTable<TData, TValue>({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue(undefined)
-              }
+              onClick={() => onUserTypeFilterChange("all")}
             >
               All
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Participant")
-              }
+              onClick={() => onUserTypeFilterChange("participant")}
             >
               Participant
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Admin")
-              }
+              onClick={() => onUserTypeFilterChange("admin")}
             >
               Admin
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Owner")
-              }
+              onClick={() => onUserTypeFilterChange("owner")}
             >
               Owner
             </DropdownMenuItem>
@@ -361,8 +357,8 @@ export function ManageAccountsDataTable<TData, TValue>({
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Rows per page</span>
             <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => table.setPageSize(Number(value))}
+              value={`${pageSize}`}
+              onValueChange={(value) => onPageSizeChange(Number(value))}
             >
               <SelectTrigger className="cursor-pointer">
                 <SelectValue />
@@ -379,7 +375,7 @@ export function ManageAccountsDataTable<TData, TValue>({
           {selectedCount > 0 ? (
             <div className="text-sm text-muted-foreground">
               {selectedCount} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected
+              {table.getRowModel().rows.length} row(s) selected
             </div>
           ) : null}
         </div>
@@ -391,17 +387,17 @@ export function ManageAccountsDataTable<TData, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  table.previousPage();
+                  onPageChange(Math.max(1, currentPage - 1));
                 }}
                 className={
-                  table.getCanPreviousPage()
+                  currentPage > 1
                     ? "cursor-pointer"
                     : "pointer-events-none opacity-50"
                 }
               />
             </PaginationItem>
             <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-              Page {currentPage + 1} of {pageCount}
+              Page {currentPage} of {pageCount}
             </PaginationItem>
             {pageItems.map((item, index) => (
               <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
@@ -411,11 +407,11 @@ export function ManageAccountsDataTable<TData, TValue>({
                     isActive={currentPage === item}
                     onClick={(event) => {
                       event.preventDefault();
-                      table.setPageIndex(item);
+                      onPageChange(item);
                     }}
                     className="cursor-pointer"
                   >
-                    {item + 1}
+                    {item}
                   </PaginationLink>
                 ) : (
                   <PaginationEllipsis />
@@ -427,10 +423,10 @@ export function ManageAccountsDataTable<TData, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  table.nextPage();
+                  onPageChange(Math.min(pageCount, currentPage + 1));
                 }}
                 className={
-                  table.getCanNextPage()
+                  currentPage < pageCount
                     ? "cursor-pointer"
                     : "pointer-events-none opacity-50"
                 }

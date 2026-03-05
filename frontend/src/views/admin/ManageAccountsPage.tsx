@@ -2,14 +2,22 @@ import { useEffect, useState } from "react";
 import { columns } from "../../components/manageAccounts/ManageAccountsColumns";
 import type { Account } from "@/types/account/Account.type";
 import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageAccountsDataTable";
-import { getAccounts } from "@/api/AccountsAPI";
+import { getAccountsPage } from "@/api/AccountsAPI";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+  const [search, setSearch] = useState<string>("");
+  const [userTypeFilter, setUserTypeFilter] = useState<
+    "all" | "owner" | "admin" | "participant"
+  >("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<number>(0);
 
   const {
     trackAdminAccountsViewed,
@@ -20,23 +28,44 @@ export default function ManageAccountsPage() {
   useEffect(() => {
     const getAllAccounts = async () => {
       setLoading(true);
+      setError(null);
       logFrontend({
         level: "INFO",
-        message: `Attempting to fetch all user accounts.`,
+        message: `Attempting to fetch accounts page=${page}, pageSize=${pageSize}, search=${search || "none"}, userType=${userTypeFilter}.`,
         component: "ManageAccountsPage",
         url: globalThis.location.href,
       });
 
       try {
-        const users = await getAccounts();
-        setData(users);
+        const rawResult = (await getAccountsPage({
+          page,
+          pageSize,
+          search,
+          userType: userTypeFilter === "all" ? undefined : userTypeFilter,
+        })) as unknown;
+
+        const result = Array.isArray(rawResult)
+          ? { total: rawResult.length, page, pageSize, items: rawResult }
+          : (rawResult as {
+              total: number;
+              page: number;
+              pageSize: number;
+              items: Account[];
+            });
+        setData(result.items);
+        setTotal(result.total);
+
+        if (result.items.length === 0 && result.total > 0 && page > 1) {
+          setPage(page - 1);
+          return;
+        }
 
         // Track page view once data is loaded so we can attach account_count
-        trackAdminAccountsViewed(users.length);
+        trackAdminAccountsViewed(result.total);
 
         logFrontend({
           level: "INFO",
-          message: `Successfully loaded ${users.length} user accounts.`,
+          message: `Successfully loaded ${result.items.length} user accounts (total=${result.total}).`,
           component: "ManageAccountsPage",
           url: globalThis.location.href,
         });
@@ -61,7 +90,7 @@ export default function ManageAccountsPage() {
     };
     getAllAccounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, pageSize, search, userTypeFilter, refreshToken]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -80,9 +109,9 @@ export default function ManageAccountsPage() {
       url: globalThis.location.href,
     });
 
-    setData((prevData) =>
-      prevData.filter((account) => !deletedUserIds.includes(account.id))
-    );
+    setData((prevData) => prevData.filter((account) => !deletedUserIds.includes(account.id)));
+    setTotal((prevTotal) => Math.max(0, prevTotal - deletedUserIds.length));
+    setRefreshToken((prev) => prev + 1);
   };
 
   const handleUserUpdate = (updatedUser: Account) => {
@@ -107,6 +136,24 @@ export default function ManageAccountsPage() {
       <ManageAccountsDataTable
         columns={columns}
         data={data}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        search={search}
+        userTypeFilter={userTypeFilter}
+        onSearchChange={(value) => {
+          setPage(1);
+          setSearch(value);
+        }}
+        onUserTypeFilterChange={(value) => {
+          setPage(1);
+          setUserTypeFilter(value);
+        }}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPage(1);
+          setPageSize(value);
+        }}
         onDeleteUsers={handleDeleteUsers}
         onUserUpdate={handleUserUpdate}
       />

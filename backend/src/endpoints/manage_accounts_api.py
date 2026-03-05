@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from models.schema import UserAccount, UserPreferences
 from database_operations.database import get_db
 from pydantic import BaseModel, Field
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 import logging
 from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 accounts_router = APIRouter(tags=["Accounts"])
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
 
 
 class DeleteAccountsRequest(BaseModel):
@@ -27,11 +30,73 @@ class UpdatePreferencesRequest(BaseModel):
     notifications_enabled: Optional[bool] = None
 
 
-@accounts_router.get("/users")
-def get_all_accounts(db: Annotated[Session, Depends(get_db)]):
-    accounts = db.query(UserAccount).all()
-    logger.info(f"Fetched {len(accounts)} accounts from the database.")
-    return accounts
+class AccountItemResponse(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    email: str
+    user_type: str
+
+
+class PaginatedAccountsResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[AccountItemResponse]
+
+
+@accounts_router.get("/users", response_model=PaginatedAccountsResponse)
+def get_all_accounts(
+    db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Annotated[Optional[str], Query(max_length=200)] = None,
+    user_type: Annotated[Optional[Literal["owner", "admin", "participant"]], Query()] = None,
+):
+    query = db.query(UserAccount)
+
+    if search and search.strip():
+        needle = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                UserAccount.email.ilike(needle),
+                UserAccount.first_name.ilike(needle),
+                UserAccount.last_name.ilike(needle),
+            )
+        )
+
+    if user_type:
+        query = query.filter(UserAccount.user_type == user_type)
+
+    query = query.order_by(UserAccount.created_at.desc(), UserAccount.user_id.desc())
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    accounts = query.offset(offset).limit(page_size).all()
+
+    logger.info(
+        "Fetched %s account(s) for page=%s, page_size=%s (total=%s).",
+        len(accounts),
+        page,
+        page_size,
+        total,
+    )
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": [
+            {
+                "user_id": account.user_id,
+                "first_name": account.first_name,
+                "last_name": account.last_name,
+                "email": account.email,
+                "user_type": account.user_type,
+            }
+            for account in accounts
+        ],
+    }
 
 
 @accounts_router.delete(

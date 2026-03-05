@@ -14,16 +14,32 @@ const formatAccountType = (userType: UserType): Account["accountType"] => {
 export async function getAccounts(): Promise<Account[]> {
   try {
     const response = await axiosClient.get<
-      {
-        user_id: number;
-        first_name: string;
-        last_name: string;
-        email: string;
-        user_type: UserType;
-      }[]
+      | {
+          user_id: number;
+          first_name: string;
+          last_name: string;
+          email: string;
+          user_type: UserType;
+        }[]
+      | {
+          total: number;
+          page: number;
+          page_size: number;
+          items: {
+            user_id: number;
+            first_name: string;
+            last_name: string;
+            email: string;
+            user_type: UserType;
+          }[];
+        }
     >("/manage-accounts/users");
 
-    const formattedAccounts: Account[] = response.data.map((user) => ({
+    const rawUsers = Array.isArray(response.data)
+      ? response.data
+      : response.data.items;
+
+    const formattedAccounts: Account[] = rawUsers.map((user) => ({
       id: user.user_id,
       firstName: user.first_name,
       lastName: user.last_name,
@@ -36,6 +52,59 @@ export async function getAccounts(): Promise<Account[]> {
     console.error("Error fetching accounts:", err);
     throw err;
   }
+}
+
+export interface AccountsQueryParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  userType?: UserType;
+}
+
+export interface AccountsPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: Account[];
+}
+
+export async function getAccountsPage(
+  params: AccountsQueryParams = {}
+): Promise<AccountsPage> {
+  const { page = 1, pageSize = 25, search, userType } = params;
+  const queryParams: Record<string, string | number> = {
+    page,
+    page_size: pageSize,
+  };
+
+  if (search?.trim()) queryParams.search = search.trim();
+  if (userType) queryParams.user_type = userType;
+
+  const response = await axiosClient.get<{
+    total: number;
+    page: number;
+    page_size: number;
+    items: {
+      user_id: number;
+      first_name: string;
+      last_name: string;
+      email: string;
+      user_type: UserType;
+    }[];
+  }>("/manage-accounts/users", { params: queryParams });
+
+  return {
+    total: response.data.total,
+    page: response.data.page,
+    pageSize: response.data.page_size,
+    items: response.data.items.map((user) => ({
+      id: user.user_id,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      email: user.email,
+      accountType: formatAccountType(user.user_type),
+    })),
+  };
 }
 
 export async function deleteAccounts(userIds: number[]): Promise<{
