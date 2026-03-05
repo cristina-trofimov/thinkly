@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from models.schema import Question, Riddle, Tag, TestCase
 from database_operations.database import get_db
 import logging
-from backend.src.services.posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])

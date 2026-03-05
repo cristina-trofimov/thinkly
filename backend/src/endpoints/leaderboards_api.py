@@ -10,7 +10,7 @@ from models.schema import (
     BaseEvent
 )
 import logging
-from backend.src.services.posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
