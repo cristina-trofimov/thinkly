@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from backend.src.endpoints.log_api import log_router
+from endpoints.log_api import log_router
 from endpoints.authentification_api import auth_router
 from endpoints.questions_api import questions_router
 from endpoints.competitions_api import competitions_router
@@ -16,8 +16,8 @@ from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from logging_config import setup_logging
-from backend.src.services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
-from backend.src.services.email_scheduler import run_scheduled_emails
+from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os

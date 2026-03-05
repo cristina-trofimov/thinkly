@@ -12,7 +12,7 @@ from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
 import logging
 from typing import Annotated
-from backend.src.services.posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])

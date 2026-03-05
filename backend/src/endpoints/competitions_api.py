@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
-from backend.src.services.posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 TIMEZONE_NEW_YORK = "America/New_York"
 LOCAL_TZ = ZoneInfo(TIMEZONE_NEW_YORK)
