@@ -11,10 +11,10 @@ from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 import uuid
-from DB_Methods.database import get_db, _commit_or_rollback
+from database_operations.database import get_db, _commit_or_rollback
 import logging
-from .send_email_api import send_email_via_brevo
-from posthog_analytics import identify_user, track_custom_event
+from endpoints.send_email_api import send_email_via_brevo
+from services.posthog_analytics import identify_user, track_custom_event
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
@@ -133,6 +133,7 @@ def verify_password(password: str, hashed: str) -> bool:
     )
 
 
+
 # ---------------- JWT helpers ----------------
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -172,6 +173,12 @@ def get_current_user(request: Request):
     claims = decode_access_token(token)
     return claims
 
+UNAUTHORIZED_RESPONSE = {
+    status.HTTP_401_UNAUTHORIZED: {
+        "description": "Token has been revoked or is invalid"
+    }
+}
+
 
 def role_required(required_role: str):
     def role_checker(current_user: Annotated[dict, Depends(get_current_user)]):
@@ -185,7 +192,7 @@ def role_required(required_role: str):
 
 
 # ---------------- Routes ----------------
-@auth_router.post("/signup")
+@auth_router.post("/signup", responses=UNAUTHORIZED_RESPONSE)
 async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info(f"Attempting signup for email: {request.email}")
     if get_user_by_email(db, request.email):
@@ -227,8 +234,8 @@ async def signup(request: SignupRequest, db: Annotated[Session, Depends(get_db)]
                             detail="Internal server error during signup")
 
 
-@auth_router.post("/login")
-async def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
+@auth_router.post("/login", responses=UNAUTHORIZED_RESPONSE)
+async def login(request: LoginRequest, response: Response, db: Annotated[Session, Depends(get_db)]):
     user = get_user_by_email(db, request.email)
 
     if not user or not bcrypt.checkpw(request.password.encode(), user.hashed_password.encode()):
@@ -301,7 +308,7 @@ async def login(request: LoginRequest, response: Response, db: Session = Depends
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 
-@auth_router.post("/google-auth")
+@auth_router.post("/google-auth", responses=UNAUTHORIZED_RESPONSE)
 async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info("Attempting Google OAuth login.")
     try:
@@ -410,7 +417,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
     
 @auth_router.post("/refresh", responses={401: {"description": "Refresh failed due to missing, invalid, or expired token"}})
-async def refresh_token(request: Request, db: Session = Depends(get_db)):
+async def refresh_token(request: Request, db: Annotated[Session, Depends(get_db)]):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token missing")
@@ -437,7 +444,7 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
-@auth_router.get("/profile")
+@auth_router.get("/profile", responses=UNAUTHORIZED_RESPONSE)
 async def profile(
         db: Annotated[Session, Depends(get_db)],
         current_user: Annotated[dict, Depends(get_current_user)]
@@ -455,12 +462,12 @@ async def profile(
     return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email,
             "role": user.user_type}
 
-@auth_router.post("/logout")
+@auth_router.post("/logout", responses=UNAUTHORIZED_RESPONSE)
 async def logout(
     request: Request, 
     response: Response, 
-    db: Session = Depends(get_db), 
-    current_user: dict = Depends(get_current_user)
+    db: Annotated[Session, Depends(get_db)], 
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub", "N/A")
     user_id = current_user.get("id")
@@ -513,7 +520,7 @@ async def logout(
     
     return {"msg": "Successfully logged out"}
 
-@auth_router.get("/admin/dashboard")
+@auth_router.get("/admin/dashboard", responses=UNAUTHORIZED_RESPONSE)
 async def admin_dashboard(
         db: Annotated[Session, Depends(get_db)],
         current_user: Annotated[dict, Depends(role_required("admin"))]

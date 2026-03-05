@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from sqlalchemy.orm import Session
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import UserPreferences
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import APIRouter, HTTPException, Depends

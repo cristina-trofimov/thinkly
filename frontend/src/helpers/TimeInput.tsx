@@ -77,7 +77,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
           id={id}
           type="text"
           readOnly
-          value={value ? currentParsed.display : ""} 
+          value={value ? currentParsed.display : ""}
           placeholder={placeholder || "hh:mm"}
           className="pr-10"
           onClick={() => setOpen(true)}
@@ -107,7 +107,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
                   viewPeriod === "AM"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
-                }`}
+                  }`}
                 onClick={() => setViewPeriod("AM")}
               >
                 AM
@@ -118,7 +118,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
                   viewPeriod === "PM"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-muted"
-                }`}
+                  }`}
                 onClick={() => setViewPeriod("PM")}
               >
                 PM
@@ -128,7 +128,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
             {/* Time list */}
             <div ref={listRef} className="max-h-52 overflow-y-auto">
               {times.map((t) => (
-                <div
+                <button
                   key={t.value24}
                   data-selected={value === t.value24}
                   onClick={() => handleSelect(t.value24)}
@@ -136,10 +136,10 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
                     value === t.value24
                       ? "bg-primary/15 font-semibold text-primary"
                       : "hover:bg-primary/5"
-                  }`}
+                    }`}
                 >
                   {t.label}
-                </div>
+                </button>
               ))}
             </div>
           </PopoverContent>
