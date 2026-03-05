@@ -9,8 +9,10 @@ from typing import Annotated, List, Optional
 import logging
 from posthog_analytics import track_custom_event
 from endpoints.authentification_api import get_current_user
+from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 algotime_router = APIRouter(tags=["Algotime"])
+LOCAL_TZ = ZoneInfo("America/Toronto") 
 
 
 # ---------------- Models ----------------
@@ -20,6 +22,7 @@ class CreateAlgotimeSessionRequest(BaseModel):
     startTime: str  # HH:MM
     endTime: str  # HH:MM
     selectedQuestions: List[int]
+    location: Optional[str] = None
 
     @validator('selectedQuestions')
     def validate_questions(cls, v):
@@ -61,6 +64,7 @@ class AlgoTimeSessionResponse(BaseModel):
     startTime: str
     endTime: str
     questionCooldown: int
+    location: Optional[str] = None
     seriesId: Optional[int] = None
     seriesName: Optional[str] = None
     questions: List[AlgoTimeQuestionResponse]
@@ -98,11 +102,10 @@ def validate_questions_exist(db: Session, question_ids: List[int]):
 
 def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
     try:
-        dt_str = f"{date_str}T{time_str}:00"
-        dt = datetime.fromisoformat(dt_str)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt
+        dt_naive = datetime.fromisoformat(f"{date_str}T{time_str}:00")
+        dt_local = dt_naive.replace(tzinfo=LOCAL_TZ)
+        dt_utc = dt_local.astimezone(timezone.utc)
+        return dt_utc
     except ValueError as e:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
@@ -185,6 +188,7 @@ def create_algotime(
 
             base_event = BaseEvent(
                 event_name=session.name,
+                event_location=session.location if hasattr(session, 'location') else None,
                 question_cooldown=request.questionCooldown,
                 event_start_date=start_dt,
                 event_end_date=end_dt,
@@ -339,6 +343,7 @@ def get_algotime_session(
         startTime=str(event.event_start_date),
         endTime=str(event.event_end_date),
         questionCooldown=event.question_cooldown,
+        location=event.event_location,
         seriesId=session.algotime_series_id,
         seriesName=(
             session.algotime_series.algotime_series_name
@@ -373,6 +378,7 @@ def update_algotime_session(
     validate_competition_times(start_dt, end_dt)
 
     event.event_name = request.name
+    event.event_location = request.location
     event.event_start_date = start_dt
     event.event_end_date = end_dt
 

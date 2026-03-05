@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader , CardFooter} from "@/components/ui/card";
 import { Input} from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Eye, Trash} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
@@ -171,7 +171,7 @@ export default function ManageAlgotimeSessionsPage() {
               </div>
             </CardContent>
               <CardFooter>
-              <div className="flex justify-end gap-2 pt-3 border-t">
+              <div className="flex justify-end gap-2 pt-3 border-t w-full">
                 <Button
                   variant="outline"
                   size="sm"
@@ -181,18 +181,19 @@ export default function ManageAlgotimeSessionsPage() {
                     setEditDialogOpen(true);
                   }}
                 >
-                  View
+                  View 
+                  <Eye className="h-4 w-4 " />
                 </Button>
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       className="text-destructive hover:bg-destructive/10"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Delete
+                      <Trash className="h-4 w-4 " />
                     </Button>
                   </AlertDialogTrigger>
 
@@ -229,16 +230,6 @@ export default function ManageAlgotimeSessionsPage() {
                 </AlertDialog>
               </div>
               </CardFooter>
-              {/* {selectedSessionId && (
-              <EditAlgoTimeSessionDialog
-                open={editDialogOpen}
-                onOpenChange={setEditDialogOpen}
-                sessionId={selectedSessionId}
-                onSuccess={loadATsessions}
-                key={editDialogOpen ? selectedSessionId : "closed"}
-              />
-            )} */}
-
           </Card>
         ))}
       </div>

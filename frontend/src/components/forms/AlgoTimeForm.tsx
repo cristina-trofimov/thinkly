@@ -342,6 +342,7 @@ export const AlgoTimeSessionForm = ({
           date: generalData.date,
           startTime: generalData.startTime,
           endTime: generalData.endTime,
+          location: generalData.location || "", 
           selectedQuestions: sessionQuestions[1] || [],
         });
   
@@ -358,6 +359,7 @@ export const AlgoTimeSessionForm = ({
           date: session.date,
           startTime: generalData.startTime,
           endTime: generalData.endTime,
+          location: generalData.location || "",
           selectedQuestions: sessionQuestions[session.sessionNumber] || [],
         }));
   

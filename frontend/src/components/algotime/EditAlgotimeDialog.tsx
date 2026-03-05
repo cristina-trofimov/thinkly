@@ -4,12 +4,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogOverlay,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Loader2} from "lucide-react";
-import {  getAlgotimeById} from "@/api/AlgotimeAPI"
+import { Loader2, Pencil} from "lucide-react";
+import {  getAlgotimeById,} from "@/api/AlgotimeAPI"
+import { getQuestions } from "@/api/QuestionsAPI";
 import {AlgoTimeSessionForm}from "../forms/AlgoTimeForm";
+import { Button } from "@/components/ui/button";
+import type { Question } from "@/types/questions/Question.type";
 
 interface EditAlgoTimeSessionDialogProps {
     open: boolean;
@@ -25,6 +29,7 @@ interface EditAlgoTimeSessionDialogProps {
     onSuccess,
   }: EditAlgoTimeSessionDialogProps) => {
     const [loading, setLoading] = useState(true);
+    const [allQuestions, setAllQuestions] = useState<Question[]>([]); 
     const [initialData, setInitialData] = useState<{
       sessionId: number;
       name: string;
@@ -33,7 +38,9 @@ interface EditAlgoTimeSessionDialogProps {
       endTime: string;
       questionCooldown: number;
       selectedQuestions: number[];
+      location: string; 
     } | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
   
     useEffect(() => {
       if (!open) return;
@@ -41,7 +48,12 @@ interface EditAlgoTimeSessionDialogProps {
       const load = async () => {
         setLoading(true);
         try {
-          const session = await getAlgotimeById(sessionId);
+          
+          const [session, questions] = await Promise.all([
+            getAlgotimeById(sessionId),
+            getQuestions(),
+          ]);
+          setAllQuestions(questions ?? []);
   
           setInitialData({
             sessionId,
@@ -52,6 +64,7 @@ interface EditAlgoTimeSessionDialogProps {
             questionCooldown: session.questionCooldown ?? 300,
             selectedQuestions:
               session.questions?.map((q: { questionId: number }) => q.questionId) ?? [],
+            location: session.location ?? "",
           });
         } catch {
           toast.error("Failed to load session details");
@@ -63,19 +76,38 @@ interface EditAlgoTimeSessionDialogProps {
   
       load();
     }, [open, sessionId]);
+
+    useEffect(() => {
+      if (!open) setIsEditing(false);
+    }, [open]);
   
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogOverlay className="bg-white/10 backdrop-blur-sm" />
         <DialogContent className="!w-[95vw] !max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
+          <div className="flex items-center justify-between">
+              <DialogTitle className="text-xl font-bold text-primary">
+                {isEditing ? "Edit AlgoTime Session" : "View AlgoTime Session"}
+              </DialogTitle>
+              {!isEditing && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+              )}
+            </div>
           </DialogHeader>
   
           {loading || !initialData ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
+          ) : isEditing ?  (
             <AlgoTimeSessionForm
               mode="edit"
               initialData={initialData}
@@ -84,6 +116,65 @@ interface EditAlgoTimeSessionDialogProps {
                 onOpenChange(false);
               }}
             />
+          ): (
+            // view mode — read only summary
+            <div className="space-y-6 py-2">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Session Name</p>
+                    <p className="text-sm font-medium mt-1">{initialData.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Date</p>
+                    <p className="text-sm font-medium mt-1">{initialData.date}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Time</p>
+                    <p className="text-sm font-medium mt-1">{initialData.startTime} – {initialData.endTime}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Question Cooldown</p>
+                    <p className="text-sm font-medium mt-1">{initialData.questionCooldown}s</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Location</p>
+                    <p className="text-sm font-medium mt-1">{initialData.location || "—"}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">
+                    Questions ({initialData.selectedQuestions.length})
+                  </p>
+                  <div className="space-y-2">
+                    {initialData.selectedQuestions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No questions selected</p>
+                    ) : (
+                      initialData.selectedQuestions.map((qId) => {
+                        const question = allQuestions.find((q) => q.id === qId);
+                        return (
+                          <div key={qId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                            <span className="text-sm font-medium">
+                              {question?.title ?? `Question ${qId}`}
+                            </span>
+                            {question && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                question.difficulty.toLowerCase() === "easy" ? "bg-green-100 text-green-700" :
+                                question.difficulty.toLowerCase()=== "medium" ? "bg-yellow-100 text-yellow-700" :
+                                "bg-red-100 text-red-700"
+                              }`}>
+                                {question.difficulty}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
