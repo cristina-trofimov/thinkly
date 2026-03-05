@@ -17,6 +17,7 @@ export default function ManageAccountsPage() {
     "all" | "owner" | "admin" | "participant"
   >("all");
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<number>(0);
 
@@ -86,6 +87,7 @@ export default function ManageAccountsPage() {
 
         setError(errorMessage);
       } finally {
+        setHasLoadedOnce(true);
         setLoading(false);
       }
     };
@@ -93,7 +95,7 @@ export default function ManageAccountsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search, userTypeFilter, refreshToken]);
 
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return <ManageAccountsTableSkeleton />;
   }
   if (error) {

@@ -5,8 +5,6 @@ export default function ManageAccountsTableSkeleton() {
 
   return (
     <div className="container mx-auto p-6" aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading...</span>
-
       <div className="flex items-center py-4 gap-3">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-10 w-44" />
