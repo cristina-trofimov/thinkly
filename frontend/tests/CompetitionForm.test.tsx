@@ -190,22 +190,22 @@ jest.mock("../src/components/createActivity/NotificationsCard", () => ({
 describe("CompetitionForm", () => {
   const mockQuestions: Question[] = [
     {
-      id: 1,
-      title: "Two Sum",
+      question_id: 1,
+      question_name: "Two Sum",
       difficulty: "Easy",
-      description: "Find two numbers",
+      question_description: "Find two numbers",
     },
     {
-      id: 2,
-      title: "Binary Search",
+      question_id: 2,
+      question_name: "Binary Search",
       difficulty: "Medium",
-      description: "Implement binary search",
+      question_description: "Implement binary search",
     },
     {
-      id: 3,
-      title: "Merge Sort",
+      question_id: 3,
+      question_name: "Merge Sort",
       difficulty: "Hard",
-      description: "Implement merge sort",
+      question_description: "Implement merge sort",
     },
   ] as Question[];
 

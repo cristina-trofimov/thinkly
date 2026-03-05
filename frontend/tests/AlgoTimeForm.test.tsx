@@ -62,7 +62,7 @@ jest.mock('../src/components/createActivity/GeneralInfoCard', () => ({
     const React = require('react');
     return React.createElement('div', { 'data-testid': 'general-info-card' }, [
       // Renders the text so "General Information" tests pass
-      React.createElement('h2', { key: 'title' }, 'General Information'),
+      React.createElement('h2', { key: 'question_id' }, 'General Information'),
 
       React.createElement('input', {
         key: 'date',
@@ -162,7 +162,7 @@ jest.mock('../src/components/algotime/SessionQuestionSelector', () => ({
             onChange: () => toggleQuestionForSession(sessionNumber, q.id),
             'aria-checked': sessionQuestions[sessionNumber]?.includes(q.id) ? 'true' : 'false',
           }),
-          React.createElement('span', { key: 'title' }, q.title),
+          React.createElement('span', { key: 'title' }, q.question_name),
         ])
       ))
     ]);
@@ -171,21 +171,21 @@ jest.mock('../src/components/algotime/SessionQuestionSelector', () => ({
 
 const mockQuestions = [
   {
-    id: 1,
-    title: 'Test Question 1',
+    question_id: 1,
+    question_name: 'Test Question 1',
     difficulty: 'Easy',
-    date: new Date('2024-01-01'),
-    description: 'Test',
+    created_at: new Date('2024-01-01'),
+    question_description: 'Test',
     media: '',
     preset_code: '',
     template_solution: '',
   },
   {
-    id: 2,
-    title: 'Test Question 2',
+    question_id: 2,
+    question_name: 'Test Question 2',
     difficulty: 'Medium',
-    date: new Date('2024-01-02'),
-    description: 'Test',
+    created_at: new Date('2024-01-02'),
+    question_description: 'Test',
     media: '',
     preset_code: '',
     template_solution: '',
@@ -343,11 +343,11 @@ describe('AlgoTimeSessionForm', () => {
 
     test('shows error when session has more than 6 questions', async () => {
       const manyQuestions = Array.from({ length: 10 }, (_, i) => ({
-        id: i + 1,
-        title: `Question ${i + 1}`,
+        question_id: i + 1,
+        question_name: `Question ${i + 1}`,
         difficulty: 'Easy',
-        date: new Date('2024-01-01'),
-        description: 'Test',
+        created_at: new Date('2024-01-01'),
+        question_description: 'Test',
         media: '',
         preset_code: '',
         template_solution: '',

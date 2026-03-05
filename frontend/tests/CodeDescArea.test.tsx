@@ -88,14 +88,17 @@ jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
 }));
 
 const mockProblem: Question = {
-  id: 1,
-  title: "Sum Problem",
-  description: "Add two numbers",
+  question_id: 1,
+  question_name: "Sum Problem",
+  question_description: "Add two numbers",
   media: "string",
   preset_code: "string",
   template_solution: "string",
   difficulty: "Easy",
-  date: new Date("2025-10-28T10:00:00Z"),
+  to_string_function: "string",
+  from_string_function: "Easy",
+  created_at: new Date("2025-10-28T10:00:00Z"),
+  last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }
 
 const mockUseTestcases = useTestcases as jest.Mock

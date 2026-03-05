@@ -150,11 +150,11 @@ export const AlgoTimeSessionForm = () => {
         const transformed = data.map((q: Question) => ({
           ...q,
           // SessionQuestionSelector expects q.title, not q.questionTitle
-          title: q.title,
+          title: q.question_name,
           // normalize difficulty to lowercase
           difficulty: q.difficulty,
           // id might be string, convert to number if selector expects number
-          id: q.id,
+          id: q.question_id,
         }));
         setQuestions(transformed);
 
