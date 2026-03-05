@@ -256,7 +256,7 @@ export function SignupForm() {
               Already have an account?{" "}
               <button
                 type="button"
-                className="text-gray-500 underline cursor-pointer"
+                className="text-gray-500 underline"
                 onClick={() => navigate("/")}
               >
                 Sign in
