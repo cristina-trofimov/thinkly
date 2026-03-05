@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
-from DB_Methods.database import SessionLocal
+from database_operations.database import SessionLocal
 from models.schema import CompetitionEmail
 from endpoints.send_email_api import send_email_via_brevo
 from endpoints.competitions_api import resolve_email_recipients

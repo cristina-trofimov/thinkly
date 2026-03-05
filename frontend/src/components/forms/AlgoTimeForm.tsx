@@ -384,13 +384,13 @@ export const AlgoTimeSessionForm = () => {
               type="button"
               variant="outline"
               onClick={handleReset}
-              className="cursor-pointer"
+              className=""
             >
               Reset
             </Button>
             <Button
               type="submit"
-              className="cursor-pointer"
+              className=""
               disabled={isSubmitting}
             >
               {isSubmitting ? "Creating..." : "Create"}

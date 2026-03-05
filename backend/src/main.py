@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from endpoints.log import log_router
+from endpoints.log_api import log_router
 from endpoints.authentification_api import auth_router
 from endpoints.questions_api import questions_router
 from endpoints.competitions_api import competitions_router
@@ -18,8 +18,8 @@ from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from logging_config import setup_logging
-from posthog_analytics import init_posthog, track_api_call, shutdown_posthog
-from email_scheduler import run_scheduled_emails
+from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
+from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
@@ -159,7 +159,7 @@ try:
     app.include_router(judge0_router, prefix="/judge0")
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
-    app.include_router(user_preferences_router, prefix="/prefs")
+    app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
 except AttributeError:
     print("⚠️ No router found. Make sure all routers are properly defined.")
 

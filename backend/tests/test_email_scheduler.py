@@ -33,7 +33,7 @@ FUTURE = NOW + timedelta(hours=1)
 # ---------------------------------------------------------------------------
 # Patch targets
 # ---------------------------------------------------------------------------
-MOD = "src.email_scheduler"
+MOD = "backend.src.services.email_scheduler"
 PATCH_BREVO = f"{MOD}.send_email_via_brevo"
 PATCH_SESSION = f"{MOD}.SessionLocal"
 PATCH_CE_MODEL = f"{MOD}.CompetitionEmail"
@@ -69,27 +69,27 @@ class TestSendReminder:
 
     def test_calls_brevo_with_correct_args(self):
         with patch(PATCH_BREVO) as mock_brevo:
-            from src.email_scheduler import _send_reminder
+            from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(1, ["a@b.com"], "Subject", "Body")
             mock_brevo.assert_called_once_with(to=["a@b.com"], subject="Subject", text="Body")
 
     def test_logs_error_on_exception(self):
         with patch(PATCH_BREVO, side_effect=Exception("boom")), \
-             patch(PATCH_LOGGER) as mock_logger:
-            from src.email_scheduler import _send_reminder
+            patch(PATCH_LOGGER) as mock_logger:
+            from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(42, ["a@b.com"], "Subject", "Body")
             mock_logger.error.assert_called_once()
             assert "42" in mock_logger.error.call_args[0][0]
 
     def test_does_not_raise_on_brevo_failure(self):
         with patch(PATCH_BREVO, side_effect=RuntimeError("network")):
-            from src.email_scheduler import _send_reminder
+            from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(1, ["a@b.com"], "Subject", "Body")  # must not raise
 
     def test_logs_error_message_contains_exception_text(self):
         with patch(PATCH_BREVO, side_effect=Exception("smtp timeout")), \
-             patch(PATCH_LOGGER) as mock_logger:
-            from src.email_scheduler import _send_reminder
+            patch(PATCH_LOGGER) as mock_logger:
+            from backend.src.services.email_scheduler import _send_reminder
             _send_reminder(7, ["x@y.com"], "Sub", "Body")
             error_msg = mock_logger.error.call_args[0][0]
             assert "smtp timeout" in error_msg
@@ -102,7 +102,7 @@ class TestSendReminder:
 class TestProcessEmail:
 
     def _run(self, email, recipients=None, now=None):
-        from src.email_scheduler import _process_email
+        from backend.src.services.email_scheduler import _process_email
         _process_email(
             email,
             recipients if recipients is not None else ["r@example.com"],
@@ -238,7 +238,7 @@ class TestRunScheduledEmails:
              patch(PATCH_CE_MODEL, _make_competition_email_mock()), \
              patch(PATCH_RESOLVE, return_value=["r@example.com"]), \
              patch(PATCH_SEND_REM):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         mock_db.commit.assert_called_once()
@@ -249,7 +249,7 @@ class TestRunScheduledEmails:
         with patch(PATCH_SESSION, return_value=mock_db), \
              patch(PATCH_CE_MODEL, _make_competition_email_mock()), \
              patch(PATCH_RESOLVE, return_value=[]):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         mock_db.close.assert_called_once()
@@ -260,7 +260,7 @@ class TestRunScheduledEmails:
 
         with patch(PATCH_SESSION, return_value=mock_db), \
              patch(PATCH_CE_MODEL, _make_competition_email_mock()):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()  # must not raise
 
         mock_db.rollback.assert_called_once()
@@ -275,7 +275,7 @@ class TestRunScheduledEmails:
              patch(PATCH_RESOLVE, return_value=[]), \
              patch(PATCH_LOGGER) as mock_logger, \
              patch(PATCH_SEND_REM):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         mock_logger.warning.assert_called_once()
@@ -287,7 +287,7 @@ class TestRunScheduledEmails:
              patch(PATCH_CE_MODEL, _make_competition_email_mock()), \
              patch(PATCH_RESOLVE, return_value=["r@example.com"]), \
              patch(PATCH_SEND_REM) as mock_send:
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         mock_send.assert_not_called()
@@ -301,7 +301,7 @@ class TestRunScheduledEmails:
              patch(PATCH_CE_MODEL, _make_competition_email_mock()), \
              patch(PATCH_RESOLVE, return_value=["r@example.com"]), \
              patch(PATCH_SEND_REM) as mock_send:
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         assert mock_send.call_count == 3
@@ -316,7 +316,7 @@ class TestRunScheduledEmails:
              patch(PATCH_CE_MODEL, _make_competition_email_mock()), \
              patch(PATCH_RESOLVE, return_value=["r@example.com"]), \
              patch(PATCH_SEND_REM):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()
 
         mock_db.close.assert_called_once()
@@ -330,5 +330,5 @@ class TestRunScheduledEmails:
              patch(PATCH_RESOLVE, return_value=[]), \
              patch(PATCH_SEND_REM), \
              patch(PATCH_LOGGER):
-            from src.email_scheduler import run_scheduled_emails
+            from backend.src.services.email_scheduler import run_scheduled_emails
             run_scheduled_emails()  # must not raise

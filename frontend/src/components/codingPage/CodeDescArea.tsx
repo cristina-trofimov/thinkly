@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
-import { FileText, History, Trophy } from 'lucide-react'
+import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
@@ -10,10 +10,13 @@ import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
+import RiddleUserForm from '../forms/RiddleForm'
+import { getRiddleById } from '@/api/RiddlesAPI'
+import type { Riddle } from '@/types/riddle/Riddle.type'
 
 const CodeDescArea = (
     { question }:
-    { question: Question }
+        { question: Question }
 ) => {
 
     const tabs = [
@@ -31,9 +34,51 @@ const CodeDescArea = (
     const [containerWidth, setContainerWidth] = useStateCallback(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
 
+
+    // Riddle-------
+    const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
+    const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
+    const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
+    //-------------
+
+    useEffect(() => {
+        let isMounted = true;
+
+        // Reset state for new question
+        setHasSolvedRiddle(false)
+        setRiddleObject(null)
+        setIsLoadingRiddle(true)
+
+        const fetchRiddle = async () => {
+            try {
+                // HARDCODED RIDDLE ID FOR NOW: 1
+                const HARDCODED_RIDDLE_ID = 7;
+                const data = await getRiddleById(HARDCODED_RIDDLE_ID)
+
+                if (isMounted) {
+                    setRiddleObject(data)
+                }
+            } catch (error) {
+                console.error("Failed to load riddle, bypassing lock...", error)
+                // If the backend fails, let the user see the question so they aren't stuck
+                if (isMounted) {
+                    setHasSolvedRiddle(true)
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoadingRiddle(false)
+                }
+            }
+        }
+
+        fetchRiddle()
+
+        return () => {
+            isMounted = false
+        }
+    }, [question?.id])
     useEffect(() => {
         if (!containerRef.current) return
-
         const observer = new ResizeObserver(entries => {
             if (entries.length === 0) return
             const width = entries[0].contentRect.width
@@ -58,8 +103,43 @@ const CodeDescArea = (
             question.id,
             tab as "description" | "submissions" | "leaderboard"
         )
-    }
+    }//  Riddle Rendering ------------------------------------
+    const needsRiddle = !hasSolvedRiddle;
 
+    if (needsRiddle) {
+        
+        if (isLoadingRiddle) {
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                    <p className="text-muted-foreground">Loading challenge lock...</p>
+                </div>
+            )
+        }
+
+        
+        if (riddleObject) {
+            return (
+                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background overflow-y-auto">
+
+                    <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="mb-8 text-center space-y-3">
+                            <p className="text-muted-foreground text-lg">
+                                Solve the riddle below to reveal the description for <span className="text-foreground font-semibold">{question.title}</span>.
+                            </p>
+                        </div>
+
+                        {/* Pass the entire object to the User Form */}
+                        <RiddleUserForm
+                            riddle={riddleObject}
+                            onSolved={() => setHasSolvedRiddle(true)}
+                        />
+                    </div>
+                </div>
+            )
+        }
+    }
+    //Riddle Rendering End-------------------------------------------------
     return (
         <Tabs data-testid="tabs" defaultValue='description'
             value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
