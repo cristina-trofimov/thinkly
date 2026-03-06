@@ -1,9 +1,14 @@
 import os
 import importlib
 import pytest
+import sys
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
 
 
 # ----------------------------
@@ -17,6 +22,15 @@ class Field:
     def __eq__(self, value):
         return ("eq", self.name, value)
 
+    def ilike(self, value):
+        return ("ilike", self.name, value)
+
+    def desc(self):
+        return self
+
+    def asc(self):
+        return self
+
 
 class FakeRiddle:
     """
@@ -26,6 +40,7 @@ class FakeRiddle:
     """
     riddle_id = Field("riddle_id")
     riddle_question = Field("riddle_question")
+    riddle_answer = Field("riddle_answer")
 
     def __init__(self, riddle_question: str, riddle_answer: str, riddle_file=None):
         self.riddle_id = None  # assigned by FakeSession.add
@@ -38,17 +53,62 @@ class FakeQuery:
     def __init__(self, db):
         self.db = db
         self.predicates = []
+        self._offset = 0
+        self._limit = None
 
     def filter(self, expr):
         self.predicates.append(expr)
         return self
 
+    def order_by(self, *_args, **_kwargs):
+        return self
+
     def _match(self, obj):
-        for op, name, value in self.predicates:
+        for predicate in self.predicates:
+            op = predicate[0]
             if op == "eq":
+                _, name, value = predicate
                 if getattr(obj, name) != value:
                     return False
+            elif op == "ilike":
+                _, name, value = predicate
+                needle = value.strip("%").lower()
+                if needle not in getattr(obj, name).lower():
+                    return False
+            elif op == "or":
+                _, value = predicate
+                if not any(self._evaluate_single(obj, child) for child in value):
+                    return False
         return True
+
+    def _evaluate_single(self, obj, expr):
+        op, name, value = expr
+        if op == "eq":
+            return getattr(obj, name) == value
+        if op == "ilike":
+            needle = value.strip("%").lower()
+            return needle in getattr(obj, name).lower()
+        return False
+
+    def count(self):
+        return len(self._filtered())
+
+    def offset(self, value):
+        self._offset = value
+        return self
+
+    def limit(self, value):
+        self._limit = value
+        return self
+
+    def _filtered(self):
+        items = [obj for obj in self.db._rows if self._match(obj)]
+        items = sorted(items, key=lambda obj: obj.riddle_id, reverse=True)
+        if self._offset:
+            items = items[self._offset:]
+        if self._limit is not None:
+            items = items[:self._limit]
+        return items
 
     def first(self):
         for obj in self.db._rows:
@@ -57,9 +117,7 @@ class FakeQuery:
         return None
 
     def all(self):
-        if not self.predicates:
-            return list(self.db._rows)
-        return [obj for obj in self.db._rows if self._match(obj)]
+        return self._filtered()
 
 
 class FakeSession:
@@ -113,6 +171,8 @@ def app_and_module(monkeypatch):
 
     riddles_module = importlib.import_module("src.endpoints.riddles_api")
 
+    monkeypatch.setattr(riddles_module, "or_", lambda *exprs: ("or", exprs))
+
     # Patch model + commit helper
     monkeypatch.setattr(riddles_module, "Riddle", FakeRiddle)
     monkeypatch.setattr(riddles_module, "_commit_or_rollback", lambda db: None)
@@ -165,9 +225,27 @@ def test_list_riddles(client):
     client.post("/riddles/create", data={"question": "Q2", "answer": "A2"})
     resp = client.get("/riddles/")
     assert resp.status_code == 200, resp.text
-    items = resp.json()
-    assert len(items) == 2
-    assert {r["riddle_question"] for r in items} == {"Q1", "Q2"}
+    body = resp.json()
+    assert body["total"] == 2
+    assert body["page"] == 1
+    assert body["page_size"] == 25
+    assert len(body["items"]) == 2
+    assert {r["riddle_question"] for r in body["items"]} == {"Q1", "Q2"}
+    assert resp.headers["cache-control"] == "public, max-age=60"
+
+
+def test_list_riddles_applies_search_and_pagination(client):
+    client.post("/riddles/create", data={"question": "Alpha", "answer": "First"})
+    client.post("/riddles/create", data={"question": "Bravo", "answer": "Second"})
+    client.post("/riddles/create", data={"question": "Charlie", "answer": "Third"})
+
+    resp = client.get("/riddles/", params={"search": "sec", "page": 1, "page_size": 1})
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["total"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["riddle_question"] == "Bravo"
 
 
 def test_get_riddle_by_id(client):
