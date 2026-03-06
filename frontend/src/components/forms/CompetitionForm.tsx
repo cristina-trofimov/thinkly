@@ -245,10 +245,12 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
     };
 
     const getDiffColor = (d: string) => {
-        const diff = d.toLowerCase();
-        if (diff === "easy") return "bg-green-100 text-green-700";
-        if (diff === "medium") return "bg-yellow-100 text-yellow-700";
-        return "bg-red-100 text-red-700";
+        switch (d.toLowerCase()) {
+            case "easy": return "difficulty-easy";
+            case "medium": return "difficulty-medium";
+            case "hard": return "difficulty-hard";
+            default: return "difficulty-unknown";
+        }
     };
 
     return (
