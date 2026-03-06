@@ -105,7 +105,7 @@ export default function ManageAlgotimeSessionsPage() {
               />
             </div>
           </CardHeader>
-          <CardContent className="p-0 bg-white text-center">
+          <CardContent className="p-0 bg-card text-center">
             <div className="px-4 py-1.5">
               <h3 className="font-semibold text-base text-primary">
                 Create a new algotime session
@@ -126,11 +126,11 @@ export default function ManageAlgotimeSessionsPage() {
         {filteredSessions.map((ATsession) => (
           <Card
             key={ATsession.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full"
+            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
           >
             <CardHeader className="pb-0">
               <div className="bg-primary/10 rounded-lg h-[72px] flex items-center px-3">
-                <p className="font-medium text-sm line-clamp-3 leading-relaxed text-gray-900">
+                <p className="font-medium text-sm line-clamp-3 leading-relaxed text-card-foreground">
                   {ATsession.eventName || "no event"}
                 </p>
               </div>

@@ -306,7 +306,7 @@ const ManageCompetitions = () => {
               strokeWidth={1.5}
             />
           </div>
-          <CardContent className="p-4 bg-white text-center">
+          <CardContent className="p-4 bg-card text-center">
             <h3 className="font-semibold text-base text-primary">
               Create New Competition
             </h3>
@@ -329,7 +329,7 @@ const ManageCompetitions = () => {
           return (
             <Card
               key={comp.id}
-              className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col"
+              className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col"
               onClick={() => handleCardClick(comp.id, title)}
             >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">

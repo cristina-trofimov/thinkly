@@ -197,7 +197,7 @@ function ProfilePage() {
             message: `Failed fetch preferences`,
             component: "ProfilePage.ts",
             url: globalThis.location.href,
-        });
+          });
         }
       } catch (error) {
         logFrontend({
@@ -214,6 +214,17 @@ function ProfilePage() {
 
     fetchUser();
   }, []);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (preferences.theme === "dark") {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [preferences.theme]);
 
   const startEditing = (
     field: EditableFieldName,
@@ -316,7 +327,7 @@ function ProfilePage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
         <div className="relative group">
-          <div className="size-35 rounded-full border-4 border-white overflow-hidden ring-2 ring-primary/20 flex items-center justify-center">
+          <div className="size-35 rounded-full border-4 border-card overflow-hidden ring-2 ring-primary/50 flex items-center justify-center">
             <AvatarInitials
               firstName={user?.firstName ?? ""}
               lastName={user?.lastName ?? ""}
@@ -474,22 +485,20 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPreferences((p) => ({ ...p, theme: "light" }))}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                    preferences.theme === "light"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "light"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                    }`}
                 >
                   <Sun className="h-4 w-4" /> Light
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreferences((p) => ({ ...p, theme: "dark" }))}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                    preferences.theme === "dark"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "dark"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                    }`}
                 >
                   <Moon className="h-4 w-4" /> Dark
                 </button>
@@ -517,14 +526,12 @@ function ProfilePage() {
                       notifications_enabled: !p.notifications_enabled,
                     }))
                   }
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                    preferences.notifications_enabled ? "bg-primary" : "bg-input"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${preferences.notifications_enabled ? "bg-primary" : "bg-input"
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${
-                      preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
