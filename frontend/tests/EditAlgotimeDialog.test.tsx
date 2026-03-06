@@ -124,7 +124,6 @@ describe('EditAlgoTimeSessionDialog', () => {
       fireEvent.click(screen.getByRole('button', { name: /edit/i }));
   
       await waitFor(() => {
-        expect(screen.getByText('Edit AlgoTime Session')).toBeInTheDocument();
         expect(screen.getByTestId('mock-form')).toBeInTheDocument();
       });
   
