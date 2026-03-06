@@ -88,7 +88,7 @@ describe('ManageAlgotimeSessionsPage', () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a new algotime session')).toBeInTheDocument();
+      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
       expect(screen.getByText('Setup a new event!')).toBeInTheDocument();
     });
   });
@@ -165,7 +165,7 @@ describe('ManageAlgotimeSessionsPage', () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a new algotime session')).toBeInTheDocument();
+      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
     });
 
     const createCard = screen.getByText('Create a new algotime session').closest('div')?.parentElement;

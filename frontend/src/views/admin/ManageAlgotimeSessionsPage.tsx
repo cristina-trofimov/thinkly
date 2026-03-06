@@ -167,7 +167,7 @@ export default function ManageAlgotimeSessionsPage() {
             </div>
             <CardContent className="p-4 bg-white text-center">
               <h3 className="font-semibold text-base text-primary">
-                Create New Algotime Session!
+                Create a New Algotime Session!
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Setup a new event
