@@ -4,7 +4,6 @@ import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
-import { useStateCallback } from '../helpers/UseStateCallback'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
@@ -13,10 +12,12 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
+import { toast } from 'sonner'
 
 const CodeDescArea = (
-    { question }:
-    { question: Question | undefined }
+    { question, question_instance }:
+    { question: Question | undefined, question_instance: QuestionInstance | undefined | null }
 ) => {
     if(!question) {
         return
@@ -31,10 +32,10 @@ const CodeDescArea = (
     const { testcases } = useTestcases(question?.question_id)
     const { trackCodingTabSwitched } = useAnalytics()
 
-    const [activeTab, setActiveTab] = useStateCallback("description")
-    const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
+    const [activeTab, setActiveTab] = useState("description")
+    const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const [containerWidth, setContainerWidth] = useStateCallback(0)
+    const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
 
 
@@ -45,8 +46,6 @@ const CodeDescArea = (
     //-------------
 
     useEffect(() => {
-        let isMounted = true;
-
         // Reset state for new question
         setHasSolvedRiddle(false)
         setRiddleObject(null)
@@ -54,32 +53,24 @@ const CodeDescArea = (
 
         const fetchRiddle = async () => {
             try {
-                // HARDCODED RIDDLE ID FOR NOW: 1
-                const HARDCODED_RIDDLE_ID = 7;
-                const data = await getRiddleById(HARDCODED_RIDDLE_ID)
+                const data = await getRiddleById(question_instance?.riddle_id)
 
-                if (isMounted) {
-                    setRiddleObject(data)
-                }
+                setRiddleObject(data)
             } catch (error) {
                 console.error("Failed to load riddle, bypassing lock...", error)
-                // If the backend fails, let the user see the question so they aren't stuck
-                if (isMounted) {
-                    setHasSolvedRiddle(true)
-                }
+                toast.error("Failed to load riddle...", {
+                    position: 'top-right',
+                    style: { backgroundColor: '#E9DADA' }
+                  })
             } finally {
-                if (isMounted) {
-                    setIsLoadingRiddle(false)
-                }
+                setIsLoadingRiddle(false)
             }
         }
 
         fetchRiddle()
 
-        return () => {
-            isMounted = false
-        }
     }, [question?.question_id])
+
     useEffect(() => {
         if (!containerRef.current) return
         const observer = new ResizeObserver(entries => {
@@ -123,12 +114,12 @@ const CodeDescArea = (
         
         if (riddleObject) {
             return (
-                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background overflow-y-auto">
+                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-black/40 backdrop-blur-sm overflow-y-auto">
 
                     <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="mb-8 text-center space-y-3">
-                            <p className="text-muted-foreground text-lg">
-                                Solve the riddle below to reveal the description for <span className="text-foreground font-semibold">{question.question_name}</span>.
+                            <p className="text-white text-lg">
+                                Solve the riddle below to reveal the description for<br/><span className="text-foreground font-semibold">{question.question_name}</span>
                             </p>
                         </div>
 

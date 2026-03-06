@@ -268,7 +268,7 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [code, setCode] = useState<string>(templateCode)
+  const [code, setCode] = useState<string>(templateCode || '')
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -347,32 +347,34 @@ const CodingView = () => {
           <CloudUpload size={16} />Submit
         </Button>
       </div>
-      <div className='flex items-end-safe justify-end mb-2 w-full'>
-        <DropdownMenu data-testid='questions-dropdown'>
-          <DropdownMenuTrigger>
-            <Button data-testid='questions-btn'
-              className="bg-background text-black text-base font-bold h-7
-                          hover:bg-primary/20 focus:bg-primary/55">
-              {activeDisplayQuestionName}
-              <ChevronDown />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className='z-999' asChild>
-            <div data-testid='questions-menu'
-              className="z-10 text-sm bg-white w-26 border rounded-lg"
-            >
-              {questions.map((q, idx) => (
-                <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
-                  className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                  onSelect={() => handleQuestionChange(q)}
-                >
-                {`Question ${idx+1}`}
-                </DropdownMenuItem>
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {questionsInstances.length > 1 && (
+        <div className='flex items-end-safe justify-end mb-2 w-full'>
+          <DropdownMenu data-testid='questions-dropdown'>
+            <DropdownMenuTrigger>
+              <Button data-testid='questions-btn'
+                className="bg-background text-black text-base font-bold h-7
+                            hover:bg-primary/20 focus:bg-primary/55">
+                {activeDisplayQuestionName}
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className='z-999' asChild>
+              <div data-testid='questions-menu'
+                className="z-10 text-sm bg-white w-26 border rounded-lg"
+              >
+                {questions.map((q, idx) => (
+                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                    onSelect={() => handleQuestionChange(q)}
+                  >
+                  {`Question ${idx+1}`}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
         className='h-full w-full'
       >
@@ -381,7 +383,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} />
+          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
