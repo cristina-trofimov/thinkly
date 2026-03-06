@@ -168,7 +168,7 @@ describe('ManageAlgotimeSessionsPage', () => {
       expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
     });
 
-    const createCard = screen.getByText('Create a new algotime session').closest('div')?.parentElement;
+    const createCard = screen.getByText('Create a New Algotime Session!').closest('div')?.parentElement;
     if (createCard) {
       fireEvent.click(createCard);
     }
