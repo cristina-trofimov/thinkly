@@ -48,7 +48,7 @@ def get_all_submissions(
     status_code=201,
     responses={500: {"description": "Failed to upload most recent submission."}}
 )
-def save_most_recent_sub(
+def save_sub(
     db: Annotated[str, Depends(get_db)],
     sub_request: dict,
 ):

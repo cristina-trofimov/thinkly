@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
+import { getProfile } from '@/api/AuthAPI';
+import type { SubmissionType } from '@/types/SubmissionType.type';
 
 
 const CodingView = () => {
@@ -38,6 +40,7 @@ const CodingView = () => {
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
   const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+  // const [ allSubmissions, setAllSubmissions ] = useState<SubmissionType[]>()
   const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
@@ -74,7 +77,10 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, null, code, judgeID, testcases)
+      const user = await getProfile()
+      const { codeRunResponse, submissionResponse } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
+      // const { codeRunResponse, submissionResponse, submissions } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
+      // setAllSubmissions(submissions)
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -229,7 +235,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} />
+          <CodeDescArea question={question} mostRecentSub={mostRecentSub} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"

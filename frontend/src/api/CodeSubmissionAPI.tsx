@@ -4,9 +4,11 @@ import { submitToJudge0 } from "./Judge0API"
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
+import type { SubmissionType } from "@/types/SubmissionType.type"
 
 
 export async function submitAttempt(
+    user_id: number,
     question_id: number,
     event_id: number | null,
     source_code: string,
@@ -43,7 +45,7 @@ export async function submitAttempt(
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
-                user_id: mostRecentSubResponse.user_id,
+                user_id: user_id,
                 question_instance_id: updatedInstance.question_instance_id,
                 status: judge0Response['status']['description'],
                 memory: judge0Response['memory'],
@@ -56,6 +58,9 @@ export async function submitAttempt(
             }
         )
 
+        // // 5. Get all submissions made by this user
+        // const submissions = await getAllSubmissions(user_id, q_inst.question_instance_id)
+
         return {
             codeRunResponse: {
                 judge0Response: judge0Response,
@@ -63,6 +68,7 @@ export async function submitAttempt(
                 userPrefs: userPrefs
             },
             submissionResponse: submissionResponse.data,
+            // submissions: submissions,
             questionInstance: updatedInstance
         }
 
@@ -71,3 +77,25 @@ export async function submitAttempt(
         throw err;
     }
 }
+
+export async function getAllSubmissions(
+    user_id: number,
+    question_instance_id: number,
+  ): Promise<SubmissionType[]> {
+    try {
+      const response = await axiosClient.get<{
+        status_code: number
+        data: SubmissionType[]
+      }>(`/attempts/all`, {
+            params: {
+              user_id: user_id,
+              question_instance_id: question_instance_id,
+            }
+        })
+  
+      return response['data']['data']
+    } catch (err) {
+      console.error("Error fetching user's submission:", err);
+      throw err;
+    }
+  }

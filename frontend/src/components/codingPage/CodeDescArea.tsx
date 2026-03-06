@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
@@ -9,11 +9,14 @@ import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import type { MostRecentSub } from '@/types/MostRecentSub.type'
+import { getAllSubmissions } from '@/api/CodeSubmissionAPI'
+import { getProfile } from '@/api/AuthAPI'
 
 
 const CodeDescArea = (
-    { question }:
-    { question: Question }
+    { question, mostRecentSub }:
+    { question: Question, mostRecentSub: MostRecentSub | undefined }
 ) => {
 
     const tabs = [
@@ -26,10 +29,23 @@ const CodeDescArea = (
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useStateCallback("description")
+    const [ submissions, setSubmissions ] = useState<SubmissionType[]>()
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useStateCallback(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
+
+    useEffect(() => {
+        const FetchSubmissions = async () => {
+            const user = await getProfile()
+            // hardcoding for now
+            await getAllSubmissions(user.id, 1)
+                .then((response) => {
+                    setSubmissions(response)
+                })
+        }
+        FetchSubmissions()
+    }, [mostRecentSub])
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -136,6 +152,43 @@ const CodeDescArea = (
                                     <TableHead className="text-right">Runtime</TableHead>
                                 </TableRow>
                             </TableHeader>
+                            <TableBody>
+                                {submissions?.map((s, idx) => {
+                                    const diffMs = Date.now() - Date.parse(s.submitted_on)
+
+                                    const seconds = Math.floor(diffMs / 1000)
+                                    const minutes = Math.floor(diffMs / (1000 * 60))
+                                    const hours = Math.floor(diffMs / (1000 * 60 * 60))
+                                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+
+                                    let displayTime = ''
+                                    if (days > 0) {
+                                        displayTime = `${days} day${days > 1 ? "s" : ""} ago`
+                                    } else if (hours > 0) {
+                                        displayTime = `${hours} hour${hours > 1 ? "s" : ""} ago`
+                                    } else if (minutes > 0) {
+                                        displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
+                                    } else {
+                                        displayTime = `${seconds} second${seconds !== 1 ? "s" : ""} ago`
+                                    }
+
+                                    return <TableRow key={`submission ${idx}`} >
+                                        <TableCell className='grid grid-rows-2' >
+                                            <span className={`${status_color}`} >{s.status}</span>
+                                            <span className='text-gray-500' >{displayTime}</span>
+                                        </TableCell>
+                                        <TableCell className="" >s.language</TableCell>
+                                        <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
+                                        </TableRow>
+                                })}
+                            </TableBody>
+                            <TableFooter className='mt-3' >
+                                <TableRow>
+                                    <TableCell colSpan={4} className='text-gray-500' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                         : (
                             <div>
