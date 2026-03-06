@@ -9,7 +9,6 @@ import type {
 import {
   flexRender,
   getCoreRowModel,
-  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -68,7 +67,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
-import { deleteAccounts } from "@/api/AccountsAPI";
+import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
@@ -79,17 +78,18 @@ declare module "@tanstack/react-table" {
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  total: number;
-  page: number;
-  pageSize: number;
-  search: string;
-  userTypeFilter: "all" | "owner" | "admin" | "participant";
-  onSearchChange: (value: string) => void;
-  onUserTypeFilterChange: (
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  userTypeFilter?: "all" | "owner" | "admin" | "participant";
+  onSearchChange?: (value: string) => void;
+  onUserTypeFilterChange?: (
     value: "all" | "owner" | "admin" | "participant"
   ) => void;
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
+  onSortChange?: (sort: AccountsSort) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
 }
@@ -97,15 +97,16 @@ interface ManageAccountsDataTableProps<TData, TValue> {
 export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
-  total,
-  page,
-  pageSize,
-  search,
-  userTypeFilter,
-  onSearchChange,
-  onUserTypeFilterChange,
-  onPageChange,
-  onPageSizeChange,
+  total = data.length,
+  page = 1,
+  pageSize = 25,
+  search = "",
+  userTypeFilter = "all",
+  onSearchChange = () => {},
+  onUserTypeFilterChange = () => {},
+  onSortChange,
+  onPageChange = () => {},
+  onPageSizeChange = () => {},
   onDeleteUsers,
   onUserUpdate,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
@@ -119,7 +120,6 @@ export function ManageAccountsDataTable<TData, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
     onRowSelectionChange: setRowSelection,
     meta: {
       onUserUpdate,
@@ -129,6 +129,25 @@ export function ManageAccountsDataTable<TData, TValue>({
       rowSelection,
     },
   });
+
+  React.useEffect(() => {
+    const activeSort = sorting[0];
+
+    if (!activeSort) {
+      return;
+    }
+
+    if (activeSort.id === "name") {
+      onSortChange?.(activeSort.desc ? "name_desc" : "name_asc");
+      return;
+    }
+
+    if (activeSort.id === "email") {
+      onSortChange?.(activeSort.desc ? "email_desc" : "email_asc");
+      return;
+    }
+
+  }, [onSortChange, sorting]);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = page;
   const pageItems = React.useMemo(() => {

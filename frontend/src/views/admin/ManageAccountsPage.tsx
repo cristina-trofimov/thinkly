@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { columns } from "../../components/manageAccounts/ManageAccountsColumns";
 import type { Account } from "@/types/account/Account.type";
 import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageAccountsDataTable";
-import { getAccountsPage } from "@/api/AccountsAPI";
+import { getAccountsPage, type AccountsSort } from "@/api/AccountsAPI";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
@@ -16,6 +16,7 @@ export default function ManageAccountsPage() {
   const [userTypeFilter, setUserTypeFilter] = useState<
     "all" | "owner" | "admin" | "participant"
   >("all");
+  const [sort, setSort] = useState<AccountsSort | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export default function ManageAccountsPage() {
           pageSize,
           search,
           userType: userTypeFilter === "all" ? undefined : userTypeFilter,
+          sort,
         })) as unknown;
 
         const result = Array.isArray(rawResult)
@@ -67,7 +69,7 @@ export default function ManageAccountsPage() {
 
         logFrontend({
           level: "INFO",
-          message: `Successfully loaded ${result.items.length} user accounts (total=${result.total}).`,
+          message: `Successfully loaded ${result.items.length} user accounts (total=${result.total}, sort=${sort}).`,
           component: "ManageAccountsPage",
           url: globalThis.location.href,
         });
@@ -93,7 +95,7 @@ export default function ManageAccountsPage() {
     };
     getAllAccounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, search, userTypeFilter, refreshToken]);
+  }, [page, pageSize, search, sort, userTypeFilter, refreshToken]);
 
   if (loading && !hasLoadedOnce) {
     return <ManageAccountsTableSkeleton />;
@@ -151,6 +153,10 @@ export default function ManageAccountsPage() {
         onUserTypeFilterChange={(value) => {
           setPage(1);
           setUserTypeFilter(value);
+        }}
+        onSortChange={(value) => {
+          setPage(1);
+          setSort(value);
         }}
         onPageChange={setPage}
         onPageSizeChange={(value) => {

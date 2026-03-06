@@ -52,6 +52,15 @@ def get_all_accounts(
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
     search: Annotated[Optional[str], Query(max_length=200)] = None,
     user_type: Annotated[Optional[Literal["owner", "admin", "participant"]], Query()] = None,
+    sort: Annotated[
+        Optional[Literal[
+            "name_asc",
+            "name_desc",
+            "email_asc",
+            "email_desc",
+        ]],
+        Query(),
+    ] = None,
 ):
     query = db.query(UserAccount)
 
@@ -68,7 +77,16 @@ def get_all_accounts(
     if user_type:
         query = query.filter(UserAccount.user_type == user_type)
 
-    query = query.order_by(UserAccount.created_at.desc(), UserAccount.user_id.desc())
+    if sort == "name_asc":
+        query = query.order_by(UserAccount.first_name.asc(), UserAccount.last_name.asc(), UserAccount.user_id.asc())
+    elif sort == "name_desc":
+        query = query.order_by(UserAccount.first_name.desc(), UserAccount.last_name.desc(), UserAccount.user_id.desc())
+    elif sort == "email_asc":
+        query = query.order_by(UserAccount.email.asc(), UserAccount.user_id.asc())
+    elif sort == "email_desc":
+        query = query.order_by(UserAccount.email.desc(), UserAccount.user_id.desc())
+    else:
+        query = query.order_by(UserAccount.user_id.asc())
 
     total = query.count()
     offset = (page - 1) * page_size
@@ -150,6 +168,7 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
 
 @accounts_router.patch(
     "/users/{user_id}",
+    response_model=AccountItemResponse,
     responses={
         400: {"description": "No fields to update."},
         404: {"description": "Account not found."}
@@ -182,7 +201,13 @@ def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annot
         }
     )
 
-    return account
+    return {
+        "user_id": account.user_id,
+        "first_name": account.first_name,
+        "last_name": account.last_name,
+        "email": account.email,
+        "user_type": account.user_type,
+    }
 
 @accounts_router.get(
     "/users/{user_id}/preferences",

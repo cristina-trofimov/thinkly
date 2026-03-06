@@ -5,6 +5,11 @@ import type { Account } from "@/types/account/Account.type";
 // Backend user type value for accountAPI.
 // this is because the backend uses lowercase values while frontend capitalizes the first  letter
 type UserType = "participant" | "admin" | "owner";
+export type AccountsSort =
+  | "name_asc"
+  | "name_desc"
+  | "email_asc"
+  | "email_desc";
 
 const formatAccountType = (userType: UserType): Account["accountType"] => {
   return (userType.charAt(0).toUpperCase() +
@@ -59,6 +64,7 @@ export interface AccountsQueryParams {
   pageSize?: number;
   search?: string;
   userType?: UserType;
+  sort?: AccountsSort;
 }
 
 export interface AccountsPage {
@@ -71,7 +77,7 @@ export interface AccountsPage {
 export async function getAccountsPage(
   params: AccountsQueryParams = {}
 ): Promise<AccountsPage> {
-  const { page = 1, pageSize = 25, search, userType } = params;
+  const { page = 1, pageSize = 25, search, userType, sort } = params;
   const queryParams: Record<string, string | number> = {
     page,
     page_size: pageSize,
@@ -79,6 +85,7 @@ export async function getAccountsPage(
 
   if (search?.trim()) queryParams.search = search.trim();
   if (userType) queryParams.user_type = userType;
+  if (sort) queryParams.sort = sort;
 
   const response = await axiosClient.get<{
     total: number;
