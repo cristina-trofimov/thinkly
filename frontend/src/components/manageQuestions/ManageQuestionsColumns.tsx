@@ -57,7 +57,7 @@ export const columns: ColumnDef<Question>[] = [
     accessorKey: "id",
     header: ({ column }) => {
       return (
-        <div className="text-left">
+        <div className="text-center">
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
@@ -72,7 +72,7 @@ export const columns: ColumnDef<Question>[] = [
       const id: number = row.original.id;
 
       return (
-        <div className="text-left font-medium">
+        <div className="text-center font-medium">
             {id}
         </div>
       );
@@ -82,7 +82,7 @@ export const columns: ColumnDef<Question>[] = [
       accessorKey: "title",
       header: ({ column }) => {
       return (
-        <div className="text-left">
+        <div className="text-center">
           <Button
             variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
@@ -98,7 +98,7 @@ export const columns: ColumnDef<Question>[] = [
       const name: string = row.original.title;
 
       return (
-        <div className="text-left font-medium">
+        <div className="text-left font-medium italic">
             {name}
         </div>
       );
@@ -117,17 +117,17 @@ export const columns: ColumnDef<Question>[] = [
   {
     accessorKey: "difficulty",
     header: ({ column }) => {
-        return (
-            <div className="text-left">
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    Difficulty
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            </div>
-        );
+      return (
+        <div className="text-center">
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Difficulty
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      );
     },
     sortingFn: (rowA, rowB, columnId) => {
       const difficultyA = rowA.getValue<string>(columnId);
@@ -152,8 +152,7 @@ export const columns: ColumnDef<Question>[] = [
       }
 
       return (
-        <div className="flex items-center gap-2 text-left">
-          <Tag className={`h-4 w-4 ${tagColorClass}`} />
+        <div className={`flex items-center gap-2 justify-center ${tagColorClass}`} >
           {difficulty.replace(/^\w/, (c) => c.toUpperCase())}
         </div>
       );
