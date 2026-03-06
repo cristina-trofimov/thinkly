@@ -1,5 +1,6 @@
 import {
   getAccounts,
+  getAccountsPage,
   deleteAccounts,
   updateAccount,
   getUserPreferences,
@@ -81,6 +82,79 @@ describe("AccountAPI", () => {
     it("rethrows error on failure", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getAccounts()).rejects.toThrow("Network error");
+    });
+  });
+
+  describe("getAccountsPage", () => {
+    it("sends page, page_size, search, user_type, and sort as query params", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 1,
+          page: 2,
+          page_size: 10,
+          items: [
+            {
+              user_id: 9,
+              first_name: "Amy",
+              last_name: "Ng",
+              email: "amy@example.com",
+              user_type: "admin",
+            },
+          ],
+        },
+      } as any);
+
+      const result = await getAccountsPage({
+        page: 2,
+        pageSize: 10,
+        search: "amy",
+        userType: "admin",
+        sort: "email_desc",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 2,
+          page_size: 10,
+          search: "amy",
+          user_type: "admin",
+          sort: "email_desc",
+        },
+      });
+      expect(result).toEqual({
+        total: 1,
+        page: 2,
+        pageSize: 10,
+        items: [
+          {
+            id: 9,
+            firstName: "Amy",
+            lastName: "Ng",
+            email: "amy@example.com",
+            accountType: "Admin",
+          },
+        ],
+      });
+    });
+
+    it("does not send sort when no sort is selected", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
+
+      await getAccountsPage();
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 1,
+          page_size: 25,
+        },
+      });
     });
   });
 

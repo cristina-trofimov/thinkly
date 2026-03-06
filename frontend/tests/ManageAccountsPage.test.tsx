@@ -20,6 +20,12 @@ jest.mock('./../src/api/AccountsAPI', () => ({
 describe('ManageAccountsPage', () => {
   let ManageAccountsPage: any;
   let getAccounts: jest.Mock;
+  const paginatedAccounts = (items: Account[], page = 1, pageSize = 25) => ({
+    total: items.length,
+    page,
+    pageSize,
+    items,
+  });
 
   beforeAll(() => {
     const apiModule = require('./../src/api/AccountsAPI');
@@ -34,20 +40,15 @@ describe('ManageAccountsPage', () => {
 
   describe('Initial Render', () => {
     it('renders without crashing', async () => {
-      const mockAccounts = {
-        total: 1,
-        page: 1,
-        pageSize: 25,
-        items: [
-          { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-        ],
-      };
+      const mockAccounts = paginatedAccounts([
+        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('john@example.com')).toBeInTheDocument();
@@ -57,19 +58,19 @@ describe('ManageAccountsPage', () => {
       getAccounts.mockImplementation(() => new Promise(() => {}));
       
       render(<ManageAccountsPage />);
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
     });
 
     it('renders container with correct styling', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       const { container } = render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       const mainContainer = container.querySelector('.container.mx-auto.p-6');
@@ -79,9 +80,9 @@ describe('ManageAccountsPage', () => {
 
   describe('Data Fetching', () => {
     it('fetches data on mount', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -92,9 +93,9 @@ describe('ManageAccountsPage', () => {
     });
 
     it('fetches data only once', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -105,10 +106,10 @@ describe('ManageAccountsPage', () => {
     });
 
     it('displays fetched data', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
         { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -120,29 +121,29 @@ describe('ManageAccountsPage', () => {
     });
 
     it('handles empty response', async () => {
-      getAccounts.mockResolvedValue([]);
+      getAccounts.mockResolvedValue(paginatedAccounts([]));
       
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('No results.')).toBeInTheDocument();
     });
 
     it('transitions from loading to data state', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('john@example.com')).toBeInTheDocument();
@@ -157,12 +158,12 @@ describe('ManageAccountsPage', () => {
         accountType: 'Admin' as const,
       }));
       
-      getAccounts.mockResolvedValue(largeDataset);
+      getAccounts.mockResolvedValue(paginatedAccounts(largeDataset));
       
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('user0@example.com')).toBeInTheDocument();
@@ -206,7 +207,7 @@ describe('ManageAccountsPage', () => {
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
     });
 
@@ -223,15 +224,15 @@ describe('ManageAccountsPage', () => {
 
   describe('Component Props', () => {
     it('passes correct props to ManageAccountsDataTable', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('Email')).toBeInTheDocument();
@@ -239,24 +240,24 @@ describe('ManageAccountsPage', () => {
     });
 
     it('passes columns prop', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('Name')).toBeInTheDocument();
     });
 
     it('passes data prop with fetched accounts', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -269,10 +270,10 @@ describe('ManageAccountsPage', () => {
 
   describe('User Deletion', () => {
     it('provides onDeleteUsers callback', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
         { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
-      ];
+      ]);
       
       getAccounts.mockResolvedValue(mockAccounts);
       
@@ -285,10 +286,10 @@ describe('ManageAccountsPage', () => {
     });
 
     it('updates state when handleDeleteUsers is called', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
         { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
-      ];
+      ]);
       
       getAccounts.mockResolvedValue(mockAccounts);
       
@@ -302,9 +303,9 @@ describe('ManageAccountsPage', () => {
 
   describe('User Updates', () => {
     it('provides onUserUpdate callback', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-      ];
+      ]);
       
       getAccounts.mockResolvedValue(mockAccounts);
       
@@ -316,16 +317,16 @@ describe('ManageAccountsPage', () => {
     });
 
     it('passes onUserUpdate callback to DataTable', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-      ];
+      ]);
       
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       expect(screen.getByText('john@example.com')).toBeInTheDocument();
@@ -338,13 +339,13 @@ describe('ManageAccountsPage', () => {
       
       render(<ManageAccountsPage />);
       
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
     });
 
     it('updates data state after successful fetch', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -354,27 +355,27 @@ describe('ManageAccountsPage', () => {
       });
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
     });
 
     it('sets loading to false after data fetch', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
     });
 
     it('clears error state on successful fetch', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
       
       render(<ManageAccountsPage />);
@@ -387,9 +388,9 @@ describe('ManageAccountsPage', () => {
 
   describe('Lifecycle', () => {
     it('fetches data on component mount', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       render(<ManageAccountsPage />);
@@ -398,15 +399,15 @@ describe('ManageAccountsPage', () => {
     });
 
     it('does not refetch on re-render', async () => {
-      const mockAccounts = [
+      const mockAccounts = paginatedAccounts([
         { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ];
+      ]);
       getAccounts.mockResolvedValue(mockAccounts);
 
       const { rerender } = render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
       });
       
       rerender(<ManageAccountsPage />);

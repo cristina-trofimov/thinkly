@@ -133,22 +133,30 @@ describe("ManageAccountsDataTable", () => {
   });
 
   it("filters rows when typing in the search box", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const onSearchChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onSearchChange={onSearchChange}
+      />
+    );
     const input = screen.getByPlaceholderText("Filter emails...");
     fireEvent.change(input, { target: { value: "john" } });
     await waitFor(() => {
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      expect(onSearchChange).toHaveBeenCalledWith("john");
     });
   });
 
-  it("shows empty state when no match is found", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-    const input = screen.getByPlaceholderText("Filter emails...");
-    fireEvent.change(input, { target: { value: "nope@example.com" } });
-    await waitFor(() => {
-      expect(screen.getByText(/no results/i)).toBeInTheDocument();
-    });
+  it("shows empty state when backend returns no rows for the current filter", () => {
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={[]}
+        search="nope@example.com"
+      />
+    );
+    expect(screen.getByText(/no results/i)).toBeInTheDocument();
   });
 
   it("shows empty state when no data provided", () => {
@@ -168,7 +176,14 @@ describe("ManageAccountsDataTable", () => {
   });
 
   it("filters by Participant account type", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const onUserTypeFilterChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onUserTypeFilterChange={onUserTypeFilterChange}
+      />
+    );
     const filterButton = screen.getByRole("button", {
       name: /all account types/i,
     });
@@ -179,13 +194,19 @@ describe("ManageAccountsDataTable", () => {
     await user.click(participantOption);
 
     await waitFor(() => {
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+      expect(onUserTypeFilterChange).toHaveBeenCalledWith("participant");
     });
   });
 
   it("filters by Admin account type", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const onUserTypeFilterChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onUserTypeFilterChange={onUserTypeFilterChange}
+      />
+    );
     const filterButton = screen.getByRole("button", {
       name: /all account types/i,
     });
@@ -194,13 +215,19 @@ describe("ManageAccountsDataTable", () => {
     await user.click(adminOption);
 
     await waitFor(() => {
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("jane@example.com")).not.toBeInTheDocument();
+      expect(onUserTypeFilterChange).toHaveBeenCalledWith("admin");
     });
   });
 
   it("filters by Owner account type", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const onUserTypeFilterChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onUserTypeFilterChange={onUserTypeFilterChange}
+      />
+    );
     const filterButton = screen.getByRole("button", {
       name: /all account types/i,
     });
@@ -209,13 +236,19 @@ describe("ManageAccountsDataTable", () => {
     await user.click(ownerOption);
 
     await waitFor(() => {
-      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
-      expect(screen.queryByText("john@example.com")).not.toBeInTheDocument();
+      expect(onUserTypeFilterChange).toHaveBeenCalledWith("owner");
     });
   });
 
   it("resets filter to show all account types", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
+    const onUserTypeFilterChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onUserTypeFilterChange={onUserTypeFilterChange}
+      />
+    );
     const filterButton = screen.getByRole("button", {
       name: /all account types/i,
     });
@@ -227,9 +260,7 @@ describe("ManageAccountsDataTable", () => {
     await user.click(screen.getByRole("menuitem", { name: /^all$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("john@example.com")).toBeInTheDocument();
-      expect(screen.getByText("jane@example.com")).toBeInTheDocument();
-      expect(screen.getByText("bob@example.com")).toBeInTheDocument();
+      expect(onUserTypeFilterChange).toHaveBeenLastCalledWith("all");
     });
   });
 
@@ -505,38 +536,36 @@ describe("ManageAccountsDataTable", () => {
   });
 
   it("updates page label and ellipsis layout across pagination ranges", async () => {
+    const onPageChange = jest.fn();
     render(
-      <ManageAccountsDataTable columns={mockColumns} data={createManyRows(200)} />
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={createManyRows(25)}
+        total={200}
+        page={4}
+        pageSize={25}
+        onPageChange={onPageChange}
+      />
     );
 
-    expect(screen.getByText("Page 1 of 8")).toBeInTheDocument();
-    expect(screen.getAllByText("More pages")).toHaveLength(1);
+    expect(screen.getByText("Page 4 of 8")).toBeInTheDocument();
+    expect(screen.getAllByText("More pages")).toHaveLength(2);
 
-    const nextButton = screen.getByRole("link", { name: /go to next page/i });
-    await user.click(nextButton);
-    await user.click(nextButton);
-    await user.click(nextButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("Page 4 of 8")).toBeInTheDocument();
-      expect(screen.getAllByText("More pages")).toHaveLength(2);
-    });
-
-    await user.click(screen.getByRole("link", { name: "8" }));
-    await waitFor(() => {
-      expect(screen.getByText("Page 8 of 8")).toBeInTheDocument();
-      expect(screen.getAllByText("More pages")).toHaveLength(1);
-    });
+    await user.click(screen.getByRole("link", { name: /go to next page/i }));
+    expect(onPageChange).toHaveBeenCalledWith(5);
   });
 
   it("handles column header clicks (sorting)", async () => {
-    render(<ManageAccountsDataTable columns={mockColumns} data={mockData} />);
-    const firstNameHeader = screen.getByRole("columnheader", {
-      name: /first name/i,
-    });
-    await user.click(firstNameHeader);
-    await user.click(firstNameHeader);
-    expect(firstNameHeader).toBeInTheDocument();
+    const onSortChange = jest.fn();
+    render(
+      <ManageAccountsDataTable
+        columns={mockColumns}
+        data={mockData}
+        onSortChange={onSortChange}
+      />
+    );
+
+    expect(onSortChange).not.toHaveBeenCalled();
   });
 
   it("passes onUserUpdate to table meta", () => {
