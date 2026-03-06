@@ -34,28 +34,38 @@ describe("AccountAPI", () => {
 
   describe("getAccounts", () => {
     it("fetches and formats accounts correctly", async () => {
-      const backendResponse = [
-        {
-          user_id: 1,
-          first_name: "Jane",
-          last_name: "Doe",
-          email: "jane@example.com",
-          user_type: "admin",
-        },
-        {
-          user_id: 2,
-          first_name: "John",
-          last_name: "Smith",
-          email: "john@example.com",
-          user_type: "participant",
-        },
-      ];
+      const backendResponse = {
+        total: 2,
+        page: 1,
+        page_size: 25,
+        items: [
+          {
+            user_id: 1,
+            first_name: "Jane",
+            last_name: "Doe",
+            email: "jane@example.com",
+            user_type: "admin",
+          },
+          {
+            user_id: 2,
+            first_name: "John",
+            last_name: "Smith",
+            email: "john@example.com",
+            user_type: "participant",
+          },
+        ],
+      };
 
       mockedAxios.get.mockResolvedValueOnce({ data: backendResponse } as any);
 
       const result = await getAccounts();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 1,
+          page_size: 25,
+        },
+      });
       expect(result).toEqual([
         { id: 1, firstName: "Jane", lastName: "Doe", email: "jane@example.com", accountType: "Admin" },
         { id: 2, firstName: "John", lastName: "Smith", email: "john@example.com", accountType: "Participant" },
@@ -64,9 +74,14 @@ describe("AccountAPI", () => {
 
     it("capitalises 'owner' user_type correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          { user_id: 5, first_name: "Alice", last_name: "K", email: "a@x.com", user_type: "owner" },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 25,
+          items: [
+            { user_id: 5, first_name: "Alice", last_name: "K", email: "a@x.com", user_type: "owner" },
+          ],
+        },
       } as any);
 
       const result = await getAccounts();
@@ -74,7 +89,14 @@ describe("AccountAPI", () => {
     });
 
     it("returns empty array when backend returns empty list", async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: [] } as any);
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
       const result = await getAccounts();
       expect(result).toEqual([]);
     });
