@@ -89,7 +89,7 @@ describe('ManageAlgotimeSessionsPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
-      expect(screen.getByText('Setup a new event!')).toBeInTheDocument();
+      expect(screen.getByText('Setup a new event')).toBeInTheDocument();
     });
   });
 
