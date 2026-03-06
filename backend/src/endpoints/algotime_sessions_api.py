@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 algotime_router = APIRouter(tags=["Algotime"])
 LOCAL_TZ = ZoneInfo("America/Toronto") 
+SESSION_NOT_FOUND = "AlgoTime session not found"
 
 
 # ---------------- Models ----------------
@@ -314,7 +315,7 @@ def get_algotime_session(
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="AlgoTime session not found"
+            detail=SESSION_NOT_FOUND
         )
 
     event = session.base_event
@@ -368,7 +369,7 @@ def update_algotime_session(
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="AlgoTime session not found"
+            detail=SESSION_NOT_FOUND
         )
 
     event = session.base_event
@@ -447,7 +448,7 @@ def delete_algotime_session(
         if not algotime_session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="AlgoTime session not found"
+                detail=SESSION_NOT_FOUND
             )
 
         base_event = db.query(BaseEvent).filter(

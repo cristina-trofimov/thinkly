@@ -92,6 +92,10 @@ export const AlgoTimeSessionForm = ({
       questionCooldownTime: value
     }));
   };
+
+  const submitLabel = isSubmitting
+  ? (mode === "edit" ? "Saving..." : "Creating...")
+  : (mode === "edit" ? "Save Changes" : "Create");
  
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
@@ -248,10 +252,6 @@ export const AlgoTimeSessionForm = ({
       return false;
     }
 
-    // if (generalData.name.trim() === '') {
-    //   toast.error("Please enter a session name.");
-    //   return false;
-    // }
     const sessionsWithoutNames = repeatSessions.filter(
       session => !sessionNames[session.sessionNumber]?.trim()
     );
@@ -420,9 +420,7 @@ export const AlgoTimeSessionForm = ({
               </Button>
             )}
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? mode === "edit" ? "Saving..." : "Creating..."
-                : mode === "edit" ? "Save Changes" : "Create"}
+            {submitLabel}
             </Button>
 
           </div>
