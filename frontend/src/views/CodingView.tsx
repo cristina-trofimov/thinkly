@@ -8,7 +8,6 @@ import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useStateCallback } from '../components/helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../components/helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
@@ -25,12 +24,14 @@ import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
-import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
+import { getAllQuestionInstancesByEventID, getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
-import type { AlgoTimeSeries } from '@/types/algoTime/AlgoTime.type';
 import type { BaseEvent } from '@/types/BaseEvent.type';
 import { getEventByName } from '@/api/BaseEventAPI';
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
+import { getQuestionByID } from '@/api/QuestionsAPI';
+import { getProfile } from '@/api/AuthAPI';
 
 
 const CodingView = () => {
@@ -38,82 +39,135 @@ const CodingView = () => {
   // const algo: AlgoTimeSeries = location?.state?.algo
   // AlgoTimeSession
 
+  const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
-  const questions = useState<Question[]>([])
+  const [ questions, setQuestions ] = useState<Question[]>([])
+  const [ activeQuestion, setActiveQuestion ] = useState<Question>()
+  const [ questionsInstances, setQuestionsInstances ] = useState<QuestionInstance[]>([])
+  const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
   const [ event, setEvent ] = useState<BaseEvent | null>(null)
 
-
-  const comp = location?.state?.comp
-  const compString = JSON.stringify(comp)
+  const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
 
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
-  console.log('comp: ', comp)
-  console.log('question: ', question)
+  const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+  const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
+  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
 
-  const [mostRecentSub, setMostRecentSub] = useState<MostRecentSub>()
-  const [mostRecentSubGroupClass, setMostRecentSubGroupClass] = useState<string>('grid grid-cols-2 gap-4')
-  const [logs, setLogs] = useState<Judge0Response[]>([])
-  const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
-
+  // Getting the competition or algotime event if it exists
   useEffect(() => {
-    console.log('in useEffect')
-    // setIsQuestionLoading(true)
-
-    // const InitializeEvent = () => {
-    //   console.log('initializeEvent')
-
-    //   try {
-    //     console.log('useEffect try')
-    //     // const ev = await getEventByName(location?.state?.comp?.competitionTitle)
-    //     // setEvent(ev)
-    //   } catch (err) {
-    //     console.error("Failed to fetch event: ", err)
-    //   } finally {
-    //     setIsQuestionLoading(false)
-    //   }
-    // }
-    // // const InitializeEvent = async () => {
-    // //   console.log('initializeEvent')
-
-    // //   try {
-    // //     console.log('useEffect try')
-    // //     const ev = await getEventByName(location?.state?.comp?.competitionTitle)
-    // //     setEvent(ev)
-    // //   } catch (err) {
-    // //     console.error("Failed to fetch event: ", err)
-    // //   } finally {
-    // //     setIsQuestionLoading(false)
-    // //   }
-    // // }
-
-    // InitializeEvent()
+    if(comp?.id) {
+      const InitializeEvent = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getEventByName(location?.state?.comp?.competitionTitle)
+            .then((response) => {
+              setEvent(response)
+            })
+        } catch (err) {
+          console.error("Failed to fetch event: ", err)
+          toast.error("Error when fetching event.", {
+            position: 'top-right',
+            style: { backgroundColor: '#E9DADA' }
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      InitializeEvent()
+    }
   }, [comp?.id])
 
+  // Getting the question instance (if it's a practice question and no event was passed)
+  // Or all the question instances associated to the given event
+  useEffect(() => {
+    if (event) {
+      const InitializeQuestionInstances = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getAllQuestionInstancesByEventID(event?.event_id)
+            .then((response) => {
+                setQuestionsInstances(response)
+            })
+        } catch (err) {
+          console.error("Failed to fetch question instances: ", err)
+          toast.error("Error when fetching question instances.", {
+            position: 'top-right',
+            style: { backgroundColor: '#E9DADA' }
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      InitializeQuestionInstances()
+    } else if(question?.question_id) {
+      const initQuestion = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getQuestionInstance(question?.question_id, null)
+            .then((response) => {
+              setQuestionsInstances([response])
+            })
+        } catch (err) {
+          console.error("Failed to fetch question instance: ", err)
+          toast.error("Error when fetching question instance.", {
+            position: 'top-right',
+            style: { backgroundColor: '#E9DADA' }
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      initQuestion()
+      setQuestions([question])
+    }
+  }, [event, question?.question_id])
 
-  // console.log(`event:`)
-  // console.log(event)
+  // If an event is passed, get all the associated questions' details 
+  useEffect(() => {
+    if (!questionsInstances?.length || questions.length >= questionsInstances.length) {
+      setIsQuestionLoading(false)
+      return
+    }
+
+    const fetchQuestions = async () => {
+      setIsQuestionLoading(true)
+      try {
+        // Fetch all in parallel
+        const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
+        const fetchedResponses = await Promise.all(questionPromises)
+
+        setQuestions(fetchedResponses)
+      } catch (err) {
+        console.error("Failed to fetch questions: ", err)
+        toast.error("Error when fetching questions.", {
+          position: 'top-right',
+          style: { backgroundColor: '#E9DADA' }
+        })
+      } finally {
+        setIsQuestionLoading(false)
+      }
+    }
+
+    fetchQuestions()
+  }, [questionsInstances])
+
+  // Setting the default active question and question instance
+  useEffect(() => {
+    if (questions.length > 0 && !activeQuestion) {
+      setActiveQuestion(questions[0])
+    }
+    if (questionsInstances.length > 0 && !activeQuestionInstance) {
+      setActiveQuestionInstance(questionsInstances[0])
+    }
+  }, [questions, questionsInstances])
 
 
-  // Track page open once on mount — question is available from location state
-  // useEffect(() => {
-  //   setIsQuestionLoading(true)
-
-  //   if (question?.id) {
-  //     trackCodingPageOpened(
-  //       question.title,
-  //       question.id,
-  //       question.difficulty ?? "unknown"
-  //     )
-  //     setIsQuestionLoading(false)
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [question?.id])
-
-
-  const { testcases } = useTestcases(question?.id)
+  const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
@@ -132,7 +186,9 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, null, code, judgeID, testcases)
+      const user = await getProfile()
+      const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, judgeID, testcases)
+
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -150,7 +206,7 @@ const CodingView = () => {
       setCurrentOutputTab("results")
 
       trackCodeSubmitted(
-        question.id,
+        activeQuestion?.question_id,
         selectedLang,
       )
     } catch (err) {
@@ -170,8 +226,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
-      const instance = await getQuestionInstance(question?.id, null)
-      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(instance[0].question_instance_id, code, judgeID, testcases)
+      const user = await getProfile()
+      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, judgeID, testcases)
       
       setLogs(prev => [...prev, judge0Response])
       setMostRecentSub(mostRecentSubResponse)
@@ -180,7 +236,7 @@ const CodingView = () => {
       // Capture run result — status comes directly from Judge0 response
       const passed = judge0Response.status.description === "Accepted"
       trackCodeRun(
-        question.id,
+        activeQuestion?.question_id,
         selectedLang,
         judge0Response.status.description,
         passed,
@@ -198,13 +254,13 @@ const CodingView = () => {
     }
   }
 
-  const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
+  const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<SupportedLanguagesType>("Java")
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: question.title,
+    problemName: "question.title",
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -212,7 +268,7 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [code, setCode] = useStateCallback<string>(templateCode)
+  const [code, setCode] = useState<string>(templateCode)
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -225,14 +281,26 @@ const CodingView = () => {
   }, [mostRecentSub])
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
-    trackLanguageChanged(question.id, prevLangRef.current, lang)
+    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
     prevLangRef.current = lang
     setSelectedLang(lang)
     setCode(templateCode)
   }
 
+  const handleQuestionChange = (q: Question) => {
+    // trackLanguageChanged(question.question_id, prevLangRef.current, lang)
+    // prevLangRef.current = lang
+    setActiveQuestion(q)
+    questionsInstances.forEach((qi, idx) => {
+      if (qi.question_id === q.question_id) {
+        setActiveQuestionInstance(qi)
+        setActiveDisplayQuestionName(`Question ${idx + 1}`)
+      }
+    })
+  }
+
   const handleCodeReset = () => {
-    trackCodeReset(question.id, selectedLang)
+    trackCodeReset(activeQuestion?.question_id, selectedLang)
     setCode(templateCode)
   }
 
@@ -279,6 +347,32 @@ const CodingView = () => {
           <CloudUpload size={16} />Submit
         </Button>
       </div>
+      <div className='flex items-end-safe justify-end mb-2 w-full'>
+        <DropdownMenu data-testid='questions-dropdown'>
+          <DropdownMenuTrigger>
+            <Button data-testid='questions-btn'
+              className="bg-background text-black text-base font-bold h-7
+                          hover:bg-primary/20 focus:bg-primary/55">
+              {activeDisplayQuestionName}
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className='z-999' asChild>
+            <div data-testid='questions-menu'
+              className="z-10 text-sm bg-white w-26 border rounded-lg"
+            >
+              {questions.map((q, idx) => (
+                <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                  className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                  onSelect={() => handleQuestionChange(q)}
+                >
+                {`Question ${idx+1}`}
+                </DropdownMenuItem>
+              ))}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
         className='h-full w-full'
       >
@@ -287,7 +381,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} />
+          <CodeDescArea question={activeQuestion} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
@@ -444,7 +538,7 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases"
                   className='max-h-full p-2.5'>
-                  <Testcases question_id={question.id} />
+                  <Testcases question_id={activeQuestionInstance?.question_id} />
                 </TabsContent>
                 <TabsContent data-testid="code-output-tab" value="results"
                   className='max-h-full p-2.5'>
