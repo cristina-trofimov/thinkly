@@ -1,7 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Account } from "@/types/account/Account.type";
 
-
 // Backend user type value for accountAPI.
 // this is because the backend uses lowercase values while frontend capitalizes the first  letter
 type UserType = "participant" | "admin" | "owner";
@@ -16,43 +15,33 @@ const formatAccountType = (userType: UserType): Account["accountType"] => {
     userType.slice(1)) as Account["accountType"];
 };
 
+type AccountsApiItem = {
+  user_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  user_type: UserType;
+};
+
+type AccountsApiResponse = {
+  total: number;
+  page: number;
+  page_size: number;
+  items: AccountsApiItem[];
+};
+
+const mapAccount = (user: AccountsApiItem): Account => ({
+  id: user.user_id,
+  firstName: user.first_name,
+  lastName: user.last_name,
+  email: user.email,
+  accountType: formatAccountType(user.user_type),
+});
+
 export async function getAccounts(): Promise<Account[]> {
   try {
-    const response = await axiosClient.get<
-      | {
-          user_id: number;
-          first_name: string;
-          last_name: string;
-          email: string;
-          user_type: UserType;
-        }[]
-      | {
-          total: number;
-          page: number;
-          page_size: number;
-          items: {
-            user_id: number;
-            first_name: string;
-            last_name: string;
-            email: string;
-            user_type: UserType;
-          }[];
-        }
-    >("/manage-accounts/users");
-
-    const rawUsers = Array.isArray(response.data)
-      ? response.data
-      : response.data.items;
-
-    const formattedAccounts: Account[] = rawUsers.map((user) => ({
-      id: user.user_id,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      email: user.email,
-      accountType: formatAccountType(user.user_type),
-    }));
-
-    return formattedAccounts;
+    const firstPage = await getAccountsPage();
+    return firstPage.items;
   } catch (err) {
     console.error("Error fetching accounts:", err);
     throw err;
@@ -87,30 +76,15 @@ export async function getAccountsPage(
   if (userType) queryParams.user_type = userType;
   if (sort) queryParams.sort = sort;
 
-  const response = await axiosClient.get<{
-    total: number;
-    page: number;
-    page_size: number;
-    items: {
-      user_id: number;
-      first_name: string;
-      last_name: string;
-      email: string;
-      user_type: UserType;
-    }[];
-  }>("/manage-accounts/users", { params: queryParams });
+  const response = await axiosClient.get<AccountsApiResponse>("/manage-accounts/users", {
+    params: queryParams,
+  });
 
   return {
     total: response.data.total,
     page: response.data.page,
     pageSize: response.data.page_size,
-    items: response.data.items.map((user) => ({
-      id: user.user_id,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      email: user.email,
-      accountType: formatAccountType(user.user_type),
-    })),
+    items: response.data.items.map(mapAccount),
   };
 }
 
