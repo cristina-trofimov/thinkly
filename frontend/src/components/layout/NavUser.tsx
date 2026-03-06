@@ -38,12 +38,12 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         if (mounted) setLocalUser(profile)
       } catch (err) {
         logFrontend({
-        level: 'ERROR',
-        message: `Error finding user profile: ${(err as Error).message}`,
-        component: 'NavUser',
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
+          level: 'ERROR',
+          message: `Error finding user profile: ${(err as Error).message}`,
+          component: 'NavUser',
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
       }
     }
     fetch()
@@ -55,6 +55,8 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       await logout();
       alert("You have been logged out.");
       navigate('/');
+      localStorage.removeItem("theme");
+      document.documentElement.classList.remove("dark");
     } catch (err) {
       logFrontend({
         level: 'ERROR',
