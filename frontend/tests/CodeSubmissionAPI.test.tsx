@@ -147,7 +147,7 @@ describe("Code Submission", () => {
     // Skip point calculations steps
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
-    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(question_instance_id, source_code, language_id, testcases)
+    expect(mockedSubmitToJudge0).toHaveBeenCalledWith(user_id, question_instance_id, source_code, language_id, testcases)
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
     expect(mockedAxios.post).toHaveBeenCalledWith(

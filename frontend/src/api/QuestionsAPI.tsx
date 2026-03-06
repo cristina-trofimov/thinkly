@@ -34,7 +34,6 @@ export async function getQuestions(): Promise<Question[]> {
     }))
 
     return formatted
-    // return response['data']['data']
   } catch (err) {
     console.error("Error fetching questions:", err);
     throw err;
@@ -51,8 +50,6 @@ export async function getQuestionByID(question_id: number): Promise<Question> {
         question_id: question_id,
       }
   })
-
-  console.log('getQuestionByID')
 
     return response['data']['data']
   } catch (err) {

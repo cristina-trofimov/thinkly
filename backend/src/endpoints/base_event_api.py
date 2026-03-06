@@ -1,10 +1,10 @@
 import logging
 from typing import Annotated
 from sqlalchemy.orm import Session
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import BaseEvent
 from sqlalchemy.exc import SQLAlchemyError
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,20 @@ def get_event_by_id(
 
         logger.info("Fetched event by id from the database.")
 
-        return {"status_code": 200, 'data': query}
+        event = None
+        if query is not None:
+            event = {
+                'event_id': query.event_id,
+                'event_name': query.event_name,
+                'event_location': query.event_location,
+                'question_cooldown': query.question_cooldown,
+                'event_start_date': query.event_start_date,
+                'event_end_date': query.event_end_date,
+                'created_at': query.created_at,
+                'updated_at': query.updated_at,
+            }
+
+        return {"status_code": 200, 'data': event}
     except Exception as e:
         logger.error(f"Error fetching event by id: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve event by id. Exception: {str(e)}")
@@ -51,8 +64,21 @@ def get_event_by_name(
         query = db.query(BaseEvent).filter_by(event_name = event_name).first()
 
         logger.info("Fetched event by name from the database.")
+        
+        event = None
+        if query is not None:
+            event = {
+                'event_id': query.event_id,
+                'event_name': query.event_name,
+                'event_location': query.event_location,
+                'question_cooldown': query.question_cooldown,
+                'event_start_date': query.event_start_date,
+                'event_end_date': query.event_end_date,
+                'created_at': query.created_at,
+                'updated_at': query.updated_at,
+            }
 
-        return {"status_code": 200, 'data': query}
+        return {"status_code": 200, 'data': event}
     except Exception as e:
         logger.error(f"Error fetching event by name: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve event by name. Exception: {str(e)}")
@@ -95,6 +121,7 @@ def create_event(
         logger.info("Uploaded base event.")
 
         return {"status_code": 200, 'data': {
+            'event_id': instance.event_id,
             'event_name': instance.event_name,
             'event_location': instance.event_location,
             'question_cooldown': instance.question_cooldown,
