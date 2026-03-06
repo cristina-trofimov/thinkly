@@ -79,16 +79,20 @@ describe("HomePage", () => {
         // Reset call count for logFrontend before each test
         mockLogFrontend.mockClear();
 
-        // Mock getQuestions to return formatted data (already converted to Date objects)
-        (questionsApi.getQuestions as jest.Mock).mockResolvedValue([
-            { id: "1", title: "Two sum", date: new Date("2025-08-02"), difficulty: "Easy" },
-            { id: "2", title: "Palindrome", date: new Date("2025-08-15"), difficulty: "Medium" },
-            { id: "3", title: "Merge K Sorted Lists", date: new Date("2025-07-01"), difficulty: "Hard" },
-            { id: "4", title: "Christmas Tree", date: new Date("2025-07-12"), difficulty: "Easy" },
-            { id: "5", title: "Inverse String", date: new Date("2025-08-03"), difficulty: "Easy" },
-            { id: "6", title: "Hash Map", date: new Date("2025-08-03"), difficulty: "Medium" },
-            { id: "7", title: "Binary Tree", date: new Date("2025-08-19"), difficulty: "Hard" },
-        ]);
+        (questionsApi.getQuestionsPage as jest.Mock).mockResolvedValue({
+            total: 7,
+            page: 1,
+            pageSize: 25,
+            items: [
+                { id: 1, title: "Two sum", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-02"), difficulty: "Easy" },
+                { id: 2, title: "Palindrome", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-15"), difficulty: "Medium" },
+                { id: 3, title: "Merge K Sorted Lists", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-07-01"), difficulty: "Hard" },
+                { id: 4, title: "Christmas Tree", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-07-12"), difficulty: "Easy" },
+                { id: 5, title: "Inverse String", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-03"), difficulty: "Easy" },
+                { id: 6, title: "Hash Map", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-03"), difficulty: "Medium" },
+                { id: 7, title: "Binary Tree", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-19"), difficulty: "Hard" },
+            ],
+        });
 
         // Mock getCompetitions to return formatted data (already converted to Date objects)
         (compApi.getCompetitions as jest.Mock).mockResolvedValue([
@@ -118,7 +122,13 @@ describe("HomePage", () => {
         render(<HomePage />)
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
-            expect(questionsApi.getQuestions).toHaveBeenCalled()
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalledWith({
+                page: 1,
+                pageSize: 25,
+                search: "",
+                difficulty: undefined,
+                sort: "asc",
+            })
         })
         const button = await screen.findByRole("button", { name: /join competition/i })
         expect(button).toBeInTheDocument()
@@ -128,7 +138,7 @@ describe("HomePage", () => {
         render(<HomePage />)
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
-            expect(questionsApi.getQuestions).toHaveBeenCalled()
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled()
         })
         const calendar = screen.getByTestId("calendar")
         expect(calendar).toBeInTheDocument()
@@ -141,7 +151,7 @@ describe("HomePage", () => {
         // Wait for competitions to be fetched
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
-            expect(questionsApi.getQuestions).toHaveBeenCalled()
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled()
         })
 
         // Select Nov 3 using the test button
@@ -160,7 +170,7 @@ describe("HomePage", () => {
         // Wait for competitions to load
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
-            expect(questionsApi.getQuestions).toHaveBeenCalled()
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled()
         })
 
         // Select Nov 9 using the test button
@@ -179,7 +189,7 @@ describe("HomePage", () => {
         // Wait for initial load
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
-            expect(questionsApi.getQuestions).toHaveBeenCalled()
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled()
         })
 
         // Select a date without competitions
@@ -194,13 +204,13 @@ describe("HomePage", () => {
 
     test('logs an error when fetching questions fails', async () => {
         // Mock API call to fail
-        (questionsApi.getQuestions as jest.Mock).mockRejectedValue(new Error("Network down"));
+        (questionsApi.getQuestionsPage as jest.Mock).mockRejectedValue(new Error("Network down"));
 
         render(<HomePage />);
 
         // Wait for the fetch attempt to complete
         await waitFor(() => {
-            expect(questionsApi.getQuestions).toHaveBeenCalled();
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled();
             expect(compApi.getCompetitions).toHaveBeenCalled();
         });
 
@@ -223,7 +233,7 @@ describe("HomePage", () => {
         // Wait for the fetch attempt to complete
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled();
-            expect(questionsApi.getQuestions).toHaveBeenCalled();
+            expect(questionsApi.getQuestionsPage).toHaveBeenCalled();
         });
 
         // Check that the error was logged to the backend logger
