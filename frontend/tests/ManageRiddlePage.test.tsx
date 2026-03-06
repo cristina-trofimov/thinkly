@@ -6,7 +6,7 @@ import ManageRiddles from "../src/views/admin/ManageRiddlePage";
 
 // ---- Mocks ----
 jest.mock("@/api/RiddlesAPI", () => ({
-    getRiddles: jest.fn(),
+    getRiddlesPage: jest.fn(),
     deleteRiddle: jest.fn(),
 }));
 
@@ -34,6 +34,30 @@ jest.mock("@/components/forms/FileUpload", () => ({
             </button>
         </div>
     ),
+}));
+
+jest.mock("@/components/ui/pagination", () => ({
+    Pagination: ({ children }: any) => <nav>{children}</nav>,
+    PaginationContent: ({ children }: any) => <div>{children}</div>,
+    PaginationEllipsis: () => <span>...</span>,
+    PaginationItem: ({ children }: any) => <div>{children}</div>,
+    PaginationLink: ({ children, onClick, isActive, ...props }: any) => (
+        <button type="button" onClick={onClick} data-active={isActive ? "true" : "false"} {...props}>{children}</button>
+    ),
+    PaginationNext: ({ onClick, ...props }: any) => (
+        <button type="button" onClick={onClick} {...props}>Next</button>
+    ),
+    PaginationPrevious: ({ onClick, ...props }: any) => (
+        <button type="button" onClick={onClick} {...props}>Previous</button>
+    ),
+}));
+
+jest.mock("@/components/ui/select", () => ({
+    Select: ({ children }: any) => <div>{children}</div>,
+    SelectContent: ({ children }: any) => <div>{children}</div>,
+    SelectItem: ({ children }: any) => <div>{children}</div>,
+    SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
+    SelectValue: () => <span />,
 }));
 
 /**
@@ -104,7 +128,7 @@ jest.mock("@/components/ui/dialog", () => {
     };
 });
 
-import { getRiddles, deleteRiddle } from "@/api/RiddlesAPI";
+import { getRiddlesPage, deleteRiddle } from "@/api/RiddlesAPI";
 import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
 
@@ -113,6 +137,13 @@ const sampleRiddles = [
     { id: 2, question: "Bravo", answer: "Second", file: "https://example.com/file.pdf" },
 ];
 
+const paginatedRiddles = (items = sampleRiddles, page = 1, pageSize = 25, total = items.length) => ({
+    total,
+    page,
+    pageSize,
+    items,
+});
+
 beforeEach(() => {
     jest.clearAllMocks();
     window.history.pushState({}, "Test", "/test");
@@ -120,7 +151,7 @@ beforeEach(() => {
 
 describe("ManageRiddles", () => {
     test("loads riddles on mount and renders cards", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock).mockResolvedValueOnce(paginatedRiddles());
 
         render(<ManageRiddles />);
 
@@ -135,12 +166,12 @@ describe("ManageRiddles", () => {
             "https://example.com/file.pdf"
         );
 
-        expect(getRiddles).toHaveBeenCalledTimes(1);
+        expect(getRiddlesPage).toHaveBeenCalledWith({ page: 1, pageSize: 25, search: "" });
     });
 
     test("shows loading state when loading and no riddles yet", async () => {
         let resolveFn: (v: any) => void = () => { };
-        (getRiddles as jest.Mock).mockImplementationOnce(
+        (getRiddlesPage as jest.Mock).mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
                     resolveFn = resolve;
@@ -151,28 +182,27 @@ describe("ManageRiddles", () => {
 
         expect(screen.getByText(/Loading riddles/i)).toBeInTheDocument();
 
-        resolveFn([]);
-        await waitFor(() => expect(getRiddles).toHaveBeenCalled());
+        resolveFn(paginatedRiddles([]));
+        await waitFor(() => expect(getRiddlesPage).toHaveBeenCalled());
     });
 
-    test("search filters by question or answer", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+    test("search sends the query to the backend", async () => {
+        (getRiddlesPage as jest.Mock)
+            .mockResolvedValueOnce(paginatedRiddles())
+            .mockResolvedValueOnce(paginatedRiddles([sampleRiddles[0]], 1, 25, 1));
         render(<ManageRiddles />);
 
         await screen.findByText("Alpha question");
         const input = screen.getByPlaceholderText(/Search question or answer/i);
 
         fireEvent.change(input, { target: { value: "alpha" } });
-        expect(screen.getByText("Alpha question")).toBeInTheDocument();
-        expect(screen.queryByText("Bravo")).not.toBeInTheDocument();
-
-        fireEvent.change(input, { target: { value: "second" } });
-        expect(screen.getByText("Bravo")).toBeInTheDocument();
-        expect(screen.queryByText("Alpha question")).not.toBeInTheDocument();
+        await waitFor(() => {
+            expect(getRiddlesPage).toHaveBeenLastCalledWith({ page: 1, pageSize: 25, search: "alpha" });
+        });
     });
 
     test("logs + toast error when getRiddles fails", async () => {
-        (getRiddles as jest.Mock).mockRejectedValueOnce(new Error("boom"));
+        (getRiddlesPage as jest.Mock).mockRejectedValueOnce(new Error("boom"));
 
         render(<ManageRiddles />);
 
@@ -186,7 +216,9 @@ describe("ManageRiddles", () => {
     });
 
     test("create dialog opens and onSuccess closes + reloads riddles", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock)
+            .mockResolvedValueOnce(paginatedRiddles())
+            .mockResolvedValueOnce(paginatedRiddles());
 
         render(<ManageRiddles />);
         await screen.findByText("Alpha question");
@@ -197,12 +229,14 @@ describe("ManageRiddles", () => {
         fireEvent.click(screen.getByTestId("riddle-form-success-create"));
 
         await waitFor(() => {
-            expect(getRiddles).toHaveBeenCalledTimes(2);
+            expect(getRiddlesPage).toHaveBeenCalledTimes(2);
         });
     });
 
     test("edit dialog opens and onSuccess closes + reloads riddles", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock)
+            .mockResolvedValueOnce(paginatedRiddles())
+            .mockResolvedValueOnce(paginatedRiddles());
 
         render(<ManageRiddles />);
         await screen.findByText("Alpha question");
@@ -215,12 +249,14 @@ describe("ManageRiddles", () => {
         fireEvent.click(screen.getByTestId("riddle-form-success-edit"));
 
         await waitFor(() => {
-            expect(getRiddles).toHaveBeenCalledTimes(2);
+            expect(getRiddlesPage).toHaveBeenCalledTimes(2);
         });
     });
 
     test("delete flow success: confirm delete calls API, shows toast, reloads", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock)
+            .mockResolvedValueOnce(paginatedRiddles())
+            .mockResolvedValueOnce(paginatedRiddles());
         (deleteRiddle as jest.Mock).mockResolvedValueOnce(undefined);
 
         render(<ManageRiddles />);
@@ -230,18 +266,17 @@ describe("ManageRiddles", () => {
         expect(screen.getByText(/Delete riddle\?/i)).toBeInTheDocument();
 
         // ✅ ensure we click the confirm button inside the dialog, not trash icons
-        const dialog = screen.getByTestId("dialog-content");
         const confirmBtn = (await screen.findByText(/^Delete$/i)).closest("button")!;
         // (or: within(dialog).getByText(/^Delete$/i).closest("button")!)
         fireEvent.click(confirmBtn);
 
         await waitFor(() => expect(deleteRiddle).toHaveBeenCalledWith(1));
         expect(toast.success).toHaveBeenCalledWith("Riddle deleted!");
-        expect(getRiddles).toHaveBeenCalledTimes(2);
+        expect(getRiddlesPage).toHaveBeenCalledTimes(2);
     });
 
     test("delete flow failure: logs + toast error", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock).mockResolvedValueOnce(paginatedRiddles());
         (deleteRiddle as jest.Mock).mockRejectedValueOnce(new Error("nope"));
 
         render(<ManageRiddles />);
@@ -262,7 +297,7 @@ describe("ManageRiddles", () => {
 
     // ✅ Added: cancel delete closes dialog
     test("cancel delete closes dialog", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce(sampleRiddles);
+        (getRiddlesPage as jest.Mock).mockResolvedValueOnce(paginatedRiddles());
 
         render(<ManageRiddles />);
         await screen.findByText("Alpha question");
@@ -280,7 +315,9 @@ describe("ManageRiddles", () => {
 
     // ✅ Added: no attachment link if file is null
     test("renders no attachment button when file is null", async () => {
-        (getRiddles as jest.Mock).mockResolvedValueOnce([{ id: 1, question: "Q", answer: "A", file: null }]);
+        (getRiddlesPage as jest.Mock).mockResolvedValueOnce(
+            paginatedRiddles([{ id: 1, question: "Q", answer: "A", file: null }], 1, 25, 1)
+        );
 
         render(<ManageRiddles />);
 
