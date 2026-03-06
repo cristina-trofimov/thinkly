@@ -28,7 +28,6 @@ import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import { getProfile } from '@/api/AuthAPI';
-import type { SubmissionType } from '@/types/SubmissionType.type';
 
 
 const CodingView = () => {
@@ -40,7 +39,6 @@ const CodingView = () => {
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
   const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
-  // const [ allSubmissions, setAllSubmissions ] = useState<SubmissionType[]>()
   const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
@@ -79,8 +77,6 @@ const CodingView = () => {
 
       const user = await getProfile()
       const { codeRunResponse, submissionResponse } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
-      // const { codeRunResponse, submissionResponse, submissions } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
-      // setAllSubmissions(submissions)
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',

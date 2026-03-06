@@ -1,9 +1,14 @@
 import React from 'react'
 import '@testing-library/jest-dom'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
-import { render, screen, fireEvent } from "@testing-library/react"
+import { render, screen, } from "@testing-library/react"
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
+import { getProfile } from '../src/api/AuthAPI'
+import { Account } from '../src/types/account/Account.type'
+import { MostRecentSub } from '../src/types/MostRecentSub.type'
+import { SubmissionType } from '../src/types/SubmissionType.type'
+import { getAllSubmissions } from '../src/api/CodeSubmissionAPI'
 
 
 jest.mock('../src/components/helpers/useTestcases')
@@ -87,6 +92,49 @@ jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
   CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
 }));
 
+jest.mock('../src/api/AuthAPI', () => ({
+  getProfile: jest.fn()
+}))
+
+jest.mock('../src/api/CodeSubmissionAPI', () => ({
+  getAllSubmissions: jest.fn()
+}))
+
+const user_id = 1
+const question_instance_id = 1
+const mockProfile: Account = {
+  id: 1,
+  firstName: "John",
+  lastName: "string",
+  email: "string@smt.com",
+  accountType: "Participant"
+}
+
+const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
+const mockedGetAllSubmissions = getAllSubmissions as jest.MockedFunction<typeof getAllSubmissions>
+
+const mockMostRecentSubResponse: MostRecentSub = {
+  user_id: user_id,
+  question_instance_id: question_instance_id,
+  code: "source_code",
+  lang_judge_id: 71
+}
+
+const mockedSubmissions: SubmissionType[] = [
+  {
+    user_id: user_id,
+    question_instance_id: question_instance_id,
+    compile_output: null,
+    status: "Accepted",
+    runtime: 123,
+    memory: 456,
+    submitted_on: new Date(2024, 5, 12).toISOString(),
+    stdout: null,
+    stderr: null,
+    message: null,
+  }
+]
+
 const mockProblem: Question = {
   id: 1,
   title: "Sum Problem",
@@ -144,7 +192,7 @@ const setup = () => {
     setActiveTestcase,
   })
 
-  render(<CodeDescArea question={mockProblem} />)
+  render(<CodeDescArea question={mockProblem} mostRecentSub={mockMostRecentSubResponse} />)
 
   return {
     addTestcase,
@@ -154,22 +202,10 @@ const setup = () => {
   }
 }
 
-const submissions = [
-  {
-    status: "Accepted",
-    language: "JavaScript",
-    memory: "15 MB",
-    runtime: "20ms",
-    submittedOn: "2025-10-28T10:00:00Z",
-  },
-]
-
-const leaderboard = [
-  { name: "Alice", points: 100, problemsSolved: 2, totalTime: "10m" },
-]
-
 beforeAll(() => {
   jest.useFakeTimers()
+  mockedGetProfile.mockResolvedValue(mockProfile)
+  mockedGetAllSubmissions.mockResolvedValue(mockedSubmissions)
   jest.setSystemTime(new Date('2025-10-28T10:00:00Z'))
 })
 
@@ -177,12 +213,19 @@ afterAll(() => {
   jest.useRealTimers()
 })
 describe('CodeDescArea', () => {
-  it("renders Description tab with problem title and description and all tab triggers", () => {
+  it("renders all tab triggers, the problem details, submissions and leaderboard", () => {
     setup()
 
     expect(screen.getAllByTestId("tabs-trigger").length).toBe(3)
     expect(screen.getByText("Sum Problem")).toBeInTheDocument()
     expect(screen.getByText("Add two numbers")).toBeInTheDocument()
     expect(screen.getByText(/num = 10/i)).toBeInTheDocument()
+
+    expect(screen.getByText("Status")).toBeInTheDocument()
+    expect(screen.getByText("Language")).toBeInTheDocument()
+    expect(screen.getByText("Memory")).toBeInTheDocument()
+    expect(screen.getByText("Runtime")).toBeInTheDocument()
+
+    expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument()
   })
 })

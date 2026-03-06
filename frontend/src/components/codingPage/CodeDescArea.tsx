@@ -15,7 +15,7 @@ import { getProfile } from '@/api/AuthAPI'
 
 
 const CodeDescArea = (
-    { question, mostRecentSub }:
+    { question, mostRecentSub, }:
     { question: Question, mostRecentSub: MostRecentSub | undefined }
 ) => {
 
@@ -66,6 +66,26 @@ const CodeDescArea = (
     if (fullSize) {
         halfSize = fullSize / 2
         quarterSize = fullSize / 4
+    }
+
+    const timeFormat = (dateSTR: string) => {
+        const diffMs = Date.now() - Date.parse(dateSTR)
+
+        const seconds = Math.floor(diffMs / 1000)
+        const minutes = Math.floor(diffMs / (1000 * 60))
+        const hours = Math.floor(diffMs / (1000 * 60 * 60))
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+        // let displayTime = ''
+        if (days > 0) {
+            return `${days} day${days > 1 ? "s" : ""} ago`
+        } else if (hours > 0) {
+            return `${hours} hour${hours > 1 ? "s" : ""} ago`
+        } else if (minutes > 0) {
+            return `${minutes} minute${minutes > 1 ? "s" : ""} ago`
+        } else {
+            return `${seconds} second${seconds !== 1 ? "s" : ""} ago`
+        }
     }
 
     const handleTabChange = (tab: string) => {
@@ -154,30 +174,16 @@ const CodeDescArea = (
                             </TableHeader>
                             <TableBody>
                                 {submissions?.map((s, idx) => {
-                                    const diffMs = Date.now() - Date.parse(s.submitted_on)
-
-                                    const seconds = Math.floor(diffMs / 1000)
-                                    const minutes = Math.floor(diffMs / (1000 * 60))
-                                    const hours = Math.floor(diffMs / (1000 * 60 * 60))
-                                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                    let displayTime = ''
-                                    if (days > 0) {
-                                        displayTime = `${days} day${days > 1 ? "s" : ""} ago`
-                                    } else if (hours > 0) {
-                                        displayTime = `${hours} hour${hours > 1 ? "s" : ""} ago`
-                                    } else if (minutes > 0) {
-                                        displayTime = `${minutes} minute${minutes > 1 ? "s" : ""} ago`
-                                    } else {
-                                        displayTime = `${seconds} second${seconds !== 1 ? "s" : ""} ago`
-                                    }
+                                    
 
-                                    return <TableRow key={`submission ${idx}`} >
+                                    return <TableRow key={`submission ${idx}`} data-testid={`submission ${idx}`}
+                                    onClick={() => setSelectedSubmission(s)}
+                                    >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-gray-500' >{displayTime}</span>
+                                            <span className='text-gray-500' >{timeFormat(s.submitted_on)}</span>
                                         </TableCell>
                                         <TableCell className="" >s.language</TableCell>
                                         <TableCell className="text-right text-gray-500" >{s.memory}</TableCell>
@@ -192,13 +198,24 @@ const CodeDescArea = (
                         </Table>
                         : (
                             <div>
-                                <div className='flex flex-row gap-6 items-center mb-4'>
-                                    <Button onClick={() => setSelectedSubmission(null)}>
-                                        Back
-                                    </Button>
-                                    <h1 className='text-3xl font-semibold'>
-                                        {selectedSubmission.status}
-                                    </h1>
+                                <div className='flex flex-col gap-3'>
+                                    <div className='flex flex-row gap-6 items-center mb-4' >
+                                        <Button onClick={() => setSelectedSubmission(null)}>
+                                            Back
+                                        </Button>
+                                        <h1 className='text-3xl font-semibold'>
+                                            {selectedSubmission.status}
+                                        </h1>
+                                    </div>
+                                    <div className='flex flex-col gap-2' >
+                                        <p>compile_output: {selectedSubmission.compile_output}</p>
+                                        <p>stderr: {selectedSubmission.stderr}</p>
+                                        <p>stdout: {selectedSubmission.stdout}</p>
+                                        <p>memory: {selectedSubmission.memory}</p>
+                                        <p>message: {selectedSubmission.message}</p>
+                                        <p>runtime: {selectedSubmission.runtime}</p>
+                                        <p>submitted_on: {timeFormat(selectedSubmission.submitted_on)}</p>
+                                    </div>
                                 </div>
                             </div>
                         )}
