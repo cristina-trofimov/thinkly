@@ -5,6 +5,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { getRiddleById } from '@/api/RiddlesAPI'
+import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 
 // -------------------- MOCKS --------------------
 
@@ -66,12 +67,12 @@ jest.mock("../src/components/ui/table", () => ({
     TableRow: ({ children }: any) => <tr>{children}</tr>,
 }))
 
-jest.mock('../src/components/helpers/UseStateCallback', () => ({
-    useStateCallback: (initial: any) => {
-        const [state, setState] = React.useState(initial)
-        return [state, (v: any) => setState(v), jest.fn()]
-    }
-}))
+// jest.mock('../src/components/helpers/UseStateCallback', () => ({
+//     useStateCallback: (initial: any) => {
+//         const [state, setState] = React.useState(initial)
+//         return [state, (v: any) => setState(v), jest.fn()]
+//     }
+// }))
 
 jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
     __esModule: true,
@@ -80,8 +81,9 @@ jest.mock('../src/components/leaderboards/CurrentLeaderboard.tsx', () => ({
 
 // -------------------- TEST DATA --------------------
 
+const problem_id = 1
 const mockProblem: Question = {
-  question_id: 1,
+  question_id: problem_id,
   question_name: "Sum Problem",
   question_description: "Add two numbers",
   media: "string",
@@ -92,6 +94,22 @@ const mockProblem: Question = {
   from_string_function: "Easy",
   created_at: new Date("2025-10-28T10:00:00Z"),
   last_modified_at: new Date("2025-10-28T10:00:00Z"),
+}
+
+const mockQuestionInstance: QuestionInstance = {
+    question_instance_id: 1,
+    question_id: problem_id,
+    event_id: 1,
+    points: null,
+    riddle_id: null,
+    is_riddle_completed: null
+}
+
+const mockRiddle = {
+    id: 7,
+    question: "What has keys but no locks?",
+    answer: "A piano",
+    file: null
 }
 
 const mockUseTestcases = useTestcases as jest.Mock
@@ -124,7 +142,7 @@ const setup = async (riddleData: any = mockRiddle, shouldFail = false) => {
         mockGetRiddleById.mockResolvedValue(riddleData)
     }
 
-    const utils = render(<CodeDescArea question={mockProblem} />)
+    const utils = render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />)
     return { ...utils }
 }
 
@@ -134,7 +152,7 @@ describe('CodeDescArea', () => {
     describe('Riddle Logic (Gatekeeper)', () => {
         it("renders loading state initially", async () => {
             mockGetRiddleById.mockReturnValue(new Promise(() => {}));
-            render(<CodeDescArea question={mockProblem} />);
+            render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />);
             expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument();
         });
 
