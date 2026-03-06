@@ -1,6 +1,33 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { NotificationsCard } from '../src/components/createActivity/NotificationsCard';
 
+// Mock the custom DatePicker and TimeInput helpers since they're local components
+// that won't resolve in the test environment
+jest.mock('../src/helpers/DatePicker', () => ({
+  __esModule: true,
+  default: ({ value, onChange, min }: { value: string; onChange: (v: string) => void; min?: string }) => (
+    <input
+      data-testid="date-picker"
+      type="date"
+      value={value}
+      min={min}
+      onChange={e => onChange(e.target.value)}
+    />
+  ),
+}));
+
+jest.mock('../src/helpers/TimeInput', () => ({
+  TimeInput: ({ value, onChange, min }: { value: string; onChange: (v: string) => void; min?: string }) => (
+    <input
+      data-testid="time-input"
+      type="time"
+      value={value}
+      min={min}
+      onChange={e => onChange(e.target.value)}
+    />
+  ),
+}));
+
 describe('NotificationsCard', () => {
   const mockEmailData = {
     to: 'test@example.com',
@@ -45,34 +72,34 @@ describe('NotificationsCard', () => {
       expect(mockProps.setEmailEnabled).toHaveBeenCalledWith(true);
     });
 
-    test('updates custom reminder date-time', () => {
-      const { container } = render(<NotificationsCard {...mockProps} emailEnabled={true} />);
-      // Select by type is safer than index
-      const dateInput = container.querySelector('input[type="datetime-local"]');
-      if (!dateInput) throw new Error("Date input not found");
-      
-      fireEvent.change(dateInput, { target: { value: '2026-12-25T12:00' } });
-      expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ sendAtLocal: '2026-12-25T12:00' });
+    test('updates custom reminder date when date picker changes', () => {
+      render(<NotificationsCard {...mockProps} emailEnabled={true} />);
+      const dateInput = screen.getByTestId('date-picker');
+      fireEvent.change(dateInput, { target: { value: '2026-12-25' } });
+      // The handler combines date + existing time (10:00 from mockEmailData)
+      expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ sendAtLocal: '2026-12-25T10:00' });
+    });
+
+    test('updates custom reminder time when time input changes', () => {
+      render(<NotificationsCard {...mockProps} emailEnabled={true} />);
+      const timeInput = screen.getByTestId('time-input');
+      fireEvent.change(timeInput, { target: { value: '14:30' } });
+      // The handler combines existing date (2026-02-06 from mockEmailData) + new time
+      expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ sendAtLocal: '2026-02-06T14:30' });
     });
   });
 
   describe('Form Field Interactions', () => {
     test('updates "To" field when emailToAll is false', () => {
       const { container } = render(<NotificationsCard {...mockProps} emailEnabled={true} emailToAll={false} />);
-      
-      // We look for the input that currently holds the 'to' value
       const toInput = container.querySelector(`input[value="${mockEmailData.to}"]`);
-      
       fireEvent.change(toInput!, { target: { value: 'new@example.com' } });
       expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ to: 'new@example.com' });
     });
 
     test('updates Subject field', () => {
       const { container } = render(<NotificationsCard {...mockProps} emailEnabled={true} />);
-      
-      // Select the input that currently holds the 'subject' value
       const subjectInput = container.querySelector(`input[value="${mockEmailData.subject}"]`);
-
       fireEvent.change(subjectInput!, { target: { value: 'New Subject' } });
       expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ subject: 'New Subject' });
     });
@@ -80,7 +107,6 @@ describe('NotificationsCard', () => {
     test('updates Message Content and calls onManualEdit', () => {
       const { container } = render(<NotificationsCard {...mockProps} emailEnabled={true} />);
       const bodyInput = container.querySelector('textarea');
-
       fireEvent.change(bodyInput!, { target: { value: 'Updated body text' } });
       expect(mockProps.onManualEdit).toHaveBeenCalledTimes(1);
       expect(mockProps.onEmailDataChange).toHaveBeenCalledWith({ body: 'Updated body text' });
@@ -97,15 +123,17 @@ describe('NotificationsCard', () => {
   describe('Edge Cases', () => {
     test('displays existing emailData values in inputs', () => {
       const { container } = render(<NotificationsCard {...mockProps} emailEnabled={true} />);
-      
-      // Use explicit attribute selectors to verify values
+
       const subjectInput = container.querySelector(`input[value="${mockEmailData.subject}"]`);
       const bodyInput = container.querySelector('textarea');
-      const dateInput = container.querySelector('input[type="datetime-local"]');
+      const dateInput = screen.getByTestId('date-picker');
+      const timeInput = screen.getByTestId('time-input');
 
       expect(subjectInput).toBeInTheDocument();
       expect(bodyInput).toHaveValue(mockEmailData.body);
-      expect(dateInput).toHaveValue(mockEmailData.sendAtLocal);
+      // sendAtLocal "2026-02-06T10:00" splits into date and time
+      expect(dateInput).toHaveValue('2026-02-06');
+      expect(timeInput).toHaveValue('10:00');
     });
   });
 });

@@ -201,7 +201,7 @@ export function LoginForm({
             <FieldDescription className="text-right">
               <button
                 type="button"
-                className="text-sm text-gray-500 underline cursor-pointer hover:text-gray-700"
+                className="cursor-pointer text-sm text-gray-500 underline hover:text-gray-700"
                 onClick={() => navigate("/forgot-password")}
               >
                 Forgot password?

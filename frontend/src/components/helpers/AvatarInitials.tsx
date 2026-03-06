@@ -31,7 +31,7 @@ export function AvatarInitials({
 
   return (
     <span
-      className={`flex items-center justify-center rounded-full bg-muted text-primary font-semibold ${sizeClasses[size]} ${className}`}
+      className={`flex items-center justify-center rounded-full bg-muted/80 text-primary outline-none font-semibold ${sizeClasses[size]} ${className}`}
     >
       {initials}
     </span>

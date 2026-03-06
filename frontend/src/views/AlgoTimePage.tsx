@@ -58,7 +58,7 @@ export default function AlgoTimePage() {
         {[...sessions]
           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
           .map((s) => (
-            <Card key={s.id} className="overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col">
+            <Card key={s.id} className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col">
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="relative z-10 text-center w-full">
                   <div className="text-xl md:text-2xl font-bold text-primary/80 break-words leading-tight">{s.eventName}</div>

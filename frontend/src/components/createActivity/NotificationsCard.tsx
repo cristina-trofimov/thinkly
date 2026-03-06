@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { TimeInput } from "@/helpers/TimeInput";
+import DatePicker from "@/helpers/DatePicker";
 
 interface NotificationsCardProps {
   emailEnabled: boolean;
@@ -24,6 +26,21 @@ interface NotificationsCardProps {
 export function NotificationsCard({
   emailEnabled, setEmailEnabled, emailToAll, setEmailToAll, emailData, onEmailDataChange, onManualEdit
 }: Readonly<NotificationsCardProps>) {
+
+  // Split sendAtLocal into date and time parts for the custom pickers
+  const sendDate = emailData.sendAtLocal ? emailData.sendAtLocal.split("T")[0] : "";
+  const sendTime = emailData.sendAtLocal ? emailData.sendAtLocal.split("T")[1]?.slice(0, 5) : "";
+
+  const handleDateChange = (date: string) => {
+    const time = sendTime || "00:00";
+    onEmailDataChange({ sendAtLocal: date ? `${date}T${time}` : "" });
+  };
+
+  const handleTimeChange = (time: string) => {
+    const date = sendDate || new Date().toISOString().split("T")[0];
+    onEmailDataChange({ sendAtLocal: time ? `${date}T${time}` : "" });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -36,6 +53,9 @@ export function NotificationsCard({
           <Label htmlFor="enEmail">Enable Emails</Label>
           <Switch id="enEmail" checked={emailEnabled} onCheckedChange={setEmailEnabled} />
         </div>
+        <p className="text-xs text-muted-foreground bg-muted rounded-md px-3 py-2">
+          📬 By default, participants automatically receive a reminder <strong>24 hours</strong> before and <strong>5 minutes</strong> before the competition starts.
+        </p>
         {emailEnabled && (
           <div className="space-y-4 pt-2 border-t mt-2">
             <div className="flex items-center justify-between">
@@ -44,8 +64,15 @@ export function NotificationsCard({
             </div>
             {!emailToAll && (
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">To (comma-separated)</Label>
-                <Input value={emailData.to} onChange={e => onEmailDataChange({ to: e.target.value })} />
+                <Label className="text-xs font-semibold">To (comma-separated emails)</Label>
+                <Input
+                  value={emailData.to}
+                  onChange={e => onEmailDataChange({ to: e.target.value })}
+                  placeholder="e.g. alice@example.com, bob@example.com"
+                  type="email"
+                  multiple
+                />
+                <p className="text-xs text-muted-foreground">Enter recipient email addresses, separated by commas.</p>
               </div>
             )}
             <div className="space-y-1">
@@ -54,20 +81,23 @@ export function NotificationsCard({
             </div>
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Message Content</Label>
-              <Textarea 
-                rows={4} 
-                className="text-xs" 
-                value={emailData.body} 
-                onChange={e => { onManualEdit(); onEmailDataChange({ body: e.target.value }); }} 
+              <Textarea
+                rows={4}
+                className="text-xs"
+                value={emailData.body}
+                onChange={e => { onManualEdit(); onEmailDataChange({ body: e.target.value }); }}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="sendAtLocal">Additional custom reminder</Label>
-              <Input
-                id="sendAtLocal"
-                type="datetime-local"
-                value={emailData.sendAtLocal}
-                onChange={(e) => onEmailDataChange({ sendAtLocal: e.target.value })}
+            <div className="space-y-2">
+              <Label>Additional custom reminder</Label>
+              <DatePicker
+                value={sendDate}
+                onChange={handleDateChange}
+                min={new Date().toISOString().split("T")[0]}
+              />
+              <TimeInput
+                value={sendTime}
+                onChange={handleTimeChange}
               />
             </div>
           </div>
