@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Tag } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
