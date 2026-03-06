@@ -350,13 +350,14 @@ const CodingView = () => {
       {questionsInstances.length > 1 && (
         <div className='flex items-end-safe justify-end mb-2 w-full'>
           <DropdownMenu data-testid='questions-dropdown'>
-            <DropdownMenuTrigger>
-              <Button data-testid='questions-btn'
-                className="bg-background text-black text-base font-bold h-7
-                            hover:bg-primary/20 focus:bg-primary/55">
-                {activeDisplayQuestionName}
-                <ChevronDown />
-              </Button>
+            <DropdownMenuTrigger
+              data-testid='questions-btn'
+              className="bg-background text-black text-base font-bold h-7
+                flex items-center gap-2 rounded-md p-2
+                hover:bg-primary/20 focus:bg-primary/55"
+            >
+              {activeDisplayQuestionName}
+              <ChevronDown />
             </DropdownMenuTrigger>
             <DropdownMenuContent className='z-999' asChild>
               <div data-testid='questions-menu'
@@ -431,13 +432,14 @@ const CodingView = () => {
                 </div>
                 <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
                   <DropdownMenu data-testid='language-dropdown'>
-                    <DropdownMenuTrigger>
-                      <Button data-testid='language-btn'
+                    <DropdownMenuTrigger
+                      data-testid='language-btn'
                         className="bg-background text-black text-base font-bold h-7
-                                  hover:bg-primary/20 focus:bg-primary/55">
-                        {selectedLang}
-                        <ChevronDown />
-                      </Button>
+                          flex items-center gap-2 rounded-md p-2
+                          hover:bg-primary/20 focus:bg-primary/55"
+                    >
+                      {selectedLang}
+                      <ChevronDown />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
