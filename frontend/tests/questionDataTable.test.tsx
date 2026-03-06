@@ -18,6 +18,7 @@ jest.mock("../src/hooks/useAnalytics", () => ({
 // Mock Button, Input, DropdownMenu components (if needed)
 jest.mock("../src/components/ui/button", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  buttonVariants: () => "",
 }))
 
 jest.mock("../src/components/ui/input", () => ({
@@ -34,6 +35,36 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
     </div>),
   DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
   DropdownMenuSeparator: () => <div>---</div>,
+}))
+
+jest.mock("../src/components/ui/pagination", () => ({
+  Pagination: ({ children }: any) => <nav>{children}</nav>,
+  PaginationContent: ({ children }: any) => <div>{children}</div>,
+  PaginationEllipsis: () => <span>...</span>,
+  PaginationItem: ({ children }: any) => <div>{children}</div>,
+  PaginationLink: ({ children, onClick, isActive, ...props }: any) => (
+    <button type="button" onClick={onClick} data-active={isActive ? "true" : "false"} {...props}>
+      {children}
+    </button>
+  ),
+  PaginationNext: ({ onClick, ...props }: any) => (
+    <button type="button" onClick={onClick} {...props}>
+      Next
+    </button>
+  ),
+  PaginationPrevious: ({ onClick, ...props }: any) => (
+    <button type="button" onClick={onClick} {...props}>
+      Previous
+    </button>
+  ),
+}))
+
+jest.mock("../src/components/ui/select", () => ({
+  Select: ({ children }: any) => <div>{children}</div>,
+  SelectContent: ({ children }: any) => <div>{children}</div>,
+  SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
+  SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
+  SelectValue: () => <span />,
 }))
 
 // Sample columns and data
@@ -66,9 +97,25 @@ const data: Question[] = [
 ]
 
 describe("DataTable", () => {
+  const defaultProps = {
+    total: data.length,
+    page: 1,
+    pageSize: 25,
+    search: "",
+    difficultyFilter: "all" as const,
+    onSearchChange: jest.fn(),
+    onDifficultyFilterChange: jest.fn(),
+    onPageChange: jest.fn(),
+    onPageSizeChange: jest.fn(),
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   test("renders column headers", () => {
     render(
-      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+      <MemoryRouter><DataTable columns={columns} data={data} {...defaultProps} /></MemoryRouter>
     )
     expect(screen.getByText("Question Title")).toBeInTheDocument()
     expect(screen.getByText("Difficulty")).toBeInTheDocument()
@@ -76,7 +123,7 @@ describe("DataTable", () => {
 
   test("renders all rows", () => {
     render(
-      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+      <MemoryRouter><DataTable columns={columns} data={data} {...defaultProps} /></MemoryRouter>
     )
     expect(screen.getByText("Two Sum")).toBeInTheDocument()
     expect(screen.getByText("Palindrome")).toBeInTheDocument()
@@ -88,37 +135,49 @@ describe("DataTable", () => {
 
   test("shows 'No results.' when data is empty", () => {
     render(
-      <MemoryRouter><DataTable columns={columns} data={[]} /></MemoryRouter>
+      <MemoryRouter><DataTable columns={columns} data={[]} {...defaultProps} /></MemoryRouter>
     )
     expect(screen.getByText("No results.")).toBeInTheDocument()
   })
 
-  test("search input filters rows", async () => {
+  test("search input sends the search value to the parent", async () => {
+    const onSearchChange = jest.fn()
     render(
-      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          onSearchChange={onSearchChange}
+        />
+      </MemoryRouter>
     )
     const input = screen.getByPlaceholderText("Search questions...") as HTMLInputElement
     expect(input).toBeInTheDocument()
 
-    // Filter to "Two Sum"
     fireEvent.change(input, { target: { value: "Two Sum" } })
     await waitFor(() => {
-    expect(screen.getByText("Two Sum")).toBeInTheDocument()
-    expect(screen.queryByText("Palindrome")).not.toBeInTheDocument()})
+      expect(onSearchChange).toHaveBeenCalledWith("Two Sum")
+    })
   })
 
-  test("dropdown filter sets difficulty filter", async () => {
+  test("dropdown filter sends the difficulty value to the parent", async () => {
+    const onDifficultyFilterChange = jest.fn()
     render(
-      <MemoryRouter><DataTable columns={columns} data={data} /></MemoryRouter>
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          onDifficultyFilterChange={onDifficultyFilterChange}
+        />
+      </MemoryRouter>
     )
     const easyFilter = screen.getByTestId("filter-easy")
     fireEvent.click(easyFilter)
 
-
-    // Only medium row should be visible
     await waitFor(() => {
-        expect(screen.getByText("Two Sum")).toBeInTheDocument()
-        expect(screen.queryByText("Palindrome")).not.toBeInTheDocument()
-      })
+      expect(onDifficultyFilterChange).toHaveBeenCalledWith("easy")
+    })
   })
 })
