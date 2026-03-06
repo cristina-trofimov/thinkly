@@ -122,7 +122,7 @@ export default function ForgotPasswordForm({
                   Remember your password?{" "}
                   <button
                     type="button"
-                    className="text-gray-500 underline cursor-pointer"
+                    className="text-gray-500 underline"
                     onClick={() => navigate("/")}
                   >
                     Go to Login

@@ -6,7 +6,7 @@ from typing import List
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
 import logging
-from backend.src.services.posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 
