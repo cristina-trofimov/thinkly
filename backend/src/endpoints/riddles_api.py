@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from models.schema import Riddle
 from database_operations.database import get_db, _commit_or_rollback
 import logging
@@ -9,11 +10,14 @@ import time
 import re
 from urllib.parse import urlparse
 from services.posthog_analytics import track_custom_event
+from pydantic import BaseModel
 
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
 riddles_router = APIRouter(tags=["Riddles"])
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
 
 # Supabase (server-side)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -24,6 +28,29 @@ BUCKET = "uploads"
 FOLDER = "public"
 MAX_MB = 100
 RIDDLE_NOT_FOUND="Riddle not found"
+
+
+class RiddleListItemResponse(BaseModel):
+    riddle_id: int
+    riddle_question: str
+    riddle_answer: str
+    riddle_file: str | None
+
+
+class PaginatedRiddlesResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[RiddleListItemResponse]
+
+
+def serialize_riddle(riddle: Riddle) -> dict:
+    return {
+        "riddle_id": riddle.riddle_id,
+        "riddle_question": riddle.riddle_question,
+        "riddle_answer": riddle.riddle_answer,
+        "riddle_file": riddle.riddle_file,
+    }
 
 def check_riddle_exists(db: Session, question: str) -> bool:
     return db.query(Riddle).filter(Riddle.riddle_question == question).first() is not None
@@ -150,24 +177,41 @@ async def get_riddle_by_id(
 @riddles_router.get(
     "/",
     status_code=status.HTTP_200_OK,
+    response_model=PaginatedRiddlesResponse,
 )
 async def list_riddles(
+    response: Response,
     db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Annotated[Optional[str], Query(max_length=200)] = None,
 ):
-    logger.info("Public user requesting full riddles list")
+    logger.info("Public user requesting riddles page=%s page_size=%s", page, page_size)
 
     try:
-        riddles = db.query(Riddle).all()
+        query = db.query(Riddle)
 
-        return [
-            {
-                "riddle_id": r.riddle_id,
-                "riddle_question": r.riddle_question,
-                "riddle_answer": r.riddle_answer,
-                "riddle_file": r.riddle_file,
-            }
-            for r in riddles
-        ]
+        if search and search.strip():
+            needle = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    Riddle.riddle_question.ilike(needle),
+                    Riddle.riddle_answer.ilike(needle),
+                )
+            )
+
+        query = query.order_by(Riddle.riddle_id.desc())
+        total = query.count()
+        offset = (page - 1) * page_size
+        riddles = query.offset(offset).limit(page_size).all()
+        response.headers["Cache-Control"] = "public, max-age=60"
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": [serialize_riddle(r) for r in riddles],
+        }
 
     except Exception as e:
         logger.exception(f"Error retrieving riddles list: {str(e)}")
