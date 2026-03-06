@@ -106,8 +106,6 @@ axiosClient.interceptors.response.use(
 );
 
 export function parseAxiosErrorMessage(error: unknown): string {
-  console.log("BRANDON");
-  console.log(error);
   if (axios.isAxiosError(error)) {
     return JSON.stringify(error.response?.data?.detail) || error.message;
   } else if (error instanceof Error) {
