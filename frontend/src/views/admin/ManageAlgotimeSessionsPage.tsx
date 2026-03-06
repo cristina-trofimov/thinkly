@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter} from "@/components/ui/card";
 import { Input} from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, Trash} from "lucide-react";
+import { Plus, Search, Eye, Trash, Filter} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
@@ -28,7 +28,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Filter } from "lucide-react";
 import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
 
 export default function ManageAlgotimeSessionsPage() {

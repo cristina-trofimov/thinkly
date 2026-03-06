@@ -93,9 +93,9 @@ export const AlgoTimeSessionForm = ({
     }));
   };
 
-  const submitLabel = isSubmitting
-  ? (mode === "edit" ? "Saving..." : "Creating...")
-  : (mode === "edit" ? "Save Changes" : "Create");
+  const savingLabel = mode === "edit" ? "Saving..." : "Creating...";
+  const readyLabel = mode === "edit" ? "Save Changes" : "Create";
+  const submitLabel = isSubmitting ? savingLabel : readyLabel;
  
   // Calculate repeat sessions
   const calculateRepeatSessions = (): Session[] => {
@@ -392,6 +392,96 @@ export const AlgoTimeSessionForm = ({
     }
   };
 
+  const renderQuestionSelector = () => {
+    if (mode === "edit") {
+      return (
+        <SessionQuestionSelector
+          sessionNumber={1}
+          sessionDate={generalData.date || ""}
+          questions={questions}
+          sessionQuestions={sessionQuestions}
+          searchQueries={searchQueries}
+          setSearchQueries={setSearchQueries}
+          difficultyFilters={difficultyFilters}
+          setDifficultyFilters={setDifficultyFilters}
+          toggleQuestionForSession={toggleQuestionForSession}
+          getDifficultyColor={getDifficultyColor}
+          sessionNames={sessionNames}
+          setSessionNames={setSessionNames}
+        />
+      );
+    }
+  
+    if (formData.repeatType !== "none" && formData.repeatEndDate && generalData.date) {
+      return (
+        <Tabs value={activeSession} onValueChange={setActiveSession} className="w-full">
+          <div className="flex h-[500px] gap-6">
+            <TabsList className="flex flex-col h-full w-48 shrink-0 justify-start overflow-y-auto rounded-none border-r border-gray-200 bg-transparent p-1 gap-1">
+              {repeatSessions.map((session) => (
+                <TabsTrigger
+                  key={session.sessionNumber}
+                  value={`session-${session.sessionNumber}`}
+                  className={`w-full shadows-sm justify-start text-left border border-gray-200 data-[state=active]:border-l-primary px-3 py-2 text-sm truncate border-l-2 ${
+                    isSessionComplete(session.sessionNumber)
+                      ? "border-l-green-500 shadow-sm"
+                      : "border-l-red-500 shadow-sm"
+                  }`}
+                >
+                  <span className="truncate block w-full">
+                    {sessionNames[session.sessionNumber] || `Session ${session.sessionNumber}`}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <div className="flex-1 overflow-auto min-w-0">
+              {repeatSessions.map((session) => (
+                <TabsContent
+                  key={session.sessionNumber}
+                  value={`session-${session.sessionNumber}`}
+                  className="mt-0 p-2"
+                  forceMount
+                  hidden={activeSession !== `session-${session.sessionNumber}`}
+                >
+                  <SessionQuestionSelector
+                    key={session.sessionNumber}
+                    sessionNumber={session.sessionNumber}
+                    sessionDate={session.date}
+                    questions={questions}
+                    sessionQuestions={sessionQuestions}
+                    searchQueries={searchQueries}
+                    setSearchQueries={setSearchQueries}
+                    difficultyFilters={difficultyFilters}
+                    setDifficultyFilters={setDifficultyFilters}
+                    toggleQuestionForSession={toggleQuestionForSession}
+                    getDifficultyColor={getDifficultyColor}
+                    sessionNames={sessionNames}
+                    setSessionNames={setSessionNames}
+                  />
+                </TabsContent>
+              ))}
+            </div>
+          </div>
+        </Tabs>
+      );
+    }
+  
+    return (
+      <SessionQuestionSelector
+        sessionNumber={1}
+        sessionDate={formData.date || ""}
+        questions={questions}
+        sessionQuestions={sessionQuestions}
+        searchQueries={searchQueries}
+        setSearchQueries={setSearchQueries}
+        difficultyFilters={difficultyFilters}
+        setDifficultyFilters={setDifficultyFilters}
+        toggleQuestionForSession={toggleQuestionForSession}
+        getDifficultyColor={getDifficultyColor}
+        sessionNames={sessionNames}
+        setSessionNames={setSessionNames}
+      />
+    );
+  };
 
 
   return (
@@ -474,94 +564,7 @@ export const AlgoTimeSessionForm = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-            {mode === "edit" ? (
-                  <SessionQuestionSelector
-                    sessionNumber={1}
-                    sessionDate={generalData.date || ""}
-                    questions={questions}
-                    sessionQuestions={sessionQuestions}
-                    searchQueries={searchQueries}
-                    setSearchQueries={setSearchQueries}
-                    difficultyFilters={difficultyFilters}
-                    setDifficultyFilters={setDifficultyFilters}
-                    toggleQuestionForSession={toggleQuestionForSession}
-                    getDifficultyColor={getDifficultyColor}
-                    sessionNames={sessionNames}
-                    setSessionNames={setSessionNames}
-                  />
-                ) : formData.repeatType !== "none" && formData.repeatEndDate && generalData.date ? (
-                <Tabs
-                  value={activeSession}
-                  onValueChange={setActiveSession}
-                  className="w-full"
-                >
-                <div className="flex h-[500px] gap-6">
-                  {/* Tabs List on the left */}
-                  <TabsList className="flex flex-col h-full w-48 shrink-0 justify-start overflow-y-auto rounded-none border-r border-gray-200 bg-transparent p-1 gap-1">
-                    {repeatSessions.map((session) => (
-                      <TabsTrigger
-                      key={session.sessionNumber}
-                      value={`session-${session.sessionNumber}`}
-                      className={`w-full shadows-sm justify-start text-left border border-gray-200  data-[state=active]:border-l-primary px-3 py-2 text-sm truncate border-l-2 ${
-                        isSessionComplete(session.sessionNumber)
-                          ? "border-l-green-500 shadow-sm "
-                          : "border-l-red-500 shadow-sm"
-                      }`}
-                    >
-              <span className="truncate block w-full">
-                {sessionNames[session.sessionNumber] || `Session ${session.sessionNumber}`}
-              </span>
-            </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {/* Tabs Content on the right */}
-          <div className="flex-1 overflow-auto min-w-0">
-            {repeatSessions.map((session) => (
-              <TabsContent
-                key={session.sessionNumber}
-                value={`session-${session.sessionNumber}`}
-                className="mt-0 p-2"
-                forceMount  
-                hidden={activeSession !== `session-${session.sessionNumber}`}
-              >
-                <SessionQuestionSelector
-                  key={session.sessionNumber}
-                  sessionNumber={session.sessionNumber}
-                  sessionDate={session.date}
-                  questions={questions}
-                  sessionQuestions={sessionQuestions}
-                  searchQueries={searchQueries}
-                  setSearchQueries={setSearchQueries}
-                  difficultyFilters={difficultyFilters}
-                  setDifficultyFilters={setDifficultyFilters}
-                  toggleQuestionForSession={toggleQuestionForSession}
-                  getDifficultyColor={getDifficultyColor}
-                  sessionNames={sessionNames}
-                  setSessionNames={setSessionNames}
-                />
-              </TabsContent>
-            ))}
-          </div>
-        </div>
-      </Tabs>
-            ) : (
-              <SessionQuestionSelector
-                sessionNumber={1}
-                sessionDate={formData.date || ""}
-                questions={questions}
-                sessionQuestions={sessionQuestions}
-                searchQueries={searchQueries}
-                setSearchQueries={setSearchQueries}
-                difficultyFilters={difficultyFilters}
-                setDifficultyFilters={setDifficultyFilters}
-                toggleQuestionForSession={toggleQuestionForSession}
-                getDifficultyColor={getDifficultyColor}
-                sessionNames={sessionNames}
-                setSessionNames={setSessionNames}
-              />
-            )
-            }
+               {renderQuestionSelector()}
           </CardContent>
         </Card>
           </div>
