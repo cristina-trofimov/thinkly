@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
@@ -72,7 +72,7 @@ export const columns: ColumnDef<Question>[] = [
       const id: number = row.original.id;
 
       return (
-        <div className="text-left font-medium italic">
+        <div className="text-left font-medium">
             {id}
         </div>
       );
@@ -98,7 +98,7 @@ export const columns: ColumnDef<Question>[] = [
       const name: string = row.original.title;
 
       return (
-        <div className="text-left font-medium italic">
+        <div className="text-left font-medium">
             {name}
         </div>
       );
@@ -109,7 +109,7 @@ export const columns: ColumnDef<Question>[] = [
     header: () => <div className="text-left">Description</div>,
     cell: ({ row }) => (
       <div
-        className="max-w-[500px] max-h-[100px] overflow-y-auto whitespace-normal break-words text-left font-medium"
+        className="max-w-[500px] max-h-[100px] overflow-y-auto whitespace-normal break-words text-left"
         title={row.getValue("description")}
       >{row.getValue("description")}</div>
     ),
@@ -138,11 +138,26 @@ export const columns: ColumnDef<Question>[] = [
 
       return orderA - orderB;
     },
-    cell: ({ row }) => (
-      <div className="text-left font-medium italic">
-        {(row.getValue<string>("difficulty")).replace(/^\w/, (c) => c.toUpperCase())}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const difficulty = row.getValue<string>("difficulty");
+      const normalizedDifficulty = difficulty.toLowerCase();
+      let tagColorClass = "text-muted-foreground";
+
+      if (normalizedDifficulty === "hard") {
+        tagColorClass = "text-red-500";
+      } else if (normalizedDifficulty === "medium") {
+        tagColorClass = "text-yellow-500";
+      } else if (normalizedDifficulty === "easy") {
+        tagColorClass = "text-green-500";
+      }
+
+      return (
+        <div className="flex items-center gap-2 text-left">
+          <Tag className={`h-4 w-4 ${tagColorClass}`} />
+          {difficulty.replace(/^\w/, (c) => c.toUpperCase())}
+        </div>
+      );
+    },
   },
   {
       id: "actions",

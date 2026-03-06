@@ -43,6 +43,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  Plus,
 } from "lucide-react";
 
 import {
@@ -260,6 +261,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
               toast.error(`Questions failed to upload: ${errorMessage}`)
             }}
           >
+              <Plus className="h-4 w-4" />
               Upload JSON
         </UploadQuestionsJSONButton>
           </div>
