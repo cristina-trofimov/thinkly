@@ -208,6 +208,7 @@ class TestSendEmailEndpoint:
             await send_email(request)
 
         assert exc.value.status_code == 400
+        assert exc.value.detail == "Error sending email."
         mock_send.assert_called_once()
 
     @pytest.mark.asyncio

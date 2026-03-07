@@ -156,8 +156,8 @@ async def send_email(request: SendEmailRequest):
         )
 
         return {"ok": True, **result}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Error sending email.")
 
 
 @email_router.get("/health")
