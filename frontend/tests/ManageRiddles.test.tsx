@@ -2,33 +2,30 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import ManageRiddles from "../src/views/admin/ManageRiddlePage";
-import { getRiddles, createRiddle, updateRiddle, deleteRiddle } from "../src/api/RiddlesAPI";
-import axiosClient from "../src/lib/axiosClient";
-
-
-jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
-}))
+import { getRiddlesPage, deleteRiddle } from "../src/api/RiddlesAPI";
 jest.mock("@/api/LoggerAPI");
-
-const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
 
 // -------------------- MOCKS --------------------
 
 // 1) Mock API module
 jest.mock("../src/api/RiddlesAPI", () => ({
   __esModule: true,
-  getRiddles: jest.fn(),
-  createRiddle: jest.fn(),
-  updateRiddle: jest.fn(),
+  getRiddlesPage: jest.fn(),
   deleteRiddle: jest.fn(),
+}));
+
+jest.mock("@/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackAdminRiddlesViewed: jest.fn(),
+    trackAdminRiddleSearched: jest.fn(),
+    trackAdminRiddleCreateOpened: jest.fn(),
+    trackAdminRiddleCreateSuccess: jest.fn(),
+    trackAdminRiddleEditOpened: jest.fn(),
+    trackAdminRiddleEditSuccess: jest.fn(),
+    trackAdminRiddleDeleteAttempted: jest.fn(),
+    trackAdminRiddleDeleteSuccess: jest.fn(),
+    trackAdminRiddleDeleteFailed: jest.fn(),
+  }),
 }));
 
 // 2) Mock Toast (sonner) — toast callable + .error/.success
@@ -88,6 +85,36 @@ jest.mock("@/components/ui/label", () => ({
   Label: ({ children }: any) => <label>{children}</label>,
 }));
 
+jest.mock("@/components/ui/pagination", () => ({
+  Pagination: ({ children }: any) => <nav>{children}</nav>,
+  PaginationContent: ({ children }: any) => <div>{children}</div>,
+  PaginationEllipsis: () => <span>...</span>,
+  PaginationItem: ({ children }: any) => <div>{children}</div>,
+  PaginationLink: ({ children, onClick, ...props }: any) => (
+    <button type="button" onClick={onClick} {...props}>
+      {children}
+    </button>
+  ),
+  PaginationNext: ({ onClick, ...props }: any) => (
+    <button type="button" onClick={onClick} {...props}>
+      Next
+    </button>
+  ),
+  PaginationPrevious: ({ onClick, ...props }: any) => (
+    <button type="button" onClick={onClick} {...props}>
+      Previous
+    </button>
+  ),
+}));
+
+jest.mock("@/components/ui/select", () => ({
+  Select: ({ children }: any) => <div>{children}</div>,
+  SelectContent: ({ children }: any) => <div>{children}</div>,
+  SelectItem: ({ children }: any) => <div>{children}</div>,
+  SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
+  SelectValue: () => <span />,
+}));
+
 // 5) Mock icons
 jest.mock("lucide-react", () => ({
   Plus: () => <span>+</span>,
@@ -104,15 +131,20 @@ jest.mock("lucide-react", () => ({
 // -------------------- TESTS --------------------
 
 describe("ManageRiddles", () => {
-  const mockGetRiddles = getRiddles as jest.Mock;
-  const mockCreateRiddle = createRiddle as jest.Mock;
-  const mockUpdateRiddle = updateRiddle as jest.Mock;
+  const mockGetRiddlesPage = getRiddlesPage as jest.Mock;
   const mockDeleteRiddle = deleteRiddle as jest.Mock;
 
   const mockRiddleData = [
     { id: 1, question: "What has keys but no locks?", answer: "A piano", file: null },
     { id: 2, question: "What has legs but cannot walk?", answer: "A chair", file: "http://example.com/image.png" },
   ];
+
+  const paginatedRiddles = (items = mockRiddleData, page = 1, pageSize = 23, total = items.length) => ({
+    total,
+    page,
+    pageSize,
+    items,
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -128,7 +160,7 @@ describe("ManageRiddles", () => {
 
   describe("Initial Render", () => {
     it("renders without crashing", async () => {
-      mockGetRiddles.mockResolvedValue([]);
+      mockGetRiddlesPage.mockResolvedValue(paginatedRiddles([]));
 
       render(<ManageRiddles />);
 
@@ -141,7 +173,7 @@ describe("ManageRiddles", () => {
     });
 
     it("displays loading state initially", () => {
-      mockGetRiddles.mockImplementation(() => new Promise(() => {}));
+      mockGetRiddlesPage.mockImplementation(() => new Promise(() => {}));
 
       render(<ManageRiddles />);
 
@@ -151,15 +183,15 @@ describe("ManageRiddles", () => {
 
   describe("Data Fetching", () => {
     it("fetches riddles on mount", async () => {
-      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      mockGetRiddlesPage.mockResolvedValue(paginatedRiddles());
 
       render(<ManageRiddles />);
 
-      await waitFor(() => expect(mockGetRiddles).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockGetRiddlesPage).toHaveBeenCalledTimes(1));
     });
 
     it("displays fetched riddles", async () => {
-      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      mockGetRiddlesPage.mockResolvedValue(paginatedRiddles());
 
       render(<ManageRiddles />);
 
@@ -171,7 +203,7 @@ describe("ManageRiddles", () => {
     });
 
     it("renders attachment badge/button only when file exists", async () => {
-      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      mockGetRiddlesPage.mockResolvedValue(paginatedRiddles());
 
       render(<ManageRiddles />);
 
@@ -184,7 +216,9 @@ describe("ManageRiddles", () => {
 
   describe("Search Functionality", () => {
     it("filters riddles based on search query (Answer)", async () => {
-      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      mockGetRiddlesPage
+        .mockResolvedValueOnce(paginatedRiddles())
+        .mockResolvedValueOnce(paginatedRiddles([mockRiddleData[1]], 1, 23, 1));
       render(<ManageRiddles />);
 
       await waitFor(() => expect(screen.getByText("A piano")).toBeInTheDocument());
@@ -192,12 +226,15 @@ describe("ManageRiddles", () => {
       const input = screen.getByPlaceholderText("Search question or answer...");
       fireEvent.change(input, { target: { value: "chair" } });
 
-      expect(screen.getByText("What has legs but cannot walk?")).toBeInTheDocument();
-      expect(screen.queryByText("What has keys but no locks?")).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(mockGetRiddlesPage).toHaveBeenLastCalledWith({ page: 1, pageSize: 23, search: "chair" })
+      );
     });
 
     it("shows empty state behavior when search yields no results", async () => {
-      mockGetRiddles.mockResolvedValue(mockRiddleData);
+      mockGetRiddlesPage
+        .mockResolvedValueOnce(paginatedRiddles())
+        .mockResolvedValueOnce(paginatedRiddles([], 1, 23, 0));
       render(<ManageRiddles />);
 
       await waitFor(() => expect(screen.getByText("A piano")).toBeInTheDocument());
@@ -205,26 +242,29 @@ describe("ManageRiddles", () => {
       const input = screen.getByPlaceholderText("Search question or answer...");
       fireEvent.change(input, { target: { value: "XYZ_NON_EXISTENT" } });
 
-      expect(screen.queryByText("What has keys but no locks?")).not.toBeInTheDocument();
-      expect(screen.queryByText("What has legs but cannot walk?")).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText("No results.")).toBeInTheDocument());
     });
   });
 
   describe("CRUD actions (create / edit / delete)", () => {
     it("re-fetches riddles after create success (onSuccess callback)", async () => {
-      mockGetRiddles.mockResolvedValueOnce([]).mockResolvedValueOnce(mockRiddleData);
+      mockGetRiddlesPage
+        .mockResolvedValueOnce(paginatedRiddles([]))
+        .mockResolvedValueOnce(paginatedRiddles());
 
       render(<ManageRiddles />);
 
-      await waitFor(() => expect(mockGetRiddles).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(mockGetRiddlesPage).toHaveBeenCalledTimes(1));
 
       fireEvent.click(screen.getByTestId("trigger-form-success"));
 
-      await waitFor(() => expect(mockGetRiddles).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(mockGetRiddlesPage).toHaveBeenCalledTimes(2));
     });
 
     it("calls deleteRiddle when delete is confirmed (and re-fetches)", async () => {
-      mockGetRiddles.mockResolvedValueOnce(mockRiddleData).mockResolvedValueOnce(mockRiddleData);
+      mockGetRiddlesPage
+        .mockResolvedValueOnce(paginatedRiddles())
+        .mockResolvedValueOnce(paginatedRiddles());
       mockDeleteRiddle.mockResolvedValue(undefined);
 
       render(<ManageRiddles />);
@@ -243,7 +283,7 @@ describe("ManageRiddles", () => {
       await waitFor(() => expect(mockDeleteRiddle).toHaveBeenCalledTimes(1));
       expect(mockDeleteRiddle).toHaveBeenCalledWith(1);
 
-      await waitFor(() => expect(mockGetRiddles).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(mockGetRiddlesPage).toHaveBeenCalledTimes(2));
     });
 
     
@@ -254,7 +294,7 @@ describe("ManageRiddles", () => {
 
     it("stops loading state even after error", async () => {
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-      mockGetRiddles.mockRejectedValue(new Error("Network Error"));
+      mockGetRiddlesPage.mockRejectedValue(new Error("Network Error"));
 
       render(<ManageRiddles />);
 
