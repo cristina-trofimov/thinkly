@@ -14,6 +14,7 @@ from src.endpoints.judge0_api import (
 
 client = TestClient(app)
 
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
 def test_judge0_get_output_success(mock_get):
     mock_get.return_value = Mock(
@@ -30,6 +31,7 @@ def test_judge0_get_output_success(mock_get):
     
     assert result["status"]["description"] == "Accepted"
 
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
 @patch('src.endpoints.judge0_api.requests.post')
 def test_judge0_submit_success(mock_post, mock_get):
@@ -57,6 +59,7 @@ def test_judge0_submit_success(mock_post, mock_get):
     assert result["status"]["description"] == "Accepted"
     assert result["stdout"] == "Hello\n"
 
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch("src.endpoints.judge0_api.time.sleep", return_value=None)
 @patch("src.endpoints.judge0_api.requests.get")
 @patch("src.endpoints.judge0_api.requests.post")
@@ -83,6 +86,7 @@ def test_judge0_polling_timeout(mock_post, mock_get, mock_sleep):
             stdin="",
         )
 
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch("src.endpoints.judge0_api.requests.post")
 def test_judge0_network_error(mock_post):
     mock_post.side_effect = Exception("Connection failed")

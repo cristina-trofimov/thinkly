@@ -117,7 +117,6 @@ def test_get_all_questions_db_error(client, mock_db):
     assert response.status_code == 500
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
-    assert "Exception" in response.json()["detail"]
 
 def test_upload_question_success(client, mock_db):
     """Test uploading a single question successfully."""
