@@ -1,6 +1,6 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import CodeDescArea, { timeAgoFormat } from '../src/components/codingPage/CodeDescArea'
+import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
@@ -234,16 +234,6 @@ describe('CodeDescArea', () => {
     afterAll(() => {
         jest.useRealTimers();
     });
-
-    describe("timeFormat", () => {
-      it('displays correct relative time for submissions', async () => {
-        expect(timeAgoFormat(new Date('2025-10-27T10:00:00Z').toISOString())).toBe('1 day ago');
-        expect(timeAgoFormat(new Date('2025-10-28T08:00:00Z').toISOString())).toBe('2 hours ago');
-        expect(timeAgoFormat(new Date('2025-10-28T09:59:00Z').toISOString())).toBe('1 minute ago');
-        expect(timeAgoFormat(new Date('2025-10-28T09:59:50Z').toISOString())).toBe('10 seconds ago');
-        expect(timeAgoFormat(new Date('2025-10-28T09:59:59Z').toISOString())).toBe('1 second ago');
-      })
-    })
 
     describe('Riddle Logic (Gatekeeper)', () => {
         it("renders loading state initially", async () => {
