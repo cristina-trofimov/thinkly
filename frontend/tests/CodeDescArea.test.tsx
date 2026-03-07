@@ -367,19 +367,39 @@ describe('CodeDescArea', () => {
             });
 
             // Click on the first submission row (using testid)
-            const submissionRows = screen.getAllByTestId("table-row");
+            const submissionRows = screen.getAllByTestId(/^submission-\d+$/);
             expect(submissionRows.length).toBeGreaterThan(0);
             fireEvent.click(submissionRows[0]);
 
             // Check if submission details are shown
             await waitFor(() => {
-                // Look for elements that appear in the details view
-                expect(screen.getByText("Accepted")).toBeInTheDocument();
-                
-                // Check for specific values from the submission
-                expect(screen.getByText(/456/i)).toBeInTheDocument();
-                expect(screen.getByText(/128/i)).toBeInTheDocument();
+              expect(screen.queryByText("Submission Details")).toBeInTheDocument();
+              expect(screen.getByText("Accepted")).toBeInTheDocument();
+
+              expect(screen.getByText(/456/i)).toBeInTheDocument();
+
+              expect(screen.getByText("Basic Information")).toBeInTheDocument();
+              expect(screen.getByText(/123 ms/)).toBeInTheDocument();
+              expect(screen.getByText(/456 KB/)).toBeInTheDocument();
+
+              expect(screen.getByText("Program Output")).toBeInTheDocument();
+              expect(screen.getByText("Standard Output")).toBeInTheDocument();
+              expect(screen.getByText("output")).toBeInTheDocument();
+
+              // const backButton = screen.getByTestId('back-btn');
+              // fireEvent.click(backButton);
             });
+
+            // // Click back button
+            // const backButton = screen.getByRole('button', { name: /back/i });
+            // fireEvent.click(backButton);
+
+            // Should return to submissions list
+            // await waitFor(() => {
+            //   expect(screen.getByTestId("table")).toBeInTheDocument();
+            //   expect(screen.getByText("Accepted")).toBeInTheDocument();
+            //   expect(screen.getByText("Wrong Answer")).toBeInTheDocument();
+            // });
         });
     });
 });
