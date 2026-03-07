@@ -67,7 +67,7 @@ export default function ManageAccountsPage() {
     return <div>Loading...</div>;
   }
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>Something went wrong. Please try again.</div>;
   }
 
   const handleDeleteUsers = (deletedUserIds: number[]) => {

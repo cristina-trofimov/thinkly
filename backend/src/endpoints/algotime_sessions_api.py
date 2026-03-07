@@ -93,7 +93,7 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
