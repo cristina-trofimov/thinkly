@@ -130,7 +130,10 @@ def send_email_via_brevo(to: list[str], subject: str, text: str,
 
 @email_router.post(
     "/send",
-    responses={400: {"description": "Error sending email."}}
+    responses={
+        400: {"description": "Error sending email."},
+        503: {"description": "Email service is not configured."}
+    }
 )
 async def send_email(request: SendEmailRequest):
     if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
