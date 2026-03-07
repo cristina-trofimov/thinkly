@@ -52,6 +52,10 @@ describe("RiddlesAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/riddles/", {
         params: { page: 1, page_size: 25, search: undefined },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
       expect(result).toEqual<Riddle[]>([{ id: 1, question: "Q?", answer: "A", file: null }]);
     });
@@ -79,6 +83,10 @@ describe("RiddlesAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/riddles/", {
         params: { page: 2, page_size: 25, search: undefined },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
       expect(result).toHaveLength(2);
     });
@@ -113,6 +121,10 @@ describe("RiddlesAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/riddles/", {
         params: { page: 2, page_size: 10, search: "find" },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
       expect(result).toEqual({
         total: 2,

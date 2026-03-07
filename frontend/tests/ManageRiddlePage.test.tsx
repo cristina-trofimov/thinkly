@@ -137,7 +137,7 @@ const sampleRiddles = [
     { id: 2, question: "Bravo", answer: "Second", file: "https://example.com/file.pdf" },
 ];
 
-const paginatedRiddles = (items = sampleRiddles, page = 1, pageSize = 25, total = items.length) => ({
+const paginatedRiddles = (items = sampleRiddles, page = 1, pageSize = 23, total = items.length) => ({
     total,
     page,
     pageSize,
@@ -166,7 +166,7 @@ describe("ManageRiddles", () => {
             "https://example.com/file.pdf"
         );
 
-        expect(getRiddlesPage).toHaveBeenCalledWith({ page: 1, pageSize: 25, search: "" });
+        expect(getRiddlesPage).toHaveBeenCalledWith({ page: 1, pageSize: 23, search: "" });
     });
 
     test("shows loading state when loading and no riddles yet", async () => {
@@ -189,7 +189,7 @@ describe("ManageRiddles", () => {
     test("search sends the query to the backend", async () => {
         (getRiddlesPage as jest.Mock)
             .mockResolvedValueOnce(paginatedRiddles())
-            .mockResolvedValueOnce(paginatedRiddles([sampleRiddles[0]], 1, 25, 1));
+            .mockResolvedValueOnce(paginatedRiddles([sampleRiddles[0]], 1, 23, 1));
         render(<ManageRiddles />);
 
         await screen.findByText("Alpha question");
@@ -197,7 +197,7 @@ describe("ManageRiddles", () => {
 
         fireEvent.change(input, { target: { value: "alpha" } });
         await waitFor(() => {
-            expect(getRiddlesPage).toHaveBeenLastCalledWith({ page: 1, pageSize: 25, search: "alpha" });
+            expect(getRiddlesPage).toHaveBeenLastCalledWith({ page: 1, pageSize: 23, search: "alpha" });
         });
     });
 
@@ -316,7 +316,7 @@ describe("ManageRiddles", () => {
     // ✅ Added: no attachment link if file is null
     test("renders no attachment button when file is null", async () => {
         (getRiddlesPage as jest.Mock).mockResolvedValueOnce(
-            paginatedRiddles([{ id: 1, question: "Q", answer: "A", file: null }], 1, 25, 1)
+            paginatedRiddles([{ id: 1, question: "Q", answer: "A", file: null }], 1, 23, 1)
         );
 
         render(<ManageRiddles />);

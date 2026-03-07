@@ -231,7 +231,7 @@ def test_list_riddles(client):
     assert body["page_size"] == 25
     assert len(body["items"]) == 2
     assert {r["riddle_question"] for r in body["items"]} == {"Q1", "Q2"}
-    assert resp.headers["cache-control"] == "public, max-age=60"
+    assert resp.headers["cache-control"] == "no-store, no-cache, must-revalidate"
 
 
 def test_list_riddles_applies_search_and_pagination(client):
