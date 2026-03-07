@@ -164,7 +164,7 @@ export default function ManageAlgotimeSessionsPage() {
                 strokeWidth={1.5}
               />
             </div>
-            <CardContent className="p-4 bg-white text-center">
+            <CardContent className="p-4 bg-card text-center">
               <h3 className="font-semibold text-base text-primary">
                 Create a New Algotime Session!
               </h3>
