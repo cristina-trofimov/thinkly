@@ -17,8 +17,7 @@ DEFAULT_SENDER_EMAIL = os.getenv("DEFAULT_SENDER_EMAIL")
 DEFAULT_SENDER_NAME = os.getenv("DEFAULT_SENDER_NAME", "My App")
 
 if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
-    logger.critical("FATAL: Missing BREVO_API_KEY or DEFAULT_SENDER_EMAIL in environment.")
-    raise SystemExit("Missing BREVO_API_KEY or DEFAULT_SENDER_EMAIL in environment.")
+    logger.critical("FATAL: Missing BREVO_API_KEY or DEFAULT_SENDER_EMAIL in environment. Email sending will be unavailable.")
 
 BREVO_SEND_URL = "https://api.brevo.com/v3/smtp/email"
 
@@ -134,6 +133,8 @@ def send_email_via_brevo(to: list[str], subject: str, text: str,
     responses={400: {"description": "Error sending email."}}
 )
 async def send_email(request: SendEmailRequest):
+    if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
+        raise HTTPException(status_code=503, detail="Email service is not configured.")
     try:
         result = send_email_via_brevo(
             to=request.to,
