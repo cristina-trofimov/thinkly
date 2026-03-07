@@ -93,7 +93,7 @@ export function ActionsCell({
       if (onUserUpdate && response) {
         onUserUpdate(response);
       }
-    } catch (error: unknown) {
+    } catch {
       toast.error("Failed to update user.");
       handleCancel();
     } finally {
