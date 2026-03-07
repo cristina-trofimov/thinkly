@@ -315,7 +315,7 @@ def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve competitions. Exception: {str(e)}"
+            detail="Failed to retrieve competitions."
         )
 
 

@@ -278,5 +278,5 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching AlgoTime sessions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve AlgoTime sessions. Exception: {str(e)}"
+            detail="Failed to retrieve AlgoTime sessions."
         )

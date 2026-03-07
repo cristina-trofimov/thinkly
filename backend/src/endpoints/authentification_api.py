@@ -414,7 +414,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
             }
         )
 
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid Google token: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
     
 @auth_router.post("/refresh", responses={401: {"description": "Refresh failed due to missing, invalid, or expired token"}})
 async def refresh_token(request: Request, db: Annotated[Session, Depends(get_db)]):
