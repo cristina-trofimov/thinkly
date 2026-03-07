@@ -183,7 +183,7 @@ export default function ManageAlgotimeSessionsPage() {
         {filteredSessions.map((ATsession) => (
           <Card
             key={ATsession.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full"
+            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
           >
             <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
               <div className="absolute top-3 right-3 z-20">

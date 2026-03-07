@@ -181,12 +181,12 @@ export function Leaderboards() {
       )}
 
       {loading && leaderboardType === "competition" && (
-        <div className="text-center py-8 text-gray-600">
+        <div className="text-center py-8 text-muted-foreground">
           Loading leaderboards...
         </div>
       )}
       {error && (
-        <div className="text-center py-8 text-red-500 bg-red-50 rounded-lg border border-red-200">
+        <div className="text-center py-8 text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
           {error}
         </div>
       )}
@@ -194,7 +194,7 @@ export function Leaderboards() {
       {!loading && !error && leaderboardType === "competition" && (
         <>
           {currentCompetition && (
-            <div className="border-3 border-primary rounded-lg p-4 bg-linear-to-r from-purple-50 to-indigo-50">
+            <div className="border-3 border-primary rounded-lg p-4 bg-primary/15">
               <h2 className="text-lg font-semibold text-primary mb-3">
                 Current Competition
               </h2>
@@ -209,7 +209,7 @@ export function Leaderboards() {
           {competitions.length > 0 && (
             <>
               {currentCompetition && (
-                <h2 className="text-lg font-semibold text-gray-700 mt-4">
+                <h2 className="text-lg font-semibold text-foreground mt-4">
                   Past Competitions
                 </h2>
               )}
@@ -224,7 +224,7 @@ export function Leaderboards() {
           )}
 
           {competitions.length === 0 && !currentCompetition && (
-            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-center py-8 text-muted-foreground bg-muted/50 rounded-lg border border-border">
               {search ? "No competitions match your search" : "No competitions found"}
             </div>
           )}
@@ -234,17 +234,17 @@ export function Leaderboards() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 text-sm rounded-md border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 text-sm rounded-md border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>

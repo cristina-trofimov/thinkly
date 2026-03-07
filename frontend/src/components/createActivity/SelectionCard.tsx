@@ -33,7 +33,7 @@ function AvailableItem<T extends { id: string | number }>({
         <Draggable draggableId={`avail-${item.id}`} index={index}>
             {(p, snapshot) => (
                 <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
-                    className={`group bg-white mb-2 p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all ${snapshot.isDragging ? "opacity-50" : ""}`}>
+                    className={`group bg-card mb-2 p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all ${snapshot.isDragging ? "opacity-50" : ""}`}>
                     <div className="flex flex-col gap-1 overflow-hidden">
                         <span className="text-sm font-semibold truncate">{renderItemTitle(item)}</span>
                         {renderExtraInfo?.(item)}
@@ -69,7 +69,7 @@ function OrderedItem<T extends { id: string | number }>({
         <Draggable draggableId={`ordered-${item.id}`} index={index}>
             {(p, snapshot) => (
                 <div ref={p.innerRef} {...p.draggableProps}
-                    className={`bg-white mb-2 p-3 rounded-lg border flex items-center gap-2 ${snapshot.isDragging ? "shadow-lg ring-1 ring-primary" : ""}`}>
+                    className={`bg-card mb-2 p-3 rounded-lg border flex items-center gap-2 ${snapshot.isDragging ? "shadow-lg ring-1 ring-primary" : ""}`}>
                     <div {...p.dragHandleProps}><GripVertical className="h-4 w-4 text-slate-300" /></div>
                     <span className="text-sm font-black text-slate-300 w-4">{index + 1}</span>
                     <div className="flex-1 overflow-hidden flex flex-col gap-0.5">
@@ -124,7 +124,7 @@ export function SelectionCard<T extends { id: string | number }>(props: Readonly
                         {/* Available Column */}
                         <Droppable droppableId={`${props.droppableIdPrefix}-available`}>
                             {(provided) => (
-                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-slate-50/50 p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-muted/50 p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
                                     <div className="flex items-center justify-between mb-2">
                                         <Label className="text-[10px] uppercase text-muted-foreground font-bold">Available</Label>
                                         {props.availableItems.length > 0 && (
@@ -142,7 +142,7 @@ export function SelectionCard<T extends { id: string | number }>(props: Readonly
                         {/* Ordered Column */}
                         <Droppable droppableId={`${props.droppableIdPrefix}-ordered`}>
                             {(provided) => (
-                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-primary/5 p-4 border-primary/20 min-h-[200px] max-h-[400px] overflow-y-auto">
+                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-accent/50 border-accent p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
                                     <div className="flex items-center justify-between mb-2">
                                         <Label className="text-[10px] uppercase text-primary font-bold">Sequence</Label>
                                         {props.orderedItems.length > 0 && (
