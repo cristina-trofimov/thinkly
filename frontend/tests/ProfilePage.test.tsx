@@ -238,10 +238,7 @@ describe("ProfilePage Component", () => {
 
     await waitFor(() => {
       expect(updateAccount).toHaveBeenCalledWith("user-123", { first_name: "Jane" });
-      expect(window.sessionStorage.setItem).toHaveBeenCalledWith(
-        "profileUpdateToast",
-        "First name updated successfully."
-      );
+      expect(toast.success).toHaveBeenCalledWith("First name updated successfully.");
     });
   });
 
@@ -341,7 +338,7 @@ describe("ProfilePage Component", () => {
 
     await waitFor(() => {
       expect(updateAccount).toHaveBeenCalled();
-      expect(window.sessionStorage.setItem).toHaveBeenCalled();
+      expect(toast.success).toHaveBeenCalled();
     });
   });
 
