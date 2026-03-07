@@ -125,6 +125,7 @@ const mockMostRecentSubResponse: MostRecentSub = {
 
 const mockSubmissions: SubmissionType[] = [
     {
+        submission_id: 1,
         user_id: user_id,
         question_instance_id: question_instance_id,
         compile_output: null,
@@ -137,6 +138,7 @@ const mockSubmissions: SubmissionType[] = [
         message: null,
     },
     {
+      submission_id: 2,
         user_id: user_id,
         question_instance_id: question_instance_id,
         compile_output: "error",

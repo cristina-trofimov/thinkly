@@ -6,6 +6,7 @@ import type { MostRecentSub } from "../src/types/MostRecentSub.type"
 import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
 import { UserPreferences } from "../src/types/UserPreferences.type"
+import { SubmissionType } from "../src/types/SubmissionType.type"
 
 beforeAll(() => {
   Object.defineProperty(global, 'import', {
@@ -116,6 +117,20 @@ const mockQuestionInstances: QuestionInstance[] = [{
   is_riddle_completed: false
 }]
 
+const mockSubmissions: SubmissionType[] = [{
+  submission_id: 456,
+  user_id: user_id,
+  question_instance_id: question_instance_id,
+  status: "Accepted",
+  memory: 1024,
+  runtime: 0.123,
+  submitted_on: "2026-02-22T19:30:00.000Z",
+  stdout: "Hello\n",
+  stderr: null,
+  compile_output: null,
+  message: null
+}]
+
 const mockSubmissionResponse = {
   codeRunResponse: {
     judge0Response: mockJudge0Response,
@@ -123,19 +138,7 @@ const mockSubmissionResponse = {
   },
   submissionResponse: {
     status_code: 200,
-    data: {
-      submission_id: 456,
-      user_id: user_id,
-      question_instance_id: question_instance_id,
-      status: "Accepted",
-      memory: "1024",
-      runtime: "0.123",
-      submitted_on: "2026-02-22T19:30:00.000Z",
-      stdout: "Hello\n",
-      stderr: null,
-      compile_output: null,
-      message: null
-    }
+    data: mockSubmissions
   },
   questionInstance: mockQuestionInstances[0],
 }
@@ -246,35 +249,28 @@ describe("Code Submission", () => {
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
   })
 
-  // it("gets all submissions given a user id and question instance id", async () => {
-  //   // mockedGetQuestionInstance.mockResolvedValueOnce([])
-  //   // mockedUpdateQuestionInstance.mockResolvedValueOnce(mockQuestionInstances)
+  it("gets all submissions given a user id and question instance id", async () => {
+    mockedAxios.get.mockResolvedValueOnce({ data: { data: mockSubmissions }})
 
-  //   await getAllSubmissions(user_id, question_instance_id)
-
-  //   // expect(mockedGetQuestionInstance).toHaveBeenCalledTimes(1)
+    await getAllSubmissions(user_id, question_instance_id)
     
-  //   expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
-  //   expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
-  //     question_id: question_id,
-  //     event_id: event_id,
-  //     points: null,
-  //     riddle_id: null,
-  //     is_riddle_completed: null
-  //   })
-    
-  //   expect(mockedAxios.get).toHaveBeenCalledTimes(1)
-  // })
+    expect(mockedAxios.get).toHaveBeenCalledWith(
+      "/attempts/all", { params: {
+        user_id: user_id,
+        question_instance_id: question_instance_id,
+      }}
+    )
+  })
 
-  // it("handles errors from Judge0 API", async () => {
-  //   mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Judge0 API error"))
+  it("handles errors from Judge0 API", async () => {
+    mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Judge0 API error"))
 
-  //   await expect(submitAttempt(question_id, null, source_code, language_id, testcases))
-  //               .rejects.toThrow("Judge0 API error")
+    await expect(submitAttempt(user_id, question_id, null, source_code, language_id, testcases))
+                .rejects.toThrow("Judge0 API error")
 
-  //   expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
-  //   expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
-  //   expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
-  //   expect(mockedAxios.post).not.toHaveBeenCalled()
-  // })
+    expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
+    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
+    expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+  })
 })
