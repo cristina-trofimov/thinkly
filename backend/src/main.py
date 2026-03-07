@@ -124,11 +124,6 @@ async def log_requests(request: Request, call_next):
 def root():
     return {"message": "Backend is running!"}
 
-@app.get("/config")
-def config():
-    return {
-        "allowed_origins": origins,
-    }
 
 # Include routers
 try:

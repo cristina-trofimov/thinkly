@@ -56,9 +56,7 @@ export async function getProfile(): Promise<Account> {
 }
 
 export async function logout(): Promise<void> {
-    console.log("Logging out...");
     const token = localStorage.getItem("token");
-    console.log("Token:", token);
     if (!token) {
         throw new Error("No token found.");
     }
