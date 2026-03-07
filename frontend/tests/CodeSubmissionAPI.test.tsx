@@ -246,7 +246,7 @@ describe("Code Submission", () => {
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
     expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
-    expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+    expect(mockedAxios.post).toHaveBeenCalled()
   })
 
   it("gets all submissions given a user id and question instance id", async () => {

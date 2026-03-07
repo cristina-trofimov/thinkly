@@ -28,6 +28,7 @@ import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import { getProfile } from '@/api/AuthAPI';
+import { logFrontend } from '@/api/LoggerAPI';
 
 
 const CodingView = () => {
@@ -102,6 +103,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -135,6 +143,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when running code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)

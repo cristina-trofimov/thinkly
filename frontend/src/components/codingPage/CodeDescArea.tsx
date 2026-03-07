@@ -17,6 +17,7 @@ import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
+import { logFrontend } from '@/api/LoggerAPI'
 
 const CodeDescArea = (
     { question, mostRecentSub, }:
@@ -47,8 +48,6 @@ const CodeDescArea = (
     //-------------
 
     useEffect(() => {
-        let isMounted = true;
-
         // Reset state for new question
         setHasSolvedRiddle(false)
         setRiddleObject(null)
@@ -60,27 +59,24 @@ const CodeDescArea = (
                 const HARDCODED_RIDDLE_ID = 7;
                 const data = await getRiddleById(HARDCODED_RIDDLE_ID)
 
-                if (isMounted) {
-                    setRiddleObject(data)
-                }
+                setRiddleObject(data)
             } catch (error) {
-                console.error("Failed to load riddle, bypassing lock...", error)
+                logFrontend({
+                    level: "ERROR",
+                    message: `An error occurred when loading riddle. Reason: ${error}`,
+                    component: "CodeDescArea",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                  });
+
                 // If the backend fails, let the user see the question so they aren't stuck
-                if (isMounted) {
-                    setHasSolvedRiddle(true)
-                }
+                setHasSolvedRiddle(true)
             } finally {
-                if (isMounted) {
-                    setIsLoadingRiddle(false)
-                }
+                setIsLoadingRiddle(false)
             }
         }
 
         fetchRiddle()
-
-        return () => {
-            isMounted = false
-        }
     }, [question?.id])
     useEffect(() => {
         const FetchSubmissions = async () => {
@@ -244,16 +240,16 @@ const CodeDescArea = (
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-gray-500' >{TimeAgoFormat(s.submitted_on)}</span>
+                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
                                         </TableCell>
                                         <TableCell className="" >Java</TableCell>
-                                        <TableCell className="text-right text-gray-500" >{s?.memory}</TableCell>
+                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
                                         </TableRow>
                                 })}
                             </TableBody>
                             <TableFooter className='mt-3' >
                                 <TableRow>
-                                    <TableCell colSpan={4} className='text-gray-500' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>

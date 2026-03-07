@@ -5,6 +5,7 @@ import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceA
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 import type { SubmissionType } from "@/types/SubmissionType.type"
+import { logFrontend } from "./LoggerAPI"
 
 
 export async function submitAttempt(
@@ -58,9 +59,6 @@ export async function submitAttempt(
             }
         )
 
-        // // 5. Get all submissions made by this user
-        // const submissions = await getAllSubmissions(user_id, q_inst.question_instance_id)
-
         return {
             codeRunResponse: {
                 judge0Response: judge0Response,
@@ -68,13 +66,18 @@ export async function submitAttempt(
                 userPrefs: userPrefs
             },
             submissionResponse: submissionResponse.data,
-            // submissions: submissions,
             questionInstance: updatedInstance
         }
 
     } catch (err) {
-        console.error("Error submitting coding attempt:", err);
-        throw err;
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodeSubmissionAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err;
     }
 }
 
@@ -95,7 +98,13 @@ export async function getAllSubmissions(
   
       return response['data']['data']
     } catch (err) {
-      console.error("Error fetching user's submission:", err);
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when fetching user's submission. Reason: ${err}`,
+        component: "CodeSubmissionAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err;
     }
   }
