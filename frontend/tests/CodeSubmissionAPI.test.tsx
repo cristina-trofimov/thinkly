@@ -273,4 +273,13 @@ describe("Code Submission", () => {
     expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
   })
+
+  it("handles errors from getAllSubmissions", async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching user's submission"))
+
+    await expect(getAllSubmissions(user_id, question_instance_id))
+                .rejects.toThrow("Error fetching user's submission")
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1)
+  })
 })

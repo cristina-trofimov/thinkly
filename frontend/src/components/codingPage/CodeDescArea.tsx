@@ -17,6 +17,26 @@ import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
 
+export const timeAgoFormat = (dateSTR: string) => {
+    const diffMs = Date.now() - Date.parse(dateSTR)
+
+    const seconds = Math.floor(diffMs / 1000)
+    const minutes = Math.floor(diffMs / (1000 * 60))
+    const hours = Math.floor(diffMs / (1000 * 60 * 60))
+    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    // let displayTime = ''
+    if (days > 0) {
+        return `${days} day${days > 1 ? "s" : ""} ago`
+    } else if (hours > 0) {
+        return `${hours} hour${hours > 1 ? "s" : ""} ago`
+    } else if (minutes > 0) {
+        return `${minutes} minute${minutes > 1 ? "s" : ""} ago`
+    } else {
+        return `${seconds} second${seconds === 1 ? "" : "s"} ago`
+    }
+}
+
 const CodeDescArea = (
     { question, mostRecentSub, }:
     { question: Question, mostRecentSub: MostRecentSub | undefined }
@@ -111,26 +131,6 @@ const CodeDescArea = (
     if (fullSize) {
         halfSize = fullSize / 2
         quarterSize = fullSize / 4
-    }
-
-    const timeFormat = (dateSTR: string) => {
-        const diffMs = Date.now() - Date.parse(dateSTR)
-
-        const seconds = Math.floor(diffMs / 1000)
-        const minutes = Math.floor(diffMs / (1000 * 60))
-        const hours = Math.floor(diffMs / (1000 * 60 * 60))
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-        // let displayTime = ''
-        if (days > 0) {
-            return `${days} day${days > 1 ? "s" : ""} ago`
-        } else if (hours > 0) {
-            return `${hours} hour${hours > 1 ? "s" : ""} ago`
-        } else if (minutes > 0) {
-            return `${minutes} minute${minutes > 1 ? "s" : ""} ago`
-        } else {
-            return `${seconds} second${seconds !== 1 ? "s" : ""} ago`
-        }
     }
 
     const handleTabChange = (tab: string) => {
@@ -258,14 +258,14 @@ const CodeDescArea = (
 
                                     
 
-                                    return <TableRow key={`submission ${idx}`} data-testid={`submission-${idx}`}
+                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
                                     onClick={() => setSelectedSubmission(s)}
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-gray-500' >{timeFormat(s.submitted_on)}</span>
+                                            <span className='text-gray-500' >{timeAgoFormat(s.submitted_on)}</span>
                                         </TableCell>
-                                        <TableCell className="" >s.language</TableCell>
+                                        <TableCell className="" >Java</TableCell>
                                         <TableCell className="text-right text-gray-500" >{s?.memory}</TableCell>
                                         </TableRow>
                                 })}
@@ -315,7 +315,7 @@ const CodeDescArea = (
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-muted-foreground">Submitted</span>
-                                                <span className="font-mono text-sm">{timeFormat(selectedSubmission.submitted_on)}</span>
+                                                <span className="font-mono text-sm">{timeAgoFormat(selectedSubmission.submitted_on)}</span>
                                             </div>
                                         </div>
                                     </div>
