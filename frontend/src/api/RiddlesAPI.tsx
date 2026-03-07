@@ -94,6 +94,10 @@ export async function getRiddlesPage(params: RiddlesQueryParams = {}): Promise<R
                 page_size: pageSize,
                 search: search?.trim() || undefined,
             },
+            headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+            },
         });
 
         return {

@@ -204,7 +204,9 @@ async def list_riddles(
         total = query.count()
         offset = (page - 1) * page_size
         riddles = query.offset(offset).limit(page_size).all()
-        response.headers["Cache-Control"] = "public, max-age=60"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
 
         return {
             "total": total,
