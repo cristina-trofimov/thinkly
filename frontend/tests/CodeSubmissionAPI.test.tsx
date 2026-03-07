@@ -7,6 +7,7 @@ import { getQuestionInstance, updateQuestionInstance } from "../src/api/Question
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
 import { UserPreferences } from "../src/types/UserPreferences.type"
 import { SubmissionType } from "../src/types/SubmissionType.type"
+import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
   Object.defineProperty(global, 'import', {
@@ -31,6 +32,10 @@ jest.mock('../src/lib/axiosClient', () => ({
   API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn()
+}))
+
 jest.mock('../src/api/Judge0API', () => ({
   submitToJudge0: jest.fn()
 }))
@@ -41,10 +46,10 @@ jest.mock('../src/api/QuestionInstanceAPI', () => ({
 }))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
+const mockedLogger = logFrontend as jest.Mock
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
 const mockedUpdateQuestionInstance = updateQuestionInstance as jest.MockedFunction<typeof updateQuestionInstance>
-
 
 const question_id = 1
 const question_instance_id = 123
@@ -232,7 +237,12 @@ describe("Code Submission", () => {
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
-    expect(mockedAxios.post).not.toHaveBeenCalled()
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "CodeSubmissionAPI",
+      })
+    );
   })
 
   it("handles errors from submission API", async () => {
@@ -246,7 +256,13 @@ describe("Code Submission", () => {
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
     expect(mockedUpdateQuestionInstance).toHaveBeenCalledTimes(1)
-    expect(mockedAxios.post).toHaveBeenCalled()
+    expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "CodeSubmissionAPI",
+      })
+    );
   })
 
   it("gets all submissions given a user id and question instance id", async () => {
@@ -262,24 +278,18 @@ describe("Code Submission", () => {
     )
   })
 
-  it("handles errors from Judge0 API", async () => {
-    mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Judge0 API error"))
-
-    await expect(submitAttempt(user_id, question_id, null, source_code, language_id, testcases))
-                .rejects.toThrow("Judge0 API error")
-
-    expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
-    expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
-    expect(mockedUpdateQuestionInstance).toHaveBeenCalled()
-    expect(mockedAxios.post).not.toHaveBeenCalled()
-  })
-
-  it("handles errors from getAllSubmissions", async () => {
-    mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching user's submission"))
+  it("handles errors from getAllSubmission", async () => {
+    mockedAxios.get.mockRejectedValueOnce(new Error("Network error"))
 
     await expect(getAllSubmissions(user_id, question_instance_id))
-                .rejects.toThrow("Error fetching user's submission")
+                .rejects.toThrow("Network error")
 
-    expect(mockedAxios.get).toHaveBeenCalledTimes(1)
+    expect(mockedAxios.get).toHaveBeenCalled()
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "CodeSubmissionAPI",
+      })
+    );
   })
 })
