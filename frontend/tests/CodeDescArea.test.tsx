@@ -386,20 +386,12 @@ describe('CodeDescArea', () => {
               expect(screen.getByText("Standard Output")).toBeInTheDocument();
               expect(screen.getByText("output")).toBeInTheDocument();
 
-              // const backButton = screen.getByTestId('back-btn');
-              // fireEvent.click(backButton);
+              const backButton = screen.getByText(/back/i);
+              fireEvent.click(backButton)
+              expect(screen.getByTestId("table")).toBeInTheDocument()
+              expect(screen.getByText("Accepted")).toBeInTheDocument()
+              expect(screen.getByText("Wrong Answer")).toBeInTheDocument()
             });
-
-            // // Click back button
-            // const backButton = screen.getByRole('button', { name: /back/i });
-            // fireEvent.click(backButton);
-
-            // Should return to submissions list
-            // await waitFor(() => {
-            //   expect(screen.getByTestId("table")).toBeInTheDocument();
-            //   expect(screen.getByText("Accepted")).toBeInTheDocument();
-            //   expect(screen.getByText("Wrong Answer")).toBeInTheDocument();
-            // });
         });
     });
 });
