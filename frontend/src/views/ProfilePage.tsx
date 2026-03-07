@@ -284,17 +284,11 @@ function ProfilePage() {
         editingField.charAt(0).toUpperCase() +
         editingField.slice(1).replaceAll(/([A-Z])/g, " $1").toLowerCase();
 
-      sessionStorage.setItem(
-        "profileUpdateToast",
-        `${fieldLabel} updated successfully.`
-      );
+      toast.success(`${fieldLabel} updated successfully.`);
 
       setEditingField(null);
       setTempValue("");
-
-      globalThis.location.reload();
     } catch (error) {
-      console.error(`Error updating ${editingField}:`, error);
       trackProfileFieldSaveFailed(
         editingField,
         error instanceof Error ? error.message : "Unknown error"
