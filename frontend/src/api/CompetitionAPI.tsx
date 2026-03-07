@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Competition, CompetitionFormPayload } from "@/types/competition/Competition.type";
+import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -27,6 +28,28 @@ export async function getCompetitions(): Promise<Competition[]> {
   }
 }
 
+
+export async function getCompetitionsDetails(): Promise<CompetitionWithParticipants[]> {
+  try {
+    const response = await axiosClient.get<{
+      id: number;
+      competition_title: string;
+      date: Date;
+    }[]>(`/homepage/get-competitions`);
+
+    const formatted: CompetitionWithParticipants[] = response.data.map(c => ({
+      id: c.id,
+      competitionTitle: c.competition_title,
+      date: c.date,
+      participants: [],
+    }));
+
+    return formatted;
+  } catch (err) {
+    console.error("Error fetching competitions:", err);
+    throw err;
+  }
+}
 
 
 // ============= New Competition Management Functions =============
