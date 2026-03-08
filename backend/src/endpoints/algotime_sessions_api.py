@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import AlgoTimeSession, AlgoTimeSeries, BaseEvent, QuestionInstance, Question,AlgoTimeLeaderboardEntry
+from models.schema import AlgoTimeSession, AlgoTimeSeries, BaseEvent, QuestionInstance, Question
 from database_operations.database import get_db
 from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
