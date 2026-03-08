@@ -94,7 +94,7 @@ const CodeDescArea = (
         const FetchSubmissions = async () => {
             const user = await getProfile()
             // hardcoding for now
-            await getAllSubmissions(user.id, 1)
+            await getAllSubmissions(user.id, question_instance?.question_instance_id)
                 .then((response) => {
                     setSubmissions(response)
                 })

@@ -188,12 +188,30 @@ describe("Code Submission", () => {
     )
   })
 
-  it("throws an error if the given question instance is undefined", async () => {
+  it("submitAttempt: throws an error if the given question instance is undefined", async () => {
     await expect(submitAttempt(undefined, user_id, undefined, source_code, language_id, testcases))
-                .rejects.toThrow("Question instance cannot be undefined")
+                .rejects.toThrow("SubmitAttempt: Question instance cannot be undefined")
     expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
     // Skip point calculations steps
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "CodeSubmissionAPI",
+      })
+    );
+  })
+
+  it("getAllSubmissions: throws an error if the given question instance is undefined", async () => {
+    await expect(getAllSubmissions(user_id, undefined))
+                .rejects.toThrow("getAllSubmissions: Question instance cannot be undefined")
+    expect(mockedAxios.get).not.toHaveBeenCalled()
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "CodeSubmissionAPI",
+      })
+    );
   })
 
   it("handles errors from Judge0 API", async () => {

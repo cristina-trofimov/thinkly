@@ -534,8 +534,14 @@ describe('CodingView Component without event', () => {
         mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
         mockedGetProfile.mockResolvedValue(mockProfile)
 
-        await expect(submitAttempt(mockQuestionInstances[0], user_id, undefined, "code", language_id, []))
+        await expect(submitAttempt(undefined, -1, undefined, "code", language_id, []))
             .rejects.toThrow("Network error")
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+                level: "ERROR",
+                component: "CodingView",
+            })
+        );
     })
 
     it('shows loader when question has no id', () => {

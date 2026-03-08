@@ -67,9 +67,12 @@ export async function submitAttempt(
 
 export async function getAllSubmissions(
     user_id: number,
-    question_instance_id: number,
+    question_instance_id: number | undefined,
   ): Promise<SubmissionType[]> {
     try {
+      if(!question_instance_id) {
+        throw new Error("getAllSubmissions: Question instance cannot be undefined")
+      }
       const response = await axiosClient.get<{
         status_code: number
         data: SubmissionType[]
