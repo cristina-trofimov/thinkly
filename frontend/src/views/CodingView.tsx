@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
+import { getProfile } from '@/api/AuthAPI';
+import { logFrontend } from '@/api/LoggerAPI';
 
 
 const CodingView = () => {
@@ -74,7 +76,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Submitting")
 
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, null, code, judgeID, testcases)
+      const user = await getProfile()
+      const { codeRunResponse, submissionResponse } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -100,6 +103,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -133,6 +143,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when running code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -237,7 +254,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} />
+          <CodeDescArea question={question} mostRecentSub={mostRecentSub} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"

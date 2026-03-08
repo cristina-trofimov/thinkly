@@ -9,11 +9,13 @@ import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
 import { CodeRunResponse } from '../src/types/CodeRunResponse.type'
 import { SubmitAttemptResponse } from '../src/types/SubmitAttemptResponse.type'
+import { Account } from '../src/types/account/Account.type'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { UserPreferences } from '../src/types/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/CodeSubmissionAPI'
 import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
+import { getProfile } from '../src/api/AuthAPI'
 import { toast } from 'sonner'
 
 
@@ -66,6 +68,10 @@ jest.mock('../src/api/CodeSubmissionAPI', () => ({
 
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
     getQuestionInstance: jest.fn()
+}))
+
+jest.mock('../src/api/AuthAPI', () => ({
+    getProfile: jest.fn()
 }))
 
 jest.mock('../src/hooks/useAnalytics', () => ({
@@ -165,6 +171,7 @@ const mockedToast = toast as jest.Mocked<typeof toast>
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
+const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
 
 const mockProblem: Question = {
     id: 1,
@@ -202,6 +209,14 @@ const mockMostRecentSubResponse: MostRecentSub = {
     question_instance_id: question_instance_id,
     code: source_code,
     lang_judge_id: parseInt(language_id)
+}
+
+const mockProfile: Account = {
+    id: user_id,
+    firstName: "John",
+    lastName: "string",
+    email: "string@smt.com",
+    accountType: "Participant"
 }
 
 const mockJudge0Response = {
@@ -290,7 +305,6 @@ describe('CodingView Component', () => {
             activeTestcase: 'Case 1',
             setActiveTestcase,
         })
-
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
@@ -406,6 +420,7 @@ describe('CodingView Component', () => {
 
     it('submits code with successful output', async () => {
         mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseSUCCESS)
+        mockedGetProfile.mockResolvedValue(mockProfile)
 
         render(<CodingView />)
 
@@ -424,6 +439,7 @@ describe('CodingView Component', () => {
 
     it('submits code with failure output', async () => {
         mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseFAIL)
+        mockedGetProfile.mockResolvedValue(mockProfile)
 
         render(<CodingView />)
 
@@ -443,7 +459,7 @@ describe('CodingView Component', () => {
     it('handles failed code submission', async () => {
         mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
 
-        await expect(submitAttempt(question_id, null, "code", language_id, []))
+        await expect(submitAttempt(user_id, question_id, null, "code", language_id, []))
             .rejects.toThrow("Network error")
     })
 
