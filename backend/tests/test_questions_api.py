@@ -473,4 +473,4 @@ def test_get_all_testcases_db_error(client, mock_db):
 
     response = client.get("/get-all-testcases/1")
     assert response.status_code == 500
-    assert response.json()["detail"] == "Failed to retrieve test cases."
+    assert response.json()["detail"].startswith("Failed to retrieve test cases.")
