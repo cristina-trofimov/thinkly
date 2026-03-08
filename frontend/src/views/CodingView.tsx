@@ -32,6 +32,7 @@ import { getEventByName } from '@/api/BaseEventAPI';
 import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
 import { getQuestionByID } from '@/api/QuestionsAPI';
 import { getProfile } from '@/api/AuthAPI';
+import { logFrontend } from '@/api/LoggerAPI';
 
 
 const CodingView = () => {
@@ -214,6 +215,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -247,6 +255,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when running code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -268,7 +283,7 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [code, setCode] = useState<string>(templateCode || '')
+  const [code, setCode] = useState<string>(templateCode ?? '')
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -392,7 +407,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} />
+          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} mostRecentSub={mostRecentSub} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
@@ -440,14 +455,15 @@ const CodingView = () => {
                 </div>
                 <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
                   <DropdownMenu data-testid='language-dropdown'>
-                    <DropdownMenuTrigger
-                      data-testid='language-btn'
+                    <DropdownMenuTrigger>
+                      <div data-testid='language-btn'
                         className="bg-background text-black text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
-                    >
-                      {selectedLang}
-                      <ChevronDown />
+                      >
+                        {selectedLang}
+                        <ChevronDown />
+                      </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'

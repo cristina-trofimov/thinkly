@@ -3,6 +3,7 @@ import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
 import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
+import { logFrontend } from "./LoggerAPI";
 
 
 export function parse_input_output(testcases: TestcaseType[]) {
@@ -66,7 +67,13 @@ export async function submitToJudge0(
         }
 
       } catch (err) {
-        console.error("Error running the code:", err)
+        logFrontend({
+            level: "ERROR",
+            message: `An error occurred when running the code. Reason: ${err}`,
+            component: "Judge0API",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+        });
         throw err
       }
 }
