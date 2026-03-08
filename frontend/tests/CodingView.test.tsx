@@ -17,6 +17,7 @@ import { submitAttempt } from '../src/api/CodeSubmissionAPI'
 import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
 import { getProfile } from '../src/api/AuthAPI'
 import { toast } from 'sonner'
+import { logFrontend } from "../src/api/LoggerAPI"
 
 
 jest.mock('@monaco-editor/react', () => {
@@ -57,6 +58,10 @@ jest.mock('../src/components/codingPage/ConsoleOutput.tsx', () => {
       )
     }
 })
+
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn()
+}))
 
 jest.mock('../src/api/Judge0API', () => ({
     submitToJudge0: jest.fn()
@@ -168,20 +173,24 @@ jest.mock("../src/components/helpers/UseStateCallback", () => ({
 jest.mock('../src/components/helpers/useTestcases')
 
 const mockedToast = toast as jest.Mocked<typeof toast>
+const mockedLogger = logFrontend as jest.Mock
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
 const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
 
 const mockProblem: Question = {
-    id: 1,
-    title: "Sum Problem",
-    description: "Add two numbers",
+    question_id: 1,
+    question_name: "Sum Problem",
+    question_description: "Add two numbers",
     media: "string",
     preset_code: "string",
     template_solution: "string",
     difficulty: "Easy",
-    date: new Date("2025-10-28T10:00:00Z"),
+    to_string_function: "",
+    from_string_function: "",
+    created_at: new Date("2025-10-28T10:00:00Z"),
+    last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }
 
 const mockUseTestcases = useTestcases as jest.Mock
@@ -262,7 +271,7 @@ const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
         status_code: 200,
         message: "Submitted"
     },
-    questionInstance: mockQuestionInstances[0]
+    leaderboard: null
 }
 
 const mockSubmitAttemptResponseFAIL: SubmitAttemptResponse = {
@@ -271,7 +280,7 @@ const mockSubmitAttemptResponseFAIL: SubmitAttemptResponse = {
         status_code: 400,
         message: "Failed"
     },
-    questionInstance: mockQuestionInstances[0]
+    leaderboard: null
 }
 
 const nullRef = { current: null }
@@ -459,8 +468,14 @@ describe('CodingView Component', () => {
     it('handles failed code submission', async () => {
         mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
 
-        await expect(submitAttempt(user_id, question_id, null, "code", language_id, []))
+        await expect(submitAttempt(mockQuestionInstances[0], user_id, undefined, "code", language_id, []))
             .rejects.toThrow("Network error")
+        // expect(mockedLogger).toHaveBeenCalledWith(
+        //     expect.objectContaining({
+        //         level: "ERROR",
+        //         component: "CodingView",
+        //     })
+        // )
     })
 
     it('shows loader when question has no id', () => {
@@ -476,7 +491,7 @@ describe('CodingView Component', () => {
 
     it('execute code and updates logs when run button is clicked', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
 
         render(<CodingView />)
 
@@ -490,10 +505,16 @@ describe('CodingView Component', () => {
 
     it('handles failed code execution', async () => {
         mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Network error"))
-        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
 
-        await expect(submitToJudge0(question_instance_id, "code", language_id, []))
+        await expect(submitToJudge0(user_id, question_instance_id, "code", language_id, []))
             .rejects.toThrow("Network error")
+        // expect(mockedLogger).toHaveBeenCalledWith(
+        //     expect.objectContaining({
+        //         level: "ERROR",
+        //         component: "CodingView",
+        //     })
+        // )
     })
 
     it('handles language dropdown interaction', async () => {
@@ -507,7 +528,7 @@ describe('CodingView Component', () => {
 
     it('handles async loading state during code execution', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
 
         render(<CodingView />)
 

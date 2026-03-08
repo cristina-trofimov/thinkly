@@ -283,7 +283,7 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [code, setCode] = useState<string>(templateCode ?? '')
+  const [code, setCode] = useState<string>('')
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps

@@ -3,6 +3,7 @@ import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
 import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
+import { logFrontend } from "../src/api/LoggerAPI"
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -23,8 +24,12 @@ jest.mock('../src/api/UserPreferencesAPI', () => ({
   updateLastProgLang: jest.fn()
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn()
+}))
 
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
+const mockedLogger = logFrontend as jest.Mock
 
 const code = "print('Hello')";
 const language_id = "71";
@@ -97,5 +102,11 @@ describe("Judge0API", () => {
     expect(updateLastProgLang).not.toHaveBeenCalled()
     expect(updateMostRecentSub).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "Judge0API",
+      })
+    );
   })
 })
