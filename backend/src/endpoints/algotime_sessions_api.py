@@ -89,11 +89,11 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt
-    except ValueError as e:
+    except ValueError:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
@@ -278,5 +278,5 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching AlgoTime sessions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve AlgoTime sessions. Exception: {str(e)}"
+            detail="Failed to retrieve AlgoTime sessions."
         )

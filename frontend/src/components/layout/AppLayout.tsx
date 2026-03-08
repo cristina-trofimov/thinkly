@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from '../ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { AppBreadcrumbs } from './AppBreadcrumb';
 import { NavUser } from './NavUser'
+import { MobileBanner } from "./MobileBanner";
 
 // Define the shape of route handle data
 interface RouteHandle {
@@ -33,6 +34,7 @@ export function Layout() {
 
   return (
     <SidebarProvider defaultOpen={getSidebarCookie()}>
+      <MobileBanner />
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <main className="flex-1 min-w-0">

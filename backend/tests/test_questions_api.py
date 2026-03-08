@@ -144,7 +144,6 @@ def test_get_all_questions_db_error(client, mock_db):
     assert response.status_code == 500
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
-    assert "Exception" in response.json()["detail"]
 
 def test_upload_question_success(client, mock_db):
     """Test uploading a single question successfully."""
@@ -264,7 +263,7 @@ def test_upload_question_existing_name(client, mock_db):
 
 def test_upload_question_existing_tags(client, mock_db):
     """Test uploading a question with tags that already exist in the database."""
-    
+
     question_payload = {
         "question_name": "Tag Test Question",
         "question_description": "Testing existing tags.",
@@ -288,3 +287,98 @@ def test_upload_question_existing_tags(client, mock_db):
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+
+
+def test_upload_question_batch_db_error(client, mock_db):
+    """Test that a DB error during batch upload returns 500 with generic message."""
+    batch_payload = [
+        {
+            "question_name": "Batch Q",
+            "question_description": "desc",
+            "difficulty": "easy",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def s(): pass",
+            "tags": [],
+            "testcases": [],
+        }
+    ]
+
+    mock_db.commit.side_effect = Exception("DB commit failed")
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to upload question batch."
+
+
+# --- get_all_riddles ---
+
+def test_get_all_riddles_success(client, mock_db):
+    """Test the happy path where riddles are returned correctly."""
+    fake_riddles = [
+        SimpleNamespace(riddle_id=1, riddle_question="What am I?", riddle_answer="A riddle", riddle_file=None),
+        SimpleNamespace(riddle_id=2, riddle_question="Another?", riddle_answer="Another", riddle_file=None),
+    ]
+    mock_db.query.return_value.all.return_value = fake_riddles
+
+    response = client.get("/get-all-riddles")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["riddle_id"] == 1
+    assert data[0]["riddle_question"] == "What am I?"
+
+
+def test_get_all_riddles_empty(client, mock_db):
+    """Test when there are no riddles in the database."""
+    mock_db.query.return_value.all.return_value = []
+
+    response = client.get("/get-all-riddles")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_all_riddles_db_error(client, mock_db):
+    """Test that a DB error returns 500 with the generic riddles message."""
+    mock_db.query.return_value.all.side_effect = Exception("DB failure")
+
+    response = client.get("/get-all-riddles")
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to retrieve riddles."
+
+
+# --- get_all_testcases ---
+
+def test_get_all_testcases_success(client, mock_db):
+    """Test the happy path where test cases for a question are returned correctly."""
+    fake_testcases = [
+        SimpleNamespace(test_case_id=1, question_id=1, input_data="[1,2]", expected_output="3"),
+        SimpleNamespace(test_case_id=2, question_id=1, input_data="[3,4]", expected_output="7"),
+    ]
+    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_testcases
+
+    response = client.get("/get-all-testcases/1")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert data[0]["test_case_id"] == 1
+    assert data[0]["input_data"] == "[1,2]"
+
+
+def test_get_all_testcases_empty(client, mock_db):
+    """Test when a question has no test cases."""
+    mock_db.query.return_value.filter_by.return_value.all.return_value = []
+
+    response = client.get("/get-all-testcases/99")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_all_testcases_db_error(client, mock_db):
+    """Test that a DB error returns 500 with the generic test cases message."""
+    mock_db.query.return_value.filter_by.return_value.all.side_effect = Exception("DB failure")
+
+    response = client.get("/get-all-testcases/1")
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to retrieve test cases."

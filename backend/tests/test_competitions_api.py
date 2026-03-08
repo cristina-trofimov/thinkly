@@ -121,7 +121,7 @@ def test_get_all_competitions_db_error(client, mock_db):
     mock_db.query.return_value = mock_query
     response = client.get("/competitions/")
     assert response.status_code == 500
-    assert "DB Connection Lost" in response.json()["detail"]
+    assert response.json()["detail"] == "Failed to retrieve competitions."
 
 
 # ---------------------------------------------------------------------------

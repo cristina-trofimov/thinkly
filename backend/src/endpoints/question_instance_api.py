@@ -25,7 +25,7 @@ def query_get_question_instance(
         return query
     except SQLAlchemyError as e:
         logger.error(f"Database: getting question instance query error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database: getting question instance query error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to query question instance.")
 
 
 @question_instance_router.get("/find", response_model = dict,
@@ -58,7 +58,7 @@ def get_question_instance(
         return {"status_code": 200, 'data': data}
     except Exception as e:
         logger.error(f"Error fetching question instance: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve question instance. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve question instance.")
         
     
 
@@ -124,4 +124,4 @@ def create_question_instance(
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question instance: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question instance. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question instance.")

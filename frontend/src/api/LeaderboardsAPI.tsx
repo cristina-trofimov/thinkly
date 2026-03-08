@@ -95,32 +95,37 @@ export interface CompetitionsQueryParams {
 export async function getCurrentCompetitionLeaderboard(
     currentUserId?: number
 ): Promise<CurrentStandings> {
-    const params = currentUserId ? { current_user_id: currentUserId } : {};
-    const response = await axiosClient.get<CurrentCompetitionResponse>(
-        "/leaderboards/competitions/current",
-        { params }
-    );
+    try {
+        const params = currentUserId ? { current_user_id: currentUserId } : {};
+        const response = await axiosClient.get<CurrentCompetitionResponse>(
+            "/leaderboards/competitions/current",
+            { params }
+        );
 
-    if (!response.data.competition || response.data.entries.length === 0) {
+        if (!response.data.competition || response.data.entries.length === 0) {
+            return {
+                competitionName: "No Active Competition",
+                participants: [],
+                showSeparator: false,
+            };
+        }
+
         return {
-            competitionName: "No Active Competition",
-            participants: [],
-            showSeparator: false,
+            competitionName: response.data.competition.name,
+            participants: response.data.entries.map((entry) => ({
+                name: entry.name,
+                user_id: entry.userId ?? 0,
+                total_score: entry.totalScore,
+                problems_solved: entry.problemsSolved,
+                rank: entry.rank,
+                total_time: formatSecondsToTime(entry.totalTime),
+            })),
+            showSeparator: response.data.showSeparator ?? false,
         };
+    } catch (err) {
+        console.error("Error fetching current competition leaderboard:", err);
+        throw err;
     }
-
-    return {
-        competitionName: response.data.competition.name,
-        participants: response.data.entries.map((entry) => ({
-            name: entry.name,
-            user_id: entry.userId ?? 0,
-            total_score: entry.totalScore,
-            problems_solved: entry.problemsSolved,
-            rank: entry.rank,
-            total_time: formatSecondsToTime(entry.totalTime),
-        })),
-        showSeparator: response.data.showSeparator ?? false,
-    };
 }
 
 /**
@@ -130,59 +135,69 @@ export async function getCurrentCompetitionLeaderboard(
 export async function getCompetitionsDetails(
     params: CompetitionsQueryParams = {}
 ): Promise<CompetitionsPage> {
-    const { currentUserId, search, sort = "desc", page = 1, pageSize = 20 } = params;
+    try {
+        const { currentUserId, search, sort = "desc", page = 1, pageSize = 20 } = params;
 
-    const queryParams: Record<string, string | number> = { sort, page, page_size: pageSize };
-    if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
-    if (search?.trim()) queryParams.search = search.trim();
+        const queryParams: Record<string, string | number> = { sort, page, page_size: pageSize };
+        if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
+        if (search?.trim()) queryParams.search = search.trim();
 
-    const response = await axiosClient.get<PaginatedCompetitionsResponse>(
-        "/leaderboards/competitions",
-        { params: queryParams }
-    );
+        const response = await axiosClient.get<PaginatedCompetitionsResponse>(
+            "/leaderboards/competitions",
+            { params: queryParams }
+        );
 
-    return {
-        total: response.data.total,
-        page: response.data.page,
-        pageSize: response.data.page_size,
-        competitions: response.data.competitions.map((comp) => ({
-            id: Number.parseInt(comp.id),
-            competitionTitle: comp.name,
-            date: new Date(comp.date),
-            participants: comp.participants.map((p) => ({
-                name: p.name,
-                user_id: p.userId ?? 0,
-                total_score: p.points,
-                problems_solved: p.problemsSolved,
-                rank: p.rank,
-                total_time: formatSecondsToTime(p.totalTime),
+        return {
+            total: response.data.total,
+            page: response.data.page,
+            pageSize: response.data.page_size,
+            competitions: response.data.competitions.map((comp) => ({
+                id: Number.parseInt(comp.id),
+                competitionTitle: comp.name,
+                date: new Date(comp.date),
+                participants: comp.participants.map((p) => ({
+                    name: p.name,
+                    user_id: p.userId ?? 0,
+                    total_score: p.points,
+                    problems_solved: p.problemsSolved,
+                    rank: p.rank,
+                    total_time: formatSecondsToTime(p.totalTime),
+                })),
+                showSeparator: comp.showSeparator ?? false,
             })),
-            showSeparator: comp.showSeparator ?? false,
-        })),
-    };
+        };
+    } catch (err) {
+        console.error("Error fetching competitions leaderboard:", err);
+        throw err;
+    }
 }
 
 /** Get ALL entries for a specific competition (no top-10 filtering — used for export) */
 export async function getAllCompetitionEntries(
     competitionId: number
 ): Promise<CompetitionWithParticipants["participants"]> {
-    const response = await axiosClient.get<Array<{
-        name: string;
-        userId: number | null;
-        points: number;
-        problemsSolved: number;
-        rank: number;
-        totalTime: number;
-    }>>(`/leaderboards/competitions/${competitionId}/all`);
+    try {
+        const response = await axiosClient.get<Array<{
+            name: string;
+            userId: number | null;
+            points: number;
+            problemsSolved: number;
+            rank: number;
+            totalTime: number;
+        }>>(`/leaderboards/competitions/${competitionId}/all`);
 
-    return response.data.map((p) => ({
-        name: p.name,
-        user_id: p.userId ?? 0,
-        total_score: p.points,
-        problems_solved: p.problemsSolved,
-        rank: p.rank,
-        total_time: formatSecondsToTime(p.totalTime),
-    }));
+        return response.data.map((p) => ({
+            name: p.name,
+            user_id: p.userId ?? 0,
+            total_score: p.points,
+            problems_solved: p.problemsSolved,
+            rank: p.rank,
+            total_time: formatSecondsToTime(p.totalTime),
+        }));
+    } catch (err) {
+        console.error(`Error fetching all entries for competition ${competitionId}:`, err);
+        throw err;
+    }
 }
 
 /**
@@ -193,66 +208,76 @@ export async function getAllCompetitionEntries(
 export async function getAlgoTimeEntries(
     params: AlgoTimeQueryParams = {}
 ): Promise<AlgoTimePage> {
-    const { currentUserId, search, page = 1, pageSize = 15 } = params;
+    try {
+        const { currentUserId, search, page = 1, pageSize = 15 } = params;
 
-    const queryParams: Record<string, string | number> = { page, page_size: pageSize };
-    if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
-    if (search?.trim()) queryParams.search = search.trim();
+        const queryParams: Record<string, string | number> = { page, page_size: pageSize };
+        if (currentUserId !== undefined) queryParams.current_user_id = currentUserId;
+        if (search?.trim()) queryParams.search = search.trim();
 
-    const response = await axiosClient.get<{
-        total: number;
-        page: number;
-        page_size: number;
-        entries: Array<{
+        const response = await axiosClient.get<{
+            total: number;
+            page: number;
+            page_size: number;
+            entries: Array<{
+                entryId: number;
+                algoTimeSeriesId: number;
+                name: string;
+                userId: number;
+                totalScore: number;
+                problemsSolved: number;
+                totalTime: number;
+                rank: number;
+                lastUpdated: string;
+            }>;
+        }>("/leaderboards/algotime", { params: queryParams });
+
+        return {
+            total: response.data.total,
+            page: response.data.page,
+            pageSize: response.data.page_size,
+            entries: response.data.entries.map((e) => ({
+                entryId: e.entryId,
+                seriesId: e.algoTimeSeriesId,
+                name: e.name,
+                user_id: e.userId,
+                total_score: e.totalScore,
+                problems_solved: e.problemsSolved,
+                rank: e.rank,
+                total_time: formatSecondsToTime(e.totalTime),
+            })),
+        };
+    } catch (err) {
+        console.error("Error fetching AlgoTime leaderboard entries:", err);
+        throw err;
+    }
+}
+
+/** Fetch ALL AlgoTime entries without pagination — used only for copy/download exports. */
+export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]> {
+    try {
+        const response = await axiosClient.get<Array<{
             entryId: number;
-            algoTimeSeriesId: number;
             name: string;
             userId: number;
             totalScore: number;
             problemsSolved: number;
             totalTime: number;
             rank: number;
-            lastUpdated: string;
-        }>;
-    }>("/leaderboards/algotime", { params: queryParams });
+        }>>("/leaderboards/algotime/all");
 
-    return {
-        total: response.data.total,
-        page: response.data.page,
-        pageSize: response.data.page_size,
-        entries: response.data.entries.map((e) => ({
+        return response.data.map((e) => ({
             entryId: e.entryId,
-            seriesId: e.algoTimeSeriesId,
+            seriesId: 0,
             name: e.name,
             user_id: e.userId,
             total_score: e.totalScore,
             problems_solved: e.problemsSolved,
             rank: e.rank,
             total_time: formatSecondsToTime(e.totalTime),
-        })),
-    };
-}
-
-/** Fetch ALL AlgoTime entries without pagination — used only for copy/download exports. */
-export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]> {
-    const response = await axiosClient.get<Array<{
-        entryId: number;
-        name: string;
-        userId: number;
-        totalScore: number;
-        problemsSolved: number;
-        totalTime: number;
-        rank: number;
-    }>>("/leaderboards/algotime/all");
-
-    return response.data.map((e) => ({
-        entryId: e.entryId,
-        seriesId: 0,
-        name: e.name,
-        user_id: e.userId,
-        total_score: e.totalScore,
-        problems_solved: e.problemsSolved,
-        rank: e.rank,
-        total_time: formatSecondsToTime(e.totalTime),
-    }));
+        }));
+    } catch (err) {
+        console.error("Error fetching all AlgoTime entries for export:", err);
+        throw err;
+    }
 }

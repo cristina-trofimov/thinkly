@@ -211,7 +211,7 @@ export default function ManageRiddles() {
         {filteredRiddles.map((riddle) => (
           <Card
             key={riddle.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full"
+            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
           >
             <CardHeader className="bg-muted/30 pb-4">
               <div className="flex justify-between items-start gap-2">
