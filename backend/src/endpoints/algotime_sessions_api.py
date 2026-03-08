@@ -107,11 +107,11 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         dt_local = dt_naive.replace(tzinfo=LOCAL_TZ)
         dt_utc = dt_local.astimezone(timezone.utc)
         return dt_utc
-    except ValueError as e:
+    except ValueError :
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
@@ -469,21 +469,15 @@ def delete_algotime_session(
             QuestionInstance.event_id == session_id
         ).delete(synchronize_session=False)
 
-        # 2. Delete leaderboard entries for this session's series
-        if series_id:
-            db.query(AlgoTimeLeaderboardEntry).filter(
-                AlgoTimeLeaderboardEntry.algotime_series_id == series_id
-            ).delete(synchronize_session=False)
-
-        # 3. Delete AlgoTimeSession first, flush before touching BaseEvent
+        # 2. Delete AlgoTimeSession first, flush before touching BaseEvent
         db.delete(algotime_session)
         db.flush()
 
-        # 4. Delete BaseEvent
+        # 3. Delete BaseEvent
         db.delete(base_event)
         db.flush()
 
-        # 5. Check if series is now empty and clean it up if so
+        # 4. Check if series is now empty and clean it up if so
         if series_id:
             remaining = db.query(AlgoTimeSession).filter(
                 AlgoTimeSession.algotime_series_id == series_id

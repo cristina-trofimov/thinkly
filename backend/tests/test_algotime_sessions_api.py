@@ -323,7 +323,7 @@ def test_delete_algotime_session_success(client, mock_db):
             mock_query.count.return_value = 0
         elif model == BaseEvent:
             mock_query.first.return_value = mock_event
-        else:
+        elif model == QuestionInstance:
             mock_query.delete.return_value = None
         return mock_query
 
