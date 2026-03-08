@@ -38,7 +38,7 @@ jest.mock("../src/components/ui/dropdown-menu", () => ({
 
 // Sample columns and data
 const columns: ColumnDef<Question, any>[] = [
-  { accessorKey: "title", header: "Question Title" },
+  { accessorKey: "question_name", header: "Question Title" },
   { accessorKey: "difficulty", header: "Difficulty" },
 ]
 
