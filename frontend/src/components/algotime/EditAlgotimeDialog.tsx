@@ -41,6 +41,7 @@ interface EditAlgoTimeSessionDialogProps {
       location: string; 
     } | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
     const getDifficultyClass = (difficulty: string) => {
       const lower = difficulty.toLowerCase();
       if (lower === "easy") return "bg-green-100 text-green-700";
@@ -72,6 +73,9 @@ interface EditAlgoTimeSessionDialogProps {
               session.questions?.map((q: { questionId: number }) => q.questionId) ?? [],
             location: session.location ?? "",
           });
+          const now = new Date();
+          const endTime = new Date(session.endTime);
+          setIsCompleted(now > endTime);
         } catch {
           toast.error("Failed to load session details");
           onOpenChange(false);
@@ -170,22 +174,30 @@ interface EditAlgoTimeSessionDialogProps {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogOverlay className="bg-white/10 backdrop-blur-sm" />
-        <DialogContent className="!w-[95vw] !max-w-[95vw] max-h-[90vh] overflow-y-auto">
+        <DialogContent className={`max-h-[90vh] overflow-y-auto ${isEditing ? "!w-[95vw] !max-w-[95vw]" : "!w-[50vw] !max-w-[50vw]"}`}>
           <DialogHeader>
           <div className="flex items-center justify-between">
               <DialogTitle className="text-xl font-bold text-primary">
                 {isEditing ? '' : "View AlgoTime Session"}
               </DialogTitle>
               {!isEditing && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              )}
+                  <div className="flex items-center gap-2">
+                    {isCompleted ? (
+                      <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
+                        Completed Session — Read Only
+                      </span>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                )}
             </div>
           </DialogHeader>
           {renderContent()}
