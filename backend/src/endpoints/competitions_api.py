@@ -423,8 +423,6 @@ async def create_competition(
                 event_id=base_event.event_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 
@@ -652,8 +650,6 @@ async def update_competition(
                 event_id=competition_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 

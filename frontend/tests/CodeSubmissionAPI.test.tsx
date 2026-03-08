@@ -109,9 +109,7 @@ const mockQuestionInstances: QuestionInstance[] = [{
   question_instance_id: question_instance_id,
   question_id: question_id,
   event_id: event_id,
-  points: 10,
   riddle_id: null,
-  is_riddle_completed: false
 }]
 
 const mockSubmissions: SubmissionType[] = [{

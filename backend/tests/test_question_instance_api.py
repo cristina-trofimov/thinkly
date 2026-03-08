@@ -45,17 +45,13 @@ def test_get_question_instance_success(client, mock_db):
             question_instance_id=1,
             event_id=10,
             question_id=5,
-            points=100,
             riddle_id=None,
-            is_riddle_completed=False,
         ),
         SimpleNamespace(
             question_instance_id=2,
             event_id=5,
             question_id=5,
-            points=100,
             riddle_id=None,
-            is_riddle_completed=False,
         )
     ]
 
@@ -78,9 +74,7 @@ def test_get_question_instance_with_event_id(client, mock_db):
             question_instance_id=2,
             event_id=10,
             question_id=5,
-            points=50,
             riddle_id=3,
-            is_riddle_completed=True,
         )
     ]
 
@@ -94,7 +88,6 @@ def test_get_question_instance_with_event_id(client, mock_db):
     assert data["status_code"] == 200
     assert len(data["data"]) == 1
     assert data["data"][0]["event_id"] == 10
-    assert data["data"][0]["is_riddle_completed"] == True
 
 def test_get_question_instance_empty(client, mock_db):
     """Test fetching a question instance that doesn't exist."""
@@ -127,17 +120,13 @@ def test_get_all_question_instances_success(client, mock_db):
             question_instance_id=1,
             event_id=10,
             question_id=5,
-            points=100,
             riddle_id=None,
-            is_riddle_completed=False,
         ),
         SimpleNamespace(
             question_instance_id=2,
             event_id=5,
             question_id=5,
-            points=100,
             riddle_id=None,
-            is_riddle_completed=False,
         )
     ]
 
@@ -170,9 +159,7 @@ def test_create_question_instance_no_event_id(client, mock_db):
     payload = {
         "question_id": 5,
         "event_id": None,
-        "points": 80,
         "riddle_id": None,
-        "is_riddle_completed": False,
     }
 
     # Simulate the refreshed instance having an ID
@@ -196,9 +183,7 @@ def test_create_question_instance_new_with_event_id(client, mock_db):
     payload = {
         "question_id": 5,
         "event_id": 10,
-        "points": 75,
         "riddle_id": None,
-        "is_riddle_completed": False,
     }
 
     # first() returns None -> no existing instance -> should INSERT
@@ -221,18 +206,14 @@ def test_update_existing_question_instance(client, mock_db):
     payload = {
         "question_id": 5,
         "event_id": 10,
-        "points": 95,
         "riddle_id": 3,
-        "is_riddle_completed": True,
     }
 
     existing = SimpleNamespace(
         question_instance_id=2,
         event_id=10,
         question_id=5,
-        points=50,
         riddle_id=None,
-        is_riddle_completed=False,
     )
 
     mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = existing
@@ -255,9 +236,7 @@ def test_create_question_instance_db_error(client, mock_db):
     payload = {
         "question_id": 5,
         "event_id": None,
-        "points": 80,
         "riddle_id": None,
-        "is_riddle_completed": False,
     }
 
     mock_db.commit.side_effect = Exception("Commit Failed")

@@ -52,7 +52,6 @@ class AlgoTimeQuestionResponse(BaseModel):
     questionDescription: str
     difficulty: str
     tags: List[str]
-    points: int
 
 
 class AlgoTimeSessionResponse(BaseModel):
@@ -189,7 +188,6 @@ def create_algotime(
                 qi = QuestionInstance(
                     event_id=base_event.event_id,
                     question_id=question_id,
-                    points=0
                 )
                 db.add(qi)
 
@@ -255,7 +253,6 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
                     "questionDescription": qi.question.question_description,
                     "difficulty": qi.question.difficulty,
                     "tags": [tag.tag_name for tag in qi.question.tags],
-                    "points": qi.points,
                 }
                 for qi in question_instances
             ]

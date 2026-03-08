@@ -173,9 +173,7 @@ const mockQuestionInstance: QuestionInstance = {
     question_instance_id: 1,
     question_id: problem_id,
     event_id: 1,
-    points: null,
     riddle_id: null,
-    is_riddle_completed: null
 }
 
 const mockRiddle = {
