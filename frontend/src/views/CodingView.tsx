@@ -35,7 +35,7 @@ const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
 
-  const { testcases } = useTestcases(question.id)
+  const { testcases } = useTestcases(question?.id)
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
@@ -163,7 +163,7 @@ const CodingView = () => {
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: question.title,
+    problemName: question?.title ?? "",
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -226,6 +226,14 @@ const CodingView = () => {
     mainPanelGroup.current?.setLayout(mainPanelSize)
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
+
+  if (!question) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <p>No problem loaded. Please navigate from the problem list.</p>
+      </div>
+    );
+  }
 
   return (
     <div data-testid="sandbox" key="sandbox"

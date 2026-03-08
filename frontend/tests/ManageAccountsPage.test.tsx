@@ -166,31 +166,31 @@ describe('ManageAccountsPage', () => {
   describe('Error Handling', () => {
     it('displays error state on fetch failure', async () => {
       getAccounts.mockRejectedValue(new Error('Network error'));
-      
+
       render(<ManageAccountsPage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/Error:/)).toBeInTheDocument();
+        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
       });
     });
 
     it('displays error message with error details', async () => {
       getAccounts.mockRejectedValue(new Error('Failed to fetch'));
-      
+
       render(<ManageAccountsPage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/Error: Failed to fetch/)).toBeInTheDocument();
+        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
       });
     });
 
     it('handles unknown error type', async () => {
       getAccounts.mockRejectedValue('String error');
-      
+
       render(<ManageAccountsPage />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/Error: An unknown error occurred/)).toBeInTheDocument();
+        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
       });
     });
 

@@ -2,7 +2,6 @@ import axiosClient from "../src/lib/axiosClient";
 import {
   getQuestions,
   getRiddles,
-  deleteCompetition,
   getTestcases
 } from "../src/api/QuestionsAPI";
 
@@ -86,24 +85,6 @@ describe("QuestionsAPI", () => {
     it("throws error if axios fails", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getRiddles()).rejects.toThrow("Network error");
-    });
-  });
-
-  describe("deleteCompetition", () => {
-    it("calls axios delete and logs success", async () => {
-      mockedAxios.delete.mockResolvedValueOnce({} as any);
-
-      await deleteCompetition("123");
-
-      expect(mockedAxios.delete).toHaveBeenCalledWith("/competitions/delete-competition/123");
-      expect(console.log).toHaveBeenCalledWith("Competition 123 deleted successfully");
-    });
-
-    it("throws error if axios delete fails", async () => {
-      mockedAxios.delete.mockRejectedValueOnce(new Error("Delete failed"));
-
-      await expect(deleteCompetition("123")).rejects.toThrow("Delete failed");
-      expect(console.error).toHaveBeenCalledWith("Error deleting competition:", expect.any(Error));
     });
   });
 

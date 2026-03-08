@@ -281,7 +281,7 @@ describe('LoginForm', () => {
             fireEvent.click(googleButton);
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith('Google login failed: Google login failed');
+                expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
             });
 
             expect(localStorage.getItem('token')).toBeNull();
