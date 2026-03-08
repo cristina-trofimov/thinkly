@@ -1,9 +1,14 @@
 import axiosClient from "../src/lib/axiosClient";
 import {
+  getQuestionByID,
   getQuestions,
   getRiddles,
   deleteCompetition,
-  getTestcases
+  getTestcases,
+  deleteQuestions,
+  deleteQuestion,
+  uploadQuestions,
+  updateQuestion,
 } from "../src/api/QuestionsAPI";
 
 jest.mock('../src/lib/axiosClient', () => ({
@@ -73,6 +78,45 @@ describe("QuestionsAPI", () => {
     });
   });
 
+  describe("getQuestionByID", () => {
+    it("fetches and formats a single question", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          question_id: 7,
+          question_name: "Single",
+          question_description: "One question",
+          media: null,
+          preset_code: "",
+          template_solution: "def solve(): pass",
+          difficulty: "hard",
+          last_modified_at: "2025-02-02T00:00:00Z",
+          tags: ["graph"],
+          from_string_function: "",
+          to_string_function: "",
+          testcases: [["1", "2"]],
+        },
+      } as any);
+
+      const result = await getQuestionByID(7);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-question-by-id/7");
+      expect(result).toEqual({
+        id: 7,
+        title: "Single",
+        description: "One question",
+        media: null,
+        preset_code: "",
+        template_solution: "def solve(): pass",
+        difficulty: "Hard",
+        date: new Date("2025-02-02T00:00:00Z"),
+        from_string_function: "",
+        to_string_function: "",
+        tags: ["graph"],
+        testcases: [["1", "2"]],
+      });
+    });
+  });
+
   describe("getRiddles", () => {
     it("fetches and formats riddles correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
@@ -120,6 +164,101 @@ describe("QuestionsAPI", () => {
 
       await expect(deleteCompetition("123")).rejects.toThrow("Delete failed");
       expect(console.error).toHaveBeenCalledWith("Error deleting competition:", expect.any(Error));
+    });
+  });
+
+  describe("deleteQuestions and deleteQuestion", () => {
+    it("deletes questions in batch and returns payload", async () => {
+      mockedAxios.delete.mockResolvedValueOnce({
+        data: {
+          status_code: 200,
+          deleted_count: 2,
+          deleted_questions: [{ question_id: 1 }, { question_id: 2 }],
+          total_requested: 2,
+          errors: [],
+        },
+      } as any);
+
+      const result = await deleteQuestions([1, 2]);
+
+      expect(mockedAxios.delete).toHaveBeenCalledWith("/questions/batch-delete", {
+        data: { question_ids: [1, 2] },
+      });
+      expect(result.deleted_count).toBe(2);
+    });
+
+    it("delegates single deletion to deleteQuestions", async () => {
+      mockedAxios.delete.mockResolvedValueOnce({
+        data: {
+          status_code: 200,
+          deleted_count: 1,
+          deleted_questions: [{ question_id: 9 }],
+          total_requested: 1,
+          errors: [],
+        },
+      } as any);
+
+      await deleteQuestion(9);
+
+      expect(mockedAxios.delete).toHaveBeenCalledWith("/questions/batch-delete", {
+        data: { question_ids: [9] },
+      });
+    });
+  });
+
+  describe("uploadQuestions", () => {
+    it("uploads a question batch", async () => {
+      mockedAxios.post.mockResolvedValueOnce({} as any);
+      await uploadQuestions([
+        {
+          id: 1,
+          title: "Q1",
+          description: "D",
+          media: null,
+          preset_code: "",
+          template_solution: "",
+          from_string_function: "",
+          to_string_function: "",
+          tags: [],
+          testcases: [],
+          difficulty: "Easy",
+          date: new Date(),
+        },
+      ] as any);
+
+      expect(mockedAxios.post).toHaveBeenCalledWith("/questions/upload-question-batch", expect.any(Array));
+    });
+  });
+
+  describe("updateQuestion", () => {
+    it("calls update endpoint with editable fields", async () => {
+      mockedAxios.put.mockResolvedValueOnce({ data: {} } as any);
+
+      await updateQuestion(5, {
+        question_name: "Updated",
+        question_description: "Updated desc",
+        media: null,
+        difficulty: "medium",
+        preset_code: "",
+        from_string_function: "",
+        to_string_function: "",
+        template_solution: "def solve(): pass",
+        tags: ["tag"],
+        testcases: [["in", "out"]],
+      });
+
+      expect(mockedAxios.put).toHaveBeenCalledWith("/questions/update-question/5", {
+        question_name: "Updated",
+        question_description: "Updated desc",
+        media: null,
+        difficulty: "medium",
+        preset_code: "",
+        from_string_function: "",
+        to_string_function: "",
+        template_solution: "def solve(): pass",
+        tags: ["tag"],
+        testcases: [["in", "out"]],
+      });
     });
   });
 

@@ -288,3 +288,96 @@ def test_upload_question_existing_tags(client, mock_db):
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+
+
+def test_get_question_by_id_success(client, mock_db):
+    fake_question = SimpleNamespace(
+        question_id=42,
+        question_name="Find Pair",
+        question_description="Return two indices.",
+        media=None,
+        difficulty="easy",
+        preset_code="",
+        from_string_function="def from_string(s): return s",
+        to_string_function="def to_string(x): return str(x)",
+        template_solution="def solve(): pass",
+        created_at=datetime(2025, 1, 1, 0, 0, 0),
+        last_modified_at=datetime(2025, 1, 2, 0, 0, 0),
+        tags=[SimpleNamespace(tag_name="array")],
+        test_cases=[SimpleNamespace(input_data="1 2", expected_output="3")],
+    )
+    mock_db.query.return_value.filter.return_value.first.return_value = fake_question
+
+    response = client.get("/get-question-by-id/42")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["question_id"] == 42
+    assert payload["tags"] == ["array"]
+    assert payload["testcases"] == [["1 2", "3"]]
+
+
+def test_get_question_by_id_not_found(client, mock_db):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    response = client.get("/get-question-by-id/404")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Question with id 404 not found"
+
+
+def test_batch_delete_questions_partial_success(client, mock_db):
+    id_query = MagicMock()
+    id_query.filter.return_value.all.return_value = [
+        SimpleNamespace(question_id=1),
+        SimpleNamespace(question_id=3),
+    ]
+
+    delete_query = MagicMock()
+    delete_query.filter.return_value.delete.return_value = 2
+
+    mock_db.query.side_effect = [id_query, delete_query]
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [1, 2, 3, 3]})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["deleted_count"] == 2
+    assert payload["deleted_questions"] == [{"question_id": 1}, {"question_id": 3}]
+    assert payload["total_requested"] == 3
+    assert payload["errors"] == [{"question_id": 2, "error": "Question not found."}]
+    mock_db.commit.assert_called_once()
+
+
+def test_batch_delete_questions_error_rolls_back(client, mock_db):
+    failing_query = MagicMock()
+    failing_query.filter.side_effect = Exception("DB exploded")
+    mock_db.query.return_value = failing_query
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [1]})
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Error deleting questions."
+    mock_db.rollback.assert_called_once()
+
+
+def test_update_question_not_found_returns_500_with_message(client, mock_db):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    payload = {
+        "question_name": "Updated",
+        "question_description": "Updated description",
+        "difficulty": "easy",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solve(): pass",
+        "tags": [],
+        "testcases": [],
+    }
+
+    response = client.put("/update-question/999", json=payload)
+
+    assert response.status_code == 500
+    assert "Update failed" in response.json()["detail"]
+    mock_db.rollback.assert_called_once()
