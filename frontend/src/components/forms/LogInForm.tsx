@@ -161,11 +161,7 @@ export function LoginForm({
         stack: isError ? err.stack : undefined,
       });
 
-      if (isError) {
-        toast.error("Google login failed: " + err.message);
-      } else {
-        toast.error("Google login failed");
-      }
+      toast.error("Google login failed. Please try again.");
     }
   };
 

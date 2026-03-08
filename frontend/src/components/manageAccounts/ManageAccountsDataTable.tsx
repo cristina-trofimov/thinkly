@@ -155,14 +155,10 @@ export function ManageAccountsDataTable<TData, TValue>({
       .getSelectedRowModel()
       .rows.map((row) => row.original as Account);
 
-    console.log("Deleting rows: ", selectedRows);
-
     const userIds = selectedRows.map((row) => Number(row.id));
 
     try {
       const response = await deleteAccounts(userIds);
-
-      console.log("Delete response:", response);
 
       const deletedIds = response.deleted_users.map((user) => user.user_id);
 
@@ -170,19 +166,15 @@ export function ManageAccountsDataTable<TData, TValue>({
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
-        console.log("Deleted users:", response.deleted_users);
-        console.warn("Partial deletion errors:", response.errors);
         toast.warning(`${response.errors.length} users could not be deleted.`);
         onDeleteUsers?.(deletedIds);
       } else {
         toast.success(
           `Successfully deleted ${response.deleted_count} user(s).`
         );
-        console.log("Deleted users:", response.deleted_users);
         onDeleteUsers?.(deletedIds);
       }
     } catch (error: unknown) {
-      console.error("Error deleting users:", error);
 
       const axiosError = error as { response?: { data?: { detail?: string } } };
       const errorMessage =

@@ -452,3 +452,148 @@ def test_create_rejects_bad_file_type(app_and_module):
     )
     assert resp.status_code == 400
     assert "unsupported file type" in resp.json()["detail"].lower()
+
+
+# ----------------------------
+# Supabase is None branches
+# ----------------------------
+@pytest.mark.anyio
+async def test_upload_to_supabase_raises_503_when_supabase_none(app_and_module, monkeypatch):
+    """_upload_to_supabase must raise 503 when supabase client was not initialised."""
+    _, mod, _ = app_and_module
+    monkeypatch.setattr(mod, "supabase", None)
+
+    f = FakeUploadFile("x.png", "image/png", b"123")
+    with pytest.raises(HTTPException) as exc:
+        await mod._upload_to_supabase(f)
+    assert exc.value.status_code == 503
+    assert "not configured" in exc.value.detail.lower()
+
+
+def test_delete_from_supabase_noop_when_supabase_none(app_and_module, monkeypatch):
+    """_delete_from_supabase_by_public_url must return silently when supabase is None."""
+    _, mod, _ = app_and_module
+    monkeypatch.setattr(mod, "supabase", None)
+
+    # Should not raise even with a valid-looking URL
+    mod._delete_from_supabase_by_public_url(
+        "https://x.supabase.co/storage/v1/object/public/uploads/public/a.png"
+    )
+
+
+def test_delete_from_supabase_logs_warning_on_remove_error(app_and_module, monkeypatch):
+    """_delete_from_supabase_by_public_url must handle an error dict from remove()."""
+    _, mod, _ = app_and_module
+
+    class FakeStorageBucket:
+        def remove(self, paths):
+            return {"error": "something went wrong"}
+
+    class FakeStorage:
+        def from_(self, bucket):
+            return FakeStorageBucket()
+
+    class FakeSupabase:
+        storage = FakeStorage()
+
+    monkeypatch.setattr(mod, "supabase", FakeSupabase())
+
+    # Should not raise — just log a warning
+    url = "https://x.supabase.co/storage/v1/object/public/uploads/public/a.png"
+    mod._delete_from_supabase_by_public_url(url)
+
+
+# ----------------------------
+# Module startup: supabase = None when env vars are missing
+# ----------------------------
+def test_supabase_is_none_when_env_vars_missing(monkeypatch):
+    """When SUPABASE_URL or SUPABASE_ANON_KEY are absent the module must set supabase=None."""
+    import sys
+
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_ANON_KEY", raising=False)
+
+    mod_name = "src.endpoints.riddles_api"
+    sys.modules.pop(mod_name, None)
+
+    import importlib
+    mod = importlib.import_module(mod_name)
+    assert mod.supabase is None
+
+    # Cleanup so later tests reload cleanly
+    sys.modules.pop(mod_name, None)
+
+
+# ----------------------------
+# _extract_storage_path_from_public_url: bare except branch
+# ----------------------------
+def test_extract_storage_path_handles_unexpected_exception(app_and_module, monkeypatch):
+    """The bare except in _extract_storage_path_from_public_url must return None on error."""
+    _, mod, _ = app_and_module
+
+    def bad_urlparse(_url):
+        raise RuntimeError("parse exploded")
+
+    monkeypatch.setattr(mod, "urlparse", bad_urlparse)
+    result = mod._extract_storage_path_from_public_url("https://anything.com/path")
+    assert result is None
+
+
+# ----------------------------
+# Endpoint 500 paths (unexpected exceptions)
+# ----------------------------
+def test_get_riddle_by_id_db_error_returns_500(app_and_module, monkeypatch):
+    app, _, fake_db = app_and_module
+    c = TestClient(app)
+
+    monkeypatch.setattr(fake_db, "query", lambda _model: (_ for _ in ()).throw(RuntimeError("db boom")))
+
+    resp = c.get("/riddles/1")
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Failed to retrieve riddle"
+
+
+def test_list_riddles_db_error_returns_500(app_and_module, monkeypatch):
+    app, _, fake_db = app_and_module
+    c = TestClient(app)
+
+    monkeypatch.setattr(fake_db, "query", lambda _model: (_ for _ in ()).throw(RuntimeError("db boom")))
+
+    resp = c.get("/riddles/")
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Failed to retrieve riddles"
+
+
+def test_create_riddle_db_error_returns_500(app_and_module, monkeypatch):
+    app, mod, fake_db = app_and_module
+    c = TestClient(app)
+
+    # Let check_riddle_exists pass (returns False), then blow up on add
+    monkeypatch.setattr(mod, "check_riddle_exists", lambda db, q: False)
+    monkeypatch.setattr(fake_db, "add", lambda _obj: (_ for _ in ()).throw(RuntimeError("db boom")))
+
+    resp = c.post("/riddles/create", data={"question": "Q", "answer": "A"})
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Internal server error"
+
+
+def test_edit_riddle_db_error_returns_500(app_and_module, monkeypatch):
+    app, _, fake_db = app_and_module
+    c = TestClient(app)
+
+    monkeypatch.setattr(fake_db, "query", lambda _model: (_ for _ in ()).throw(RuntimeError("db boom")))
+
+    resp = c.put("/riddles/1", data={"question": "NewQ"})
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Internal server error"
+
+
+def test_delete_riddle_db_error_returns_500(app_and_module, monkeypatch):
+    app, _, fake_db = app_and_module
+    c = TestClient(app)
+
+    monkeypatch.setattr(fake_db, "query", lambda _model: (_ for _ in ()).throw(RuntimeError("db boom")))
+
+    resp = c.delete("/riddles/1")
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Failed to delete riddle"

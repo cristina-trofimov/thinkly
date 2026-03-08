@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { Table, TableHead, TableHeader, TableRow } from '../ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
@@ -9,14 +9,19 @@ import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import type { MostRecentSub } from '@/types/MostRecentSub.type'
+import { getAllSubmissions } from '@/api/CodeSubmissionAPI'
+import { getProfile } from '@/api/AuthAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
+import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
+import { logFrontend } from '@/api/LoggerAPI'
 
 const CodeDescArea = (
-    { question }:
-        { question: Question }
+    { question, mostRecentSub, }:
+    { question: Question, mostRecentSub: MostRecentSub | undefined }
 ) => {
 
     const tabs = [
@@ -29,6 +34,7 @@ const CodeDescArea = (
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useStateCallback("description")
+    const [ submissions, setSubmissions ] = useState<SubmissionType[]>()
     const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useStateCallback(0)
@@ -42,8 +48,6 @@ const CodeDescArea = (
     //-------------
 
     useEffect(() => {
-        let isMounted = true;
-
         // Reset state for new question
         setHasSolvedRiddle(false)
         setRiddleObject(null)
@@ -55,28 +59,37 @@ const CodeDescArea = (
                 const HARDCODED_RIDDLE_ID = 7;
                 const data = await getRiddleById(HARDCODED_RIDDLE_ID)
 
-                if (isMounted) {
-                    setRiddleObject(data)
-                }
+                setRiddleObject(data)
             } catch (error) {
-                console.error("Failed to load riddle, bypassing lock...", error)
+                logFrontend({
+                    level: "ERROR",
+                    message: `An error occurred when loading riddle. Reason: ${error}`,
+                    component: "CodeDescArea",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                  });
+
                 // If the backend fails, let the user see the question so they aren't stuck
-                if (isMounted) {
-                    setHasSolvedRiddle(true)
-                }
+                setHasSolvedRiddle(true)
             } finally {
-                if (isMounted) {
-                    setIsLoadingRiddle(false)
-                }
+                setIsLoadingRiddle(false)
             }
         }
 
         fetchRiddle()
-
-        return () => {
-            isMounted = false
-        }
     }, [question?.id])
+    useEffect(() => {
+        const FetchSubmissions = async () => {
+            const user = await getProfile()
+            // hardcoding for now
+            await getAllSubmissions(user.id, 1)
+                .then((response) => {
+                    setSubmissions(response)
+                })
+        }
+        FetchSubmissions()
+    }, [mostRecentSub])
+
     useEffect(() => {
         if (!containerRef.current) return
         const observer = new ResizeObserver(entries => {
@@ -216,19 +229,135 @@ const CodeDescArea = (
                                     <TableHead className="text-right">Runtime</TableHead>
                                 </TableRow>
                             </TableHeader>
+                            <TableBody>
+                                {submissions?.map((s, idx) => {
+                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+
+                                    
+
+                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
+                                    onClick={() => setSelectedSubmission(s)}
+                                    >
+                                        <TableCell className='grid grid-rows-2' >
+                                            <span className={`${status_color}`} >{s.status}</span>
+                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
+                                        </TableCell>
+                                        <TableCell className="" >Java</TableCell>
+                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
+                                        </TableRow>
+                                })}
+                            </TableBody>
+                            <TableFooter className='mt-3' >
+                                <TableRow>
+                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                         : (
-                            <div>
-                                <div className='flex flex-row gap-6 items-center mb-4'>
-                                    <Button onClick={() => setSelectedSubmission(null)}>
-                                        Back
-                                    </Button>
-                                    <h1 className='text-3xl font-semibold'>
-                                        {selectedSubmission.status}
-                                    </h1>
+                            <div className='space-y-6' >
+                                <div className='flex flex-col gap-3'>
+                                    <div className='flex items-center gap-4 pb-4 border-b' >
+                                        <Button data-testid="back-btn" size='sm' className='gap-2'
+                                            onClick={() => setSelectedSubmission(null)}
+                                        >
+                                            ← Back
+                                        </Button>
+                                        <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl font-semibold">Submission Details</h2>
+                                        <span className={`
+                                            px-3 py-1 rounded-full text-sm font-medium
+                                            ${selectedSubmission.status === "Accepted" 
+                                                ? "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400" 
+                                                : "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+                                            }
+                                        `}>
+                                            {selectedSubmission.status}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                {/* Submission Details Grid */}
+                                <div className="grid grid-cols-2 gap-6">
+                                    {/* Left Column - Basic Info */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Basic Information</h3>
+                                        <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">Runtime</span>
+                                                <span className="font-mono font-medium">{selectedSubmission.runtime} ms</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">Memory</span>
+                                                <span className="font-mono font-medium">{selectedSubmission.memory} KB</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">Submitted</span>
+                                                <span className="font-mono text-sm">{TimeAgoFormat(selectedSubmission.submitted_on)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column - Additional Info */}
+                                    {(selectedSubmission.compile_output || selectedSubmission.message) && (
+                                        <div className="space-y-4">
+                                            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Additional Information</h3>
+                                            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                                                {selectedSubmission.message && (
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-sm mb-1">Message</span>
+                                                        <p className="font-mono text-sm bg-background p-2 rounded border">
+                                                            {selectedSubmission.message}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                                {selectedSubmission.compile_output && (
+                                                    <div>
+                                                        <span className="text-muted-foreground block text-sm mb-1">Compile Output</span>
+                                                        <pre className="font-mono text-sm bg-background p-2 rounded border overflow-x-auto">
+                                                            {selectedSubmission.compile_output}
+                                                        </pre>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Output Section - Full Width */}
+                                {(selectedSubmission.stdout || selectedSubmission.stderr) && (
+                                    <div className="space-y-4 mt-4">
+                                        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Program Output</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {selectedSubmission.stdout && (
+                                                <div className="bg-muted/30 rounded-lg p-4">
+                                                    <span className="text-muted-foreground block text-sm mb-2">Standard Output</span>
+                                                    <pre className="font-mono text-sm bg-background p-3 rounded border overflow-x-auto max-h-64">
+                                                        {selectedSubmission.stdout}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                            {selectedSubmission.stderr && (
+                                                <div className="bg-muted/30 rounded-lg p-4">
+                                                    <span className="text-muted-foreground block text-sm mb-2">Standard Error</span>
+                                                    <pre className="font-mono text-sm bg-red-500/5 text-red-600 dark:text-red-400 p-3 rounded border border-red-200 dark:border-red-900 overflow-x-auto max-h-64">
+                                                        {selectedSubmission.stderr}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* No Output Message */}
+                                {!selectedSubmission.stdout && !selectedSubmission.stderr && !selectedSubmission.compile_output && !selectedSubmission.message && (
+                                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                                        <p className="text-lg">No additional output available</p>
+                                        <p className="text-sm mt-2">This submission didn't produce any stdout, stderr, or error messages</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
+                    )}
                 </div>
             </TabsContent>
 
