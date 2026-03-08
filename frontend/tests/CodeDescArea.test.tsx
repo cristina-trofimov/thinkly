@@ -250,7 +250,7 @@ describe('CodeDescArea', () => {
 
   describe('Riddle Logic (Gatekeeper)', () => {
     it("renders loading state initially", async () => {
-      mockGetRiddleById.mockReturnValue(new Promise(() => {}));
+      mockedGetRiddleById.mockReturnValue(new Promise(() => {}));
       render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} mostRecentSub={mockMostRecentSubResponse} />);
 
       expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument();

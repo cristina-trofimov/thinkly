@@ -24,7 +24,13 @@ interface CompetitionFormProps {
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
-const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
+const mapQuestionsToItems = <T extends { question_id: number }>(ids: number[], source: T[]): T[] => {
+    return ids
+        .map(question_id => source.find(item => item.question_id === question_id))
+        .filter((item): item is T => !!item);
+};
+
+const mapRiddlesToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
     return ids
         .map(id => source.find(item => item.id === id))
         .filter((item): item is T => !!item);
@@ -108,11 +114,11 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                 setRiddles(rData || []);
 
                 if (initialData?.selectedQuestions) {
-                    setOrderedQuestions(mapIdsToItems(initialData.selectedQuestions, qData));
+                    setOrderedQuestions(mapQuestionsToItems(initialData.selectedQuestions, qData));
                 }
 
                 if (initialData?.selectedRiddles) {
-                    setOrderedRiddles(mapIdsToItems(initialData.selectedRiddles, rData));
+                    setOrderedRiddles(mapRiddlesToItems(initialData.selectedRiddles, rData));
                 }
             } catch (err) {
                 logFrontend({
