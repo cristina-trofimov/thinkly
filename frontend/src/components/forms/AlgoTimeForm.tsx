@@ -231,13 +231,24 @@ export const AlgoTimeSessionForm = ({
       toast.error("Please provide an end date for repeat sessions.");
       return false;
     }
-
-    const ATSessionDateTime = new Date(`${generalData.date}T${generalData.startTime}`);
-    const now = new Date();
-    now.setSeconds(0, 0);
-    if (ATSessionDateTime.getTime() <= now.getTime()) {
-      toast.error("The session must be scheduled for a future date and time.");
-      return false;
+    //Check if future date when creating not editing
+    if (mode === "create") {
+      const ATSessionDateTime = new Date(`${generalData.date}T${generalData.startTime}`);
+      const now = new Date();
+      now.setSeconds(0, 0);
+      if (ATSessionDateTime.getTime() <= now.getTime()) {
+        toast.error("The session must be scheduled for a future date and time.");
+        return false;
+      }
+    } else {
+      // In edit mode, only check that end time isn't in the past
+      const ATSessionEndDateTime = new Date(`${generalData.date}T${generalData.endTime}`);
+      const now = new Date();
+      now.setSeconds(0, 0);
+      if (ATSessionEndDateTime.getTime() <= now.getTime()) {
+        toast.error("The session end time must be in the future.");
+        return false;
+      }
     }
 
     // Check that each session has at least one question
@@ -552,6 +563,7 @@ export const AlgoTimeSessionForm = ({
         
           showName={mode === "edit"}
           nameRequired={mode === "edit"}
+          disableStartTime={mode === "edit"}
         />
 
         </div>

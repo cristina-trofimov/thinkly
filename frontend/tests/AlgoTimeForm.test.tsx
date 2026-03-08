@@ -270,7 +270,7 @@ describe('AlgoTimeSessionForm', () => {
       });
     });
 
-    test('shows error for session in the past', async () => {
+    test('shows error for session in the past in create mode', async () => {
       render(<AlgoTimeSessionForm />);
 
       const dateInput = screen.getByTestId('date') as HTMLInputElement;
@@ -685,6 +685,27 @@ describe('AlgoTimeSessionForm', () => {
       });
   
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    });
+
+    test('allows editing a session with past start time', async () => {
+      const pastSessionData = {
+        ...mockInitialData,
+        date: '2020-01-01',
+        startTime: '10:00',
+        endTime: '11:00',
+      };
+    
+      render(<AlgoTimeSessionForm mode="edit" initialData={pastSessionData} />);
+    
+      await waitFor(() => {
+        expect(screen.getByTestId('session-1')).toBeInTheDocument();
+      });
+    
+      fireEvent.click(screen.getByText('Save Changes'));
+    
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('The session end time must be in the future.');
+      });
     });
   });
 });

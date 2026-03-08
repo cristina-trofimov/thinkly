@@ -81,7 +81,18 @@ export default function ManageAlgotimeSessionsPage() {
     return { label: "Completed", className: "bg-gray-100 text-gray-600" };
   };
 
-  const filteredSessions = algotimesSessions.filter((session) => {
+  const filteredSessions = algotimesSessions
+    .slice()
+    .sort((a, b) => {
+      const statusOrder = { Active: 0, Upcoming: 1, Completed: 2 };
+      const statusA = getSessionStatus(a.startTime, a.endTime).label as keyof typeof statusOrder;
+      const statusB = getSessionStatus(b.startTime, b.endTime).label as keyof typeof statusOrder;
+      if (statusOrder[statusA] !== statusOrder[statusB]) {
+        return statusOrder[statusA] - statusOrder[statusB];
+      }
+      return b.startTime.getTime() - a.startTime.getTime();
+    })
+    .filter((session) => {
     const matchesSearch = session.eventName.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
     if (statusFilter === "all") return true;
