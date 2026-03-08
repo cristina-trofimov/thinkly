@@ -189,7 +189,6 @@ def create_algotime(
                 qi = QuestionInstance(
                     event_id=base_event.event_id,
                     question_id=question_id,
-                    points=0
                 )
                 db.add(qi)
 
