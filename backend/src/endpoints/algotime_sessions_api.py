@@ -327,8 +327,7 @@ def get_algotime_session(
             questionName=qi.question.question_name,
             questionDescription=qi.question.question_description,
             difficulty=qi.question.difficulty,
-            tags=[tag.tag_name for tag in qi.question.tags],
-            points=qi.points,
+            tags=[tag.tag_name for tag in qi.question.tags]
         )
         for qi in question_instances
     ]
@@ -387,8 +386,7 @@ def update_algotime_session(
     for question_id in request.selectedQuestions:
         qi = QuestionInstance(
             event_id=session_id,
-            question_id=question_id,
-            points=0
+            question_id=question_id
         )
         db.add(qi)
 
@@ -406,7 +404,6 @@ def update_algotime_session(
             questionDescription=qi.question.question_description,
             difficulty=qi.question.difficulty,
             tags=[tag.tag_name for tag in qi.question.tags],
-            points=qi.points,
         )
         for qi in question_instances
     ]

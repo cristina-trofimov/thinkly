@@ -169,7 +169,6 @@ def test_get_algotime_session_success(client, mock_db):
     )
     mock_question_instance = SimpleNamespace(
         question=mock_question,
-        points=100
     )
     mock_series = SimpleNamespace(
         algotime_series_id=1,
