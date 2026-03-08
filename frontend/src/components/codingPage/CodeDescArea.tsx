@@ -17,7 +17,9 @@ import { toast } from 'sonner'
 
 const CodeDescArea = (
     { question, question_instance }:
-    { question: Question | undefined, question_instance: QuestionInstance | undefined | null }
+    { question: Question | undefined,
+      question_instance: QuestionInstance | undefined | null
+    }
 ) => {
     if(!question) {
         return
@@ -37,6 +39,7 @@ const CodeDescArea = (
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
+    const [submissions, setSubmissions] = useState<SubmissionType | null>(null)
 
 
     // Riddle-------

@@ -32,7 +32,7 @@ def get_all_questions(db: Annotated[str, Depends(get_db)]):
 def get_question(db: Annotated[str, Depends(get_db)], question_id: int):
     try:
         question = db.query(Question).filter_by(question_id = question_id).first()
-        logger.info(f"Fetched question from the database.")
+        logger.info("Fetched question from the database.")
         return { 'status_code': 200, 'data': question}
     except Exception as e:
         logger.error(f"Error fetching question: {e}")

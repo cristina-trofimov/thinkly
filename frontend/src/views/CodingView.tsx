@@ -260,7 +260,7 @@ const CodingView = () => {
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: question?.title ?? "",
+    problemName: activeQuestion?.question_name ?? "",
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -336,10 +336,10 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!question) {
+  if (!activeQuestion) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>No problem loaded. Please navigate from the problem list.</p>
+        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
       </div>
     );
   }
