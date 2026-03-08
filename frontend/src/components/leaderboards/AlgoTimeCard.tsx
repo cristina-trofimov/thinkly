@@ -158,13 +158,13 @@ export function AlgoTimeCard({ currentUserId }: Props) {
   }
 
   return (
-    <Card className="mb-6 bg-white">
+    <Card className="mb-6 bg-card">
       <CardHeader className="flex flex-row items-center justify-between px-6 py-4">
         <div>
           <CardTitle className="text-lg font-semibold text-primary">
             AlgoTime Leaderboard
           </CardTitle>
-          <p className="text-sm text-gray-500">All-time rankings</p>
+          <p className="text-sm text-muted-foreground">All-time rankings</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
           >
             {exportState === "exporting" ? (
               <>
-                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{" "}
+                <span className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />{" "}
                 Fetching...
               </>
             ) : (
@@ -200,9 +200,9 @@ export function AlgoTimeCard({ currentUserId }: Props) {
         </div>
       </CardHeader>
 
-      <CardContent className="overflow-x-auto p-6 bg-white border-t">
+      <CardContent className="overflow-x-auto p-6 bg-card border-t">
         {error && (
-          <div className="text-center py-6 text-red-500 bg-red-50 rounded-lg border border-red-200">
+          <div className="text-center py-6 text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
             {error}
           </div>
         )}

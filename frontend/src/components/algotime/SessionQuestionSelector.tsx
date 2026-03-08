@@ -85,9 +85,9 @@ export const SessionQuestionSelector = ({
                             placeholder="Enter session name..."
                             className="w-100 px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:primary focus:border-transparent text-lg font-semibold"
                         />
-                        
 
-                        
+
+
                     </div>
                     <AccordionContent>
 
@@ -149,7 +149,7 @@ export const SessionQuestionSelector = ({
                             </DropdownMenu>
                         </div>
 
-                        <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                        <div className="border border-border rounded-lg max-h-64 overflow-y-auto">
                             {sessionFilteredQuestions.map((q) => (
                                 <div
                                     key={q.question_id}

@@ -106,12 +106,3 @@ export async function getTestcases(question_id: number): Promise<TestcaseType[]>
     }
 }
 
-export async function deleteCompetition(competitionId: string): Promise<void> {
-  try {
-    await axiosClient.delete(`/competitions/delete-competition/${competitionId}`);
-    console.log(`Competition ${competitionId} deleted successfully`);
-  } catch (err) {
-    console.error("Error deleting competition:", err);
-    throw err;
-  }
-}

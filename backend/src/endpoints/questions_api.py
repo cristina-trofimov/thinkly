@@ -22,7 +22,7 @@ def get_all_questions(db: Annotated[str, Depends(get_db)]):
         return questions
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
 
 
 @questions_router.get(
@@ -99,7 +99,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question.")
 
 
 @questions_router.post("/upload-question-batch", status_code=201,
@@ -128,7 +128,7 @@ def upload_question_batch(question_request: list[CreateQuestionRequest], db: Ann
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question batch: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question batch. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question batch.")
 
 
 @questions_router.get(
@@ -141,8 +141,8 @@ def get_all_riddles(db: Annotated[str, Depends(get_db)]):
         logger.info(f"Fetched {len(riddles)} riddles from the database.")
         return riddles
     except Exception as e:
-        logger.error(f"Error fetching questions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
+        logger.error(f"Error fetching riddles: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve riddles.")
 
 
 @questions_router.get(
@@ -156,4 +156,4 @@ def get_all_testcases(question_id: int, db: Annotated[str, Depends(get_db)]):
         return testcases
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve test cases. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")

@@ -125,11 +125,6 @@ async def log_requests(request: Request, call_next):
 def root():
     return {"message": "Backend is running!"}
 
-@app.get("/config")
-def config():
-    return {
-        "allowed_origins": origins,
-    }
 
 # Include routers
 try:
@@ -147,10 +142,10 @@ try:
     app.include_router(judge0_router, prefix="/judge0")
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
-    app.include_router(user_preferences_router, prefix="/prefs")
+    app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
     app.include_router(base_event_router, prefix="/events")
-except AttributeError:
-    print("⚠️ No router found. Make sure all routers are properly defined.")
+except Exception:
+    print("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 
 # Run server
 if __name__ == "__main__":
