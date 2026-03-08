@@ -41,35 +41,35 @@ interface Props {
 
 const RankHeader = () => (
   <div className="flex items-center gap-1">
-    <Hash className="w-4 h-4 text-gray-500" />
+    <Hash className="w-4 h-4 text-muted-foreground" />
     Rank
   </div>
 );
 
 const NameHeader = () => (
   <div className="flex items-center gap-1">
-    <User className="w-4 h-4 text-gray-500" />
+    <User className="w-4 h-4 text-muted-foreground" />
     Name
   </div>
 );
 
 const PointsHeader = () => (
   <div className="flex items-center gap-1">
-    <Star className="w-4 h-4 text-gray-500" />
+    <Star className="w-4 h-4 text-muted-foreground" />
     Total Points
   </div>
 );
 
 const ProblemsSolvedHeader = () => (
   <div className="flex items-center gap-1">
-    <ListChecks className="w-4 h-4 text-gray-500" />
+    <ListChecks className="w-4 h-4 text-muted-foreground" />
     Problems Solved
   </div>
 );
 
 const TotalTimeHeader = () => (
   <div className="flex items-center gap-1">
-    <Clock className="w-4 h-4 text-gray-500" />
+    <Clock className="w-4 h-4 text-muted-foreground" />
     Total Time
   </div>
 );
@@ -77,9 +77,9 @@ const TotalTimeHeader = () => (
 // ─── Cell renderers ───────────────────────────────────────────────────────────
 
 const getRowBgClass = (rank: number) => {
-  if (rank === 1) return "bg-yellow-100";
-  if (rank === 2) return "bg-gray-100";
-  if (rank === 3) return "bg-orange-100";
+  if (rank === 1) return "bg-yellow-100 dark:bg-yellow-900/20 hover:bg-yellow-200 dark:hover:bg-yellow-900/40";
+  if (rank === 2) return "bg-muted hover:bg-muted/70";
+  if (rank === 3) return "bg-orange-100 dark:bg-orange-900/20 hover:bg-orange-200 dark:hover:bg-orange-900/40";
   return "";
 };
 
@@ -103,7 +103,7 @@ function renderTableBody(
   if (loading) {
     return (
       <TableRow>
-        <TableCell colSpan={columns.length} className="text-center py-8 text-gray-400">
+        <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
           Loading...
         </TableCell>
       </TableRow>
@@ -113,7 +113,7 @@ function renderTableBody(
   if (rows.length === 0) {
     return (
       <TableRow>
-        <TableCell colSpan={columns.length} className="text-center py-6 text-gray-400">
+        <TableCell colSpan={columns.length} className="text-center py-6 text-muted-foreground">
           {search ? "No participants match your search" : "No participants found"}
         </TableCell>
       </TableRow>
@@ -127,7 +127,7 @@ function renderTableBody(
     const rank = row.original.rank;
 
     const rowClass = isCurrentUser
-      ? "bg-[#8065CD]/20 border-t-2 border-b-2 border-[#8065CD] font-semibold"
+      ? "bg-primary/20 border-t-2 border-b-2 border-primary font-semibold"
       : getRowBgClass(rank);
 
     return (
@@ -211,7 +211,7 @@ export function AlgoTimeDataTable({
       {/* Pagination controls — only rendered when there is more than one page */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2 py-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Page {page} of {totalPages}
             {search && ` — ${total} result${total === 1 ? "" : "s"}`}
           </p>

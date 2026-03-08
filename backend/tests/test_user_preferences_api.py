@@ -145,7 +145,7 @@ def test_add_user_prefs_db_error(client, mock_db):
     response = client.post("/update", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to add/update all user preferences." in response.json()["detail"]
+    assert "Failed to update user preferences." in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
 
@@ -191,7 +191,7 @@ def test_update_theme_db_error(client, mock_db):
     response = client.post("/theme", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to update user's prefered theme." in response.json()["detail"]
+    assert "Failed to update user's preferred theme." in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
 

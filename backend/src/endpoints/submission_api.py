@@ -41,14 +41,14 @@ def get_all_submissions(
         ]}
     except Exception as e:
         logger.error(f"Error fetching submissions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve submissions. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve submissions.")
 
 
 @submission_router.post("/add",
     status_code=201,
     responses={500: {"description": "Failed to upload most recent submission."}}
 )
-def save_most_recent_sub(
+def save_sub(
     db: Annotated[str, Depends(get_db)],
     sub_request: dict,
 ):
@@ -73,4 +73,4 @@ def save_most_recent_sub(
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading submissions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload submissions. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload submission.")

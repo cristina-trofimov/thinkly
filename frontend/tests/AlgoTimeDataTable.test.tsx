@@ -43,9 +43,9 @@ jest.mock("../src/components/ui/table", () => ({
 // ---------------------------------------------------------------------------
 
 const mockParticipants: Participant[] = [
-  { user_id: 1, name: "Alice Smith",    rank: 1, total_score: 1500, problems_solved: 25, total_time: "10:30:45" },
-  { user_id: 2, name: "Bob Johnson",    rank: 2, total_score: 1200, problems_solved: 20, total_time: "08:15:30" },
-  { user_id: 3, name: "Charlie Brown",  rank: 3, total_score: 1000, problems_solved: 18, total_time: "07:45:20" },
+  { user_id: 1, name: "Alice Smith", rank: 1, total_score: 1500, problems_solved: 25, total_time: "10:30:45" },
+  { user_id: 2, name: "Bob Johnson", rank: 2, total_score: 1200, problems_solved: 20, total_time: "08:15:30" },
+  { user_id: 3, name: "Charlie Brown", rank: 3, total_score: 1000, problems_solved: 18, total_time: "07:45:20" },
 ];
 
 /**
@@ -291,7 +291,7 @@ describe("Row highlighting", () => {
   it("applies current-user highlight to the matching row", () => {
     const { container } = renderTable(mockParticipants, {}, 2);
     const rows = container.querySelectorAll("tbody tr");
-    expect(rows[1]).toHaveClass("bg-[#8065CD]/20", "border-t-2", "border-b-2", "border-[#8065CD]", "font-semibold");
+    expect(rows[1]).toHaveClass("bg-primary/20", "border-t-2", "border-b-2", "border-primary", "font-semibold");
   });
 
   it("applies gold podium color to rank-1 row when not the current user", () => {
@@ -303,7 +303,7 @@ describe("Row highlighting", () => {
   it("applies silver podium color to rank-2 row", () => {
     const { container } = renderTable(mockParticipants, {}, undefined);
     const rows = container.querySelectorAll("tbody tr");
-    expect(rows[1]).toHaveClass("bg-gray-100");
+    expect(rows[1]).toHaveClass("bg-muted");
   });
 
   it("applies bronze podium color to rank-3 row", () => {
@@ -324,7 +324,7 @@ describe("Row highlighting", () => {
   it("prioritises current-user highlight over podium colour for rank-1 user", () => {
     const { container } = renderTable(mockParticipants, {}, 1);
     const rows = container.querySelectorAll("tbody tr");
-    expect(rows[0]).toHaveClass("bg-[#8065CD]/20");
+    expect(rows[0]).toHaveClass("bg-primary/20");
     expect(rows[0]).not.toHaveClass("bg-yellow-100");
   });
 
@@ -344,8 +344,8 @@ describe("Row highlighting", () => {
 describe("Edge cases", () => {
   it("renders participants with special characters in names", () => {
     const special: Participant[] = [
-      { user_id: 1, name: "O'Brien",    rank: 1, total_score: 100, problems_solved: 5, total_time: "01:00:00" },
-      { user_id: 2, name: "José García", rank: 2, total_score: 90,  problems_solved: 4, total_time: "00:50:00" },
+      { user_id: 1, name: "O'Brien", rank: 1, total_score: 100, problems_solved: 5, total_time: "01:00:00" },
+      { user_id: 2, name: "José García", rank: 2, total_score: 90, problems_solved: 4, total_time: "00:50:00" },
     ];
     renderTable(special, { total: 2 });
     expect(screen.getByText("O'Brien")).toBeInTheDocument();

@@ -77,10 +77,10 @@ export function CurrentLeaderboard() {
     <div className="w-full h-full flex flex-col space-y-4">
       {/* Competition Header */}
       <div className="px-4">
-        <h2 className="text-2xl font-bold text-[#8065CD]">
+        <h2 className="text-2xl font-bold text-primary">
           {standings.competitionName}
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Live Standings • Updates every 60s
         </p>
       </div>
