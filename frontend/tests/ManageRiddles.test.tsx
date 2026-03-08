@@ -6,7 +6,16 @@ import { getRiddlesPage, deleteRiddle } from "../src/api/RiddlesAPI";
 jest.mock("@/api/LoggerAPI");
 
 // -------------------- MOCKS --------------------
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 // 1) Mock API module
 jest.mock("../src/api/RiddlesAPI", () => ({
   __esModule: true,
