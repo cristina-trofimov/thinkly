@@ -51,6 +51,10 @@ const data: Question[] = [
     media: "",
     preset_code: "",
     template_solution: "",
+    from_string_function: "",
+    to_string_function: "",
+    tags: [],
+    testcases: [],
     date: new Date("2024-01-01")
   },
   {
@@ -61,6 +65,10 @@ const data: Question[] = [
     media: "",
     preset_code: "",
     template_solution: "",
+    from_string_function: "",
+    to_string_function: "",
+    tags: [],
+    testcases: [],
     date: new Date("2024-01-02")
   },
 ]

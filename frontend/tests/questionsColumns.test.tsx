@@ -47,7 +47,14 @@ describe("Questions Columns", () => {
       description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "def from_string(s): pass",
+      to_string_function: "def to_string(): pass",
+      tags: ["array", "hash-table"],
+      testcases: [
+        ["[2,7,11,15], 9", "[0,1]"],
+        ["[3,2,4], 6", "[1,2]"],
+      ],
     },
     {
       id: 2,
@@ -57,7 +64,14 @@ describe("Questions Columns", () => {
       description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "def from_string(s): pass",
+      to_string_function: "def to_string(): pass",
+      tags: ["linked-list"],
+      testcases: [
+        ["[1,2,3,4,5]", "[5,4,3,2,1]"],
+        ["[1,2]", "[2,1]"],
+      ],
     },
     {
       id: 3,
@@ -67,7 +81,15 @@ describe("Questions Columns", () => {
       description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "def from_string(s): pass",
+      to_string_function: "def to_string(): pass",
+      tags: ["linked-list", "divide-and-conquer"],
+      testcases: [
+        ["[[1,4,5],[1,3,4],[2,6]]", "[1,1,2,3,4,4,5,6]"],
+        ["[]", "[]"],
+        ["[[]]", "[]"],
+      ],
     },
   ]
 

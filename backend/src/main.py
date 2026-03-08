@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.log_api import log_router
 from endpoints.authentification_api import auth_router
@@ -124,6 +126,17 @@ async def log_requests(request: Request, call_next):
 def root():
     return {"message": "Backend is running!"}
 
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    msg = ""
+    for err in exc.errors():
+        row = f"Entry {err['loc'][1]}" if len(err['loc']) > 1 else ""
+        msg += f"{row} - {err['loc'][-1]}: {err['msg']}\n"
+    return JSONResponse(
+        status_code=422,
+        content={"detail": f"Validation Error: {msg}"}
+    )
 
 # Include routers
 try:

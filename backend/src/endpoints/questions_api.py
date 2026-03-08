@@ -1,7 +1,9 @@
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Annotated, Optional, List
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, DataError
 from models.schema import Question, Riddle, Tag, TestCase
 from database_operations.database import get_db
 import logging
@@ -10,16 +12,70 @@ from services.posthog_analytics import track_custom_event
 logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])
 
+class QuestionResponse(BaseModel):
+    question_id: int
+    question_name: str
+    question_description: str
+    media: Optional[str]
+    difficulty: str
+    preset_code: Optional[str]
+    from_string_function: str
+    to_string_function: str
+    template_solution: str
+    created_at: datetime
+    last_modified_at: datetime
+    tags: List[str]
+    testcases: List[tuple[str, str]]
+
+    @staticmethod
+    def from_question(question: Question) -> "QuestionResponse":
+        return QuestionResponse(
+            question_id=question.question_id,
+            question_name=question.question_name,
+            question_description=question.question_description,
+            media=question.media,
+            difficulty=question.difficulty,
+            preset_code=question.preset_code,
+            from_string_function=question.from_string_function,
+            to_string_function=question.to_string_function,
+            template_solution=question.template_solution,
+            created_at=question.created_at,
+            last_modified_at=question.last_modified_at,
+            tags=[tag.tag_name for tag in question.tags],
+            testcases=[(tc.input_data, tc.expected_output) for tc in question.test_cases],
+        )
+        
+
+@questions_router.get(
+    "/get-question-by-id/{question_id}",
+    response_model=QuestionResponse,
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Failed to retrieve question."},
+    }
+)
+def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]):
+    try:
+        question: Question = db.query(Question).filter(Question.question_id == question_id).first()
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
+        logger.info(f"Fetched question with ID {question_id}")
+        return QuestionResponse.from_question(question)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching question with ID: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question with id {question_id}")
 
 @questions_router.get(
     "/get-all-questions",
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_questions(db: Annotated[str, Depends(get_db)]):
+def get_all_questions(db: Annotated[Session, Depends(get_db)]):
     try:
         questions = db.query(Question).all()
         logger.info(f"Fetched {len(questions)} questions from the database.")
-        return questions
+        return [QuestionResponse.from_question(question) for question in questions]
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
@@ -29,7 +85,7 @@ class CreateQuestionRequest(BaseModel):
     question_name: str
     question_description: str
     media: str | None = None
-    difficulty: str = "Easy"
+    difficulty: str = "easy"
     preset_code: str = ""
     from_string_function: str = ""
     to_string_function: str = ""
@@ -60,7 +116,7 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
     "/upload-question", status_code=201,
     responses={500: {"description": "Failed to upload question."}}
 )
-def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, Depends(get_db)]):
+def upload_question(question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         question = get_question_from_request(db, question_request)
         db.add(question)
@@ -89,9 +145,12 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
 
 
 @questions_router.post("/upload-question-batch", status_code=201,
-                       responses={500: {"description": "Failed to upload question batch."}}
-                       )
-def upload_question_batch(question_request: list[CreateQuestionRequest], db: Annotated[str, Depends(get_db)]):
+    responses={ 500: { "description": "Failed to upload question batch." } }
+)
+def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
+                          db: Annotated[Session, Depends(get_db)] = None):
+    error_message = None
+    error_code = 500
     try:
         questions = [
             get_question_from_request(db, q) for q in question_request
@@ -111,17 +170,27 @@ def upload_question_batch(question_request: list[CreateQuestionRequest], db: Ann
         )
 
         return {"message": f"Successfully uploaded {len(questions)} questions."}
+    except IntegrityError as e:
+        error_message = getattr(e.orig, 'diag', {}).message_detail or "Duplicate entry found."
+        error_code = 409
+        logger.warning(f"Integrity Error: {e}")
+    except DataError as e:
+        error_message = str(e.orig).split('\n')[0]
+        error_code = 400
+        logger.warning(f"Data validation error: {e}")
     except Exception as e:
-        db.rollback()
+        error_message = str(e)
+        error_code = 500
         logger.error(f"Error uploading question batch: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload question batch.")
 
-
+    db.rollback()
+    raise HTTPException(status_code=error_code, detail=f"Failed to upload question batch: {error_message}")
+        
 @questions_router.get(
     "/get-all-riddles",
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_riddles(db: Annotated[str, Depends(get_db)]):
+def get_all_riddles(db: Annotated[Session, Depends(get_db)]):
     try:
         riddles = db.query(Riddle).all()
         logger.info(f"Fetched {len(riddles)} riddles from the database.")
@@ -135,11 +204,85 @@ def get_all_riddles(db: Annotated[str, Depends(get_db)]):
     "/get-all-testcases/{question_id}",
     responses={500: {"description": "Failed to upload test cases."}}
 )
-def get_all_testcases(question_id: int, db: Annotated[str, Depends(get_db)]):
+def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)]):
     try:
         testcases = db.query(TestCase).filter_by(question_id=question_id).all()
         logger.info(f"Fetched {len(testcases)} test cases from the database.")
         return testcases
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve test cases. Exception: {str(e)}")
+
+class BatchDeleteQuestionsRequest(BaseModel):
+    question_ids: list[int]
+
+@questions_router.delete(
+    "/batch-delete"
+)
+def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        requested_ids = list(dict.fromkeys(payload.question_ids))
+        existing_ids = [
+            row.question_id
+            for row in db.query(Question.question_id)
+            .filter(Question.question_id.in_(requested_ids))
+            .all()
+        ]
+        if existing_ids:
+            deleted_count = (
+                db.query(Question)
+                .filter(Question.question_id.in_(existing_ids))
+                .delete(synchronize_session=False)
+            )
+        else:
+            deleted_count = 0
+        db.commit()
+        logger.info(f"Deleted {deleted_count} questions from the database.")
+
+        existing_set = set(existing_ids)
+        missing_ids = [question_id for question_id in requested_ids if question_id not in existing_set]
+        errors = [{"question_id": question_id, "error": "Question not found."} for question_id in missing_ids]
+
+        return {
+            "deleted_count": deleted_count,
+            "deleted_questions": [{"question_id": question_id} for question_id in existing_ids],
+            "total_requested": len(requested_ids),
+            "errors": errors,
+        }
+    except Exception as e:
+        logger.error(f"Error deleting questions: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error deleting questions.")
+    
+@questions_router.put('/update-question/{question_id}')
+def update_question(question_id: int, question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        db_question = db.query(Question).filter(Question.question_id == int(question_id)).first()
+        if not db_question:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Question with id {question_id} not found"
+            )
+        updated_question: Question = get_question_from_request(db, question_request)
+        db_question.question_name=updated_question.question_name
+        db_question.question_description=updated_question.question_description
+        db_question.media=updated_question.media
+        db_question.difficulty=updated_question.difficulty
+        db_question.preset_code=updated_question.preset_code
+        db_question.from_string_function=updated_question.from_string_function
+        db_question.to_string_function=updated_question.to_string_function
+        db_question.template_solution=updated_question.template_solution
+        db_question.tags=updated_question.tags
+        for old_tc in db_question.test_cases:
+            db.delete(old_tc)
+        for tc in updated_question.test_cases:
+            tc.question_id = question_id
+        db_question.test_cases=updated_question.test_cases
+        db.commit()
+        db.refresh(db_question)
+        logger.info(f"Updated question: {question_id}")
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Error updating question: {question_id}")
+        raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
+

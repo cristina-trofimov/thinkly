@@ -157,11 +157,18 @@ const mockProblem: Question = {
     id: 1,
     title: "Sum Problem",
     description: "Add two numbers",
-    media: "",
-    preset_code: "",
-    template_solution: "",
+    media: "string",
+    preset_code: "string",
+    template_solution: "string",
     difficulty: "Easy",
-    date: new Date()
+    date: new Date("2025-10-28T10:00:00Z"),
+    from_string_function: "def from_string(s): pass",
+    to_string_function: "def to_string(): pass",
+    tags: ["math"],
+    testcases: [
+        ["num = 10, b = 20", "30"],
+        ["x = 5, y = 5", "25"],
+    ],
 }
 
 const mockRiddle = {
