@@ -402,7 +402,7 @@ def test_upload_question_batch_db_error(client, mock_db):
 
     response = client.post("/upload-question-batch", json=batch_payload)
     assert response.status_code == 500
-    assert response.json()["detail"].startsWith("Failed to upload question batch")
+    assert response.json()["detail"].startswith("Failed to upload question batch")
 
 # --- get_all_riddles ---
 
