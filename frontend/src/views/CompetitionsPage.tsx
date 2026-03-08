@@ -91,7 +91,7 @@ export default function CompetitionsPage() {
             return (
               <Card
                 key={comp.id}
-                className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col"
+                className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col"
               >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>

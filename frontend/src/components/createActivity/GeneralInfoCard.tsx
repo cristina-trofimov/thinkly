@@ -35,11 +35,12 @@ interface GeneralInfoCardProps {
   }) => void;
 
   onCooldownChange?: (value: string) => void;
+  disableStartTime?: boolean; 
 }
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
-export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, cooldown, onRepeatChange, onCooldownChange,showName,nameRequired }: Readonly<GeneralInfoCardProps>) {
+export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, cooldown, onRepeatChange, onCooldownChange,showName,nameRequired,disableStartTime  }: Readonly<GeneralInfoCardProps>) {
   const getLabelClass = (isInvalid: boolean) => isInvalid ? "text-destructive" : "";
   const getInputClass = (isInvalid: boolean) => isInvalid ? "border-destructive focus-visible:ring-destructive" : "";
 
@@ -131,8 +132,10 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start Time (EST)<Required /></Label>
-            <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
-              <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} aria-invalid={errors.startTime || undefined} />
+            <div className={disableStartTime ? "opacity-50 pointer-events-none" : ""}> 
+              <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
+                <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} aria-invalid={errors.startTime || undefined} />
+              </div>
             </div>
           </div>
           <div className="space-y-2">
