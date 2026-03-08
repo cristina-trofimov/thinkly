@@ -117,9 +117,7 @@ const mockQuestionInstances: QuestionInstance[] = [{
   question_instance_id: question_instance_id,
   question_id: question_id,
   event_id: event_id,
-  points: 10,
-  riddle_id: null,
-  is_riddle_completed: false
+  riddle_id: null
 }]
 
 const mockSubmissions: SubmissionType[] = [{
@@ -169,9 +167,7 @@ describe("Code Submission", () => {
     expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
       question_id: question_id,
       event_id: null,
-      points: null,
       riddle_id: null,
-      is_riddle_completed: null
     })
 
     expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1)
@@ -220,9 +216,7 @@ describe("Code Submission", () => {
     expect(mockedUpdateQuestionInstance.mock.calls[0][0]).toMatchObject({
       question_id: question_id,
       event_id: event_id,
-      points: null,
       riddle_id: null,
-      is_riddle_completed: null
     })
     
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)

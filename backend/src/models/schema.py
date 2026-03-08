@@ -209,9 +209,7 @@ class QuestionInstance(Base):
     question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
     event_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), nullable=True)
-    points: Mapped[Optional[int]] = mapped_column(default=0, nullable=True)
     riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete=ON_DELETE_SET_NULL))
-    is_riddle_completed: Mapped[Optional[bool]] = mapped_column(default=False, nullable=True)
 
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
     riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
@@ -222,6 +220,16 @@ class QuestionInstance(Base):
     __table_args__ = (
         UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
     )
+
+    class Language(Base):
+        __tablename__ = 'language'
+
+        row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+        lang_judge_id: Mapped[int] = mapped_column(unique=True)
+        display_name: Mapped[str] = mapped_column()
+        active: Mapped[bool] = mapped_column(default=False)
+
+        __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
 
 
 class MostRecentSubmission(Base):
@@ -243,17 +251,6 @@ class MostRecentSubmission(Base):
                                                      uselist=False)
 
 
-class Language(Base):
-    __tablename__ = 'language'
-
-    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    lang_judge_id: Mapped[int] = mapped_column(unique=True)
-    display_name: Mapped[str] = mapped_column()
-    active: Mapped[bool] = mapped_column(default=False)
-
-    __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
-
-
 class Submission(Base):
     __tablename__ = 'submission'
 
@@ -261,7 +258,7 @@ class Submission(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
     question_instance_id: Mapped[int] = mapped_column(
         ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
-    compile_output: Mapped[str] = mapped_column()
+    compile_output: Mapped[str | None] = mapped_column(nullable=True)
     submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     runtime: Mapped[Optional[int]] = mapped_column(nullable=True)
     status: Mapped[str] = mapped_column()
