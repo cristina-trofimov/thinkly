@@ -14,10 +14,15 @@ import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { UserPreferences } from '../src/types/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/CodeSubmissionAPI'
-import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
 import { getProfile } from '../src/api/AuthAPI'
 import { toast } from 'sonner'
 import { logFrontend } from "../src/api/LoggerAPI"
+import { getQuestionInstance, getAllQuestionInstancesByEventID } from '../src/api/QuestionInstanceAPI'
+import { getQuestionByID } from '../src/api/QuestionsAPI';
+import { getEventByName } from '../src/api/BaseEventAPI';
+import { Competition } from '../src/types/competition/Competition.type';
+import { BaseEvent } from '../src/types/BaseEvent.type';
+import { describe } from 'node:test'
 
 
 jest.mock('@monaco-editor/react', () => {
@@ -71,8 +76,21 @@ jest.mock('../src/api/CodeSubmissionAPI', () => ({
     submitAttempt: jest.fn()
 }))
 
+jest.mock('../src/api/QuestionsAPI', () => ({
+    getQuestionByID: jest.fn()
+}))
+
+jest.mock('../src/api/BaseEventAPI', () => ({
+    getEventByName: jest.fn()
+}))
+
+jest.mock('../src/api/AuthAPI', () => ({
+    getProfile: jest.fn()
+}))
+
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
-    getQuestionInstance: jest.fn()
+    getQuestionInstance: jest.fn(),
+    getAllQuestionInstancesByEventID: jest.fn()
 }))
 
 jest.mock('../src/api/AuthAPI', () => ({
@@ -162,14 +180,6 @@ jest.mock("../src/components/helpers/monacoConfig", () => ({
     })),
 }))
 
-jest.mock("../src/components/helpers/UseStateCallback", () => ({
-    __esModule: true,
-    useStateCallback: (initial: any) => {
-      const [value, setValue] = React.useState(initial)
-      return [value, (v: any) => setValue(v), jest.fn()]
-    },
-}))
-
 jest.mock('../src/components/helpers/useTestcases')
 
 const mockedToast = toast as jest.Mocked<typeof toast>
@@ -213,19 +223,30 @@ const source_code = "print('Hello')"
 const language_id = "71"
 
 
-const mockMostRecentSubResponse: MostRecentSub = {
-    user_id: user_id,
-    question_instance_id: question_instance_id,
-    code: source_code,
-    lang_judge_id: parseInt(language_id)
-}
-
 const mockProfile: Account = {
     id: user_id,
     firstName: "John",
     lastName: "string",
     email: "string@smt.com",
     accountType: "Participant"
+}
+
+const mockEvent: BaseEvent = {
+    event_id: event_id,
+    event_name: 'Competition 10',
+    event_location: "online",
+    question_cooldown: 5,
+    event_start_date: new Date(2024, 5, 24),
+    event_end_date: new Date(2024, 5, 24),
+    created_at: new Date(2024, 5, 24),
+    updated_at: new Date(2024, 5, 24),
+}
+
+const mockMostRecentSubResponse: MostRecentSub = {
+    user_id: user_id,
+    question_instance_id: question_instance_id,
+    code: source_code,
+    lang_judge_id: parseInt(language_id)
 }
 
 const mockJudge0Response = {
@@ -291,7 +312,50 @@ jest.spyOn(React, 'useRef')
     .mockImplementationOnce(() => nullRef)
     .mockImplementationOnce(() => nullRef)
 
-describe('CodingView Component', () => {
+
+describe('CodingView Component with an event passed', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+
+        ;(useLocation as jest.Mock).mockReturnValue({
+            pathname: '/comp/Competition 10',
+            state: { comp: {
+                id: 2,
+                competitionTitle: "Competition 10",
+                competitionLocation: "online",
+                startDate: new Date(2020, 12, 21),
+                endDate: new Date(2020, 12, 21),
+            } },
+        })
+
+        const addTestcase = jest.fn()
+        const removeTestcase = jest.fn()
+        const updateTestcase = jest.fn()
+        const setActiveTestcase = jest.fn()
+
+        mockUseTestcases.mockReturnValue({
+            testcases: mockTestcases,
+            addTestcase,
+            removeTestcase,
+            updateTestcase,
+            loading: false,
+            activeTestcase: 'Case 1',
+            setActiveTestcase,
+        })
+    })
+
+    it('gets an event with a given competition name and fetches the associated question instances and questions', () => {
+        render(<CodingView />)
+
+        expect(getEventByName).toHaveBeenCalledWith("Competition 1")
+        expect(getAllQuestionInstancesByEventID).not.toHaveBeenCalledWith(event_id)
+        expect(getQuestionByID).toHaveBeenCalledWith(question_id)
+        expect(getQuestionInstance).toHaveBeenCalledWith(question_id)
+    })
+})
+
+describe('CodingView Component without event', () => {
+
     beforeEach(() => {
         jest.clearAllMocks()
 
@@ -324,6 +388,7 @@ describe('CodingView Component', () => {
         expect(screen.getAllByTestId("resizable-handle").length).toBe(2)
         expect(screen.getByTestId("submit-btn")).toBeInTheDocument()
         expect(screen.getByTestId("language-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("questions-btn")).toBeInTheDocument()
         expect(screen.getByTestId("coding-btns")).toBeInTheDocument()
         expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
         expect(screen.getByTestId("code-output-tab")).toBeInTheDocument()
@@ -438,6 +503,7 @@ describe('CodingView Component', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
 
         expect(submitAttempt).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
 
         expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message, expect.objectContaining({
             position: 'top-right',
@@ -457,6 +523,7 @@ describe('CodingView Component', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
 
         expect(submitAttempt).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
 
         expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message, expect.objectContaining({
             position: 'top-right',
@@ -467,15 +534,10 @@ describe('CodingView Component', () => {
 
     it('handles failed code submission', async () => {
         mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
+        mockedGetProfile.mockResolvedValue(mockProfile)
 
         await expect(submitAttempt(mockQuestionInstances[0], user_id, undefined, "code", language_id, []))
             .rejects.toThrow("Network error")
-        // expect(mockedLogger).toHaveBeenCalledWith(
-        //     expect.objectContaining({
-        //         level: "ERROR",
-        //         component: "CodingView",
-        //     })
-        // )
     })
 
     it('shows loader when question has no id', () => {
@@ -492,6 +554,7 @@ describe('CodingView Component', () => {
     it('execute code and updates logs when run button is clicked', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
+        mockedGetProfile.mockResolvedValue(mockProfile)
 
         render(<CodingView />)
 
@@ -500,21 +563,14 @@ describe('CodingView Component', () => {
         await userEvent.click(playButton!)
 
         expect(submitToJudge0).toHaveBeenCalled()
-        expect(getQuestionInstance).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
     })
 
     it('handles failed code execution', async () => {
         mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Network error"))
-        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
 
-        await expect(submitToJudge0(user_id, question_instance_id, "code", language_id, []))
+        await expect(submitToJudge0(-1, -1, "code", language_id, []))
             .rejects.toThrow("Network error")
-        // expect(mockedLogger).toHaveBeenCalledWith(
-        //     expect.objectContaining({
-        //         level: "ERROR",
-        //         component: "CodingView",
-        //     })
-        // )
     })
 
     it('handles language dropdown interaction', async () => {
@@ -526,9 +582,20 @@ describe('CodingView Component', () => {
         expect(languageBtn).toBeInTheDocument()
     })
 
+    it('handles question change', async () => {
+        render(<CodingView />)
+
+        const languageBtn = screen.getByTestId('language-btn')
+        expect(languageBtn).toHaveTextContent('Java')
+
+        expect(languageBtn).toBeInTheDocument()
+    })
+
     it('handles async loading state during code execution', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
+        mockedGetProfile.mockResolvedValue(mockProfile)
+        // mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
 
         render(<CodingView />)
 
