@@ -1,8 +1,6 @@
 import * as React from "react"
 import {
   BadgeCheck,
-  Bell,
-  // ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 import {
