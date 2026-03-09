@@ -72,12 +72,12 @@ PUBLIC_PATHS = [
 ]
 
 async def global_auth_dependency(request: Request):
-    # Check if the current path is in our public list
     if request.url.path in PUBLIC_PATHS:
         return None
     
-    # Otherwise, trigger your existing token verification logic
-    return await authentification_api.get_current_user(request)
+    # This manually triggers the OAuth2 logic for the middleware
+    token = await authentification_api.oauth2_scheme(request)
+    return authentification_api.get_current_user(token)
 
 
 app = FastAPI(
