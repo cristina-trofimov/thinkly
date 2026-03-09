@@ -422,7 +422,7 @@ async def create_competition(
             question_instance = QuestionInstance(
                 event_id=base_event.event_id,
                 question_id=question_id,
-                riddle_id=riddle_id
+                riddle_id=riddle_id,
             )
             db.add(question_instance)
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Circle, Hourglass } from "lucide-react";
 import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface Competition {
   id: number;
@@ -22,6 +23,7 @@ interface TimeRemaining {
 }
 
 export default function HomePageBanner({ competitions }: Readonly<HomePageBannerProps>) {
+  const nav = useNavigate()
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -108,7 +110,15 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
         </p>
         <Button
           variant="outline"
-          className="rounded-lg font-semibold text-primary hover:text-primary"
+          className="rounded-lg font-semibold cursor-pointer text-primary hover:text-primary"
+          onClick={() => {
+            nav(`/app/comp/${competition.competitionTitle}`, {
+              state: {
+                fromFeed: true,
+                comp: competition,
+              },
+            });
+          }}
         >
           Join Competition →
         </Button>

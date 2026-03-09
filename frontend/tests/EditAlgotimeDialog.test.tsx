@@ -3,6 +3,8 @@ import { EditAlgoTimeSessionDialog } from '../src/components/algotime/EditAlgoti
 import { getAlgotimeById } from '../src/api/AlgotimeAPI';
 import { getQuestions } from '../src/api/QuestionsAPI';
 import { toast } from 'sonner';
+import { Question } from '../src/types/questions/Question.type';
+import React from 'react';
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -41,26 +43,32 @@ const mockSession = {
   ],
 };
 
-const mockQuestions = [
+const mockQuestions: Question[] = [
   {
-    id: 1,
-    title: 'Two Sum',
+    question_id: 1,
+    question_name: 'Two Sum',
     difficulty: 'Easy',
-    description: '',
+    question_description: '',
     media: '',
     preset_code: '',
+    to_string_function: '',
+    from_string_function: '',
     template_solution: '',
-    date: new Date(),
+    created_at: new Date(),
+    last_modified_at: new Date(),
   },
   {
-    id: 2,
-    title: 'Binary Search',
+    question_id: 2,
+    question_name: 'Binary Search',
     difficulty: 'Medium',
-    description: '',
+    question_description: '',
     media: '',
     preset_code: '',
+    to_string_function: '',
+    from_string_function: '',
     template_solution: '',
-    date: new Date(),
+    created_at: new Date(),
+    last_modified_at: new Date(),
   },
 ];
 

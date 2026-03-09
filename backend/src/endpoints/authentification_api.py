@@ -458,7 +458,6 @@ async def profile(
         logger.warning(f"Profile failed: User not found in DB for email: {user_email}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=ERROR_USER_NOT_FOUND)
 
-    logger.info(f"Profile fetched successfully for user ID: {user.user_id}")
     return {"id": user.user_id, "firstName": user.first_name, "lastName": user.last_name, "email": user.email,
             "role": user.user_type}
 

@@ -21,6 +21,6 @@ describe('ErrorPage Component', () => {
     it('Goes back home after clicking on "Go back home" button ', () => {
         render(<ErroPage />)
         fireEvent.click(screen.getByText("Go back home"))
-        expect(nav).toHaveBeenCalledWith('/app/home')
+        expect(nav).toHaveBeenCalledWith('/app')
     })
 })

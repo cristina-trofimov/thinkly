@@ -40,34 +40,43 @@ function TestTable({ data }: { data: Question[] }) {
 describe("Questions Columns", () => {
   const mockData: Question[] = [
     {
-      id: 1,
-      title: "Two Sum",
-      date: new Date("2024-01-15"),
+      question_id: 1,
+      question_name: "Two Sum",
+      created_at: new Date("2024-01-15"),
       difficulty: "Easy",
-      description: "string",
+      question_description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "",
+      to_string_function: "",
+      last_modified_at: new Date("2024-01-15"),
     },
     {
-      id: 2,
-      title: "Reverse Linked List",
-      date: new Date("2024-02-20"),
+      question_id: 2,
+      question_name: "Reverse Linked List",
+      created_at: new Date("2024-02-20"),
       difficulty: "Medium",
-      description: "string",
+      question_description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "",
+      to_string_function: "",
+      last_modified_at: new Date("2024-02-20"),
     },
     {
-      id: 3,
-      title: "Merge K Sorted Lists",
-      date: new Date("2024-03-10"),
+      question_id: 3,
+      question_name: "Merge K Sorted Lists",
+      created_at: new Date("2024-03-10"),
       difficulty: "Hard",
-      description: "string",
+      question_description: "string",
       media: "string",
       preset_code: "string",
-      template_solution: "string"
+      template_solution: "string",
+      from_string_function: "",
+      to_string_function: "",
+      last_modified_at: new Date("2024-03-10"),
     },
   ]
 

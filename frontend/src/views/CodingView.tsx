@@ -8,7 +8,6 @@ import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { useStateCallback } from '../components/helpers/UseStateCallback';
 import MonacoEditor from "@monaco-editor/react";
 import { buildMonacoCode } from '../components/helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
@@ -25,51 +24,171 @@ import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
-import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
+import { getAllQuestionInstancesByEventID, getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
+import type { Competition } from '@/types/competition/Competition.type';
+import type { BaseEvent } from '@/types/BaseEvent.type';
+import { getEventByName } from '@/api/BaseEventAPI';
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
+import { getQuestionByID } from '@/api/QuestionsAPI';
 import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 
 
 const CodingView = () => {
   const location = useLocation()
+  const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
+  const [ questions, setQuestions ] = useState<Question[]>([])
+  const [ activeQuestion, setActiveQuestion ] = useState<Question>()
+  const [ questionsInstances, setQuestionsInstances ] = useState<QuestionInstance[]>([])
+  const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
+  const [ event, setEvent ] = useState<BaseEvent | null>(null)
 
-  const { testcases } = useTestcases(question?.id)
+  const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
+
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+
   const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
   const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+
+  // Getting the competition or algotime event if it exists
+  useEffect(() => {
+    if(comp?.id) {
+      const InitializeEvent = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getEventByName(location?.state?.comp?.competitionTitle)
+            .then((response) => {
+              setEvent(response)
+            })
+        } catch (err) {
+          toast.error("Error when fetching event.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch event. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      InitializeEvent()
+    }
+  }, [comp?.id])
+
+  // Getting the question instance (if it's a practice question and no event was passed)
+  // Or all the question instances associated to the given event
+  useEffect(() => {
+    if (event) {
+      const InitializeQuestionInstances = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getAllQuestionInstancesByEventID(event?.event_id)
+            .then((response) => {
+                setQuestionsInstances(response)
+            })
+        } catch (err) {
+          toast.error("Error when fetching question instances.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instances. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      InitializeQuestionInstances()
+    } else if(question?.question_id) {
+      const initQuestion = async () => {
+        setIsQuestionLoading(true)
+        try {
+          await getQuestionInstance(question?.question_id, null)
+            .then((response) => {
+              setQuestionsInstances([response])
+            })
+        } catch (err) {
+          toast.error("Error when fetching question instance.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instance. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+          })
+        } finally {
+          setIsQuestionLoading(false)
+        }
+      }
+      initQuestion()
+      setQuestions([question])
+    }
+  }, [event, question?.question_id])
+
+  // If an event is passed, get all the associated questions' details 
+  useEffect(() => {
+    if (!questionsInstances?.length || questions.length >= questionsInstances.length) {
+      setIsQuestionLoading(false)
+      return
+    }
+
+    const fetchQuestions = async () => {
+      setIsQuestionLoading(true)
+      try {
+        // Fetch all in parallel
+        const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
+        const fetchedResponses = await Promise.all(questionPromises)
+
+        setQuestions(fetchedResponses)
+      } catch (err) {
+        toast.error("Error when fetching questions.")
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to fetch questions. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        })
+      } finally {
+        setIsQuestionLoading(false)
+      }
+    }
+
+    fetchQuestions()
+  }, [questionsInstances])
+
+  // Setting the default active question and question instance
+  useEffect(() => {
+    if (questions.length > 0 && !activeQuestion) {
+      setActiveQuestion(questions[0])
+    }
+    if (questionsInstances.length > 0 && !activeQuestionInstance) {
+      setActiveQuestionInstance(questionsInstances[0])
+    }
+  }, [questions, questionsInstances])
+
+
+  const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
   ]
 
   const {
-    trackCodingPageOpened,
     trackLanguageChanged,
     trackCodeReset,
     trackCodeRun,
     trackCodeSubmitted,
   } = useAnalytics()
-
-  // Track page open once on mount — question is available from location state
-  useEffect(() => {
-    if (question?.id) {
-      trackCodingPageOpened(
-        question.title,
-        question.id,
-        question.difficulty ?? "unknown"
-      )
-      setIsQuestionLoading(false)
-    } else {
-      setIsQuestionLoading(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question?.id])
 
   const submitCode = async () => {
     try {
@@ -77,17 +196,12 @@ const CodingView = () => {
       setLoadingMsg("Submitting")
 
       const user = await getProfile()
-      const { codeRunResponse, submissionResponse } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
+      const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, judgeID, testcases)
+
       if (submissionResponse.status_code === 200) {
-        toast.success(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#DAE9DA' }
-        })
+        toast.success(submissionResponse.message)
       } else {
-        toast.warning(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#E9E2DA' }
-        })
+        toast.warning(submissionResponse.message)
       }
 
       setLogs(prev => [...prev, codeRunResponse.judge0Response])
@@ -95,14 +209,11 @@ const CodingView = () => {
       setCurrentOutputTab("results")
 
       trackCodeSubmitted(
-        question.id,
+        activeQuestion?.question_id,
         selectedLang,
       )
     } catch (err) {
-      toast.error("Error when submitting the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
+      toast.error("Error when submitting the code.")
       logFrontend({
         level: "ERROR",
         message: `An error occurred when submitting code. Reason: ${err}`,
@@ -122,8 +233,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
-      const instance = await getQuestionInstance(question?.id, null)
-      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(instance[0].question_instance_id, code, judgeID, testcases)
+      const user = await getProfile()
+      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, judgeID, testcases)
       
       setLogs(prev => [...prev, judge0Response])
       setMostRecentSub(mostRecentSubResponse)
@@ -132,17 +243,14 @@ const CodingView = () => {
       // Capture run result — status comes directly from Judge0 response
       const passed = judge0Response.status.description === "Accepted"
       trackCodeRun(
-        question.id,
+        activeQuestion?.question_id,
         selectedLang,
         judge0Response.status.description,
         passed,
         judge0Response.time ?? undefined
       )
     } catch (err) {
-      toast.error("Error when running the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
+      toast.error("Error when running the code.")
       logFrontend({
         level: "ERROR",
         message: `An error occurred when running code. Reason: ${err}`,
@@ -157,13 +265,13 @@ const CodingView = () => {
     }
   }
 
-  const [selectedLang, setSelectedLang] = useStateCallback<SupportedLanguagesType>("Java")
+  const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<SupportedLanguagesType>("Java")
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: question?.title ?? "",
+    problemName: activeQuestion?.question_name ?? "",
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -171,7 +279,7 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
-  const [code, setCode] = useStateCallback<string>(templateCode)
+  const [code, setCode] = useState<string>('')
 
   // Reset editor on language change
   useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -184,14 +292,24 @@ const CodingView = () => {
   }, [mostRecentSub])
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
-    trackLanguageChanged(question.id, prevLangRef.current, lang)
+    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
     prevLangRef.current = lang
     setSelectedLang(lang)
     setCode(templateCode)
   }
 
+  const handleQuestionChange = (q: Question) => {
+    setActiveQuestion(q)
+    questionsInstances.forEach((qi, idx) => {
+      if (qi.question_id === q.question_id) {
+        setActiveQuestionInstance(qi)
+        setActiveDisplayQuestionName(`Question ${idx + 1}`)
+      }
+    })
+  }
+
   const handleCodeReset = () => {
-    trackCodeReset(question.id, selectedLang)
+    trackCodeReset(activeQuestion?.question_id, selectedLang)
     setCode(templateCode)
   }
 
@@ -227,10 +345,10 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!question) {
+  if (!activeQuestion) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>No problem loaded. Please navigate from the problem list.</p>
+        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
       </div>
     );
   }
@@ -246,6 +364,35 @@ const CodingView = () => {
           <CloudUpload size={16} />Submit
         </Button>
       </div>
+      {questionsInstances.length > 1 && (
+        <div className='flex items-end-safe justify-end mb-2 w-full'>
+          <DropdownMenu data-testid='questions-dropdown'>
+            <DropdownMenuTrigger
+              data-testid='questions-btn'
+              className="bg-background text-black text-base font-bold h-7
+                flex items-center gap-2 rounded-md p-2
+                hover:bg-primary/20 focus:bg-primary/55"
+            >
+              {activeDisplayQuestionName}
+              <ChevronDown />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className='z-999' asChild>
+              <div data-testid='questions-menu'
+                className="z-10 text-sm bg-muted w-26 border rounded-lg"
+              >
+                {questions.map((q, idx) => (
+                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                    onSelect={() => handleQuestionChange(q)}
+                  >
+                  {`Question ${idx+1}`}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
         className='h-full w-full'
       >
@@ -254,7 +401,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} mostRecentSub={mostRecentSub} />
+          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} mostRecentSub={mostRecentSub} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
@@ -303,12 +450,14 @@ const CodingView = () => {
                 <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
-                      <Button data-testid='language-btn'
+                      <div data-testid='language-btn'
                         className="bg-background text-black text-base font-bold h-7
-                                  hover:bg-primary/20 focus:bg-primary/55">
+                          flex items-center gap-2 rounded-md p-2
+                          hover:bg-primary/20 focus:bg-primary/55"
+                      >
                         {selectedLang}
                         <ChevronDown />
-                      </Button>
+                      </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
@@ -411,7 +560,7 @@ const CodingView = () => {
                 </TabsList>
                 <TabsContent data-testid="testcases-tab" value="testcases"
                   className='max-h-full p-2.5'>
-                  <Testcases question_id={question.id} />
+                  <Testcases question_id={activeQuestionInstance?.question_id} />
                 </TabsContent>
                 <TabsContent data-testid="code-output-tab" value="results"
                   className='max-h-full p-2.5'>
