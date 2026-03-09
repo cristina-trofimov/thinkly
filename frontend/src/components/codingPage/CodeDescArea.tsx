@@ -61,10 +61,7 @@ const CodeDescArea = (
 
                 setRiddleObject(data)
             } catch (error) {
-                toast.error("Failed to load riddle...", {
-                    position: 'top-right',
-                    style: { backgroundColor: '#E9DADA' }
-                })
+                toast.error("Failed to load riddle...")
                 logFrontend({
                     level: "ERROR",
                     message: `An error occurred when loading riddle. Reason: ${error}`,
@@ -137,11 +134,11 @@ const CodeDescArea = (
         
         if (riddleObject) {
             return (
-                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-black/40 backdrop-blur-sm overflow-y-auto">
+                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
 
                     <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="mb-8 text-center space-y-3">
-                            <p className="text-white text-lg">
+                            <p className="text-muted-foreground text-lg">
                                 Solve the riddle below to reveal the description for<br /><span className="text-foreground font-semibold">{question.question_name}</span>
                             </p>
                         </div>

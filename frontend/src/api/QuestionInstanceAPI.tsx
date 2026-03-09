@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
+import { logFrontend } from "./LoggerAPI";
 
 export async function updateQuestionInstance(
   question_instance: QuestionInstance | undefined,
@@ -21,7 +22,13 @@ export async function updateQuestionInstance(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating question instance:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to update question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -43,7 +50,13 @@ export async function getQuestionInstance(
 
     return response['data']['data']
   } catch (err) {
-    console.error("Error fetching question instance:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetching question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -59,7 +72,13 @@ export async function getAllQuestionInstancesByEventID(event_id: number): Promis
 
     return response['data']['data'] || []
   } catch (err) {
-    console.error("Error fetching all question instances of an event:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetching all question instances of an event. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }

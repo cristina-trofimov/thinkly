@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient"
 import type { BaseEvent } from "@/types/BaseEvent.type"
+import { logFrontend } from "./LoggerAPI"
 
 
 export async function updateEvent(
@@ -23,7 +24,13 @@ export async function updateEvent(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating event:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to update event. Reason: ${err}`,
+      component: "BaseEventAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -41,7 +48,13 @@ export async function getEventByID(event_id: number): Promise<BaseEvent> {
 
     return response['data']['data']
   } catch (err) {
-    console.error("Error fetching event by id:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to update event by id. Reason: ${err}`,
+      component: "BaseEventAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -59,7 +72,13 @@ export async function getEventByName(event_name: string): Promise<BaseEvent> {
 
     return response['data']['data']
   } catch (err) {
-    console.error("Error fetching event by id:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetch event by id. Reason: ${err}`,
+      component: "BaseEventAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }

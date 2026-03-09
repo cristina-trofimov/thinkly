@@ -37,9 +37,6 @@ import { logFrontend } from '@/api/LoggerAPI';
 
 const CodingView = () => {
   const location = useLocation()
-  // const algo: AlgoTimeSeries = location?.state?.algo
-  // AlgoTimeSession
-
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
   const [ questions, setQuestions ] = useState<Question[]>([])
@@ -70,10 +67,13 @@ const CodingView = () => {
               setEvent(response)
             })
         } catch (err) {
-          console.error("Failed to fetch event: ", err)
-          toast.error("Error when fetching event.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching event.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch event. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
@@ -95,10 +95,13 @@ const CodingView = () => {
                 setQuestionsInstances(response)
             })
         } catch (err) {
-          console.error("Failed to fetch question instances: ", err)
-          toast.error("Error when fetching question instances.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching question instances.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instances. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
@@ -114,10 +117,13 @@ const CodingView = () => {
               setQuestionsInstances([response])
             })
         } catch (err) {
-          console.error("Failed to fetch question instance: ", err)
-          toast.error("Error when fetching question instance.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching question instance.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instance. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
@@ -144,10 +150,13 @@ const CodingView = () => {
 
         setQuestions(fetchedResponses)
       } catch (err) {
-        console.error("Failed to fetch questions: ", err)
-        toast.error("Error when fetching questions.", {
-          position: 'top-right',
-          style: { backgroundColor: '#E9DADA' }
+        toast.error("Error when fetching questions.")
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to fetch questions. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
         })
       } finally {
         setIsQuestionLoading(false)
@@ -190,15 +199,9 @@ const CodingView = () => {
       const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, judgeID, testcases)
 
       if (submissionResponse.status_code === 200) {
-        toast.success(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#DAE9DA' }
-        })
+        toast.success(submissionResponse.message)
       } else {
-        toast.warning(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#E9E2DA' }
-        })
+        toast.warning(submissionResponse.message)
       }
 
       setLogs(prev => [...prev, codeRunResponse.judge0Response])
@@ -210,10 +213,7 @@ const CodingView = () => {
         selectedLang,
       )
     } catch (err) {
-      toast.error("Error when submitting the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
+      toast.error("Error when submitting the code.")
       logFrontend({
         level: "ERROR",
         message: `An error occurred when submitting code. Reason: ${err}`,
@@ -250,10 +250,7 @@ const CodingView = () => {
         judge0Response.time ?? undefined
       )
     } catch (err) {
-      toast.error("Error when running the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
+      toast.error("Error when running the code.")
       logFrontend({
         level: "ERROR",
         message: `An error occurred when running code. Reason: ${err}`,
@@ -302,8 +299,6 @@ const CodingView = () => {
   }
 
   const handleQuestionChange = (q: Question) => {
-    // trackLanguageChanged(question.question_id, prevLangRef.current, lang)
-    // prevLangRef.current = lang
     setActiveQuestion(q)
     questionsInstances.forEach((qi, idx) => {
       if (qi.question_id === q.question_id) {
@@ -383,7 +378,7 @@ const CodingView = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className='z-999' asChild>
               <div data-testid='questions-menu'
-                className="z-10 text-sm bg-white w-26 border rounded-lg"
+                className="z-10 text-sm bg-muted w-26 border rounded-lg"
               >
                 {questions.map((q, idx) => (
                   <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
