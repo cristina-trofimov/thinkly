@@ -8,6 +8,7 @@ import { ScoreboardDataTable } from "@/components/leaderboards/ScoreboardDataTab
 import type { Competition } from "@/types/competition/Competition.type";
 import type { Participant } from "@/types/account/Participant.type";
 import { useNavigate } from "react-router-dom";
+import { logFrontend } from "../api/LoggerAPI";
 
 const getCompetitionStatus = (
   competitionStart: Date | string
@@ -103,7 +104,20 @@ export default function CompetitionsPage() {
         const data = await getCompetitions();
         if (!cancelled) setCompetitions(data);
       } catch (err) {
-        console.error("Failed to load competitions", err);
+        const isError = err instanceof Error;
+        const errorMessage = isError
+          ? err.message
+          : "Unknown error during question fetch.";
+
+        console.error("Error fetching competitions:", err);
+
+        logFrontend({
+          level: "ERROR",
+          message: `API Error: Failed to fetch competitions. Reason: ${errorMessage}`,
+          component: "CompetitionsPage",
+          url: globalThis.location.href,
+          stack: isError ? err.stack : undefined,
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -135,7 +149,21 @@ export default function CompetitionsPage() {
         );
         if (!cancelled) setLeaderboardParticipants(match?.participants ?? []);
       } catch (err) {
-        console.error("Failed to load leaderboard", err);
+        const isError = err instanceof Error;
+        const errorMessage = isError
+          ? err.message
+          : "Unknown error during leaderboard fetch.";
+
+        console.error("Error fetching leaderboard:", err);
+
+        logFrontend({
+          level: "ERROR",
+          message: `API Error: Failed to fetch leaderboard. Reason: ${errorMessage}`,
+          component: "CompetitionsPage",
+          url: globalThis.location.href,
+          stack: isError ? err.stack : undefined,
+        });
+
         if (!cancelled) setLeaderboardError("Failed to load leaderboard");
       } finally {
         if (!cancelled) setLeaderboardLoading(false);
@@ -177,7 +205,7 @@ export default function CompetitionsPage() {
       )}
 
       {/* Filter Tags */}
-      {!loading && competitions.length > 0 && (
+      {!loading && competitions.length > 1 && (
         <div className="mb-6 flex flex-wrap gap-2">
           {["All", "Active", "Upcoming", "Completed"].map((filter) => (
             <Button
