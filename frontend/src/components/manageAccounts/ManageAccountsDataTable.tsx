@@ -69,6 +69,45 @@ import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
 import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
 
+type UserTypeFilter = "all" | "owner" | "admin" | "participant";
+type PaginationItemValue = number | "ellipsis-left" | "ellipsis-right";
+
+const PAGE_SIZE_OPTIONS = ["10", "25", "50", "100"] as const;
+const USER_TYPE_OPTIONS: Array<{ value: UserTypeFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "participant", label: "Participant" },
+  { value: "admin", label: "Admin" },
+  { value: "owner", label: "Owner" },
+];
+const SORT_ID_TO_VALUE: Partial<Record<string, { asc: AccountsSort; desc: AccountsSort }>> = {
+  name: { asc: "name_asc", desc: "name_desc" },
+  email: { asc: "email_asc", desc: "email_desc" },
+};
+
+function getPageItems(currentPage: number, pageCount: number): readonly PaginationItemValue[] {
+  if (pageCount <= 3) {
+    return Array.from({ length: pageCount }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 2) {
+    return [1, 2, 3, "ellipsis-right", pageCount] as const;
+  }
+
+  if (currentPage >= pageCount - 1) {
+    return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
+  }
+
+  return [
+    1,
+    "ellipsis-left",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "ellipsis-right",
+    pageCount,
+  ] as const;
+}
+
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
     onUserUpdate?: (updatedUser: Account) => void;
@@ -82,11 +121,9 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   page?: number;
   pageSize?: number;
   search?: string;
-  userTypeFilter?: "all" | "owner" | "admin" | "participant";
+  userTypeFilter?: UserTypeFilter;
   onSearchChange?: (value: string) => void;
-  onUserTypeFilterChange?: (
-    value: "all" | "owner" | "admin" | "participant"
-  ) => void;
+  onUserTypeFilterChange?: (value: UserTypeFilter) => void;
   onSortChange?: (sort: AccountsSort) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -110,7 +147,6 @@ export function ManageAccountsDataTable<TData, TValue>({
   onDeleteUsers,
   onUserUpdate,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
-  const pageSizeOptions = ["10", "25", "50", "100"];
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const selectedCount = Object.keys(rowSelection).length;
@@ -137,41 +173,21 @@ export function ManageAccountsDataTable<TData, TValue>({
       return;
     }
 
-    if (activeSort.id === "name") {
-      onSortChange?.(activeSort.desc ? "name_desc" : "name_asc");
-      return;
+    const sortValue = SORT_ID_TO_VALUE[activeSort.id];
+    if (sortValue) {
+      onSortChange?.(activeSort.desc ? sortValue.desc : sortValue.asc);
     }
-
-    if (activeSort.id === "email") {
-      onSortChange?.(activeSort.desc ? "email_desc" : "email_asc");
-    }
-
   }, [onSortChange, sorting]);
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = page;
-  const pageItems = React.useMemo(() => {
-    if (pageCount <= 3) {
-      return Array.from({ length: pageCount }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 2) {
-      return [1, 2, 3, "ellipsis-right", pageCount] as const;
-    }
-
-    if (currentPage >= pageCount - 1) {
-      return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
-    }
-
-    return [
-      1,
-      "ellipsis-left",
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      "ellipsis-right",
-      pageCount,
-    ] as const;
-  }, [currentPage, pageCount]);
+  const pageItems = React.useMemo(
+    () => getPageItems(currentPage, pageCount),
+    [currentPage, pageCount],
+  );
+  const changePage = (nextPage: number) => onPageChange(nextPage);
+  const goToPreviousPage = () => changePage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => changePage(Math.min(pageCount, currentPage + 1));
+  const clearSelection = () => setRowSelection({});
 
   const handleDelete = async () => {
     const selectedRows = table
@@ -206,12 +222,12 @@ export function ManageAccountsDataTable<TData, TValue>({
 
       toast.error(errorMessage);
     } finally {
-      setRowSelection({});
+      clearSelection();
     }
   };
 
   const handleCancelSelection = () => {
-    setRowSelection({});
+    clearSelection();
   };
 
   return (
@@ -240,30 +256,15 @@ export function ManageAccountsDataTable<TData, TValue>({
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => onUserTypeFilterChange("all")}
-            >
-              All
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => onUserTypeFilterChange("participant")}
-            >
-              Participant
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => onUserTypeFilterChange("admin")}
-            >
-              Admin
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => onUserTypeFilterChange("owner")}
-            >
-              Owner
-            </DropdownMenuItem>
+            {USER_TYPE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                className="cursor-pointer"
+                onClick={() => onUserTypeFilterChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
         {selectedCount > 0 ? (
@@ -374,7 +375,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {pageSizeOptions.map((size) => (
+                {PAGE_SIZE_OPTIONS.map((size) => (
                   <SelectItem key={size} value={size}>
                     {size}
                   </SelectItem>
@@ -397,7 +398,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  onPageChange(Math.max(1, currentPage - 1));
+                  goToPreviousPage();
                 }}
                 className={
                   currentPage > 1
@@ -417,7 +418,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                     isActive={currentPage === item}
                     onClick={(event) => {
                       event.preventDefault();
-                      onPageChange(item);
+                      changePage(item);
                     }}
                     className="cursor-pointer"
                   >
@@ -433,7 +434,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  onPageChange(Math.min(pageCount, currentPage + 1));
+                  goToNextPage();
                 }}
                 className={
                   currentPage < pageCount

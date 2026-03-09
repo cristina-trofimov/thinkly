@@ -62,6 +62,29 @@ class TestCaseResponse(BaseModel):
     expected_output: str
 
 
+def apply_text_search(query, search: Optional[str], *columns):
+    if search and search.strip():
+        needle = f"%{search.strip()}%"
+        query = query.filter(or_(*(column.ilike(needle) for column in columns)))
+    return query
+
+
+def paginate_query(query, page: int, page_size: int):
+    total = query.count()
+    offset = (page - 1) * page_size
+    items = query.offset(offset).limit(page_size).all()
+    return total, items
+
+
+def build_paginated_response(total: int, page: int, page_size: int, items: list[dict]) -> dict:
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": items,
+    }
+
+
 def serialize_question(question: Question) -> dict:
     return {
         "question_id": question.question_id,
@@ -119,15 +142,12 @@ def get_all_questions(
 ):
     try:
         query = db.query(Question)
-
-        if search and search.strip():
-            needle = f"%{search.strip()}%"
-            query = query.filter(
-                or_(
-                    Question.question_name.ilike(needle),
-                    Question.question_description.ilike(needle),
-                )
-            )
+        query = apply_text_search(
+            query,
+            search,
+            Question.question_name,
+            Question.question_description,
+        )
 
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
@@ -137,9 +157,7 @@ def get_all_questions(
         else:
             query = query.order_by(Question.question_id.asc())
 
-        total = query.count()
-        offset = (page - 1) * page_size
-        questions = query.offset(offset).limit(page_size).all()
+        total, questions = paginate_query(query, page, page_size)
 
         response.headers["Cache-Control"] = "public, max-age=60"
 
@@ -150,12 +168,12 @@ def get_all_questions(
             page_size,
             total,
         )
-        return {
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "items": [serialize_question(question) for question in questions],
-        }
+        return build_paginated_response(
+            total,
+            page,
+            page_size,
+            [serialize_question(question) for question in questions],
+        )
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
@@ -281,21 +299,16 @@ def get_all_riddles(
 ):
     try:
         query = db.query(Riddle)
-
-        if search and search.strip():
-            needle = f"%{search.strip()}%"
-            query = query.filter(
-                or_(
-                    Riddle.riddle_question.ilike(needle),
-                    Riddle.riddle_answer.ilike(needle),
-                )
-            )
+        query = apply_text_search(
+            query,
+            search,
+            Riddle.riddle_question,
+            Riddle.riddle_answer,
+        )
 
         query = query.order_by(Riddle.riddle_id.desc())
 
-        total = query.count()
-        offset = (page - 1) * page_size
-        riddles = query.offset(offset).limit(page_size).all()
+        total, riddles = paginate_query(query, page, page_size)
 
         response.headers["Cache-Control"] = "public, max-age=60"
 
@@ -306,12 +319,12 @@ def get_all_riddles(
             page_size,
             total,
         )
-        return {
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "items": [serialize_riddle(riddle) for riddle in riddles],
-        }
+        return build_paginated_response(
+            total,
+            page,
+            page_size,
+            [serialize_riddle(riddle) for riddle in riddles],
+        )
     except Exception as e:
         logger.error(f"Error fetching riddles: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve riddles.")
