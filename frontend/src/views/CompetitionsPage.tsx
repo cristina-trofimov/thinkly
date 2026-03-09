@@ -233,7 +233,7 @@ export default function CompetitionsPage() {
                 </div>
 
                 {/* Card body */}
-                <CardContent className="p-4 flex flex-col gap-2">
+                <CardContent className="p-4 pb-0 flex flex-col gap-2">
                   <div>
                     <p className={`text-sm font-medium ${isCompleted ? "text-muted-foreground" : ""}`}>
                       {comp.competitionLocation || "Online"}
@@ -244,7 +244,7 @@ export default function CompetitionsPage() {
                   </div>
 
                   {/* Buttons — always right-aligned */}
-                  <div className="flex items-center justify-end gap-2 pt-1.5 border-t">
+                  <div className="flex items-center justify-end pt-2 border-t">
                     {isActive ? (
                       <>
                         <Button
