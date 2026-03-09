@@ -175,7 +175,6 @@ const CodingView = () => {
   ]
 
   const {
-    trackCodingPageOpened,
     trackLanguageChanged,
     trackCodeReset,
     trackCodeRun,

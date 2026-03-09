@@ -13,7 +13,7 @@ const Testcases = (
     { question_id: number | undefined }
 ) => {
     const {
-        testcases, addTestcase, removeTestcase, loading,
+        testcases, addTestcase, removeTestcase,
         updateTestcase, activeTestcase, setActiveTestcase
     } = useTestcases(question_id)
 
