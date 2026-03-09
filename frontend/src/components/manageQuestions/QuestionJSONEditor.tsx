@@ -140,8 +140,8 @@ const QuestionJSONEditor: FC = () => {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown);
+    return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [canSubmit, handleSubmit]);
 
   const handleBackClick = () => {

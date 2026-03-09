@@ -18,26 +18,23 @@ const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONB
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const jsonData = JSON.parse(e.target?.result as string);
-                setIsUploading(true);
+        try {
+            const fileText = await file.text();
+            const jsonData = JSON.parse(fileText);
+            setIsUploading(true);
 
-                await uploadQuestions(jsonData);
-                onSuccess?.();
-            } catch (error) {
-                console.error("Error uploading questions:", error);
-                const errorMessage = parseAxiosErrorMessage(error);
-                onFailure?.(errorMessage);
-            } finally {
-                setIsUploading(false);
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = ""; // Reset the file input
-                }
+            await uploadQuestions(jsonData);
+            onSuccess?.();
+        } catch (error) {
+            console.error("Error uploading questions:", error);
+            const errorMessage = parseAxiosErrorMessage(error);
+            onFailure?.(errorMessage);
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""; // Reset the file input
             }
-        };
-        reader.readAsText(file);
+        }
     };
 
     return <>

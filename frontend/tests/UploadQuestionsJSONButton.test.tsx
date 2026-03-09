@@ -21,22 +21,12 @@ jest.mock("../src/api/QuestionsAPI", () => ({
 
 const mockedUploadQuestions = uploadQuestions as jest.MockedFunction<typeof uploadQuestions>;
 
-class MockFileReader {
-  public onload: ((event: { target: { result: string } }) => void) | null = null;
-  readAsText() {
-    if (this.onload) {
-      this.onload({
-        target: {
-          result: JSON.stringify([{ question_name: "q" }]),
-        },
-      });
-    }
-  }
-}
-
-Object.defineProperty(global, "FileReader", {
+Object.defineProperty(Blob.prototype, "text", {
+  configurable: true,
   writable: true,
-  value: MockFileReader,
+  value: jest.fn(async function (this: Blob) {
+    return Promise.resolve("[]");
+  }),
 });
 
 describe("UploadQuestionsJSONButton", () => {

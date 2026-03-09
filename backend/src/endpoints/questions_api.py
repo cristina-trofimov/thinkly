@@ -132,9 +132,9 @@ class QuestionResponse(BaseModel):
     question_id: int
     question_name: str
     question_description: str
-    media: Optional[str]
+    media: Optional[str] = None
     difficulty: str
-    preset_code: Optional[str]
+    preset_code: Optional[str] = None
     from_string_function: str
     to_string_function: str
     template_solution: str
@@ -341,7 +341,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[Sessi
     responses={ 500: { "description": "Failed to upload question batch." } }
 )
 def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
-                          db: Annotated[Session, Depends(get_db)] = None):
+                          db: Annotated[Session, Depends(get_db)]):
     error_message = None
     error_code = 500
     try:
@@ -442,7 +442,8 @@ class BatchDeleteQuestionsRequest(BaseModel):
     question_ids: list[int]
 
 @questions_router.delete(
-    "/batch-delete"
+    "/batch-delete",
+    responses={500: {"description": "Error deleting questions."}},
 )
 def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[Session, Depends(get_db)]):
     try:
@@ -479,7 +480,13 @@ def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[S
         db.rollback()
         raise HTTPException(status_code=500, detail="Error deleting questions.")
     
-@questions_router.put('/update-question/{question_id}')
+@questions_router.put(
+    '/update-question/{question_id}',
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Update failed."},
+    },
+)
 def update_question(question_id: int, question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         db_question = db.query(Question).filter(Question.question_id == int(question_id)).first()
@@ -506,6 +513,8 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
         db.commit()
         db.refresh(db_question)
         logger.info(f"Updated question: {question_id}")
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         logger.warning(f"Error updating question: {question_id}")
