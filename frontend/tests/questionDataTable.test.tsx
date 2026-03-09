@@ -6,12 +6,22 @@ import { waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import type { Question } from "../src/types/questions/Question.type"
 
+const mockTrackQuestionClicked = jest.fn()
+const mockTrackQuestionSearched = jest.fn()
+const mockTrackQuestionFilteredByDifficulty = jest.fn()
+const mockNavigate = jest.fn()
+
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}))
+
 // Mock useAnalytics hook
 jest.mock("../src/hooks/useAnalytics", () => ({
   useAnalytics: () => ({
-    trackQuestionClicked: jest.fn(),
-    trackQuestionSearched: jest.fn(),
-    trackQuestionFilteredByDifficulty: jest.fn(),
+    trackQuestionClicked: mockTrackQuestionClicked,
+    trackQuestionSearched: mockTrackQuestionSearched,
+    trackQuestionFilteredByDifficulty: mockTrackQuestionFilteredByDifficulty,
   }),
 }))
 
@@ -60,7 +70,14 @@ jest.mock("../src/components/ui/pagination", () => ({
 }))
 
 jest.mock("../src/components/ui/select", () => ({
-  Select: ({ children }: any) => <div>{children}</div>,
+  Select: ({ children, onValueChange }: any) => (
+    <div>
+      {children}
+      <button type="button" data-testid="select-page-size-50" onClick={() => onValueChange?.("50")}>
+        choose 50
+      </button>
+    </div>
+  ),
   SelectContent: ({ children }: any) => <div>{children}</div>,
   SelectItem: ({ children, value }: any) => <option value={value}>{children}</option>,
   SelectTrigger: ({ children }: any) => <button type="button">{children}</button>,
@@ -117,6 +134,10 @@ describe("DataTable", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   test("renders column headers", () => {
@@ -185,5 +206,175 @@ describe("DataTable", () => {
     await waitFor(() => {
       expect(onDifficultyFilterChange).toHaveBeenCalledWith("easy")
     })
+    expect(mockTrackQuestionFilteredByDifficulty).toHaveBeenCalledWith("easy")
+  })
+
+  test("shows the selected difficulty label in the filter button", () => {
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          difficultyFilter="medium"
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByRole("button", { name: /medium/i })).toBeInTheDocument()
+  })
+
+  test("tracks debounced search analytics with trimmed values", () => {
+    jest.useFakeTimers()
+
+    render(
+      <MemoryRouter>
+        <DataTable columns={columns} data={data} {...defaultProps} />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByPlaceholderText("Search questions...")
+    fireEvent.change(input, { target: { value: "  Two Sum  " } })
+
+    expect(mockTrackQuestionSearched).not.toHaveBeenCalled()
+    jest.advanceTimersByTime(600)
+
+    expect(mockTrackQuestionSearched).toHaveBeenCalledWith("Two Sum")
+  })
+
+  test("does not track blank searches", () => {
+    jest.useFakeTimers()
+
+    render(
+      <MemoryRouter>
+        <DataTable columns={columns} data={data} {...defaultProps} />
+      </MemoryRouter>
+    )
+
+    fireEvent.change(screen.getByPlaceholderText("Search questions..."), {
+      target: { value: "   " },
+    })
+
+    jest.advanceTimersByTime(600)
+    expect(mockTrackQuestionSearched).not.toHaveBeenCalled()
+  })
+
+  test("tracks question clicks and navigates to the coding page", () => {
+    render(
+      <MemoryRouter>
+        <DataTable columns={columns} data={data} {...defaultProps} />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByText("Two Sum"))
+
+    expect(mockTrackQuestionClicked).toHaveBeenCalledWith("Two Sum", "Easy", 1)
+    expect(mockNavigate).toHaveBeenCalledWith("/app/code/Two Sum", {
+      state: {
+        fromFeed: true,
+        problem: data[0],
+      },
+    })
+  })
+
+  test("calls onPageChange from pagination controls and page links", () => {
+    const onPageChange = jest.fn()
+
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          total={100}
+          page={5}
+          pageSize={10}
+          onPageChange={onPageChange}
+        />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByText("Previous"))
+    fireEvent.click(screen.getByText("Next"))
+    fireEvent.click(screen.getByText("6"))
+
+    expect(onPageChange).toHaveBeenCalledWith(4)
+    expect(onPageChange).toHaveBeenCalledWith(6)
+  })
+
+  test("prevents pagination from going below page 1 or above the last page", () => {
+    const onPageChange = jest.fn()
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          total={20}
+          page={1}
+          pageSize={10}
+          onPageChange={onPageChange}
+        />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByText("Previous"))
+    expect(onPageChange).toHaveBeenCalledWith(1)
+
+    rerender(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          total={20}
+          page={2}
+          pageSize={10}
+          onPageChange={onPageChange}
+        />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByText("Next"))
+    expect(onPageChange).toHaveBeenCalledWith(2)
+  })
+
+  test("calls onPageSizeChange when a page size is selected", () => {
+    const onPageSizeChange = jest.fn()
+
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          onPageSizeChange={onPageSizeChange}
+        />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByTestId("select-page-size-50"))
+    expect(onPageSizeChange).toHaveBeenCalledWith(50)
+  })
+
+  test("renders ellipsis for middle pagination ranges", () => {
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          total={100}
+          page={5}
+          pageSize={10}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByText("...")).toHaveLength(2)
+    expect(screen.getByText("4")).toBeInTheDocument()
+    expect(screen.getByText("5")).toBeInTheDocument()
+    expect(screen.getByText("6")).toBeInTheDocument()
   })
 })
