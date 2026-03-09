@@ -2,7 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { columns } from "../components/questionsTable/questionsColumns";
 import type { Question } from "@/types/questions/Question.type";
-import { DataTable } from "../components/questionsTable/questionDataTable";
+import {
+  DataTable,
+  type DifficultyFilter,
+} from "../components/questionsTable/questionDataTable";
 import { getCompetitions } from "@/api/CompetitionAPI";
 import { getQuestionsPage } from "@/api/QuestionsAPI";
 import { logFrontend } from "../api/LoggerAPI";
@@ -18,9 +21,7 @@ function HomePage() {
   const [questionsPage, setQuestionsPage] = useState<number>(1);
   const [questionsPageSize, setQuestionsPageSize] = useState<number>(25);
   const [questionSearch, setQuestionSearch] = useState<string>("");
-  const [difficultyFilter, setDifficultyFilter] = useState<
-    "all" | "easy" | "medium" | "hard"
-  >("all");
+  const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
   const [competitions, setCompetitions] = useState<Competition[]>([]);
 
   const {

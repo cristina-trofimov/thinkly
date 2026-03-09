@@ -46,6 +46,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+export type DifficultyFilter = "all" | "easy" | "medium" | "hard";
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -53,11 +55,9 @@ interface DataTableProps<TData, TValue> {
   page: number;
   pageSize: number;
   search: string;
-  difficultyFilter: "all" | "easy" | "medium" | "hard";
+  difficultyFilter: DifficultyFilter;
   onSearchChange: (value: string) => void;
-  onDifficultyFilterChange: (
-    value: "all" | "easy" | "medium" | "hard"
-  ) => void;
+  onDifficultyFilterChange: (value: DifficultyFilter) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
@@ -138,7 +138,7 @@ export function DataTable<TData extends Question, TValue>({
     }
   };
 
-  const handleDifficultyFilter = (difficulty: "all" | "easy" | "medium" | "hard") => {
+  const handleDifficultyFilter = (difficulty: DifficultyFilter) => {
     onDifficultyFilterChange(difficulty);
     trackQuestionFilteredByDifficulty(difficulty);
   };
