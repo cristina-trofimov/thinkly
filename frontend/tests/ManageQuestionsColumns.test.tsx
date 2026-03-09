@@ -4,9 +4,9 @@ import { columns } from "../src/components/manageQuestions/ManageQuestionsColumn
 import type { Question } from "./../src/types/questions/Question.type";
 
 const mockQuestion: Question = {
-  id: 1,
-  title: "Two Sum",
-  description: "Given an array of integers, return indices of the two numbers such that they add up to a specific target.",
+  question_id: 1,
+  question_name: "Two Sum",
+  question_description: "Given an array of integers, return indices of the two numbers such that they add up to a specific target.",
   difficulty: "Easy",
   preset_code: "function twoSum(nums, target) {\n  // Your code here\n}",
   template_solution: "function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n    map.set(nums[i], i);\n  }\n  return [];\n}",
@@ -18,7 +18,8 @@ const mockQuestion: Question = {
     ["[3,2,4], 6", "[1,2]"],
   ],
   media: null,
-  date: new Date(),
+  created_at: new Date(),
+  last_modified_at: new Date(),
 };
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -136,7 +137,7 @@ describe("Question Columns", () => {
       const Cell = descriptionColumn.cell as Function;
       render(<>{Cell({ row })}</>);
 
-      expect(screen.getByText(mockQuestion.description)).toBeInTheDocument();
+      expect(screen.getByText(mockQuestion.question_description)).toBeInTheDocument();
     });
   });
 

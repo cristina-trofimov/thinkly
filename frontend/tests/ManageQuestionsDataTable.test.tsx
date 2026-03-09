@@ -64,9 +64,9 @@ const mockedToast = toast as jest.Mocked<typeof toast>;
 
 const data: Question[] = [
   {
-    id: 1,
-    title: "Two Sum",
-    description: "Add two nums",
+    question_id: 1,
+    question_name: "Two Sum",
+    question_description: "Add two nums",
     media: null,
     preset_code: "",
     template_solution: "",
@@ -75,12 +75,13 @@ const data: Question[] = [
     tags: [],
     testcases: [],
     difficulty: "Easy",
-    date: new Date("2025-01-01"),
+    created_at: new Date("2025-01-01"),
+    last_modified_at: new Date("2025-01-01"),
   },
   {
-    id: 2,
-    title: "Reverse List",
-    description: "Reverse",
+    question_id: 2,
+    question_name: "Reverse List",
+    question_description: "Reverse",
     media: null,
     preset_code: "",
     template_solution: "",
@@ -89,7 +90,8 @@ const data: Question[] = [
     tags: [],
     testcases: [],
     difficulty: "Hard",
-    date: new Date("2025-01-02"),
+    created_at: new Date("2025-01-02"),
+    last_modified_at: new Date("2025-01-02"),
   },
 ];
 

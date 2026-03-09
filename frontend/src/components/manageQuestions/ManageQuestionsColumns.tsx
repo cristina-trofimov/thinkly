@@ -54,7 +54,7 @@ export const columns: ColumnDef<Question>[] = [
     enableSorting: false,
   },
   {
-    accessorKey: "id",
+    accessorKey: "question_id",
     header: ({ column }) => {
       return (
         <div className="text-center">
@@ -69,7 +69,7 @@ export const columns: ColumnDef<Question>[] = [
       );
     },
      cell: ({ row }) => {
-      const id: number = row.original.id;
+      const id: number = row.original.question_id;
 
       return (
         <div className="text-center font-medium">
@@ -79,7 +79,7 @@ export const columns: ColumnDef<Question>[] = [
     }
   },
   {
-      accessorKey: "title",
+      accessorKey: "question_name",
       header: ({ column }) => {
       return (
         <div className="text-center">
@@ -95,7 +95,7 @@ export const columns: ColumnDef<Question>[] = [
     },
     
     cell: ({ row }) => {
-      const name: string = row.original.title;
+      const name: string = row.original.question_name;
 
       return (
         <div className="text-left font-medium italic">
@@ -105,13 +105,13 @@ export const columns: ColumnDef<Question>[] = [
     },
   },
   {
-    accessorKey: "description",
+    accessorKey: "question_description",
     header: () => <div className="text-left">Description</div>,
     cell: ({ row }) => (
       <div
         className="max-w-[500px] max-h-[100px] overflow-y-auto whitespace-normal break-words text-left"
-        title={row.getValue("description")}
-      >{row.getValue("description")}</div>
+        title={row.getValue("question_description")}
+      >{row.getValue("question_description")}</div>
     ),
   },
   {

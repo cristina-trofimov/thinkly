@@ -35,18 +35,18 @@ const ActionsCell: FC<ActionsCellProps> = (props) => {
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuItem
             onClick={() =>
-              navigator.clipboard.writeText(question.id.toString())
+              navigator.clipboard.writeText(question.question_id.toString())
             }
           >
             Copy question ID
           </DropdownMenuItem>
           <DropdownMenuSeparator />  
         <DropdownMenuItem
-          onClick={() => navigate(`./editQuestion/${question.id}`)}
+          onClick={() => navigate(`./editQuestion/${question.question_id}`)}
         >
             Edit question as JSON
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onDelete?.(question.id)} className="text-destructive">
+          <DropdownMenuItem onClick={() => onDelete?.(question.question_id)} className="text-destructive">
             Delete question
           </DropdownMenuItem>
         </DropdownMenuContent>

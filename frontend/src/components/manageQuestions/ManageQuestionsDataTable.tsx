@@ -120,7 +120,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
 
     console.log("Deleting rows: ", selectedRows);
 
-    const questionIds = selectedRows.map((row) => Number(row.id));
+    const questionIds = selectedRows.map((row) => Number(row.question_id));
 
     try {
       const response = await deleteQuestions(questionIds);
@@ -165,9 +165,9 @@ export function ManageQuestionsDataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Filter question titles..."
-            value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
+            value={(table.getColumn("question_name")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
-              table.getColumn("title")?.setFilterValue(event.target.value)
+              table.getColumn("question_name")?.setFilterValue(event.target.value)
             }
             className="pl-9 w-xs"
           />
