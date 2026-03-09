@@ -260,22 +260,14 @@ export default function CompetitionsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 cursor-pointer text-gray-500 border-gray-300 hover:bg-gray-50"
+                        className="h-8 text-gray-500 border-gray-300 hover:bg-gray-50"
                         onClick={() => setModal({ type: "leaderboard", competition: comp })}
                       >
                         View leaderboard
                       </Button>
                     ) : (
                       <div className="flex items-center justify-between w-full gap-2">
-                        <Button size="sm" className="h-8 cursor-pointer bg-green-600 hover:bg-green-700">
-                          Register
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 cursor-pointer"
-                          onClick={() => setModal({ type: "details", competition: comp })}
-                        >
+                        <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700" onClick={() => setModal({ type: "details", competition: comp })}>
                           View details
                         </Button>
                       </div>
@@ -356,11 +348,6 @@ export default function CompetitionsPage() {
                     <p className="leading-relaxed">{modal.competition.description}</p>
                   </div>
                 )}
-              </div>
-              <div className="pt-2">
-                <Button className="w-full bg-green-600 hover:bg-green-700">
-                  Register for this competition
-                </Button>
               </div>
             </div>
           )}
