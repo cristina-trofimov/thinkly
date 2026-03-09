@@ -30,9 +30,7 @@ export async function submitAttempt(
                 question_instance_id: -1,
                 question_id: question_id,
                 event_id: event_id,
-                points: null,
-                riddle_id: null,
-                is_riddle_completed: null,
+                riddle_id: null
             }
         }
 

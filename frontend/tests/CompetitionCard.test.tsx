@@ -194,7 +194,7 @@ describe("CompetitionCard", () => {
 
   // ── Loading / disabled state ───────────────────────────────────────────────
 
-  it("disables both buttons while an export is in flight", async () => {
+  it("disables only the Copy button while a copy export is in flight", async () => {
     let resolveExport!: (v: typeof mockParticipants) => void;
     mockGetAllCompetitionEntries.mockReturnValue(
       new Promise((res) => { resolveExport = res; })
@@ -207,7 +207,7 @@ describe("CompetitionCard", () => {
 
     await waitFor(() => {
       expect(screen.getByTitle("Copy leaderboard to clipboard")).toBeDisabled();
-      expect(screen.getByTitle("Download as Excel file")).toBeDisabled();
+      expect(screen.getByTitle("Download as Excel file")).not.toBeDisabled();
     });
 
     // Resolve so the component finishes cleanly
