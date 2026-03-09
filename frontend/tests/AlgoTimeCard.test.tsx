@@ -260,7 +260,7 @@ describe("Copy button", () => {
     expect(screen.getByText("Copied!")).toBeInTheDocument();
   });
 
-  it("disables both buttons while copying", async () => {
+  it("disables only the Copy button while copying", async () => {
     setupClipboard();
     getAllAlgoTimeEntriesForExport.mockReturnValue(new Promise(() => {}));
 
@@ -270,7 +270,7 @@ describe("Copy button", () => {
     fireEvent.click(screen.getByTitle("Copy entire table to clipboard"));
 
     expect(screen.getByTitle("Copy entire table to clipboard")).toBeDisabled();
-    expect(screen.getByTitle("Download as Excel file")).toBeDisabled();
+    expect(screen.getByTitle("Download as Excel file")).not.toBeDisabled();
   });
 });
 

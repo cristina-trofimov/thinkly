@@ -10,23 +10,21 @@ import { useAnalytics } from '@/hooks/useAnalytics'
 
 const Testcases = (
     { question_id }:
-    { question_id: number }
+    { question_id: number | undefined }
 ) => {
-
     const {
-        testcases, addTestcase, removeTestcase, loading,
+        testcases, addTestcase, removeTestcase,
         updateTestcase, activeTestcase, setActiveTestcase
     } = useTestcases(question_id)
 
     const { trackTestcaseAdded, trackTestcaseRemoved } = useAnalytics()
 
-    if (loading) {
-        console.log("Loading test cases")
-    }
-
     useEffect(() => {
+        if (!question_id) return
         if (!testcases) addTestcase()
     }, [testcases]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!question_id) return null
 
     const handleAddTestcase = () => {
         addTestcase()

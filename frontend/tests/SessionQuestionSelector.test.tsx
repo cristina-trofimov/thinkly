@@ -32,9 +32,9 @@ jest.mock('../src/lib/axiosClient', () => ({
     const mockSetSessionNames = jest.fn();
   
     const mockQuestions: Question[] = [
-      { id: 1, title: "Two Sum", difficulty: "Easy" } as Question,
-      { id: 2, title: "Binary Tree", difficulty: "Medium" } as Question,
-      { id: 3, title: "DP Hard", difficulty: "Hard" } as Question,
+      { question_id: 1, question_name: "Two Sum", difficulty: "Easy" } as Question,
+      { question_id: 2, question_name: "Binary Tree", difficulty: "Medium" } as Question,
+      { question_id: 3, question_name: "DP Hard", difficulty: "Hard" } as Question,
     ];
   
     const defaultProps = {

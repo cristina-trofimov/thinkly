@@ -3,8 +3,7 @@ import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type";
 import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
-import { getProfile } from '../src/api/AuthAPI';
-import { Account } from "../src/types/account/Account.type";
+import { logFrontend } from "../src/api/LoggerAPI"
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -25,24 +24,17 @@ jest.mock('../src/api/UserPreferencesAPI', () => ({
   updateLastProgLang: jest.fn()
 }))
 
-jest.mock('../src/api/AuthAPI', () => ({
-  getProfile: jest.fn()
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn()
 }))
 
-
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
-const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
+const mockedLogger = logFrontend as jest.Mock
 
 const code = "print('Hello')";
 const language_id = "71";
 const user_id = 1;
-const mockProfile: Account = {
-  id: user_id,
-  email: 'test@example.com',
-  firstName: "Test",
-  lastName: "User",
-  accountType: "Participant"
-}
+
 const question_instance_id = 1;
 const testcases: TestcaseType[] = [
   {
@@ -81,8 +73,7 @@ describe("Judge0API", () => {
 
   it("submit to judge0 and returns final output", async () => {
     const { stdin, expected_output } = parse_input_output(testcases)
-    
-    mockedGetProfile.mockResolvedValue(mockProfile)
+
     mockedAxios.post.mockResolvedValueOnce({
       data: {
         source_code: code,
@@ -92,9 +83,8 @@ describe("Judge0API", () => {
        },
     })
 
-    await submitToJudge0(question_instance_id, code, language_id, testcases);
+    await submitToJudge0(user_id, question_instance_id, code, language_id, testcases);
 
-    expect(getProfile).toHaveBeenCalled()
     expect(updateLastProgLang).toHaveBeenCalledTimes(1)
     expect(updateMostRecentSub).toHaveBeenCalledTimes(1)
     expect(mockedAxios.post).toHaveBeenCalledTimes(1)
@@ -102,7 +92,21 @@ describe("Judge0API", () => {
 
   it("throws error if axios fails", async () => {
     mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
-    await expect(submitToJudge0(question_instance_id, code, language_id, testcases))
+    await expect(submitToJudge0(user_id, question_instance_id, code, language_id, testcases))
       .rejects.toThrow("Network error")
+  })
+
+  it("throws an error if the given question instance id is undefined", async () => {
+    await expect(submitToJudge0(user_id, undefined, code, language_id, testcases))
+                .rejects.toThrow("RunCode: Question instance cannot be undefined")
+    expect(updateLastProgLang).not.toHaveBeenCalled()
+    expect(updateMostRecentSub).not.toHaveBeenCalled()
+    expect(mockedAxios.post).not.toHaveBeenCalled()
+    expect(mockedLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "ERROR",
+        component: "Judge0API",
+      })
+    );
   })
 })

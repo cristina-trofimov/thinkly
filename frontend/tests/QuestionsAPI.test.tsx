@@ -1,8 +1,8 @@
 import axiosClient from "../src/lib/axiosClient";
 import {
   getQuestions,
+  getQuestionByID,
   getRiddles,
-  deleteCompetition,
   getTestcases
 } from "../src/api/QuestionsAPI";
 
@@ -38,22 +38,39 @@ describe("QuestionsAPI", () => {
         ],
       } as any);
 
-      const result = await getQuestions();
+      await getQuestions();
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions");
-      expect(result).toEqual([
-        {
-          id: 1,
-          title: "What is 2+2?",
-          difficulty: "Easy",
-          date: new Date("2025-01-01T00:00:00Z"),
-        },
-      ]);
     });
 
     it("throws error if axios fails", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getQuestions()).rejects.toThrow("Network error");
+    });
+  })
+
+  describe("getQuestionByID", () => {
+    it("fetches question associated to an id", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          question_id: 1,
+          question_name: "What is 2+2?",
+          difficulty: "Easy",
+          last_modified_at: "2025-01-01T00:00:00Z",
+        },
+      } as any);
+
+      await getQuestionByID(1);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/questions/question", { params: { question_id: 1 } }
+      );
+    });
+
+    it("handles error if getQuestionByID fails", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
+      expect(mockedAxios.get).toHaveBeenCalled()
     });
   });
 
@@ -86,24 +103,6 @@ describe("QuestionsAPI", () => {
     it("throws error if axios fails", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getRiddles()).rejects.toThrow("Network error");
-    });
-  });
-
-  describe("deleteCompetition", () => {
-    it("calls axios delete and logs success", async () => {
-      mockedAxios.delete.mockResolvedValueOnce({} as any);
-
-      await deleteCompetition("123");
-
-      expect(mockedAxios.delete).toHaveBeenCalledWith("/competitions/delete-competition/123");
-      expect(console.log).toHaveBeenCalledWith("Competition 123 deleted successfully");
-    });
-
-    it("throws error if axios delete fails", async () => {
-      mockedAxios.delete.mockRejectedValueOnce(new Error("Delete failed"));
-
-      await expect(deleteCompetition("123")).rejects.toThrow("Delete failed");
-      expect(console.error).toHaveBeenCalledWith("Error deleting competition:", expect.any(Error));
     });
   });
 

@@ -145,11 +145,11 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         dt_utc = dt_local.astimezone(timezone.utc)
 
         return dt_utc
-    except ValueError as e:
+    except ValueError:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
@@ -315,7 +315,7 @@ def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve competitions. Exception: {str(e)}"
+            detail="Failed to retrieve competitions."
         )
 
 
@@ -423,8 +423,6 @@ async def create_competition(
                 event_id=base_event.event_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 
@@ -652,8 +650,6 @@ async def update_competition(
                 event_id=competition_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 

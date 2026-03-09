@@ -55,7 +55,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const fetchUser = async () => {
       try {
         const currentAccount = await getProfile();
-        console.log("Fetched user profile:", currentAccount);
         setUser({
           id: currentAccount.id,
           firstName: currentAccount.firstName,
@@ -94,7 +93,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/app/home">
-                <div className="bg-white text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <div className="bg-card text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Avatar>
                     <AvatarImage src="/assets/thinkly_logo.png" />
                     <AvatarFallback>T</AvatarFallback>

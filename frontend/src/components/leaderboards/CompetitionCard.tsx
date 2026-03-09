@@ -30,7 +30,7 @@ function CopyButtonContent({ state }: { readonly state: CopyButtonState }) {
   if (state === "exporting") {
     return (
       <>
-        <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />{" "}
+        <span className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />{" "}
         Fetching...
       </>
     );
@@ -67,7 +67,8 @@ export function CompetitionCard({
 }: Props) {
   const [open, setOpen] = useState(isCurrent);
   const [copied, setCopied] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [copyExporting, setCopyExporting] = useState(false);
+  const [downloadExporting, setDownloadExporting] = useState(false);
 
   const {
     trackCompetitionCardToggled,
@@ -82,17 +83,17 @@ export function CompetitionCard({
     return null;
   }
 
-  let backgroundColor = "bg-gray-50";
+  let backgroundColor = "bg-muted/50";
   if (open) {
-    backgroundColor = "bg-white";
+    backgroundColor = "bg-card";
   } else if (isCurrent) {
-    backgroundColor = "bg-purple-50";
+    backgroundColor = "bg-accent/50";
   }
 
   const statusIndicator = open ? (
-    <ChevronUp className="w-5 h-5 text-gray-600" />
+    <ChevronUp className="w-5 h-5 text-muted-foreground" />
   ) : (
-    <ChevronDown className="w-5 h-5 text-gray-600" />
+    <ChevronDown className="w-5 h-5 text-muted-foreground" />
   );
 
   const fetchAllParticipants = async () => {
@@ -111,7 +112,7 @@ export function CompetitionCard({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setExporting(true);
+    setCopyExporting(true);
     try {
       const allParticipants = await fetchAllParticipants();
       const header = ["Rank", "Name", "Total Points", "Problems Solved", "Total Time"].join("\t");
@@ -132,7 +133,7 @@ export function CompetitionCard({
         textArea.select();
         try {
           // sonar error expected, its a fall back for older browsers
-          const success = document.execCommand("copy"); // eslint-disable-line @typescript-eslint/no-deprecated
+          const success = document.execCommand("copy"); // sonar: deprecated API, fallback for older browsers
           if (!success) throw new Error("execCommand copy failed");
         } finally {
           textArea.remove();
@@ -143,13 +144,13 @@ export function CompetitionCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } finally {
-      setExporting(false);
+      setCopyExporting(false);
     }
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setExporting(true);
+    setDownloadExporting(true);
     try {
       const allParticipants = await fetchAllParticipants();
       const rows = allParticipants.map((p) => ({
@@ -186,21 +187,19 @@ export function CompetitionCard({
 
       trackLeaderboardDownloaded("competition", competition.competitionTitle);
     } finally {
-      setExporting(false);
+      setDownloadExporting(false);
     }
   };
 
   let copyButtonState: CopyButtonState = "idle";
   if (copied) {
     copyButtonState = "copied";
-  } else if (exporting) {
+  } else if (copyExporting) {
     copyButtonState = "exporting";
   }
 
   return (
-    <Card
-      className={`mb-6 shadow-sm border ${isCurrent ? "border-primary" : "border-gray-200"} ${backgroundColor}`}
-    >
+    <Card className={`mb-6 shadow-sm border ${isCurrent ? "border-primary" : "border-border"} ${backgroundColor}`}>
       <CardHeader
         onClick={handleToggle}
         className="flex flex-row items-center justify-between px-6 py-4 cursor-pointer"
@@ -209,7 +208,7 @@ export function CompetitionCard({
           <CardTitle className="text-lg font-semibold text-primary">
             {competition.competitionTitle}
           </CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {competition.date.toLocaleString("en-US", {
               weekday: "short",
               year: "numeric",
@@ -225,7 +224,7 @@ export function CompetitionCard({
         <div className="flex items-center gap-2">
           <Button
             onClick={handleCopy}
-            disabled={exporting}
+            disabled={copyExporting}
             title="Copy leaderboard to clipboard"
             variant="outline"
             className="flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-wait"
@@ -235,11 +234,11 @@ export function CompetitionCard({
 
           <Button
             onClick={handleDownload}
-            disabled={exporting}
+            disabled={downloadExporting}
             title="Download as Excel file"
             className="flex items-center gap-1.5 transition-colors disabled:cursor-wait"
           >
-            <DownloadButtonContent exporting={exporting} />
+            <DownloadButtonContent exporting={downloadExporting} />
           </Button>
 
           {statusIndicator}
@@ -247,7 +246,7 @@ export function CompetitionCard({
       </CardHeader>
 
       {open && (
-        <CardContent className="overflow-x-auto p-6 bg-white border-t">
+        <CardContent className="overflow-x-auto p-6 bg-card border-t">
           <ScoreboardDataTable
             participants={competition.participants}
             currentUserId={currentUserId}
