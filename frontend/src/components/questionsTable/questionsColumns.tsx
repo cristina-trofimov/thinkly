@@ -3,17 +3,17 @@ import type { Question } from "../../types/questions/Question.type"
    
   export const columns: ColumnDef<Question>[] = [
     {
-        accessorKey: "id",
+        accessorKey: "question_id",
         header: "No.",
       },
       {
-        accessorKey: "title",
+        accessorKey: "question_name",
         header: "Question",
       },
       {
         accessorKey: "date",
         header: "Date",
-        cell: ({ row }) => row.original.date.toLocaleDateString(),
+        cell: ({ row }) => row.original.last_modified_at.toLocaleDateString(),
       },
       {
         accessorKey: "difficulty",

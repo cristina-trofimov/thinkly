@@ -4,6 +4,8 @@ import HomePage from "../src/views/HomePage"
 import * as compApi from '../src/api/CompetitionAPI';
 import * as questionsApi from '../src/api/QuestionsAPI';
 import { logFrontend } from '../src/api/LoggerAPI'; // Import logFrontend
+import React from "react";
+import { MemoryRouter } from "react-router-dom";
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
   default: {
@@ -119,7 +121,7 @@ describe("HomePage", () => {
     })
 
     test("renders active competition call to action", async () => {
-        render(<HomePage />)
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
             expect(questionsApi.getQuestionsPage).toHaveBeenCalledWith({
@@ -135,7 +137,7 @@ describe("HomePage", () => {
     })
 
     test("renders Calendar component", async () => {
-        render(<HomePage />)
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
         await waitFor(() => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
             expect(questionsApi.getQuestionsPage).toHaveBeenCalled()
@@ -146,7 +148,7 @@ describe("HomePage", () => {
     })
 
     test("shows WebComp when November 3rd is selected", async () => {
-        render(<HomePage />)
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
 
         // Wait for competitions to be fetched
         await waitFor(() => {
@@ -165,7 +167,7 @@ describe("HomePage", () => {
     })
 
     test("shows CyberComp when November 9th is selected", async () => {
-        render(<HomePage />)
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
 
         // Wait for competitions to load
         await waitFor(() => {
@@ -184,7 +186,7 @@ describe("HomePage", () => {
     })
 
     test("shows no competitions message for dates without competitions", async () => {
-        render(<HomePage />)
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
 
         // Wait for initial load
         await waitFor(() => {
@@ -206,7 +208,7 @@ describe("HomePage", () => {
         // Mock API call to fail
         (questionsApi.getQuestionsPage as jest.Mock).mockRejectedValue(new Error("Network down"));
 
-        render(<HomePage />);
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
 
         // Wait for the fetch attempt to complete
         await waitFor(() => {
@@ -228,7 +230,7 @@ describe("HomePage", () => {
         // Mock API call to fail
         (compApi.getCompetitions as jest.Mock).mockRejectedValue(new Error("Server timeout"));
 
-        render(<HomePage />);
+        render(<MemoryRouter><HomePage /></MemoryRouter>)
 
         // Wait for the fetch attempt to complete
         await waitFor(() => {

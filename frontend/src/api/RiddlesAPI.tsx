@@ -201,8 +201,11 @@ export async function deleteRiddle(riddleId: number): Promise<void> {
 /**
  * Get a single riddle by ID
  */
-export async function getRiddleById(riddleId: number): Promise<Riddle> {
+export async function getRiddleById(riddleId: number | undefined | null): Promise<Riddle | null> {
     try {
+        if (!riddleId) {
+            return null
+        }
         const response = await axiosClient.get<RiddleDTO>(`/riddles/${riddleId}`);
         return mapRiddle(response.data);
     } catch (err) {

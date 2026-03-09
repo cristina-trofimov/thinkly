@@ -31,6 +31,7 @@ import {
 import { toast } from "sonner";
 import { updateAccount } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface ActionsCellProps {
   user: Account;
@@ -128,6 +129,7 @@ export function ActionsCell({
       </DropdownMenu>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTitle></DialogTitle>
         <DialogContent>
           <FieldSet>
             <FieldLegend className="font-semibold">Edit User</FieldLegend>

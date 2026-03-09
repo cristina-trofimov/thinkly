@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
+import { logFrontend } from "./LoggerAPI";
 
 export async function updateQuestionInstance(
   question_instance: QuestionInstance | undefined,
@@ -21,7 +22,13 @@ export async function updateQuestionInstance(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating most recent submission:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to update question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -29,11 +36,11 @@ export async function updateQuestionInstance(
 export async function getQuestionInstance(
   question_id: number,
   event_id: number | null,
-): Promise<QuestionInstance[]> {
+): Promise<QuestionInstance> {
   try {
     const response = await axiosClient.get<{
       status_code: number
-      data: QuestionInstance[]
+      data: QuestionInstance
     }>(`/instances/find`, {
           params: {
             question_id: question_id,
@@ -41,9 +48,37 @@ export async function getQuestionInstance(
           }
       })
 
+    return response['data']['data']
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetching question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
+    throw err;
+  }
+}
+
+export async function getAllQuestionInstancesByEventID(event_id: number): Promise<QuestionInstance[]> {
+  try {
+    const response = await axiosClient.get<{
+      status_code: number
+      data: QuestionInstance[]
+    }>(`/instances/by-event`, {
+          params: { event_id: event_id }
+      })
+
     return response['data']['data'] || []
   } catch (err) {
-    console.error("Error fetching most recent submission:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetching all question instances of an event. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }

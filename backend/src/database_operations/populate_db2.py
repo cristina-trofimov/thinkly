@@ -200,9 +200,7 @@
 #                 qi = QuestionInstance(
 #                     question_id=q.question_id,
 #                     event_id=comp.event_id,
-#                     points=random.choice([100, 200, 300]),
 #                     riddle_id=random.choice(riddles).riddle_id if random.random() > 0.5 else None,
-#                     is_riddle_completed=False,
 #                 )
 #                 db.add(qi)
 #                 db.flush()

@@ -70,6 +70,7 @@ export default function EditCompetitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTitle></DialogTitle>
       <DialogContent
         className="sm:max-w-[95vw] h-[90vh] p-0 flex flex-col overflow-hidden"
         onPointerDownOutside={(e) => e.preventDefault()}

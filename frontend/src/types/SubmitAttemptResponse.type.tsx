@@ -1,5 +1,4 @@
 import type { CodeRunResponse } from "./CodeRunResponse.type";
-import type { QuestionInstance } from "./questions/QuestionInstance.type";
 
 export interface SubmitAttemptResponse {
     codeRunResponse: CodeRunResponse,
@@ -7,5 +6,5 @@ export interface SubmitAttemptResponse {
         status_code: number,
         message: string,
     },
-    questionInstance: QuestionInstance
+    leaderboard: null //| leaderboard type to be clarified
 }

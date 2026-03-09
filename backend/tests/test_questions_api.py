@@ -68,28 +68,16 @@ def test_get_all_questions_success(client, mock_db):
     # We use SimpleNamespace so we can access attributes like q.title via dot notation
     fake_questions = [
         SimpleNamespace(
-            question_id=1,
-            question_name="Two Sum",
-            question_description="Add two integers",
-            media=None,
-            preset_code="",
-            from_string_function="",
-            to_string_function="",
-            template_solution="def solve(): pass",
+            question_id=1, 
+            question_name="Two Sum", 
             difficulty="Easy",
             created_at=datetime(2025, 1, 10, 12, 0, 0),
             last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
             tags=[SimpleNamespace(tag_id=1, tag_name="arrays")],
         ),
         SimpleNamespace(
-            question_id=2,
-            question_name="Reverse Linked List",
-            question_description="Reverse a linked list",
-            media=None,
-            preset_code="",
-            from_string_function="",
-            to_string_function="",
-            template_solution="def solve(): pass",
+            question_id=2, 
+            question_name="Reverse Linked List", 
             difficulty="Medium",
             created_at=datetime(2025, 2, 15, 14, 30, 0),
             last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
@@ -107,19 +95,16 @@ def test_get_all_questions_success(client, mock_db):
     # 3. Assert
     assert response.status_code == 200
     data = response.json()
-
-    assert data["total"] == 2
-    assert data["page"] == 1
-    assert data["page_size"] == 25
-    assert len(data["items"]) == 2
-    assert data["items"][0]["question_id"] == 1
-    assert data["items"][0]["question_name"] == "Two Sum"
-    assert data["items"][0]["difficulty"] == "Easy"
-    assert data["items"][0]["tags"] == [{"tag_id": 1, "tag_name": "arrays"}]
-    assert "2025-01-10" in data["items"][0]["created_at"]
-    assert response.headers["cache-control"] == "public, max-age=60"
-
-
+    
+    # Verify the count
+    assert len(data) == 2
+    
+    # Verify the content of the first item
+    assert data[0]["question_id"] == 1
+    assert data[0]["question_name"] == "Two Sum"
+    assert data[0]["difficulty"] == "Easy"
+    # Verify date handling (FastAPI usually serializes datetime to ISO string)
+    assert "2025-01-10" in data[0]["created_at"]
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 
@@ -179,6 +164,50 @@ def test_get_all_questions_db_error(client, mock_db):
     assert response.status_code == 500
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
+
+def test_get_question_success(client, mock_db):
+    """Test the path where the question is returned correctly."""
+    
+    fake_question = {
+            'question_id': 1,
+            'question_name': "Two Sum", 
+            'question_description': 'question.question_description',
+            'difficulty': "Easy",
+            'created_at': datetime(2025, 1, 10, 12, 0, 0),
+    }
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = fake_question
+
+    response = client.get("/question?question_id=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['data']["question_id"] == 1
+    assert data['data']["question_name"] == "Two Sum"
+    assert data['data']["difficulty"] == "Easy"
+    assert "2025-01-10" in data['data']["created_at"]
+
+def test_get_question_empty(client, mock_db):
+    """Test when the database doesn't have the question."""
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.get("/question?question_id=10")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['data'] == None
+
+def test_get_question_db_error(client, mock_db):
+    """Test how the endpoint handles a database exception."""
+    
+    mock_db.query.return_value.filter_by.side_effect = Exception("Database Timeout")
+
+    response = client.get("/question?question_id=10")
+
+    assert response.status_code == 500
+    assert "Failed to retrieve question" in response.json()["detail"]
+    assert "Exception" in response.json()["detail"]
 
 def test_upload_question_success(client, mock_db):
     """Test uploading a single question successfully."""

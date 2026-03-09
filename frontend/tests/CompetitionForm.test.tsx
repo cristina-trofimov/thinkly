@@ -9,6 +9,7 @@ import type { Question } from "../src/types/questions/Question.type";
 import type { Riddle } from "../src/types/riddle/Riddle.type";
 import type { DropResult } from "@hello-pangea/dnd";
 import axiosClient from '../src/lib/axiosClient';
+import React from "react";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -52,47 +53,135 @@ jest.mock("../src/components/ui/button", () => ({
   ),
 }));
 
+// Helper mock
+const getItemId = (item: any): string | number => {
+  if (item.id !== undefined) return item.id;
+  if (item.question_id !== undefined) return item.question_id;
+  // Fallback for testing - use a combination of properties or generate one
+  console.warn('Item missing both id and question_id:', item);
+  return item.title || item.question || Math.random().toString();
+};
 jest.mock("../src/components/createActivity/SelectionCard", () => ({
-  SelectionCard: ({ title, orderedItems, onAdd, onRemove, onMove, onDragEnd, availableItems, isInvalid, droppableIdPrefix, renderExtraInfo }: any) => (
+  SelectionCard: ({ 
+    title, 
+    orderedItems, 
+    onAdd, 
+    onRemove, 
+    onMove, 
+    onDragEnd, 
+    availableItems, 
+    isInvalid, 
+    droppableIdPrefix, 
+    renderExtraInfo,
+    renderItemTitle = (item: any) => item.title || item.question || 'Item' // Default renderer
+  }: any) => (
     <div data-testid={`selection-card-${title.props?.children?.[0] || title}`}>
       <div>{title}</div>
       {isInvalid && <span data-testid="invalid-marker">Invalid</span>}
+      
+      {/* Ordered Items Column */}
       <div data-testid="ordered-items">
-        {orderedItems.map((item: any, index: number) => (
-          <div key={item.id} data-testid={`ordered-${droppableIdPrefix}-${item.id}`}>
-            {item.title || item.question}
-            {renderExtraInfo && <span data-testid={`extra-info-${item.id}`}>{renderExtraInfo(item)}</span>}
-            <button onClick={() => onRemove(item.id)}>Remove</button>
-            <button onClick={() => onMove(index, 'up')} data-testid={`move-up-${droppableIdPrefix}-${index}`}>Up</button>
-            <button onClick={() => onMove(index, 'down')} data-testid={`move-down-${droppableIdPrefix}-${index}`}>Down</button>
-          </div>
-        ))}
+        {orderedItems.map((item: any, index: number) => {
+          const itemId = getItemId(item);
+          return (
+            <div key={itemId} data-testid={`ordered-${droppableIdPrefix}-${itemId}`}>
+              <span data-testid={`ordered-title-${itemId}`}>{renderItemTitle(item)}</span>
+              {renderExtraInfo && (
+                <span data-testid={`extra-info-${itemId}`}>
+                  {renderExtraInfo(item)}
+                </span>
+              )}
+              <button 
+                onClick={() => onRemove(itemId)}
+                data-testid={`remove-${droppableIdPrefix}-${itemId}`}
+              >
+                Remove
+              </button>
+              <button 
+                onClick={() => onMove(index, 'up')} 
+                data-testid={`move-up-${droppableIdPrefix}-${index}`}
+                disabled={index === 0}
+              >
+                Up
+              </button>
+              <button 
+                onClick={() => onMove(index, 'down')} 
+                data-testid={`move-down-${droppableIdPrefix}-${index}`}
+                disabled={index === orderedItems.length - 1}
+              >
+                Down
+              </button>
+            </div>
+          );
+        })}
       </div>
+
+      {/* Available Items Column */}
       <div data-testid="available-items">
-        {availableItems.map((item: any) => (
-          <div key={item.id} data-testid={`available-${droppableIdPrefix}-${item.id}`}>
-            {item.title || item.question}
-            <button onClick={() => onAdd(item)}>Add</button>
-          </div>
-        ))}
+        {availableItems.map((item: any) => {
+          const itemId = getItemId(item);
+          return (
+            <div key={itemId} data-testid={`available-${droppableIdPrefix}-${itemId}`}>
+              <span data-testid={`available-title-${itemId}`}>{renderItemTitle(item)}</span>
+              <button 
+                onClick={() => onAdd(item)}
+                data-testid={`add-${droppableIdPrefix}-${itemId}`}
+              >
+                Add
+              </button>
+            </div>
+          );
+        })}
       </div>
-      <button 
-        data-testid={`trigger-drag-${droppableIdPrefix}`}
-        onClick={() => {
-          // Simulate drag end for testing - only if there are available items
-          if (onDragEnd && availableItems.length > 0) {
-            onDragEnd({
-              source: { droppableId: `${droppableIdPrefix}-available`, index: 0 },
-              destination: { droppableId: `${droppableIdPrefix}-ordered`, index: 0 },
-            } as DropResult);
-          }
-        }}
-      >
-        Trigger Drag
-      </button>
+
+      {/* Drag & Drop Simulation Buttons */}
+      <div data-testid="dnd-controls">
+        <button 
+          data-testid={`trigger-drag-${droppableIdPrefix}`}
+          onClick={() => {
+            if (onDragEnd && availableItems.length > 0) {
+              onDragEnd({
+                source: { droppableId: `${droppableIdPrefix}-available`, index: 0 },
+                destination: { droppableId: `${droppableIdPrefix}-ordered`, index: 0 },
+              } as DropResult);
+            }
+          }}
+        >
+          Trigger Drag (First to Ordered)
+        </button>
+
+        <button 
+          data-testid={`trigger-reorder-${droppableIdPrefix}`}
+          onClick={() => {
+            if (onDragEnd && orderedItems.length > 1) {
+              onDragEnd({
+                source: { droppableId: `${droppableIdPrefix}-ordered`, index: 0 },
+                destination: { droppableId: `${droppableIdPrefix}-ordered`, index: 1 },
+              } as DropResult);
+            }
+          }}
+        >
+          Trigger Reorder
+        </button>
+
+        <button 
+          data-testid={`trigger-remove-drag-${droppableIdPrefix}`}
+          onClick={() => {
+            if (onDragEnd && orderedItems.length > 0) {
+              onDragEnd({
+                source: { droppableId: `${droppableIdPrefix}-ordered`, index: 0 },
+                destination: { droppableId: `${droppableIdPrefix}-available`, index: 0 },
+              } as DropResult);
+            }
+          }}
+        >
+          Trigger Drag (Back to Available)
+        </button>
+      </div>
     </div>
   ),
 }));
+
 
 jest.mock("../src/components/createActivity/GeneralInfoCard", () => ({
   GeneralInfoCard: ({ data, errors, onChange }: any) => (
@@ -190,22 +279,22 @@ jest.mock("../src/components/createActivity/NotificationsCard", () => ({
 describe("CompetitionForm", () => {
   const mockQuestions: Question[] = [
     {
-      id: 1,
-      title: "Two Sum",
+      question_id: 1,
+      question_name: "Two Sum",
       difficulty: "Easy",
-      description: "Find two numbers",
+      question_description: "Find two numbers",
     },
     {
-      id: 2,
-      title: "Binary Search",
+      question_id: 2,
+      question_name: "Binary Search",
       difficulty: "Medium",
-      description: "Implement binary search",
+      question_description: "Implement binary search",
     },
     {
-      id: 3,
-      title: "Merge Sort",
+      question_id: 3,
+      question_name: "Merge Sort",
       difficulty: "Hard",
-      description: "Implement merge sort",
+      question_description: "Implement merge sort",
     },
   ] as Question[];
 

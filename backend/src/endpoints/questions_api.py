@@ -161,6 +161,20 @@ def get_all_questions(
         raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
 
 
+@questions_router.get(
+    "/question",
+    responses={500: {"description": "Failed to retrieve question."}}
+)
+def get_question(db: Annotated[str, Depends(get_db)], question_id: int):
+    try:
+        question = db.query(Question).filter_by(question_id = question_id).first()
+        logger.info("Fetched question from the database.")
+        return { 'status_code': 200, 'data': question}
+    except Exception as e:
+        logger.error(f"Error fetching question: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question. Exception: {str(e)}")
+
+
 class CreateQuestionRequest(BaseModel):
     question_name: str
     question_description: str

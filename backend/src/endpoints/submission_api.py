@@ -56,7 +56,7 @@ def save_sub(
         db.add(Submission(
             user_id = sub_request['user_id'],
             question_instance_id = int(sub_request['question_instance_id']),
-            compile_output = sub_request['compile_output'],
+            compile_output = sub_request['compile_output'] if sub_request['compile_output'] is not None else None,
             submitted_on = sub_request['submitted_on'],
             runtime = float(sub_request['runtime']) if sub_request['runtime'] is not None else None,
             status = sub_request['status'],

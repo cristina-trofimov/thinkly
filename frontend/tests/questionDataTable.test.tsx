@@ -69,30 +69,36 @@ jest.mock("../src/components/ui/select", () => ({
 
 // Sample columns and data
 const columns: ColumnDef<Question, any>[] = [
-  { accessorKey: "title", header: "Question Title" },
+  { accessorKey: "question_name", header: "Question Title" },
   { accessorKey: "difficulty", header: "Difficulty" },
 ]
 
 const data: Question[] = [
   {
-    id: 1,
-    title: "Two Sum",
+    question_id: 1,
+    question_name: "Two Sum",
     difficulty: "Easy",
-    description: "Test description",
+    question_description: "Test description",
     media: "",
     preset_code: "",
     template_solution: "",
-    date: new Date("2024-01-01")
+    to_string_function: "",
+    from_string_function: "",
+    created_at: new Date("2024-01-01"),
+    last_modified_at: new Date("2024-01-01"),
   },
   {
-    id: 2,
-    title: "Palindrome",
+    question_id: 2,
+    question_name: "Palindrome",
     difficulty: "Medium",
-    description: "Test description",
+    question_description: "Test description",
     media: "",
     preset_code: "",
     template_solution: "",
-    date: new Date("2024-01-02")
+    to_string_function: "",
+    from_string_function: "",
+    created_at: new Date("2024-01-02"),
+    last_modified_at: new Date("2024-01-01"),
   },
 ]
 

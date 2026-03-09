@@ -118,7 +118,7 @@ export function DataTable<TData extends Question, TValue>({
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearchChange = (value: string) => {
-    onSearchChange(value);
+    table.getColumn("question_name")?.setFilterValue(value);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -140,7 +140,9 @@ export function DataTable<TData extends Question, TValue>({
       <div className="flex items-center mb-3 gap-3">
         <Input
           placeholder="Search questions..."
-          value={search}
+          value={
+            (table.getColumn("question_name")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) => handleSearchChange(event.target.value)}
           className="max-w-sm w-[250px]"
         />
@@ -211,11 +213,11 @@ export function DataTable<TData extends Question, TValue>({
                 onClick={() => {
                   const question = row.original;
                   trackQuestionClicked(
-                    question.title,
+                    question.question_name,
                     question.difficulty,
-                    question.id
+                    question.question_id
                   );
-                  nav(`/app/code/${question.title}`, {
+                  nav(`/app/code/${question.question_name}`, {
                     state: {
                       fromFeed: true,
                       problem: question,
