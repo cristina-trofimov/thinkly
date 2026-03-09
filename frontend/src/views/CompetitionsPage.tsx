@@ -60,20 +60,20 @@ const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
 const getCardGradient = (status: "Active" | "Upcoming" | "Completed") => {
   switch (status) {
     case "Active":
-      return "from-green-100/60 via-green-50/40 to-background";
+      return "from-green-900/50 via-green-800/20 to-transparent dark:from-green-900/50 dark:via-green-800/20 light:from-green-100/60 light:via-green-50/40";
     case "Upcoming":
-      return "from-blue-100/60 via-blue-50/40 to-background";
+      return "from-blue-900/50 via-blue-800/20 to-transparent dark:from-blue-900/50 dark:via-blue-800/20 light:from-blue-100/60 light:via-blue-50/40";
     default:
-      return "from-muted/40 via-muted/20 to-background";
+      return "from-muted/30 via-muted/10 to-transparent";
   }
 };
 
 const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
   switch (status) {
     case "Active":
-      return "border-2 border-green-300";
+      return "border-2 border-green-700 dark:border-green-700";
     case "Upcoming":
-      return "border-2 border-blue-200";
+      return "border-2 border-blue-700 dark:border-blue-700";
     default:
       return "border border-border opacity-70";
   }
@@ -82,9 +82,9 @@ const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
 const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
   switch (status) {
     case "Active":
-      return "text-green-800";
+      return "text-green-400 dark:text-green-400";
     case "Upcoming":
-      return "text-blue-700";
+      return "text-blue-400 dark:text-blue-400";
     default:
       return "text-muted-foreground";
   }
