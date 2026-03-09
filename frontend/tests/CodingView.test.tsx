@@ -7,15 +7,15 @@ import { useLocation } from 'react-router-dom'
 import { Question } from '../src/types/questions/Question.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
-import { Account } from '../src/types/account/Account.type'
 import { CodeRunResponse } from '../src/types/CodeRunResponse.type'
 import { SubmitAttemptResponse } from '../src/types/SubmitAttemptResponse.type'
+import { Account } from '../src/types/account/Account.type'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
-import { getProfile } from '../src/api/AuthAPI';
 import { UserPreferences } from '../src/types/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/CodeSubmissionAPI'
 import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
+import { getProfile } from '../src/api/AuthAPI'
 import { toast } from 'sonner'
 
 
@@ -170,8 +170,8 @@ jest.mock('../src/components/helpers/useTestcases')
 const mockedToast = toast as jest.Mocked<typeof toast>
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
-const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
+const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
 
 const mockProblem: Question = {
     id: 1,
@@ -203,19 +203,20 @@ const event_id = 1
 const source_code = "print('Hello')"
 const language_id = "71"
 
-const mockProfile: Account = {
-    id: user_id,
-    email: 'test@example.com',
-    firstName: "Test",
-    lastName: "User",
-    accountType: "Participant"
-}
 
 const mockMostRecentSubResponse: MostRecentSub = {
     user_id: user_id,
     question_instance_id: question_instance_id,
     code: source_code,
     lang_judge_id: parseInt(language_id)
+}
+
+const mockProfile: Account = {
+    id: user_id,
+    firstName: "John",
+    lastName: "string",
+    email: "string@smt.com",
+    accountType: "Participant"
 }
 
 const mockJudge0Response = {
@@ -250,9 +251,7 @@ const mockQuestionInstances: QuestionInstance[] = [{
     question_instance_id: question_instance_id,
     question_id: question_id,
     event_id: event_id,
-    points: null,
     riddle_id: null,
-    is_riddle_completed: null
 }]
 
 const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
@@ -304,7 +303,6 @@ describe('CodingView Component', () => {
             activeTestcase: 'Case 1',
             setActiveTestcase,
         })
-
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', () => {
@@ -429,7 +427,6 @@ describe('CodingView Component', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
 
         expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
 
         expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message, expect.objectContaining({
             position: 'top-right',
@@ -449,7 +446,6 @@ describe('CodingView Component', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
 
         expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
 
         expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message, expect.objectContaining({
             position: 'top-right',
@@ -460,9 +456,8 @@ describe('CodingView Component', () => {
 
     it('handles failed code submission', async () => {
         mockedSubmitAttempt.mockRejectedValueOnce(new Error("Network error"))
-        mockedGetProfile.mockResolvedValue(mockProfile)
 
-        await expect(submitAttempt(question_id, user_id, null, "code", language_id, []))
+        await expect(submitAttempt(user_id, question_id, null, "code", language_id, []))
             .rejects.toThrow("Network error")
     })
 
@@ -479,7 +474,6 @@ describe('CodingView Component', () => {
 
     it('execute code and updates logs when run button is clicked', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        mockedGetProfile.mockResolvedValue(mockProfile)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
 
         render(<CodingView />)
@@ -489,16 +483,14 @@ describe('CodingView Component', () => {
         await userEvent.click(playButton!)
 
         expect(submitToJudge0).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
         expect(getQuestionInstance).toHaveBeenCalled()
     })
 
     it('handles failed code execution', async () => {
         mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Network error"))
-        mockedGetProfile.mockResolvedValue(mockProfile)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
 
-        await expect(submitToJudge0(user_id, question_instance_id, "code", language_id, []))
+        await expect(submitToJudge0(question_instance_id, "code", language_id, []))
             .rejects.toThrow("Network error")
     })
 
@@ -513,7 +505,6 @@ describe('CodingView Component', () => {
 
     it('handles async loading state during code execution', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        mockedGetProfile.mockResolvedValue(mockProfile)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances)
 
         render(<CodingView />)

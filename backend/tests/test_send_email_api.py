@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from email_validator import EmailNotValidError
 from fastapi import HTTPException
@@ -10,52 +10,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.endpoints.send_email_api import (
-    normalize_iso_utc,
     send_email_via_brevo,
     send_email,
     health,
     index,
     SendEmailRequest
 )
-
-
-class TestNormalizeIsoUtc:
-    """Tests for normalize_iso_utc helper function"""
-
-    def test_normalize_none(self):
-        """Test with None input"""
-        result = normalize_iso_utc(None)
-        assert result is None
-
-    def test_normalize_empty_string(self):
-        """Test with empty string"""
-        result = normalize_iso_utc("")
-        assert result is None
-
-    def test_normalize_with_z_suffix(self):
-        """Test ISO string with Z suffix"""
-        result = normalize_iso_utc("2025-01-15T10:30:00Z")
-        assert result == "2025-01-15T10:30:00Z"
-
-    def test_normalize_with_timezone(self):
-        """Test ISO string with timezone offset"""
-        result = normalize_iso_utc("2025-01-15T10:30:00+00:00")
-        assert result == "2025-01-15T10:30:00Z"
-
-    def test_normalize_without_timezone(self):
-        """Test ISO string without timezone (assumes UTC)"""
-        result = normalize_iso_utc("2025-01-15T10:30:00")
-        assert result == "2025-01-15T10:30:00Z"
-
-    def test_normalize_invalid_format(self):
-        """Test with invalid ISO format"""
-        result = normalize_iso_utc("invalid-date")
-        assert result is None
-
-    def test_normalize_with_whitespace(self):
-        """Test ISO string with whitespace"""
-        result = normalize_iso_utc("  2025-01-15T10:30:00Z  ")
-        assert result == "2025-01-15T10:30:00Z"
 
 
 class TestSendEmailViaBrevo(unittest.TestCase):
@@ -100,27 +60,6 @@ class TestSendEmailViaBrevo(unittest.TestCase):
 
         assert result["brevo"]["messageId"] == "html123"
 
-    @patch("src.endpoints.send_email_api.validate_email")
-    @patch("src.endpoints.send_email_api.requests")
-    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
-    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
-    def test_send_email_scheduled(self, mock_requests, mock_validate):
-        mock_validate.return_value = None
-
-        mock_response = Mock(status_code=201)
-        mock_response.json.return_value = {"messageId": "scheduled123"}
-        mock_requests.post.return_value = mock_response
-
-        result = send_email_via_brevo(
-            to=["user@example.com"],
-            subject="Scheduled",
-            text="Body",
-            send_at="2025-12-31T10:00:00Z"
-        )
-
-        assert result["brevo"]["messageId"] == "scheduled123"
-
-
     @patch('src.endpoints.send_email_api.BREVO_API_KEY', 'test-key')
     @patch('src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL', 'invalid-email')
     def test_send_email_invalid_sender(self):
@@ -158,12 +97,8 @@ class TestSendEmailViaBrevo(unittest.TestCase):
             )
 
     @patch("src.endpoints.send_email_api.validate_email")
-    @patch("src.endpoints.send_email_api.requests")
-    @patch.dict("src.endpoints.send_email_api.__dict__", {"BREVO_API_KEY": "test-key",
-                                                          "DEFAULT_SENDER_EMAIL": "sender@example.com",
-                                                          "DEFAULT_SENDER_NAME": "Test Sender"})
-    def test_send_email_empty_subject(self, mock_requests, mock_validate):
-        """Test sending email with empty subject raises ValueError"""
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
+    def test_send_email_empty_subject(self, mock_validate):
         mock_validate.return_value = None
 
         with pytest.raises(ValueError, match="Email subject is required"):
@@ -201,7 +136,6 @@ class TestSendEmailViaBrevo(unittest.TestCase):
                 text="Fail content"
             )
 
-        # ✅ Check the exception message only
         assert "Network error" in str(exc.value)
 
     @patch("src.endpoints.send_email_api.validate_email")
@@ -242,32 +176,64 @@ class TestSendEmailViaBrevo(unittest.TestCase):
         assert result["brevo"]["messageId"] == "msg-123"
 
 
-# class TestSendEmailEndpoint:
-#     """Tests for send_email endpoint"""
+class TestSendEmailEndpoint:
+    """Tests for send_email endpoint"""
 
     @pytest.mark.asyncio
-    @patch( "src.endpoints.send_email_api.send_email_via_brevo", new_callable=AsyncMock)
-    async def test_send_email_success(self, mock_send):
+    @patch("src.endpoints.send_email_api.track_custom_event")
+    @patch("src.endpoints.send_email_api.send_email_via_brevo")
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
+    async def test_send_email_success(self, mock_send, mock_track):
         mock_send.return_value = {"brevo": {"messageId": "msg-123"}}
 
-        request = Mock(to=["a@b.com"], subject="Test", text="Body", sendAt=None)
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
 
         result = await send_email(request)
 
         assert result["ok"] is True
-        mock_send.assert_awaited_once()
+        mock_send.assert_called_once()
+        mock_track.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("src.endpoints.send_email_api.send_email_via_brevo", new_callable=AsyncMock)
+    @patch("src.endpoints.send_email_api.send_email_via_brevo")
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
     async def test_send_email_error(self, mock_send):
         mock_send.side_effect = Exception("fail")
 
-        request = Mock(to=["a@b.com"], subject="Test", text="Body", sendAt=None)
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
 
-        with pytest.raises(HTTPException):
+        with pytest.raises(HTTPException) as exc:
             await send_email(request)
 
-        mock_send.assert_awaited_once()
+        assert exc.value.status_code == 400
+        assert exc.value.detail == "Error sending email."
+        mock_send.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", None)
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
+    async def test_send_email_503_when_api_key_missing(self):
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
+
+        with pytest.raises(HTTPException) as exc:
+            await send_email(request)
+
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "Email service is not configured."
+
+    @pytest.mark.asyncio
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", None)
+    async def test_send_email_503_when_sender_email_missing(self):
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
+
+        with pytest.raises(HTTPException) as exc:
+            await send_email(request)
+
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "Email service is not configured."
 
 
 class TestSendEmailRequestModel:
@@ -275,7 +241,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_valid_request(self, mock_validate):
-        """Test valid email request"""
         mock_validate.return_value = True
 
         request = SendEmailRequest(
@@ -286,23 +251,8 @@ class TestSendEmailRequestModel:
         assert request.to == ["test@example.com"]
         assert request.subject == "Test Subject"
         assert request.text == "Test body"
-        assert request.sendAt is None
-
-    @patch('src.endpoints.send_email_api.validate_email')
-    def test_request_with_schedule(self, mock_validate):
-        """Test request with scheduled time"""
-        mock_validate.return_value = True
-
-        request = SendEmailRequest(
-            to=["test@example.com"],
-            subject="Test",
-            text="Body",
-            sendAt="2025-01-20T10:00:00Z"
-        )
-        assert request.sendAt == "2025-01-20T10:00:00Z"
 
     def test_invalid_recipient_empty_list(self):
-        """Test validation with empty recipient list"""
         with pytest.raises(ValueError):
             SendEmailRequest(
                 to=[],
@@ -312,8 +262,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_invalid_recipient_email(self, mock_validate):
-        """Test validation with invalid email"""
-        from email_validator import EmailNotValidError
         mock_validate.side_effect = EmailNotValidError("Invalid email")
 
         with pytest.raises(ValueError):
@@ -325,7 +273,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_empty_subject(self, mock_validate):
-        """Test validation with empty subject"""
         mock_validate.return_value = True
 
         with pytest.raises(ValueError):
@@ -337,7 +284,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_empty_text(self, mock_validate):
-        """Test validation with empty text"""
         mock_validate.return_value = True
 
         with pytest.raises(ValueError):
@@ -349,7 +295,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_whitespace_trimming(self, mock_validate):
-        """Test that whitespace is trimmed from subject and text"""
         mock_validate.return_value = True
 
         request = SendEmailRequest(
@@ -362,7 +307,6 @@ class TestSendEmailRequestModel:
 
     @patch('src.endpoints.send_email_api.validate_email')
     def test_multiple_recipients(self, mock_validate):
-        """Test with multiple recipients"""
         mock_validate.return_value = True
 
         request = SendEmailRequest(
@@ -377,12 +321,10 @@ class TestHealthAndIndexEndpoints:
     """Tests for health and index endpoints"""
 
     def test_health_endpoint(self):
-        """Test health check endpoint"""
         result = health()
         assert result == {"ok": True}
 
     def test_index_endpoint(self):
-        """Test index endpoint"""
         result = index()
         assert result["ok"] is True
         assert "endpoints" in result

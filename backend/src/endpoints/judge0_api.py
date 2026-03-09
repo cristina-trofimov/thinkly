@@ -4,7 +4,7 @@ import requests
 from fastapi import APIRouter, HTTPException
 from dotenv import load_dotenv
 import logging
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +152,6 @@ def judge0_run_code(request: dict):
             user_id=str(user_id),
         )
         return {"ok": True, "status_code": 200, **response}
-    except Exception as e:
+    except Exception:
         # Error is already tracked in submit_to_judge0, just raise HTTP exception
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Failed to run code.")

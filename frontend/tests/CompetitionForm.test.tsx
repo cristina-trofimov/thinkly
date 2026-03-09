@@ -920,7 +920,7 @@ describe("CompetitionForm", () => {
         selectedRiddles: [1],
         emailEnabled: true,
         emailNotification: {
-          to: "all participants",
+          to: "all",
           subject: "Competition Alert",
           body: "Get ready!",
           sendInOneMinute: false,
@@ -1235,7 +1235,7 @@ describe("CompetitionForm", () => {
         expect(mockOnSubmit).toHaveBeenCalledWith(
           expect.objectContaining({
             emailNotification: expect.objectContaining({
-              to: "all participants",
+              to: "all",
               subject: "Competition Reminder",
               sendInOneMinute: false,
             }),

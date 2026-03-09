@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, Participation, CompetitionLeaderboardEntry
-from DB_Methods.database import get_db, _commit_or_rollback
+from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
+    CompetitionLeaderboardEntry
+from database_operations.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
 import logging
@@ -9,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 TIMEZONE_NEW_YORK = "America/New_York"
 LOCAL_TZ = ZoneInfo(TIMEZONE_NEW_YORK)
@@ -144,11 +145,11 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         dt_utc = dt_local.astimezone(timezone.utc)
 
         return dt_utc
-    except ValueError as e:
+    except ValueError:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
@@ -234,9 +235,33 @@ def create_competition_emails(
 
 
 def resolve_email_recipients(db: Session, recipient_str: str) -> List[str]:
-    """Resolve recipient string to list of email addresses."""
-    if recipient_str.strip().lower() == "all participants":
-        return [u.email for u in db.query(UserAccount).all()]
+    if recipient_str.strip().lower() in ("all", "all participants", "all users"):
+        try:
+            # Fetch all user emails first, then filter by preference in Python
+            # to avoid issues with missing UserPreferences rows
+            all_users = db.query(UserAccount.user_id, UserAccount.email).all()
+
+            opted_out_ids = {
+                row.user_id
+                for row in db.query(UserPreferences.user_id)
+                .filter(UserPreferences.notifications_enabled == False)  # noqa: E712
+                .all()
+            }
+
+            recipients = [
+                user.email
+                for user in all_users
+                if user.user_id not in opted_out_ids and user.email
+            ]
+
+            logger.info(f"Resolved {len(recipients)} recipients from 'all participants'")
+            return recipients
+
+        except Exception as e:
+            logger.error(f"Failed to resolve 'all participants' recipients: {str(e)}")
+            # Return empty list rather than crashing the whole request
+            return []
+
     return [e.strip() for e in recipient_str.split(",") if e.strip()]
 
 
@@ -264,8 +289,7 @@ def send_competition_emails(
         send_email_via_brevo(
             to=recipients,
             subject=email_notification.subject,
-            text=email_notification.body,
-            sendAt=email_notification.sendAtLocal
+            text=email_notification.body
         )
 
 
@@ -291,14 +315,14 @@ def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve competitions. Exception: {str(e)}"
+            detail="Failed to retrieve competitions."
         )
 
 
 @competitions_router.get("/list", response_model=List[CompetitionResponse])
 async def list_competitions(
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     List all competitions with detailed information.
@@ -319,12 +343,12 @@ async def list_competitions(
         for base_event, competition in competitions:
             question_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                ~QuestionInstance.is_riddle
+                QuestionInstance.riddle_id.is_(None)
             ).count()
 
             riddle_count = db.query(QuestionInstance).filter(
                 QuestionInstance.event_id == base_event.event_id,
-                QuestionInstance.is_riddle
+                QuestionInstance.riddle_id.isnot(None)
             ).count()
 
             result.append(CompetitionResponse(
@@ -353,15 +377,16 @@ async def list_competitions(
 
 @competitions_router.post("/create", response_model=CompetitionResponse, status_code=status.HTTP_201_CREATED)
 async def create_competition(
-    request: CreateCompetitionRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        request: CreateCompetitionRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
+    logger.info(f"User attempting to create competition: {request.name}")
 
     if check_competition_name_exists(db, request.name):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Competition with name '{request.name}' already exists")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Competition with name '{request.name}' already exists")
 
     start_dt = parse_datetime_from_request(request.date, request.startTime)
     end_dt = parse_datetime_from_request(request.date, request.endTime)
@@ -397,17 +422,27 @@ async def create_competition(
             question_instance = QuestionInstance(
                 event_id=base_event.event_id,
                 question_id=question_id,
-                riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
+                riddle_id=riddle_id
             )
             db.add(question_instance)
 
         _commit_or_rollback(db)
         logger.info(f"Added {len(request.selectedQuestions)} question+riddle pairs")
 
+        # ----------------------------------------------------------------
+        # Email step: isolated so a failure here does NOT roll back
+        # the already-committed competition. We log and continue.
+        # ----------------------------------------------------------------
         if request.emailEnabled and request.emailNotification:
-            send_competition_emails(db, competition, request.emailNotification, start_dt)
+            try:
+                send_competition_emails(db, competition, request.emailNotification, start_dt)
+            except Exception as email_err:
+                logger.error(
+                    f"Competition {base_event.event_id} created successfully, "
+                    f"but email scheduling failed: {email_err}"
+                )
+                # Competition is saved — don't re-raise, just warn.
+                # The frontend will still get a 201 and navigate away normally.
 
         # Track competition creation
         track_custom_event(
@@ -444,14 +479,15 @@ async def create_competition(
     except Exception as e:
         logger.exception(f"FATAL error during competition creation: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error during competition creation")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Internal server error during competition creation")
 
 
 @competitions_router.get("/{competition_id}", response_model=DetailedCompetitionResponse)
 async def get_competition_detailed(
-    competition_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Get full details of a competition for editing purposes.
@@ -556,14 +592,13 @@ async def get_competition_detailed(
 
 @competitions_router.put("/{competition_id}", response_model=CompetitionResponse)
 async def update_competition(
-    competition_id: int,
-    request: CreateCompetitionRequest,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        request: CreateCompetitionRequest,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
-
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
+    logger.info(f"User attempting to update competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
@@ -615,8 +650,6 @@ async def update_competition(
                 event_id=competition_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 
@@ -625,15 +658,25 @@ async def update_competition(
             CompetitionEmail.competition_id == competition_id
         ).delete()
 
-        if request.emailEnabled and request.emailNotification:
-            create_competition_emails(
-                db,
-                competition,
-                request.emailNotification,
-                start_dt
-            )
-
         _commit_or_rollback(db)
+
+        # ----------------------------------------------------------------
+        # Email step: isolated so a failure here does NOT roll back
+        # the already-committed update.
+        # ----------------------------------------------------------------
+        if request.emailEnabled and request.emailNotification:
+            try:
+                create_competition_emails(
+                    db,
+                    competition,
+                    request.emailNotification,
+                    start_dt
+                )
+            except Exception as email_err:
+                logger.error(
+                    f"Competition {competition_id} updated successfully, "
+                    f"but email scheduling failed: {email_err}"
+                )
 
         logger.info(f"SUCCESSFUL UPDATE: Competition '{request.name}' (ID: {competition_id}) by '{user_email}'")
 
@@ -678,9 +721,9 @@ async def update_competition(
 
 @competitions_router.delete("/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_competition(
-    competition_id: int,
-    db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(get_current_user)]
+        competition_id: int,
+        db: Annotated[Session, Depends(get_db)],
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     """
     Delete a competition.
@@ -688,7 +731,7 @@ async def delete_competition(
     Cascade delete handles related records.
     """
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to delete competition ID: {competition_id}")
+    logger.info(f"User attempting to delete competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
@@ -710,10 +753,7 @@ async def delete_competition(
             QuestionInstance.event_id == competition_id
         ).delete()
 
-        # 3. Delete leaderboard instances for that competition   Participation, CompetitionLeaderboardEntry
-        db.query(Participation).filter(
-            Participation.event_id == competition_id
-        ).delete()
+        # 3. Delete leaderboard entries for that competition
         db.query(CompetitionLeaderboardEntry).filter(
             CompetitionLeaderboardEntry.competition_id == competition_id
         ).delete()

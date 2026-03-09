@@ -1,8 +1,9 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ManageAlgotimeSessionsPage from '../src/views/admin/ManageAlgotimeSessionsPage';
-import { getAllAlgotimeSessions } from '../src/api/AlgotimeAPI';
+import { getAllAlgotimeSessions,deleteAlgotime } from '../src/api/AlgotimeAPI';
 import { toast } from 'sonner';
 import { logFrontend } from '../src/api/LoggerAPI';
+
 
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -25,6 +26,20 @@ jest.mock('@/api/LoggerAPI', () => ({
 // Mock the API calls
 jest.mock('@/api/AlgotimeAPI', () => ({
   getAllAlgotimeSessions: jest.fn(),
+}));
+
+jest.mock('@/api/AlgotimeAPI', () => ({
+  getAllAlgotimeSessions: jest.fn(),
+  deleteAlgotime: jest.fn(),
+}));
+
+jest.mock('@/api/AlgotimeAPI', () => ({
+  getAllAlgotimeSessions: jest.fn(),
+  deleteAlgotime: jest.fn(),
+}));
+
+jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
+  EditAlgoTimeSessionDialog: () => null,
 }));
 
 const mockSessions = [
@@ -73,8 +88,8 @@ describe('ManageAlgotimeSessionsPage', () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a new algotime session')).toBeInTheDocument();
-      expect(screen.getByText('Setup a new event!')).toBeInTheDocument();
+      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
+      expect(screen.getByText('Setup a new event')).toBeInTheDocument();
     });
   });
 
@@ -150,10 +165,10 @@ describe('ManageAlgotimeSessionsPage', () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a new algotime session')).toBeInTheDocument();
+      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
     });
 
-    const createCard = screen.getByText('Create a new algotime session').closest('div')?.parentElement;
+    const createCard = screen.getByText('Create a New Algotime Session!').closest('div')?.parentElement;
     if (createCard) {
       fireEvent.click(createCard);
     }
@@ -173,6 +188,32 @@ describe('ManageAlgotimeSessionsPage', () => {
 
     expect(screen.queryByText('Winter AlgoTime 2025')).not.toBeInTheDocument();
     expect(screen.queryByText('Spring AlgoTime 2025')).not.toBeInTheDocument();
+  });
+
+  //View testing
+  test('renders view button for each session', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+    });
+  
+    const viewButtons = screen.getAllByRole('button', { name: /view/i });
+    expect(viewButtons.length).toBe(2); 
+  });
+
+  //Delete testing
+  test('opens edit dialog when view button is clicked', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+    });
+  
+    const viewButtons = screen.getAllByRole('button', { name: /view/i });
+    fireEvent.click(viewButtons[0]);
+  
+    expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
   });
 
 });

@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from sqlalchemy.orm import Session
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import MostRecentSubmission
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import APIRouter, HTTPException, Depends
@@ -22,7 +22,7 @@ def query_get_last_run(
         return query
     except SQLAlchemyError as e:
         logger.error(f"Database: getting most recent submission query error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database: getting most recent submission query error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to query most recent submission.")
 
 
 @most_recent_sub_router.get("/latest", response_model = dict,
@@ -40,7 +40,7 @@ def get_most_recent_sub(
         return {"status_code": 200, 'data': query}
     except Exception as e:
         logger.error(f"Error fetching most recent submission: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve most recent submission. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve most recent submission.")
         
     
 
@@ -83,4 +83,4 @@ def add_most_recent_sub(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating most recent submission: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to updating most recent submission. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update most recent submission.")

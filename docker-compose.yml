@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ThinklyDB
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     container_name: fastapi-backend
@@ -8,8 +21,14 @@ services:
       - ./backend/src:/app
     environment:
       - PYTHONUNBUFFERED=1
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # For Linux
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=ThinklyDB
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/ThinklyDB
+    depends_on:
+      - db
     env_file:
       - ./backend/src/.env
 
@@ -20,10 +39,13 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend:/app
-      - /app/node_modules  # Prevent host node_modules from overwriting container's
+      - /app/node_modules
     environment:
       - VITE_BACKEND_URL=http://localhost:8000
     depends_on:
       - backend
     env_file:
       - ./frontend/.env
+
+volumes:
+  postgres_data:

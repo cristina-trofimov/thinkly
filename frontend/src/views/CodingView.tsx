@@ -25,16 +25,17 @@ import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/MostRecentSub.type';
-import { getProfile } from '@/api/AuthAPI';
 import { getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
+import { getProfile } from '@/api/AuthAPI';
+import { logFrontend } from '@/api/LoggerAPI';
 
 
 const CodingView = () => {
   const location = useLocation()
   const question: Question = location?.state?.problem
 
-  const { testcases } = useTestcases(question.id)
+  const { testcases } = useTestcases(question?.id)
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
   const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
   const [ loadingMsg, setLoadingMsg ] = useState<string>("")
@@ -76,8 +77,7 @@ const CodingView = () => {
       setLoadingMsg("Submitting")
 
       const user = await getProfile()
-
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(question?.id, user.id, null, code, judgeID, testcases)
+      const { codeRunResponse, submissionResponse } = await submitAttempt(user.id, question?.id, null, code, judgeID, testcases)
       if (submissionResponse.status_code === 200) {
         toast.success(submissionResponse.message, {
           position: 'top-right',
@@ -103,6 +103,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -115,9 +122,8 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
-      const user = await getProfile()
       const instance = await getQuestionInstance(question?.id, null)
-      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, instance[0].question_instance_id, code, judgeID, testcases)
+      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(instance[0].question_instance_id, code, judgeID, testcases)
       
       setLogs(prev => [...prev, judge0Response])
       setMostRecentSub(mostRecentSubResponse)
@@ -137,6 +143,13 @@ const CodingView = () => {
         position: 'top-right',
         style: { backgroundColor: '#E9DADA' }
       })
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when running code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
       throw err
     } finally {
       setIsAsyncLoading(false)
@@ -150,7 +163,7 @@ const CodingView = () => {
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
-    problemName: question.title,
+    problemName: question?.title ?? "",
     inputVars: [
       { name: "nums", type: "number[]" },
       { name: "target", type: "number" },
@@ -214,6 +227,14 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
+  if (!question) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <p>No problem loaded. Please navigate from the problem list.</p>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="sandbox" key="sandbox"
       className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
@@ -233,7 +254,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={question} />
+          <CodeDescArea question={question} mostRecentSub={mostRecentSub} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
