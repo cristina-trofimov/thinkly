@@ -178,7 +178,7 @@ describe("AppSidebar", () => {
       "href",
       "/app/algotime"
     );
-    expect(screen.getByRole("link", { name: "Competition" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Competitions" })).toHaveAttribute(
       "href",
       "/app/competitions"
     );
