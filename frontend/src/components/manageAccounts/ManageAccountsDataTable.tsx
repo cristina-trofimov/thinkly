@@ -144,7 +144,6 @@ export function ManageAccountsDataTable<TData, TValue>({
 
     if (activeSort.id === "email") {
       onSortChange?.(activeSort.desc ? "email_desc" : "email_asc");
-      return;
     }
 
   }, [onSortChange, sorting]);
