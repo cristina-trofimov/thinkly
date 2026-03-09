@@ -266,8 +266,9 @@ class Language(Base):
     __tablename__ = 'language'
 
     row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    lang_judge_id: Mapped[int] = mapped_column(unique=True)  # ← add this
-    display_name: Mapped[str] = mapped_column()
+    lang_judge_id: Mapped[int] = mapped_column(unique=True)
+    display_name: Mapped[str] = mapped_column(unique=True)
+    monaco_id: Mapped[str] = mapped_column(unique=True)
     active: Mapped[bool] = mapped_column(default=False)
 
     __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
