@@ -23,9 +23,9 @@ class QuestionListItemResponse(BaseModel):
     question_id: int
     question_name: str
     question_description: str
-    media: str | None
+    media: str | None = None
     difficulty: str
-    preset_code: str | None
+    preset_code: str | None = None
     from_string_function: str
     to_string_function: str
     template_solution: str
@@ -45,7 +45,7 @@ class RiddleListItemResponse(BaseModel):
     riddle_id: int
     riddle_question: str
     riddle_answer: str
-    riddle_file: str | None
+    riddle_file: str | None = None
 
 
 class PaginatedRiddlesResponse(BaseModel):

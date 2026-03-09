@@ -39,7 +39,7 @@ class RiddleListItemResponse(BaseModel):
     riddle_id: int
     riddle_question: str
     riddle_answer: str
-    riddle_file: str | None
+    riddle_file: str | None = None
 
 
 class PaginatedRiddlesResponse(BaseModel):
