@@ -340,8 +340,10 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[Sessi
 @questions_router.post("/upload-question-batch", status_code=201,
     responses={ 500: { "description": "Failed to upload question batch." } }
 )
-def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(..., min_length=1),
-                          db: Annotated[Session, Depends(get_db)]):
+def upload_question_batch(
+    question_request: Annotated[list[CreateQuestionRequest], Body(min_length=1)],
+    db: Annotated[Session, Depends(get_db)],
+):
     error_message = None
     error_code = 500
     try:
