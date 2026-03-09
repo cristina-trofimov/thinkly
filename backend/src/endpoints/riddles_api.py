@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from models.schema import Riddle
 from database_operations.database import get_db, _commit_or_rollback
 import logging
@@ -9,11 +10,14 @@ import time
 import re
 from urllib.parse import urlparse
 from services.posthog_analytics import track_custom_event
+from pydantic import BaseModel
 
 from supabase import create_client, Client
 
 logger = logging.getLogger(__name__)
 riddles_router = APIRouter(tags=["Riddles"])
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
 
 # Supabase (server-side)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -29,6 +33,65 @@ BUCKET = "uploads"
 FOLDER = "public"
 MAX_MB = 100
 RIDDLE_NOT_FOUND="Riddle not found"
+
+
+class RiddleListItemResponse(BaseModel):
+    riddle_id: int
+    riddle_question: str
+    riddle_answer: str
+    riddle_file: str | None = None
+
+
+class PaginatedRiddlesResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[RiddleListItemResponse]
+
+
+def serialize_riddle(riddle: Riddle) -> dict:
+    return {
+        "riddle_id": riddle.riddle_id,
+        "riddle_question": riddle.riddle_question,
+        "riddle_answer": riddle.riddle_answer,
+        "riddle_file": riddle.riddle_file,
+    }
+
+
+def _get_riddle_or_404(db: Session, riddle_id: int) -> Riddle:
+    riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
+    if not riddle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=RIDDLE_NOT_FOUND,
+        )
+    return riddle
+
+
+def _apply_riddle_search(query, search: Optional[str]):
+    if search and search.strip():
+        needle = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                Riddle.riddle_question.ilike(needle),
+                Riddle.riddle_answer.ilike(needle),
+            )
+        )
+    return query
+
+
+def _paginate_query(query, page: int, page_size: int):
+    total = query.count()
+    offset = (page - 1) * page_size
+    items = query.offset(offset).limit(page_size).all()
+    return total, items
+
+
+def _set_riddle_cache_headers(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
 
 def check_riddle_exists(db: Session, question: str) -> bool:
     return db.query(Riddle).filter(Riddle.riddle_question == question).first() is not None
@@ -135,19 +198,7 @@ async def get_riddle_by_id(
     logger.info(f"Public user requesting riddle ID {riddle_id}")
 
     try:
-        riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
-        if not riddle:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=RIDDLE_NOT_FOUND,
-            )
-
-        return {
-            "riddle_id": riddle.riddle_id,
-            "riddle_question": riddle.riddle_question,
-            "riddle_answer": riddle.riddle_answer,
-            "riddle_file": riddle.riddle_file,
-        }
+        return serialize_riddle(_get_riddle_or_404(db, riddle_id))
 
     except HTTPException:
         raise
@@ -163,24 +214,29 @@ async def get_riddle_by_id(
 @riddles_router.get(
     "/",
     status_code=status.HTTP_200_OK,
+    response_model=PaginatedRiddlesResponse,
 )
 async def list_riddles(
+    response: Response,
     db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Annotated[Optional[str], Query(max_length=200)] = None,
 ):
-    logger.info("Public user requesting full riddles list")
+    logger.info("Public user requesting riddles page=%s page_size=%s", page, page_size)
 
     try:
-        riddles = db.query(Riddle).all()
+        query = _apply_riddle_search(db.query(Riddle), search)
+        query = query.order_by(Riddle.riddle_id.desc())
+        total, riddles = _paginate_query(query, page, page_size)
+        _set_riddle_cache_headers(response)
 
-        return [
-            {
-                "riddle_id": r.riddle_id,
-                "riddle_question": r.riddle_question,
-                "riddle_answer": r.riddle_answer,
-                "riddle_file": r.riddle_file,
-            }
-            for r in riddles
-        ]
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": [serialize_riddle(r) for r in riddles],
+        }
 
     except Exception as e:
         logger.exception(f"Error retrieving riddles list: {str(e)}")
@@ -246,12 +302,7 @@ async def create_riddle(
             }
         )
 
-        return {
-            "riddle_id": new_riddle.riddle_id,
-            "riddle_question": new_riddle.riddle_question,
-            "riddle_answer": new_riddle.riddle_answer,
-            "riddle_file": new_riddle.riddle_file,
-        }
+        return serialize_riddle(new_riddle)
 
     except HTTPException:
         raise
@@ -278,12 +329,7 @@ async def edit_riddle(
     db: Annotated[Session, Depends(get_db)]=None
 ):
     try:
-        riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
-        if not riddle:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=RIDDLE_NOT_FOUND,
-            )
+        riddle = _get_riddle_or_404(db, riddle_id)
 
         if question is not None:
             q = question.strip()
@@ -337,12 +383,7 @@ async def edit_riddle(
             }
         )
 
-        return {
-            "riddle_id": riddle.riddle_id,
-            "riddle_question": riddle.riddle_question,
-            "riddle_answer": riddle.riddle_answer,
-            "riddle_file": riddle.riddle_file,
-        }
+        return serialize_riddle(riddle)
 
     except HTTPException:
         raise
@@ -367,12 +408,7 @@ async def delete_riddle(
     logger.info(f"Anonymous user attempting to delete riddle ID: {riddle_id}")
 
     try:
-        riddle = db.query(Riddle).filter(Riddle.riddle_id == riddle_id).first()
-        if not riddle:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=RIDDLE_NOT_FOUND,
-            )
+        riddle = _get_riddle_or_404(db, riddle_id)
 
         if riddle.riddle_file:
             _delete_from_supabase_by_public_url(riddle.riddle_file)

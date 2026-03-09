@@ -3,6 +3,7 @@ import axiosClient from "../src/lib/axiosClient";
 import { logFrontend } from "../src/api/LoggerAPI";
 import {
   getRiddles,
+  getRiddlesPage,
   createRiddle,
   updateRiddle,
   deleteRiddle,
@@ -39,13 +40,55 @@ describe("RiddlesAPI", () => {
   describe("getRiddles", () => {
     it("fetches and formats riddles correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [{ riddle_id: 1, riddle_question: "Q?", riddle_answer: "A", riddle_file: null }],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 25,
+          items: [{ riddle_id: 1, riddle_question: "Q?", riddle_answer: "A", riddle_file: null }],
+        },
       } as any);
 
       const result = await getRiddles();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/riddles/");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/riddles/", {
+        params: { page: 1, page_size: 25, search: undefined },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       expect(result).toEqual<Riddle[]>([{ id: 1, question: "Q?", answer: "A", file: null }]);
+    });
+
+    it("fetches multiple pages when needed", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            total: 26,
+            page: 1,
+            page_size: 25,
+            items: [{ riddle_id: 1, riddle_question: "Q1", riddle_answer: "A1", riddle_file: null }],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            total: 26,
+            page: 2,
+            page_size: 25,
+            items: [{ riddle_id: 26, riddle_question: "Q26", riddle_answer: "A26", riddle_file: null }],
+          },
+        } as any);
+
+      const result = await getRiddles();
+
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/riddles/", {
+        params: { page: 2, page_size: 25, search: undefined },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      expect(result).toHaveLength(2);
     });
 
     it("logs and throws on error", async () => {
@@ -60,6 +103,35 @@ describe("RiddlesAPI", () => {
           component: "RiddlesAPI.ts",
         })
       );
+    });
+  });
+
+  describe("getRiddlesPage", () => {
+    it("sends page, page_size, and search as query params", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 2,
+          page: 2,
+          page_size: 10,
+          items: [{ riddle_id: 11, riddle_question: "Find me", riddle_answer: "Here", riddle_file: null }],
+        },
+      } as any);
+
+      const result = await getRiddlesPage({ page: 2, pageSize: 10, search: " find " });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/riddles/", {
+        params: { page: 2, page_size: 10, search: "find" },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      expect(result).toEqual({
+        total: 2,
+        page: 2,
+        pageSize: 10,
+        items: [{ id: 11, question: "Find me", answer: "Here", file: null }],
+      });
     });
   });
 
