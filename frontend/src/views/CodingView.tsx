@@ -81,7 +81,7 @@ const CodingView = () => {
       }
       InitializeEvent()
     }
-  }, [comp?.id])
+  }, [comp?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Getting the question instance (if it's a practice question and no event was passed)
   // Or all the question instances associated to the given event
@@ -126,7 +126,7 @@ const CodingView = () => {
       initQuestion()
       setQuestions([question])
     }
-  }, [event, question?.question_id])
+  }, [event, question?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // If an event is passed, get all the associated questions' details 
   useEffect(() => {
@@ -155,7 +155,7 @@ const CodingView = () => {
     }
 
     fetchQuestions()
-  }, [questionsInstances])
+  }, [questionsInstances]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Setting the default active question and question instance
   useEffect(() => {
@@ -165,7 +165,7 @@ const CodingView = () => {
     if (questionsInstances.length > 0 && !activeQuestionInstance) {
       setActiveQuestionInstance(questionsInstances[0])
     }
-  }, [questions, questionsInstances])
+  }, [questions, questionsInstances]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const { testcases } = useTestcases(activeQuestionInstance?.question_id)
@@ -175,7 +175,6 @@ const CodingView = () => {
   ]
 
   const {
-    trackCodingPageOpened,
     trackLanguageChanged,
     trackCodeReset,
     trackCodeRun,
