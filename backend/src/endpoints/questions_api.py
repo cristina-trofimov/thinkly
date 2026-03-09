@@ -1,8 +1,9 @@
 from typing import Annotated, Literal, Optional, List
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response
+from datetime import datetime, timezone
+from email.utils import format_datetime, parsedate_to_datetime
+from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
 from pydantic import BaseModel
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
 from models.schema import Question, Riddle, Tag, TestCase
@@ -188,6 +189,7 @@ def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]
     responses={500: {"description": "Failed to retrieve questions."}}
 )
 def get_all_questions(
+    request: Request,
     response: Response,
     db: Annotated[Session, Depends(get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
@@ -208,6 +210,29 @@ def get_all_questions(
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
 
+        latest_modified = query.with_entities(func.max(Question.last_modified_at)).scalar()
+        if latest_modified is None:
+            latest_modified = datetime.now(timezone.utc)
+        elif latest_modified.tzinfo is None:
+            latest_modified = latest_modified.replace(tzinfo=timezone.utc)
+        else:
+            latest_modified = latest_modified.astimezone(timezone.utc)
+        latest_modified = latest_modified.replace(microsecond=0)
+
+        common_headers = {
+            "Cache-Control": "no-cache, must-revalidate",
+            "Last-Modified": format_datetime(latest_modified, usegmt=True),
+        }
+
+        if_modified_since = request.headers.get("if-modified-since")
+        if if_modified_since:
+            try:
+                client_timestamp = parsedate_to_datetime(if_modified_since).astimezone(timezone.utc)
+                if client_timestamp >= latest_modified:
+                    return Response(status_code=304, headers=common_headers)
+            except (TypeError, ValueError):
+                logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
+
         if sort == "desc":
             query = query.order_by(Question.question_id.desc())
         else:
@@ -215,7 +240,7 @@ def get_all_questions(
 
         total, questions = paginate_query(query, page, page_size)
 
-        response.headers["Cache-Control"] = "public, max-age=60"
+        response.headers.update(common_headers)
 
         logger.info(
             "Fetched %s question(s) for page=%s, page_size=%s (total=%s).",

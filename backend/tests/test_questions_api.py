@@ -2,7 +2,8 @@ import pytest
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from email.utils import format_datetime
 from types import SimpleNamespace
 import sys
 import os
@@ -54,9 +55,11 @@ def build_query_mock(mock_db):
     mock_db.query.return_value = query
     query.filter.return_value = query
     query.filter_by.return_value = query
+    query.with_entities.return_value = query
     query.order_by.return_value = query
     query.offset.return_value = query
     query.limit.return_value = query
+    query.scalar.return_value = datetime(2025, 1, 1, 0, 0, 0)
     return query
 
 # --- TESTS ---
@@ -127,6 +130,23 @@ def test_get_all_questions_success(client, mock_db):
     assert data["items"][0]["question_description"].startswith("Given an array")
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
     assert "2025-01-10" in data["items"][0]["created_at"]
+    assert response.headers["cache-control"] == "no-cache, must-revalidate"
+    assert "last-modified" in response.headers
+
+
+def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.scalar.return_value = latest
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-Modified-Since": format_datetime(latest + timedelta(seconds=1), usegmt=True)},
+    )
+
+    assert response.status_code == 304
+    assert response.headers["cache-control"] == "no-cache, must-revalidate"
+    assert response.headers["last-modified"] == format_datetime(latest, usegmt=True)
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 
