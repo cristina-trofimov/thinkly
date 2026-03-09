@@ -61,6 +61,12 @@ const DIFFICULTY_OPTIONS: Array<{
   { value: "hard", label: "Hard", testId: "filter-hard" },
 ];
 
+function getDifficultyFilterLabel(difficultyFilter: DifficultyFilter) {
+  return difficultyFilter === "all"
+    ? "Filter Difficulties"
+    : difficultyFilter.charAt(0).toUpperCase() + difficultyFilter.slice(1);
+}
+
 function getPageItems(currentPage: number, pageCount: number): readonly PaginationItemValue[] {
   if (pageCount <= 3) {
     return Array.from({ length: pageCount }, (_, index) => index + 1);
@@ -97,6 +103,70 @@ interface DataTableProps<TData, TValue> {
   onDifficultyFilterChange: (value: DifficultyFilter) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+}
+
+interface QuestionTablePaginationProps {
+  page: number;
+  pageCount: number;
+  pageItems: readonly PaginationItemValue[];
+  onPageChange: (page: number) => void;
+}
+
+function QuestionTablePagination({
+  page,
+  pageCount,
+  pageItems,
+  onPageChange,
+}: Readonly<QuestionTablePaginationProps>) {
+  const createPageClickHandler =
+    (targetPage: number) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      onPageChange(targetPage);
+    };
+
+  return (
+    <Pagination className="mx-0 w-auto">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={createPageClickHandler(Math.max(1, page - 1))}
+            className={
+              page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"
+            }
+          />
+        </PaginationItem>
+        <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
+          Page {page} of {pageCount}
+        </PaginationItem>
+        {pageItems.map((item, index) => (
+          <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
+            {typeof item === "number" ? (
+              <PaginationLink
+                href="#"
+                isActive={page === item}
+                onClick={createPageClickHandler(item)}
+                className="cursor-pointer"
+              >
+                {item}
+              </PaginationLink>
+            ) : (
+              <PaginationEllipsis />
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={createPageClickHandler(Math.min(pageCount, page + 1))}
+            className={
+              page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"
+            }
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
 }
 
 export function DataTable<TData extends Question, TValue>({
@@ -160,9 +230,19 @@ export function DataTable<TData extends Question, TValue>({
     trackQuestionFilteredByDifficulty(difficulty);
   };
 
-  const changePage = (nextPage: number) => onPageChange(nextPage);
-  const goToPreviousPage = () => changePage(Math.max(1, currentPage - 1));
-  const goToNextPage = () => changePage(Math.min(pageCount, currentPage + 1));
+  const handleQuestionClick = (question: TData) => {
+    trackQuestionClicked(
+      question.question_name,
+      question.difficulty,
+      question.question_id
+    );
+    nav(`/app/code/${question.question_name}`, {
+      state: {
+        fromFeed: true,
+        problem: question,
+      },
+    });
+  };
 
   return (
     <div>
@@ -178,9 +258,7 @@ export function DataTable<TData extends Question, TValue>({
             <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
-                {difficultyFilter === "all"
-                  ? "Filter Difficulties"
-                  : difficultyFilter.charAt(0).toUpperCase() + difficultyFilter.slice(1)}
+                {getDifficultyFilterLabel(difficultyFilter)}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -225,20 +303,7 @@ export function DataTable<TData extends Question, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                onClick={() => {
-                  const question = row.original;
-                  trackQuestionClicked(
-                    question.question_name,
-                    question.difficulty,
-                    question.question_id
-                  );
-                  nav(`/app/code/${question.question_name}`, {
-                    state: {
-                      fromFeed: true,
-                      problem: question,
-                    },
-                  });
-                }}
+                onClick={() => handleQuestionClick(row.original)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="text-left cursor-pointer">
@@ -281,61 +346,12 @@ export function DataTable<TData extends Question, TValue>({
             </SelectContent>
           </Select>
         </div>
-
-        <Pagination className="mx-0 w-auto">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  goToPreviousPage();
-                }}
-                className={
-                  currentPage > 1
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-              Page {currentPage} of {pageCount}
-            </PaginationItem>
-            {pageItems.map((item, index) => (
-              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
-                {typeof item === "number" ? (
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === item}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      changePage(item);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {item}
-                  </PaginationLink>
-                ) : (
-                  <PaginationEllipsis />
-                )}
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  goToNextPage();
-                }}
-                className={
-                  currentPage < pageCount
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <QuestionTablePagination
+          page={currentPage}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );
