@@ -3,60 +3,11 @@ import type {
   EditableQuestionFields,
   Question,
 } from "@/types/questions/Question.type";
+import type { QuestionListItemResponse, QuestionsPageParams, QuestionsPageResult, QuestionsResponse, RiddlesResponse } from "@/types/questions/QuestionPagination.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 import type { Riddle } from "@/types/riddle/Riddle.type";
 
 const DEFAULT_PAGE_SIZE = 100;
-
-type QuestionListItemResponse = {
-  question_id: number;
-  question_name: string;
-  question_description: string;
-  media: string | null;
-  preset_code: string | null;
-  template_solution: string;
-  difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
-  from_string_function?: string;
-  to_string_function?: string;
-  created_at?: string;
-  last_modified_at: string;
-  tags?: string[];
-  testcases?: Array<[string, string]>;
-};
-
-type QuestionsResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: QuestionListItemResponse[];
-};
-
-type RiddlesResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: {
-    riddle_file: string | null;
-    riddle_id: number;
-    riddle_question: string;
-    riddle_answer: string;
-  }[];
-};
-
-export type QuestionsPageParams = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  difficulty?: "easy" | "medium" | "hard";
-  sort?: "asc" | "desc";
-};
-
-export type QuestionsPageResult = {
-  total: number;
-  page: number;
-  pageSize: number;
-  items: Question[];
-};
 
 function normalizeDifficulty(
   difficulty: QuestionListItemResponse["difficulty"],
