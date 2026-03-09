@@ -48,6 +48,18 @@ import {
 
 export type DifficultyFilter = "all" | "easy" | "medium" | "hard";
 
+const PAGE_SIZE_OPTIONS = ["10", "25", "50", "100"] as const;
+const DIFFICULTY_OPTIONS: Array<{
+  value: DifficultyFilter;
+  label: string;
+  testId?: string;
+}> = [
+  { value: "all", label: "All" },
+  { value: "easy", label: "Easy", testId: "filter-easy" },
+  { value: "medium", label: "Medium", testId: "filter-medium" },
+  { value: "hard", label: "Hard", testId: "filter-hard" },
+];
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -80,7 +92,6 @@ export function DataTable<TData extends Question, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
-  const pageSizeOptions = ["10", "25", "50", "100"];
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = page;
   const pageItems = React.useMemo(() => {
@@ -143,6 +154,10 @@ export function DataTable<TData extends Question, TValue>({
     trackQuestionFilteredByDifficulty(difficulty);
   };
 
+  const changePage = (nextPage: number) => onPageChange(nextPage);
+  const goToPreviousPage = () => changePage(Math.max(1, currentPage - 1));
+  const goToNextPage = () => changePage(Math.min(pageCount, currentPage + 1));
+
   return (
     <div>
       <div className="flex items-center mb-3 gap-3">
@@ -167,27 +182,15 @@ export function DataTable<TData extends Question, TValue>({
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleDifficultyFilter("all")}>
-              All
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              data-testid="filter-easy"
-              onClick={() => handleDifficultyFilter("easy")}
-            >
-              Easy
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              data-testid="filter-medium"
-              onClick={() => handleDifficultyFilter("medium")}
-            >
-              Medium
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              data-testid="filter-hard"
-              onClick={() => handleDifficultyFilter("hard")}
-            >
-              Hard
-            </DropdownMenuItem>
+            {DIFFICULTY_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                data-testid={option.testId}
+                onClick={() => handleDifficultyFilter(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -264,7 +267,7 @@ export function DataTable<TData extends Question, TValue>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {pageSizeOptions.map((size) => (
+              {PAGE_SIZE_OPTIONS.map((size) => (
                 <SelectItem key={size} value={size}>
                   {size}
                 </SelectItem>
@@ -280,7 +283,7 @@ export function DataTable<TData extends Question, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  onPageChange(Math.max(1, currentPage - 1));
+                  goToPreviousPage();
                 }}
                 className={
                   currentPage > 1
@@ -300,7 +303,7 @@ export function DataTable<TData extends Question, TValue>({
                     isActive={currentPage === item}
                     onClick={(event) => {
                       event.preventDefault();
-                      onPageChange(item);
+                      changePage(item);
                     }}
                     className="cursor-pointer"
                   >
@@ -316,7 +319,7 @@ export function DataTable<TData extends Question, TValue>({
                 href="#"
                 onClick={(event) => {
                   event.preventDefault();
-                  onPageChange(Math.min(pageCount, currentPage + 1));
+                  goToNextPage();
                 }}
                 className={
                   currentPage < pageCount
