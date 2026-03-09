@@ -4,15 +4,11 @@ import * as React from "react";
 import type {
   ColumnDef,
   SortingState,
-  ColumnFiltersState,
 } from "@tanstack/react-table";
 
 import {
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 
@@ -37,26 +33,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Filter,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Filter, Search, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -71,7 +54,33 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
-import { deleteAccounts } from "@/api/AccountsAPI";
+import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
+import {
+  TablePagination,
+} from "@/components/helpers/Pagination";
+import {
+  getPageItems,
+  PAGE_SIZE_OPTIONS,
+} from "@/utils/paginationUtils";
+
+type UserTypeFilter = "all" | "owner" | "admin" | "participant";
+
+const USER_TYPE_OPTIONS: Array<{ value: UserTypeFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "participant", label: "Participant" },
+  { value: "admin", label: "Admin" },
+  { value: "owner", label: "Owner" },
+];
+const SORT_ID_TO_VALUE: Partial<Record<string, { asc: AccountsSort; desc: AccountsSort }>> = {
+  name: { asc: "name_asc", desc: "name_desc" },
+  email: { asc: "email_asc", desc: "email_desc" },
+};
+
+function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
+  return userTypeFilter === "all"
+    ? "All Account Types"
+    : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1);
+}
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
@@ -82,21 +91,91 @@ declare module "@tanstack/react-table" {
 interface ManageAccountsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  userTypeFilter?: UserTypeFilter;
+  onSearchChange?: (value: string) => void;
+  onUserTypeFilterChange?: (value: UserTypeFilter) => void;
+  onSortChange?: (sort: AccountsSort) => void;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
+}
+
+interface SelectionActionsProps {
+  selectedCount: number;
+  onDelete: () => void;
+  onCancel: () => void;
+}
+
+function SelectionActions({
+  selectedCount,
+  onDelete,
+  onCancel,
+}: Readonly<SelectionActionsProps>) {
+  if (selectedCount === 0) {
+    return <div className="ml-auto" />;
+  }
+
+  return (
+    <div className="ml-auto flex gap-2">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="icon"
+            className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
+          >
+            <Trash2 />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete
+              the account(s) and remove their data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive cursor-pointer hover:bg-destructive/90"
+              onClick={onDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
+  );
 }
 
 export function ManageAccountsDataTable<TData, TValue>({
   columns,
   data,
+  total = data.length,
+  page = 1,
+  pageSize = 25,
+  search = "",
+  userTypeFilter = "all",
+  onSearchChange = () => {},
+  onUserTypeFilterChange = () => {},
+  onSortChange,
+  onPageChange = () => {},
+  onPageSizeChange = () => {},
   onDeleteUsers,
   onUserUpdate,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
-  const pageSizeOptions = ["10", "25", "50", "100"];
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
   const [rowSelection, setRowSelection] = React.useState({});
   const selectedCount = Object.keys(rowSelection).length;
 
@@ -104,51 +183,29 @@ export function ManageAccountsDataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
-    meta: {
-      onUserUpdate,
-    },
-    state: {
-      sorting,
-      columnFilters,
-      rowSelection,
-    },
-    initialState: {
-      pagination: {
-        pageSize: 25,
-      },
-    },
+    meta: { onUserUpdate },
+    state: { sorting, rowSelection },
   });
-  const currentPage = table.getState().pagination.pageIndex;
-  const pageCount = table.getPageCount();
-  const pageItems = React.useMemo(() => {
-    if (pageCount <= 3) {
-      return Array.from({ length: pageCount }, (_, index) => index);
-    }
 
-    if (currentPage <= 1) {
-      return [0, 1, 2, "ellipsis-right", pageCount - 1] as const;
-    }
+  React.useEffect(() => {
+    const activeSort = sorting[0];
+    if (!activeSort) return;
 
-    if (currentPage >= pageCount - 3) {
-      return [0, "ellipsis-left", pageCount - 3, pageCount - 2, pageCount - 1] as const;
+    const sortValue = SORT_ID_TO_VALUE[activeSort.id];
+    if (sortValue) {
+      onSortChange?.(activeSort.desc ? sortValue.desc : sortValue.asc);
     }
+  }, [onSortChange, sorting]);
 
-    return [
-      0,
-      "ellipsis-left",
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      "ellipsis-right",
-      pageCount - 1,
-    ] as const;
-  }, [currentPage, pageCount]);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = React.useMemo(
+    () => getPageItems(page, pageCount),
+    [page, pageCount],
+  );
+
+  const clearSelection = () => setRowSelection({});
 
   const handleDelete = async () => {
     const selectedRows = table
@@ -159,7 +216,6 @@ export function ManageAccountsDataTable<TData, TValue>({
 
     try {
       const response = await deleteAccounts(userIds);
-
       const deletedIds = response.deleted_users.map((user) => user.user_id);
 
       if (response?.errors?.length) {
@@ -167,28 +223,19 @@ export function ManageAccountsDataTable<TData, TValue>({
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
         toast.warning(`${response.errors.length} users could not be deleted.`);
-        onDeleteUsers?.(deletedIds);
       } else {
-        toast.success(
-          `Successfully deleted ${response.deleted_count} user(s).`
-        );
-        onDeleteUsers?.(deletedIds);
+        toast.success(`Successfully deleted ${response.deleted_count} user(s).`);
       }
+
+      onDeleteUsers?.(deletedIds);
     } catch (error: unknown) {
-
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      const errorMessage =
-        axiosError.response?.data?.detail ||
-        "Failed to delete selected user(s).";
-
-      toast.error(errorMessage);
+      toast.error(
+        axiosError.response?.data?.detail ?? "Failed to delete selected user(s)."
+      );
     } finally {
-      setRowSelection({});
+      clearSelection();
     }
-  };
-
-  const handleCancelSelection = () => {
-    setRowSelection({});
   };
 
   return (
@@ -198,10 +245,8 @@ export function ManageAccountsDataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
           <Input
             placeholder="Filter emails..."
-            value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("email")?.setFilterValue(event.target.value)
-            }
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
             className="pl-9 w-xs"
           />
         </div>
@@ -210,109 +255,45 @@ export function ManageAccountsDataTable<TData, TValue>({
             <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
-                {(table.getColumn("accountType")?.getFilterValue() as string) ??
-                  "All Account Types"}
+                {getUserTypeFilterLabel(userTypeFilter)}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue(undefined)
-              }
-            >
-              All
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Participant")
-              }
-            >
-              Participant
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Admin")
-              }
-            >
-              Admin
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() =>
-                table.getColumn("accountType")?.setFilterValue("Owner")
-              }
-            >
-              Owner
-            </DropdownMenuItem>
+            {USER_TYPE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                className="cursor-pointer"
+                onClick={() => onUserTypeFilterChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {selectedCount > 0 ? (
-          <div className="ml-auto flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                size="icon"
-                  className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
-                >
-                  <Trash2/>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    the account(s) and remove their data.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="cursor-pointer">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive cursor-pointer hover:bg-destructive/90"
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button
-              variant="outline"
-              className=""
-              onClick={handleCancelSelection}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="ml-auto" />
-        )}
+        <SelectionActions
+          selectedCount={selectedCount}
+          onDelete={handleDelete}
+          onCancel={clearSelection}
+        />
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
                           header.column.columnDef.header,
                           header.getContext()
                         )}
-                    </TableHead>
-                  );
-                })}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -323,24 +304,16 @@ export function ManageAccountsDataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => {
-                    return (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    );
-                  })}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -353,14 +326,14 @@ export function ManageAccountsDataTable<TData, TValue>({
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Rows per page</span>
             <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => table.setPageSize(Number(value))}
+              value={`${pageSize}`}
+              onValueChange={(value) => onPageSizeChange(Number(value))}
             >
               <SelectTrigger className="cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {pageSizeOptions.map((size) => (
+                {PAGE_SIZE_OPTIONS.map((size) => (
                   <SelectItem key={size} value={size}>
                     {size}
                   </SelectItem>
@@ -368,68 +341,18 @@ export function ManageAccountsDataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          {selectedCount > 0 ? (
+          {selectedCount > 0 && (
             <div className="text-sm text-muted-foreground">
-              {selectedCount} of{" "}
-              {table.getFilteredRowModel().rows.length} row(s) selected
+              {selectedCount} of {table.getRowModel().rows.length} row(s) selected
             </div>
-          ) : null}
+          )}
         </div>
-
-        <Pagination className="mx-0 w-auto">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  table.previousPage();
-                }}
-                className={
-                  table.getCanPreviousPage()
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-              Page {currentPage + 1} of {pageCount}
-            </PaginationItem>
-            {pageItems.map((item, index) => (
-              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
-                {typeof item === "number" ? (
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === item}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      table.setPageIndex(item);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {item + 1}
-                  </PaginationLink>
-                ) : (
-                  <PaginationEllipsis />
-                )}
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  table.nextPage();
-                }}
-                className={
-                  table.getCanNextPage()
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <TablePagination
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import {
   getAccounts,
+  getAccountsPage,
   deleteAccounts,
   updateAccount,
   getUserPreferences,
@@ -33,28 +34,38 @@ describe("AccountAPI", () => {
 
   describe("getAccounts", () => {
     it("fetches and formats accounts correctly", async () => {
-      const backendResponse = [
-        {
-          user_id: 1,
-          first_name: "Jane",
-          last_name: "Doe",
-          email: "jane@example.com",
-          user_type: "admin",
-        },
-        {
-          user_id: 2,
-          first_name: "John",
-          last_name: "Smith",
-          email: "john@example.com",
-          user_type: "participant",
-        },
-      ];
+      const backendResponse = {
+        total: 2,
+        page: 1,
+        page_size: 25,
+        items: [
+          {
+            user_id: 1,
+            first_name: "Jane",
+            last_name: "Doe",
+            email: "jane@example.com",
+            user_type: "admin",
+          },
+          {
+            user_id: 2,
+            first_name: "John",
+            last_name: "Smith",
+            email: "john@example.com",
+            user_type: "participant",
+          },
+        ],
+      };
 
       mockedAxios.get.mockResolvedValueOnce({ data: backendResponse } as any);
 
       const result = await getAccounts();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 1,
+          page_size: 25,
+        },
+      });
       expect(result).toEqual([
         { id: 1, firstName: "Jane", lastName: "Doe", email: "jane@example.com", accountType: "Admin" },
         { id: 2, firstName: "John", lastName: "Smith", email: "john@example.com", accountType: "Participant" },
@@ -63,9 +74,14 @@ describe("AccountAPI", () => {
 
     it("capitalises 'owner' user_type correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          { user_id: 5, first_name: "Alice", last_name: "K", email: "a@x.com", user_type: "owner" },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 25,
+          items: [
+            { user_id: 5, first_name: "Alice", last_name: "K", email: "a@x.com", user_type: "owner" },
+          ],
+        },
       } as any);
 
       const result = await getAccounts();
@@ -73,7 +89,14 @@ describe("AccountAPI", () => {
     });
 
     it("returns empty array when backend returns empty list", async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: [] } as any);
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
       const result = await getAccounts();
       expect(result).toEqual([]);
     });
@@ -81,6 +104,79 @@ describe("AccountAPI", () => {
     it("rethrows error on failure", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getAccounts()).rejects.toThrow("Network error");
+    });
+  });
+
+  describe("getAccountsPage", () => {
+    it("sends page, page_size, search, user_type, and sort as query params", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 1,
+          page: 2,
+          page_size: 10,
+          items: [
+            {
+              user_id: 9,
+              first_name: "Amy",
+              last_name: "Ng",
+              email: "amy@example.com",
+              user_type: "admin",
+            },
+          ],
+        },
+      } as any);
+
+      const result = await getAccountsPage({
+        page: 2,
+        pageSize: 10,
+        search: "amy",
+        userType: "admin",
+        sort: "email_desc",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 2,
+          page_size: 10,
+          search: "amy",
+          user_type: "admin",
+          sort: "email_desc",
+        },
+      });
+      expect(result).toEqual({
+        total: 1,
+        page: 2,
+        pageSize: 10,
+        items: [
+          {
+            id: 9,
+            firstName: "Amy",
+            lastName: "Ng",
+            email: "amy@example.com",
+            accountType: "Admin",
+          },
+        ],
+      });
+    });
+
+    it("does not send sort when no sort is selected", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
+
+      await getAccountsPage();
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/manage-accounts/users", {
+        params: {
+          page: 1,
+          page_size: 25,
+        },
+      });
     });
   });
 

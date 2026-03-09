@@ -7,8 +7,6 @@ from types import SimpleNamespace
 import sys
 import os
 
-from src.endpoints.questions_api import Tag
-
 # 1. Boilerplate to make Python see the 'backend' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -20,7 +18,7 @@ from database_operations.database import get_db
 
 # 2. Import the router you want to test
 # (Replace 'src.endpoints.questions_api' with the actual path to your file)
-from src.endpoints.questions_api import questions_router 
+from src.endpoints.questions_api import Tag, questions_router 
 
 # --- FIXTURES ---
 
@@ -50,6 +48,17 @@ def client(mock_db):
     
     return TestClient(test_app)
 
+
+def build_query_mock(mock_db):
+    query = MagicMock()
+    mock_db.query.return_value = query
+    query.filter.return_value = query
+    query.filter_by.return_value = query
+    query.order_by.return_value = query
+    query.offset.return_value = query
+    query.limit.return_value = query
+    return query
+
 # --- TESTS ---
 
 def test_get_all_questions_success(client, mock_db):
@@ -61,19 +70,36 @@ def test_get_all_questions_success(client, mock_db):
         SimpleNamespace(
             question_id=1, 
             question_name="Two Sum", 
+            question_description="Find two numbers that add up to a target.",
+            media=None,
+            preset_code="",
+            from_string_function="",
+            to_string_function="",
+            template_solution="def solve(): pass",
             difficulty="Easy",
-            created_at=datetime(2025, 1, 10, 12, 0, 0)
+            created_at=datetime(2025, 1, 10, 12, 0, 0),
+            last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
+            tags=[SimpleNamespace(tag_id=1, tag_name="arrays")],
         ),
         SimpleNamespace(
             question_id=2, 
             question_name="Reverse Linked List", 
+            question_description="Reverse a linked list.",
+            media=None,
+            preset_code="",
+            from_string_function="",
+            to_string_function="",
+            template_solution="def solve(): pass",
             difficulty="Medium",
-            created_at=datetime(2025, 2, 15, 14, 30, 0)
+            created_at=datetime(2025, 2, 15, 14, 30, 0),
+            last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
+            tags=[],
         )
     ]
 
-    # Mock the chain: db.query(BaseQuestion).all()
-    mock_db.query.return_value.all.return_value = fake_questions
+    query = build_query_mock(mock_db)
+    query.count.return_value = 2
+    query.all.return_value = fake_questions
 
     # 2. Act
     response = client.get("/get-all-questions")
@@ -82,33 +108,68 @@ def test_get_all_questions_success(client, mock_db):
     assert response.status_code == 200
     data = response.json()
     
-    # Verify the count
-    assert len(data) == 2
+    assert data["total"] == 2
+    assert data["page"] == 1
+    assert data["page_size"] == 25
+    assert len(data["items"]) == 2
     
     # Verify the content of the first item
-    assert data[0]["question_id"] == 1
-    assert data[0]["question_name"] == "Two Sum"
-    assert data[0]["difficulty"] == "Easy"
+    assert data["items"][0]["question_id"] == 1
+    assert data["items"][0]["question_name"] == "Two Sum"
+    assert data["items"][0]["difficulty"] == "Easy"
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
-    assert "2025-01-10" in data[0]["created_at"]
+    assert "2025-01-10" in data["items"][0]["created_at"]
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
-    
-    # Arrange: db returns an empty list
-    mock_db.query.return_value.all.return_value = []
+
+    query = build_query_mock(mock_db)
+    query.count.return_value = 0
+    query.all.return_value = []
 
     # Act
     response = client.get("/get-all-questions")
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"total": 0, "page": 1, "page_size": 25, "items": []}
+
+
+def test_get_all_questions_applies_filters_and_pagination(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.count.return_value = 1
+    query.all.return_value = []
+
+    response = client.get(
+        "/get-all-questions",
+        params={"page": 2, "page_size": 10, "search": "array", "difficulty": "easy"},
+    )
+
+    assert response.status_code == 200
+    query.filter.assert_called()
+    query.offset.assert_called_once_with(10)
+    query.limit.assert_called_once_with(10)
+
+
+def test_get_all_questions_accepts_sort_param(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.count.return_value = 0
+    query.all.return_value = []
+
+    response = client.get("/get-all-questions", params={"sort": "desc"})
+
+    assert response.status_code == 200
+    query.order_by.assert_called_once()
+
+
+def test_get_all_questions_rejects_invalid_page_size(client):
+    response = client.get("/get-all-questions", params={"page_size": 101})
+    assert response.status_code == 422
 
 def test_get_all_questions_db_error(client, mock_db):
     """Test how the endpoint handles a database exception."""
-    
-    # Arrange: Trigger an exception when .all() is called
-    mock_db.query.return_value.all.side_effect = Exception("Database Timeout")
+
+    query = build_query_mock(mock_db)
+    query.count.side_effect = Exception("Database Timeout")
 
     # Act
     response = client.get("/get-all-questions")
@@ -337,28 +398,36 @@ def test_get_all_riddles_success(client, mock_db):
         SimpleNamespace(riddle_id=1, riddle_question="What am I?", riddle_answer="A riddle", riddle_file=None),
         SimpleNamespace(riddle_id=2, riddle_question="Another?", riddle_answer="Another", riddle_file=None),
     ]
-    mock_db.query.return_value.all.return_value = fake_riddles
+    query = build_query_mock(mock_db)
+    query.count.return_value = 2
+    query.all.return_value = fake_riddles
 
     response = client.get("/get-all-riddles")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 2
-    assert data[0]["riddle_id"] == 1
-    assert data[0]["riddle_question"] == "What am I?"
+    assert data["total"] == 2
+    assert data["page"] == 1
+    assert data["page_size"] == 25
+    assert len(data["items"]) == 2
+    assert data["items"][0]["riddle_id"] == 1
+    assert data["items"][0]["riddle_question"] == "What am I?"
 
 
 def test_get_all_riddles_empty(client, mock_db):
     """Test when there are no riddles in the database."""
-    mock_db.query.return_value.all.return_value = []
+    query = build_query_mock(mock_db)
+    query.count.return_value = 0
+    query.all.return_value = []
 
     response = client.get("/get-all-riddles")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"total": 0, "page": 1, "page_size": 25, "items": []}
 
 
 def test_get_all_riddles_db_error(client, mock_db):
     """Test that a DB error returns 500 with the generic riddles message."""
-    mock_db.query.return_value.all.side_effect = Exception("DB failure")
+    query = build_query_mock(mock_db)
+    query.count.side_effect = Exception("DB failure")
 
     response = client.get("/get-all-riddles")
     assert response.status_code == 500
@@ -399,3 +468,34 @@ def test_get_all_testcases_db_error(client, mock_db):
     response = client.get("/get-all-testcases/1")
     assert response.status_code == 500
     assert response.json()["detail"] == "Failed to retrieve test cases."
+
+
+def test_get_all_riddles_returns_paginated_envelope(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.count.return_value = 1
+    query.all.return_value = [
+        SimpleNamespace(
+            riddle_id=10,
+            riddle_question="What has keys but can't open locks?",
+            riddle_answer="Piano",
+            riddle_file=None,
+        )
+    ]
+
+    response = client.get("/get-all-riddles", params={"search": "keys"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total": 1,
+        "page": 1,
+        "page_size": 25,
+        "items": [
+            {
+                "riddle_id": 10,
+                "riddle_question": "What has keys but can't open locks?",
+                "riddle_answer": "Piano",
+                "riddle_file": None,
+            }
+        ],
+    }
+    assert response.headers["cache-control"] == "public, max-age=60"

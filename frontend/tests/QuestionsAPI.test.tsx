@@ -2,6 +2,7 @@ import axiosClient from "../src/lib/axiosClient";
 import {
   getQuestions,
   getQuestionByID,
+  getQuestionsPage,
   getRiddles,
   getTestcases
 } from "../src/api/QuestionsAPI";
@@ -28,19 +29,149 @@ describe("QuestionsAPI", () => {
   describe("getQuestions", () => {
     it("fetches and formats questions correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            question_id: 1,
-            question_name: "What is 2+2?",
-            difficulty: "Easy",
-            last_modified_at: "2025-01-01T00:00:00Z",
-          },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 100,
+          items: [
+            {
+              question_id: 1,
+              question_name: "What is 2+2?",
+              question_description: "Add two numbers",
+              media: null,
+              preset_code: "",
+              template_solution: "def solve(): pass",
+              difficulty: "easy",
+              last_modified_at: "2025-01-01T00:00:00Z",
+            },
+          ],
+        },
       } as any);
 
-      await getQuestions();
+      const result = await getQuestions();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: { page: 1, page_size: 100, search: undefined, difficulty: undefined, sort: "asc" },
+      });
+      expect(result).toEqual([
+        {
+          question_id: 1,
+          question_name: "What is 2+2?",
+          question_description: "Add two numbers",
+          media: null,
+          preset_code: "",
+          template_solution: "def solve(): pass",
+          difficulty: "Easy",
+          from_string_function: "",
+          to_string_function: "",
+          created_at: new Date("2025-01-01T00:00:00Z"),
+          last_modified_at: new Date("2025-01-01T00:00:00Z"),
+        },
+      ]);
+    });
+
+    it("fetches subsequent question pages when needed", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 1,
+            page_size: 100,
+            items: [
+              {
+                question_id: 1,
+                question_name: "Page One",
+                question_description: "",
+                media: null,
+                preset_code: "",
+                template_solution: "",
+                difficulty: "easy",
+                last_modified_at: "2025-01-01T00:00:00Z",
+              },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 2,
+            page_size: 100,
+            items: [
+              {
+                question_id: 2,
+                question_name: "Page Two",
+                question_description: "",
+                media: null,
+                preset_code: "",
+                template_solution: "",
+                difficulty: "hard",
+                last_modified_at: "2025-01-02T00:00:00Z",
+              },
+            ],
+          },
+        } as any);
+
+      const result = await getQuestions();
+
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/questions/get-all-questions", {
+        params: { page: 2, page_size: 100, search: undefined, difficulty: undefined, sort: "asc" },
+      });
+      expect(result).toHaveLength(2);
+      expect(result[1].difficulty).toBe("Hard");
+    });
+
+    it("fetches a paginated questions slice", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 25,
+          page: 2,
+          page_size: 10,
+          items: [
+            {
+              question_id: 11,
+              question_name: "Sorted Question",
+              question_description: "Page item",
+              media: null,
+              preset_code: "",
+              template_solution: "",
+              difficulty: "medium",
+              last_modified_at: "2025-01-11T00:00:00Z",
+            },
+          ],
+        },
+      } as any);
+
+      const result = await getQuestionsPage({
+        page: 2,
+        pageSize: 10,
+        search: "sort",
+        difficulty: "medium",
+        sort: "desc",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: { page: 2, page_size: 10, search: "sort", difficulty: "medium", sort: "desc" },
+      });
+      expect(result).toEqual({
+        total: 25,
+        page: 2,
+        pageSize: 10,
+        items: [
+          {
+            question_id: 11,
+            question_name: "Sorted Question",
+            question_description: "Page item",
+            media: null,
+            preset_code: "",
+            template_solution: "",
+            difficulty: "Medium",
+            from_string_function: "",
+            to_string_function: "",
+            created_at: new Date("2025-01-11T00:00:00Z"),
+            last_modified_at: new Date("2025-01-11T00:00:00Z"),
+          },
+        ],
+      });
     });
 
     it("throws error if axios fails", async () => {
@@ -53,18 +184,41 @@ describe("QuestionsAPI", () => {
     it("fetches question associated to an id", async () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
-          question_id: 1,
-          question_name: "What is 2+2?",
-          difficulty: "Easy",
-          last_modified_at: "2025-01-01T00:00:00Z",
+          status_code: 200,
+          data: {
+            question_id: 1,
+            question_name: "What is 2+2?",
+            question_description: "Add two numbers",
+            media: null,
+            preset_code: "",
+            template_solution: "def solve(): pass",
+            difficulty: "Easy",
+            from_string_function: "",
+            to_string_function: "",
+            created_at: "2025-01-01T00:00:00Z",
+            last_modified_at: "2025-01-01T00:00:00Z",
+          },
         },
       } as any);
 
-      await getQuestionByID(1);
+      const result = await getQuestionByID(1);
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/questions/question", { params: { question_id: 1 } }
       );
+      expect(result).toEqual({
+        question_id: 1,
+        question_name: "What is 2+2?",
+        question_description: "Add two numbers",
+        media: null,
+        preset_code: "",
+        template_solution: "def solve(): pass",
+        difficulty: "Easy",
+        from_string_function: "",
+        to_string_function: "",
+        created_at: new Date("2025-01-01T00:00:00Z"),
+        last_modified_at: new Date("2025-01-01T00:00:00Z"),
+      });
     });
 
     it("handles error if getQuestionByID fails", async () => {
@@ -77,19 +231,26 @@ describe("QuestionsAPI", () => {
   describe("getRiddles", () => {
     it("fetches and formats riddles correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            riddle_id: 10,
-            riddle_question: "What has keys but can't open locks?",
-            riddle_answer: "Piano",
-            riddle_file: null,
-          },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 100,
+          items: [
+            {
+              riddle_id: 10,
+              riddle_question: "What has keys but can't open locks?",
+              riddle_answer: "Piano",
+              riddle_file: null,
+            },
+          ],
+        },
       } as any);
 
       const result = await getRiddles();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles", {
+        params: { page: 1, page_size: 100 },
+      });
       expect(result).toEqual([
         {
           id: 10,
