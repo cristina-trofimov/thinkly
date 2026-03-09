@@ -86,7 +86,6 @@ jest.mock("@/components/ui/dropdown-menu", () => ({
 
 jest.mock("lucide-react", () => ({
   BadgeCheck: () => <svg data-testid="badge-check-icon" />,
-  Bell: () => <svg data-testid="bell-icon" />,
   ChevronsUpDown: () => <svg data-testid="chevrons-up-down-icon" />,
   LogOut: () => <svg data-testid="log-out-icon" />,
 }));
@@ -231,18 +230,11 @@ describe("NavUser", () => {
       expect(within(menuItems[0]).getByText("Profile")).toBeInTheDocument();
     });
 
-    test("renders Notifications menu item with icon", () => {
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      expect(within(menuItems[1]).getByTestId("bell-icon")).toBeInTheDocument();
-      expect(within(menuItems[1]).getByText("Notifications")).toBeInTheDocument();
-    });
-
     test("renders Log out menu item with icon", () => {
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      expect(within(menuItems[2]).getByTestId("log-out-icon")).toBeInTheDocument();
-      expect(within(menuItems[2]).getByText("Log out")).toBeInTheDocument();
+      expect(within(menuItems[1]).getByTestId("log-out-icon")).toBeInTheDocument();
+      expect(within(menuItems[1]).getByText("Log out")).toBeInTheDocument();
     });
 
     test("renders two separators in dropdown menu", () => {
@@ -251,7 +243,7 @@ describe("NavUser", () => {
       expect(separators).toHaveLength(2);
     });
 
-    test("renders dropdown menu group for Profile and Notifications", () => {
+    test("renders dropdown menu group for profile actions", () => {
       render(<NavUser user={mockUser as any} />);
       expect(screen.getByTestId("dropdown-menu-group")).toBeInTheDocument();
     });
@@ -330,7 +322,7 @@ describe("NavUser", () => {
 
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[2]);
+      await userEvent.click(menuItems[1]);
 
       expect(logout).toHaveBeenCalled();
       await screen.findByTestId("dropdown-menu"); // wait for async
@@ -353,7 +345,7 @@ describe("NavUser", () => {
 
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[2]);
+      await userEvent.click(menuItems[1]);
 
       await waitFor(() => {
         // logFrontend must be called with ERROR level (line 53–58)
@@ -383,7 +375,7 @@ describe("NavUser", () => {
 
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[2]);
+      await userEvent.click(menuItems[1]);
 
       await waitFor(() => {
         // logFrontend is still called (lines 53–58); non-Error, so message uses String(err)
@@ -406,7 +398,7 @@ describe("NavUser", () => {
 
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[2]);
+      await userEvent.click(menuItems[1]);
 
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith(
@@ -422,7 +414,7 @@ describe("NavUser", () => {
 
       render(<NavUser user={mockUser as any} />);
       const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[2]);
+      await userEvent.click(menuItems[1]);
 
       await waitFor(() => {
         expect(window.alert).toHaveBeenCalledWith("plain string error");
