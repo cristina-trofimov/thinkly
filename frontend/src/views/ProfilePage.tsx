@@ -88,7 +88,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
               variant="ghost"
               onClick={onSave}
               disabled={isSaving}
-              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 cursor-pointer"
+              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
             >
               <Check className="h-4 w-4" />
             </Button>
@@ -97,7 +97,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
               variant="ghost"
               onClick={onCancel}
               disabled={isSaving}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -115,7 +115,7 @@ const EditableField: React.FC<EditableFieldProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                className="h-8 w-8 text-primary hover:bg-primary/10 transition-all"
                 onClick={() => onStartEdit(fieldName, value)}
               >
                 <Pencil className="h-4 w-4" />
@@ -132,12 +132,13 @@ function ProfilePage() {
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
   const [preferences, setPreferences] = React.useState<UserPreferences>({
-    theme: "light",
+    theme: storedTheme ?? "light",
     notifications_enabled: true,
   });
   const [savedPreferences, setSavedPreferences] = React.useState<UserPreferences>({
-    theme: "light",
+    theme: storedTheme ?? "light",
     notifications_enabled: true,
   });
   const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
@@ -197,7 +198,7 @@ function ProfilePage() {
             message: `Failed fetch preferences`,
             component: "ProfilePage.ts",
             url: globalThis.location.href,
-        });
+          });
         }
       } catch (error) {
         logFrontend({
@@ -214,6 +215,17 @@ function ProfilePage() {
 
     fetchUser();
   }, []);
+
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (savedPreferences.theme === "dark") {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [savedPreferences.theme]);
 
   const startEditing = (
     field: EditableFieldName,
@@ -273,17 +285,11 @@ function ProfilePage() {
         editingField.charAt(0).toUpperCase() +
         editingField.slice(1).replaceAll(/([A-Z])/g, " $1").toLowerCase();
 
-      sessionStorage.setItem(
-        "profileUpdateToast",
-        `${fieldLabel} updated successfully.`
-      );
+      toast.success(`${fieldLabel} updated successfully.`);
 
       setEditingField(null);
       setTempValue("");
-
-      globalThis.location.reload();
     } catch (error) {
-      console.error(`Error updating ${editingField}:`, error);
       trackProfileFieldSaveFailed(
         editingField,
         error instanceof Error ? error.message : "Unknown error"
@@ -316,7 +322,7 @@ function ProfilePage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
         <div className="relative group">
-          <div className="size-35 rounded-full border-4 border-white overflow-hidden ring-2 ring-primary/20 flex items-center justify-center">
+          <div className="size-35 rounded-full border-4 border-card overflow-hidden ring-2 ring-primary/50 flex items-center justify-center">
             <AvatarInitials
               firstName={user?.firstName ?? ""}
               lastName={user?.lastName ?? ""}
@@ -423,7 +429,7 @@ function ProfilePage() {
                 <div className="flex justify-end">
                   <Button
                     variant="ghost"
-                    className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all cursor-pointer"
+                    className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all"
                     onClick={handleChangePasswordNavigation}
                   >
                     Change Password
@@ -474,22 +480,20 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPreferences((p) => ({ ...p, theme: "light" }))}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
-                    preferences.theme === "light"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "light"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                    }`}
                 >
                   <Sun className="h-4 w-4" /> Light
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreferences((p) => ({ ...p, theme: "dark" }))}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all cursor-pointer ${
-                    preferences.theme === "dark"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "dark"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                    }`}
                 >
                   <Moon className="h-4 w-4" /> Dark
                 </button>
@@ -517,14 +521,12 @@ function ProfilePage() {
                       notifications_enabled: !p.notifications_enabled,
                     }))
                   }
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                    preferences.notifications_enabled ? "bg-primary" : "bg-input"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${preferences.notifications_enabled ? "bg-primary" : "bg-input"
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${
-                      preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -535,7 +537,7 @@ function ProfilePage() {
               <Button
                 onClick={savePreferences}
                 disabled={!preferencesChanged || isSavingPrefs}
-                className="h-9 px-6 text-sm font-medium cursor-pointer disabled:opacity-40"
+                className="h-9 px-6 text-sm font-medium disabled:opacity-40"
               >
                 {isSavingPrefs ? (
                   <span className="flex items-center gap-2">

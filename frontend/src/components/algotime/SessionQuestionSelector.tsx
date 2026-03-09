@@ -56,7 +56,7 @@ export const SessionQuestionSelector = ({
 
 
     const sessionFilteredQuestions = questions.filter((q) => {
-        const matchesSearch = q.title?.toLowerCase().includes(sessionSearch.toLowerCase()) ?? false;
+        const matchesSearch = q.question_name?.toLowerCase().includes(sessionSearch.toLowerCase()) ?? false;
         const matchesDifficulty = !sessionDifficulty || q.difficulty?.toLowerCase() === sessionDifficulty?.toLowerCase();
         return matchesSearch && matchesDifficulty;
     });
@@ -85,9 +85,9 @@ export const SessionQuestionSelector = ({
                             placeholder="Enter session name..."
                             className="w-100 px-4 py-2 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:primary focus:border-transparent text-lg font-semibold"
                         />
-                        
 
-                        
+
+
                     </div>
                     <AccordionContent>
 
@@ -149,25 +149,25 @@ export const SessionQuestionSelector = ({
                             </DropdownMenu>
                         </div>
 
-                        <div className="border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+                        <div className="border border-border rounded-lg max-h-64 overflow-y-auto">
                             {sessionFilteredQuestions.map((q) => (
                                 <div
-                                    key={q.id}
-                                    className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(Number(q.id)) ? 'bg-primary/10' : ''
+                                    key={q.question_id}
+                                    className={`p-4 border-b border-border hover:bg-muted transition-colors ${sessionQuestions[sessionNumber]?.includes(Number(q.question_id)) ? 'bg-accent' : ''
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Checkbox
-                                                checked={sessionQuestions[sessionNumber]?.includes(Number(q.id)) || false}
+                                                checked={sessionQuestions[sessionNumber]?.includes(Number(q.question_id)) || false}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    toggleQuestionForSession(sessionNumber, Number(q.id));
+                                                    toggleQuestionForSession(sessionNumber, Number(q.question_id));
                                                 }}
                                                 className="w-4 h-4 accent-primary pointer-events-auto"
                                             />
-                                            <span className="font-medium text-gray-900">{q.title}</span>
+                                            <span className="font-medium text-foreground">{q.question_name}</span>
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(q.difficulty || "unknown")}`}>
                                             {q.difficulty || "unknown"}

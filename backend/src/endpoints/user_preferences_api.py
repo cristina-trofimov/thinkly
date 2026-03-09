@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from sqlalchemy.orm import Session
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import UserPreferences
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import APIRouter, HTTPException, Depends
@@ -21,7 +21,7 @@ def query_get_prefs(
         return query
     except SQLAlchemyError as e:
         logger.error(f"Database: getting user preferences query error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database: getting user preferences query error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to query user preferences.")
 
 
 @user_preferences_router.get("/all", response_model = dict,
@@ -37,7 +37,7 @@ def get_all_prefs(
         return {"status_code": 200, 'data': query}
     except Exception as e:
         logger.error(f"Error fetching user preferences: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve user preferences. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve user preferences.")
         
     
 
@@ -62,7 +62,7 @@ def update_user_theme(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating user's prefered theme: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update user's prefered theme. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update user's preferred theme.")
 
 
 @user_preferences_router.post("/notif", status_code=201,
@@ -86,7 +86,7 @@ def update_notifications(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating user's notification settings: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update user's notification settings. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update user's notification settings.")
 
 
 @user_preferences_router.post("/prog", status_code=201,
@@ -110,7 +110,7 @@ def update_last_prog(
     except Exception as e:
         db.rollback()
         logger.error(f"Error updating user's last programming language: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to update user's last programming language. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update user's last programming language.")
 
 
 @user_preferences_router.post("/update", status_code=201,
@@ -145,4 +145,4 @@ def update_all_prefs(
     except Exception as e:
         db.rollback()
         logger.error(f"Error adding/updating all user preferences: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to add/update all user preferences. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update user preferences.")

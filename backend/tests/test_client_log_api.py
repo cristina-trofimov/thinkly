@@ -1,15 +1,15 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-from src.endpoints import log
+from backend.src.endpoints import log_api
 
 
 @pytest.fixture
 def app():
     app = FastAPI()
-    app.include_router(log.log_router, prefix="/log")
+    app.include_router(log_api.log_router, prefix="/log")
     return app
 
 
@@ -28,16 +28,19 @@ class TestClientLogEndpoint:
             "url": "/test/url",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
             mock_logger.info.assert_called_once()
-            logged_message = mock_logger.info.call_args[0][0]
 
-            assert "Test log message" in logged_message
-            assert "TestComponent" in logged_message
-            assert "/test/url" in logged_message
+            fmt, url, component, message, stack = mock_logger.info.call_args[0]
+
+            assert fmt == "ClientLog url=%s component=%s message=%s stack=%s"
+            assert url == "/test/url"
+            assert component == "TestComponent"
+            assert message == "Test log message"
+            assert stack == ""
 
 
     def test_log_error_level_with_stack(self, client):
@@ -49,15 +52,20 @@ class TestClientLogEndpoint:
             "stack": "Traceback line 1\nTraceback line 2",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
             mock_logger.error.assert_called_once()
 
-            logged_message = mock_logger.error.call_args[0][0]
-            assert "STACK_SNIPPET" in logged_message
-            assert "Traceback line 1" in logged_message
+            fmt, url, component, message, stack = mock_logger.error.call_args[0]
+
+            assert fmt == "ClientLog url=%s component=%s message=%s stack=%s"
+            assert url == "/crash"
+            assert component == "CrashComponent"
+            assert message == "Something broke"
+            # only first line, sanitized (\n becomes \\n, but we only take line 1 anyway)
+            assert stack == "Traceback line 1"
 
 
     def test_unknown_log_level_falls_back_to_info(self, client):
@@ -68,7 +76,7 @@ class TestClientLogEndpoint:
             "url": "/weird",
         }
 
-        with patch("src.endpoints.log.logger") as mock_logger:
+        with patch("backend.src.endpoints.log_api.logger") as mock_logger:
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 204
@@ -76,13 +84,8 @@ class TestClientLogEndpoint:
 
 
     def test_invalid_payload_returns_422(self, client):
-        # Missing required fields
-        payload = {
-            "message": "Missing fields"
-        }
-
+        payload = {"message": "Missing fields"}
         response = client.post("/log/client-log", json=payload)
-
         assert response.status_code == 422
 
 
@@ -94,7 +97,8 @@ class TestClientLogEndpoint:
             "url": "/fail",
         }
 
-        with patch("src.endpoints.log.logger.info", side_effect=Exception("Boom")):
+        # endpoint calls logger.info(...) via getattr(logger, level.lower())
+        with patch("backend.src.endpoints.log_api.logger.info", side_effect=Exception("Boom")):
             response = client.post("/log/client-log", json=payload)
 
             assert response.status_code == 500

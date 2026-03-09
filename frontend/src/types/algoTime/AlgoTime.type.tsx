@@ -9,6 +9,7 @@ export type CreateAlgotimeSession = {
     date: string
     startTime: string
     endTime: string 
+    location?: string;
     selectedQuestions: number[]
   }
   

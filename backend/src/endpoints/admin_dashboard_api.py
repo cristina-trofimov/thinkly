@@ -5,14 +5,14 @@ from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
     AlgoTimeSession, QuestionInstance, Submission, UserSession
 )
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from endpoints.authentification_api import role_required
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
 import logging
 from typing import Annotated
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 admin_dashboard_router = APIRouter(tags=["Admin Dashboard"])

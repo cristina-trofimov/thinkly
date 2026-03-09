@@ -66,7 +66,7 @@ export function DataTable<TData extends Question, TValue>({
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSearchChange = (value: string) => {
-    table.getColumn("title")?.setFilterValue(value);
+    table.getColumn("question_name")?.setFilterValue(value);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -89,7 +89,7 @@ export function DataTable<TData extends Question, TValue>({
         <Input
           placeholder="Search questions..."
           value={
-            (table.getColumn("title")?.getFilterValue() as string) ?? ""
+            (table.getColumn("question_name")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) => handleSearchChange(event.target.value)}
           className="max-w-sm w-[250px]"
@@ -160,11 +160,11 @@ export function DataTable<TData extends Question, TValue>({
                 onClick={() => {
                   const question = row.original;
                   trackQuestionClicked(
-                    question.title,
+                    question.question_name,
                     question.difficulty,
-                    question.id
+                    question.question_id
                   );
-                  nav(`/app/code/${question.title}`, {
+                  nav(`/app/code/${question.question_name}`, {
                     state: {
                       fromFeed: true,
                       problem: question,
@@ -173,7 +173,7 @@ export function DataTable<TData extends Question, TValue>({
                 }}
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-left">
+                  <TableCell key={cell.id} className="text-left cursor-pointer">
                     {flexRender(
                       cell.column.columnDef.cell,
                       cell.getContext()

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from models.schema import Riddle
-from DB_Methods.database import get_db, _commit_or_rollback
+from database_operations.database import get_db, _commit_or_rollback
 import logging
 from typing import Annotated, Optional
 import os
 import time
 import re
 from urllib.parse import urlparse
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 from supabase import create_client, Client
 
@@ -18,7 +18,12 @@ riddles_router = APIRouter(tags=["Riddles"])
 # Supabase (server-side)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    logger.critical("FATAL: Missing SUPABASE_URL or SUPABASE_ANON_KEY. Riddle file uploads will be unavailable.")
+    supabase = None
+else:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 BUCKET = "uploads"
 FOLDER = "public"
@@ -69,6 +74,11 @@ def _extract_storage_path_from_public_url(public_url: str) -> Optional[str]:
 
 
 async def _upload_to_supabase(file: UploadFile) -> str:
+    if supabase is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="File storage is not configured.",
+        )
     content = await file.read()
     if len(content) > MAX_MB * 1024 * 1024:
         raise HTTPException(
@@ -100,6 +110,9 @@ async def _upload_to_supabase(file: UploadFile) -> str:
 
 
 def _delete_from_supabase_by_public_url(public_url: str) -> None:
+    if supabase is None:
+        logger.warning("Supabase not configured — skipping file deletion.")
+        return
     storage_path = _extract_storage_path_from_public_url(public_url)
     if not storage_path:
         logger.warning(f"Could not parse Supabase storage path from URL: {public_url}")

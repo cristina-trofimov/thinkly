@@ -180,8 +180,11 @@ class TestSendEmailEndpoint:
     """Tests for send_email endpoint"""
 
     @pytest.mark.asyncio
+    @patch("src.endpoints.send_email_api.track_custom_event")
     @patch("src.endpoints.send_email_api.send_email_via_brevo")
-    async def test_send_email_success(self, mock_send):
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
+    async def test_send_email_success(self, mock_send, mock_track):
         mock_send.return_value = {"brevo": {"messageId": "msg-123"}}
 
         request = Mock(to=["a@b.com"], subject="Test", text="Body")
@@ -190,18 +193,47 @@ class TestSendEmailEndpoint:
 
         assert result["ok"] is True
         mock_send.assert_called_once()
+        mock_track.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.endpoints.send_email_api.send_email_via_brevo")
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
     async def test_send_email_error(self, mock_send):
         mock_send.side_effect = Exception("fail")
 
         request = Mock(to=["a@b.com"], subject="Test", text="Body")
 
-        with pytest.raises(HTTPException):
+        with pytest.raises(HTTPException) as exc:
             await send_email(request)
 
+        assert exc.value.status_code == 400
+        assert exc.value.detail == "Error sending email."
         mock_send.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", None)
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
+    async def test_send_email_503_when_api_key_missing(self):
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
+
+        with pytest.raises(HTTPException) as exc:
+            await send_email(request)
+
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "Email service is not configured."
+
+    @pytest.mark.asyncio
+    @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
+    @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", None)
+    async def test_send_email_503_when_sender_email_missing(self):
+        request = Mock(to=["a@b.com"], subject="Test", text="Body")
+
+        with pytest.raises(HTTPException) as exc:
+            await send_email(request)
+
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "Email service is not configured."
 
 
 class TestSendEmailRequestModel:

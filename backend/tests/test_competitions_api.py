@@ -18,7 +18,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from DB_Methods import database
+from database_operations import database
 from src.endpoints.competitions_api import (
     competitions_router,
     resolve_email_recipients,
@@ -121,7 +121,7 @@ def test_get_all_competitions_db_error(client, mock_db):
     mock_db.query.return_value = mock_query
     response = client.get("/competitions/")
     assert response.status_code == 500
-    assert "DB Connection Lost" in response.json()["detail"]
+    assert response.json()["detail"] == "Failed to retrieve competitions."
 
 
 # ---------------------------------------------------------------------------

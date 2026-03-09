@@ -50,10 +50,19 @@ def make_user_account(first_name: str, last_name: str):
 def setup_leaderboards_mock(mock_db, competitions: list):
     """
     Configure mock_db for the new get_leaderboards chain:
-      db.query().join().order_by().count()  →  len(competitions)
-      db.query().join().order_by().offset().limit().all()  →  competitions
+      db.query().join().filter().filter()*.order_by().count()  →  len(competitions)
+      db.query().join().filter().filter()*.order_by().offset().limit().all()  →  competitions
+
+    The first .filter() is the exists() check that excludes empty competitions.
+    Optional extra .filter() calls may follow for search. order_by() is always last
+    before count/offset, so we anchor the mock there.
     """
-    chain = mock_db.query.return_value.join.return_value.order_by.return_value
+    # Chain: query -> join -> filter (exists) -> filter (search, optional, same mock)
+    # -> order_by -> count / offset -> limit -> all
+    filter_chain = mock_db.query.return_value.join.return_value.filter.return_value
+    # A second .filter() (for search) returns the same mock so both paths work.
+    filter_chain.filter.return_value = filter_chain
+    chain = filter_chain.order_by.return_value
     chain.count.return_value = len(competitions)
     chain.offset.return_value.limit.return_value.all.return_value = competitions
 
@@ -406,7 +415,9 @@ class TestGetLeaderboardsExtended:
         comps = [self._make_comp(i, f"Comp {i}",
                                   [make_entry(1, 100, user_account=make_user_account("A", "B"))])
                  for i in range(1, 21)]
-        chain = mock_db.query.return_value.join.return_value.order_by.return_value
+        filter_chain = mock_db.query.return_value.join.return_value.filter.return_value
+        filter_chain.filter.return_value = filter_chain
+        chain = filter_chain.order_by.return_value
         chain.count.return_value = 50
         chain.offset.return_value.limit.return_value.all.return_value = comps
 

@@ -1,6 +1,7 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
-import { getQuestionInstance, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
+import { getQuestionInstance, getAllQuestionInstancesByEventID, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
+import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
     Object.defineProperty(global, 'import', {
@@ -25,10 +26,14 @@ jest.mock('../src/lib/axiosClient', () => ({
     API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn()
+}))
+
+const mockedLogger = logFrontend as jest.Mock
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 
 const question_id = 1
-const user_id = 1
 const event_id = 1
 
 const mockQuestionInstances: QuestionInstance[] = [
@@ -36,17 +41,13 @@ const mockQuestionInstances: QuestionInstance[] = [
         question_instance_id: 123,
         question_id: question_id,
         event_id: event_id,
-        points: 10,
-        riddle_id: null,
-        is_riddle_completed: false
+        riddle_id: null
     },
     {
         question_instance_id: 334,
         question_id: question_id,
         event_id: 2,
-        points: 10,
-        riddle_id: null,
-        is_riddle_completed: true
+        riddle_id: null
     }
 ]
 
@@ -57,17 +58,13 @@ const mockGetResponse = {
             question_instance_id: 123,
             question_id: question_id,
             event_id: event_id,
-            points: 10,
-            riddle_id: null,
-            is_riddle_completed: false
+            riddle_id: null
         },
         {
             question_instance_id: 334,
             question_id: question_id,
             event_id: 2,
-            points: 10,
-            riddle_id: null,
-            is_riddle_completed: true
+            riddle_id: null
         }
     ]
   }
@@ -78,9 +75,7 @@ const mockUpdateResponse = {
         question_instance_id: 123,
         question_id: question_id,
         event_id: event_id,
-        points: 10,
-        riddle_id: null,
-        is_riddle_completed: false
+        riddle_id: null
     }
   }
 
@@ -100,9 +95,7 @@ describe("Question Instance", () => {
             expect.objectContaining({
                 question_id: mockQuestionInstances[0].question_id,
                 event_id: mockQuestionInstances[0].event_id,
-                points: mockQuestionInstances[0].points,
-                riddle_id: mockQuestionInstances[0].riddle_id,
-                is_riddle_completed: mockQuestionInstances[0].is_riddle_completed
+                riddle_id: mockQuestionInstances[0].riddle_id
             })
         )
     })
@@ -120,12 +113,13 @@ describe("Question Instance", () => {
                     .rejects.toThrow("Error updating question instance")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledTimes(1)
     })
 
-    it("getQuestionInstance: returns a list of the instances associated between a question and an event", async () => {
+    it("getQuestionInstance: returns the instance associated to a question and an event", async () => {
         mockedAxios.get.mockImplementation(async () => ({ data: mockUpdateResponse }))
 
-        const result = await getQuestionInstance(question_id, event_id)
+        await getQuestionInstance(question_id, event_id)
 
         expect(mockedAxios.get).toHaveBeenCalledTimes(1)
         expect(mockedAxios.get).toHaveBeenCalledWith(
@@ -140,5 +134,27 @@ describe("Question Instance", () => {
                     .rejects.toThrow("Error fetching question instance")
 
         expect(mockedAxios.get).toHaveBeenCalled()
+        expect(mockedLogger).toHaveBeenCalledTimes(1)
+    })
+
+    it("getAllQuestionInstancesByEventID: returns a list of the instances associated to an event", async () => {
+        mockedAxios.get.mockImplementation(async () => ({ data: [mockQuestionInstances[0]] }))
+
+        await getAllQuestionInstancesByEventID(event_id)
+
+        expect(mockedAxios.get).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.get).toHaveBeenCalledWith(
+            "/instances/by-event", {"params": { "event_id": event_id }}
+        )
+    })
+
+    it("handles errors from getAllQuestionInstancesByEventID", async () => {
+        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching question instances for an event"))
+
+        await expect(getAllQuestionInstancesByEventID(event_id))
+                    .rejects.toThrow("Error fetching question instances for an event")
+
+        expect(mockedAxios.get).toHaveBeenCalled()
+        expect(mockedLogger).toHaveBeenCalledTimes(1)
     })
 })

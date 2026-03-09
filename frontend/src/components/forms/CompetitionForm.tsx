@@ -24,7 +24,13 @@ interface CompetitionFormProps {
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
-const mapIdsToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
+const mapQuestionsToItems = <T extends { question_id: number }>(ids: number[], source: T[]): T[] => {
+    return ids
+        .map(question_id => source.find(item => item.question_id === question_id))
+        .filter((item): item is T => !!item);
+};
+
+const mapRiddlesToItems = <T extends { id: number }>(ids: number[], source: T[]): T[] => {
     return ids
         .map(id => source.find(item => item.id === id))
         .filter((item): item is T => !!item);
@@ -108,11 +114,11 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                 setRiddles(rData || []);
 
                 if (initialData?.selectedQuestions) {
-                    setOrderedQuestions(mapIdsToItems(initialData.selectedQuestions, qData));
+                    setOrderedQuestions(mapQuestionsToItems(initialData.selectedQuestions, qData));
                 }
 
                 if (initialData?.selectedRiddles) {
-                    setOrderedRiddles(mapIdsToItems(initialData.selectedRiddles, rData));
+                    setOrderedRiddles(mapRiddlesToItems(initialData.selectedRiddles, rData));
                 }
             } catch (err) {
                 logFrontend({
@@ -133,7 +139,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
         if (autoBody) setEmailData((prev) => ({ ...prev, body: autoBody }));
     }, [formData, emailManuallyEdited, emailEnabled]);
 
-    const availableQuestions = questions.filter(q => q.title.toLowerCase().includes(searchQuery.toLowerCase()) && !orderedQuestions.some(oq => oq.id === q.id));
+    const availableQuestions = questions.filter(q => q.question_name.toLowerCase().includes(searchQuery.toLowerCase()) && !orderedQuestions.some(oq => oq.question_id === q.question_id));
     const availableRiddles = riddles.filter(r => r.question.toLowerCase().includes(riddleSearchQuery.toLowerCase()) && !orderedRiddles.some(or => or.id === r.id));
 
     const moveItem = <T,>(list: T[], setList: React.Dispatch<React.SetStateAction<T[]>>, index: number, direction: 'up' | 'down') => {
@@ -225,7 +231,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             location: formData.location?.trim() || undefined,
             questionCooldownTime: Number(formData.questionCooldownTime),
             riddleCooldownTime: Number(formData.riddleCooldownTime),
-            selectedQuestions: orderedQuestions.map(q => Number(q.id)),
+            selectedQuestions: orderedQuestions.map(q => Number(q.question_id)),
             selectedRiddles: orderedRiddles.map(r => Number(r.id)),
             emailEnabled,
             emailNotification: emailEnabled ? {
@@ -245,10 +251,12 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
     };
 
     const getDiffColor = (d: string) => {
-        const diff = d.toLowerCase();
-        if (diff === "easy") return "bg-green-100 text-green-700";
-        if (diff === "medium") return "bg-yellow-100 text-yellow-700";
-        return "bg-red-100 text-red-700";
+        switch (d.toLowerCase()) {
+            case "easy": return "difficulty-easy";
+            case "medium": return "difficulty-medium";
+            case "hard": return "difficulty-hard";
+            default: return "difficulty-unknown";
+        }
     };
 
     return (
@@ -293,10 +301,10 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                         availableItems={availableQuestions}
                         orderedItems={orderedQuestions}
                         onAdd={(q) => setOrderedQuestions([...orderedQuestions, q])}
-                        onRemove={(id) => setOrderedQuestions(orderedQuestions.filter(q => q.id !== id))}
+                        onRemove={(id) => setOrderedQuestions(orderedQuestions.filter(q => q.question_id !== id))}
                         onMove={(idx, dir) => moveItem(orderedQuestions, setOrderedQuestions, idx, dir)}
                         onDragEnd={(res) => handleDragEnd(res, 'questions')}
-                        renderItemTitle={(q) => q.title}
+                        renderItemTitle={(q) => q.question_name}
                         renderExtraInfo={(q) => (
                             <span className={`text-[10px] w-fit px-1.5 py-0.5 rounded-full ${getDiffColor(q.difficulty)}`}>
                                 {q.difficulty}

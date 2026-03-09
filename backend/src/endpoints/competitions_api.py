@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
     CompetitionLeaderboardEntry
-from DB_Methods.database import get_db, _commit_or_rollback
+from database_operations.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
 from endpoints.send_email_api import send_email_via_brevo
 import logging
@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 TIMEZONE_NEW_YORK = "America/New_York"
 LOCAL_TZ = ZoneInfo(TIMEZONE_NEW_YORK)
@@ -145,11 +145,11 @@ def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
         dt_utc = dt_local.astimezone(timezone.utc)
 
         return dt_utc
-    except ValueError as e:
+    except ValueError:
         logger.error(f"Invalid date/time format: {date_str} {time_str}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid date or time format: {str(e)}"
+            detail="Invalid date or time format."
         )
 
 
@@ -315,7 +315,7 @@ def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve competitions. Exception: {str(e)}"
+            detail="Failed to retrieve competitions."
         )
 
 
@@ -382,7 +382,7 @@ async def create_competition(
         current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to create competition: {request.name}")
+    logger.info(f"User attempting to create competition: {request.name}")
 
     if check_competition_name_exists(db, request.name):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -423,8 +423,6 @@ async def create_competition(
                 event_id=base_event.event_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 
@@ -600,7 +598,7 @@ async def update_competition(
         current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to update competition ID: {competition_id}")
+    logger.info(f"User attempting to update competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
@@ -652,8 +650,6 @@ async def update_competition(
                 event_id=competition_id,
                 question_id=question_id,
                 riddle_id=riddle_id,
-                points=0,
-                is_riddle_completed=False
             )
             db.add(question_instance)
 
@@ -735,7 +731,7 @@ async def delete_competition(
     Cascade delete handles related records.
     """
     user_email = current_user.get("sub")
-    logger.info(f"User '{user_email}' attempting to delete competition ID: {competition_id}")
+    logger.info(f"User attempting to delete competition ID: {competition_id}")
 
     try:
         base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()

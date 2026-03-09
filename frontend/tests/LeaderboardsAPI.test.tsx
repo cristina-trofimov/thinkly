@@ -2,6 +2,7 @@ import axiosClient from "../src/lib/axiosClient";
 import {
   getCurrentCompetitionLeaderboard,
   getCompetitionsDetails,
+  getAllCompetitionEntries,
   getAlgoTimeEntries,
   getAllAlgoTimeEntriesForExport,
 } from "../src/api/LeaderboardsAPI";
@@ -27,6 +28,7 @@ describe("LeaderboardsAPI", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedFormatTime.mockImplementation((s: number) => `${s}s`);
+    jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   // ─── getCurrentCompetitionLeaderboard ──────────────────────────────────────
@@ -102,6 +104,17 @@ describe("LeaderboardsAPI", () => {
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/leaderboards/competitions/current",
         { params: {} }
+      );
+    });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getCurrentCompetitionLeaderboard()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching current competition leaderboard:",
+        err
       );
     });
   });
@@ -215,6 +228,83 @@ describe("LeaderboardsAPI", () => {
       const calledParams = (mockedAxios.get as jest.Mock).mock.calls[0][1].params;
       expect(calledParams).not.toHaveProperty("search");
     });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getCompetitionsDetails()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching competitions leaderboard:",
+        err
+      );
+    });
+  });
+
+  // ─── getAllCompetitionEntries ──────────────────────────────────────────────
+
+  describe("getAllCompetitionEntries", () => {
+    it("fetches all entries for a competition and maps the response", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: [
+          {
+            name: "Alice",
+            userId: 10,
+            points: 100,
+            problemsSolved: 5,
+            rank: 1,
+            totalTime: 360,
+          },
+        ],
+      } as any);
+
+      const result = await getAllCompetitionEntries(42);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/leaderboards/competitions/42/all"
+      );
+      expect(result).toEqual([
+        {
+          name: "Alice",
+          user_id: 10,
+          total_score: 100,
+          problems_solved: 5,
+          rank: 1,
+          total_time: "360s",
+        },
+      ]);
+    });
+
+    it("falls back to user_id=0 when userId is null", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: [
+          { name: "Guest", userId: null, points: 30, problemsSolved: 1, rank: 5, totalTime: 120 },
+        ],
+      } as any);
+
+      const result = await getAllCompetitionEntries(1);
+
+      expect(result[0].user_id).toBe(0);
+    });
+
+    it("returns an empty array when the response is empty", async () => {
+      mockedAxios.get.mockResolvedValueOnce({ data: [] } as any);
+
+      const result = await getAllCompetitionEntries(1);
+
+      expect(result).toEqual([]);
+    });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getAllCompetitionEntries(99)).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching all entries for competition 99:",
+        err
+      );
+    });
   });
 
   // ─── getAlgoTimeEntries (paginated) ────────────────────────────────────────
@@ -314,6 +404,17 @@ describe("LeaderboardsAPI", () => {
       expect(params.page).toBe(1);
       expect(params.page_size).toBe(15);
     });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getAlgoTimeEntries()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching AlgoTime leaderboard entries:",
+        err
+      );
+    });
   });
 
   // ─── getAllAlgoTimeEntriesForExport ────────────────────────────────────────
@@ -357,6 +458,17 @@ describe("LeaderboardsAPI", () => {
       const result = await getAllAlgoTimeEntriesForExport();
 
       expect(result).toEqual([]);
+    });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getAllAlgoTimeEntriesForExport()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching all AlgoTime entries for export:",
+        err
+      );
     });
   });
 });

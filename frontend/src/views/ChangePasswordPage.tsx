@@ -88,7 +88,7 @@ function ChangePasswordPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="mb-2 -ml-2 text-muted-foreground cursor-pointer"
+              className="mb-2 -ml-2 text-muted-foreground"
               onClick={() => navigate(-1)}
               disabled={isSubmitting}
             >
@@ -164,7 +164,7 @@ function ChangePasswordPage() {
             <div>
               <Button
                 onClick={handleUpdatePassword}
-                className="bg-primary text-white transition-all cursor-pointer"
+                className="bg-primary text-white transition-all"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

@@ -6,7 +6,7 @@ from jose import jwt
 import sys
 import os
 from src.endpoints import authentification_api
-from src.DB_Methods import database
+from src.database_operations import database
 from fastapi import FastAPI
 import bcrypt
 from fastapi import FastAPI, HTTPException 

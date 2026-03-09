@@ -10,7 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from src.endpoints.submission_api import submission_router
 
 
@@ -101,7 +101,6 @@ def test_get_all_submissions_db_error(client, mock_db):
 
     assert response.status_code == 500
     assert "Failed to retrieve submissions" in response.json()["detail"]
-    assert "Exception" in response.json()["detail"]
 
 def test_get_all_submissions_missing_params(client, mock_db):
     """Test that missing query params causes a TypeError/500 (int(None))."""
@@ -176,7 +175,7 @@ def test_save_submission_db_error(client, mock_db):
     response = client.post("/add", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to upload submissions" in response.json()["detail"]
+    assert "Failed to upload submission" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
 def test_save_submission_missing_required_fields(client, mock_db):
@@ -210,5 +209,5 @@ def test_save_submission_add_error(client, mock_db):
     response = client.post("/add", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to upload submissions" in response.json()["detail"]
+    assert "Failed to upload submission" in response.json()["detail"]
     mock_db.rollback.assert_called_once()

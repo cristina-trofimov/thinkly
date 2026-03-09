@@ -10,7 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from src.endpoints.most_recent_sub_api import most_recent_sub_router
 
 
@@ -140,7 +140,7 @@ def test_add_most_recent_sub_db_error(client, mock_db):
     response = client.post("/update", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to updating most recent submission" in response.json()["detail"]
+    assert "Failed to update most recent submission" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
 def test_create_question_instance_missing_fields(client):

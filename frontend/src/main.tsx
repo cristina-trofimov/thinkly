@@ -108,6 +108,13 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: "comp/:comp_name",
+            element: <CodingView />,
+            handle: {
+              crumb: { title: "Competition" },
+            },
+          },
+          {
             path: "leaderboards",
             element: <Leaderboards />,
             handle: { crumb: { title: "Leaderboards" } },
@@ -141,6 +148,10 @@ const router = createBrowserRouter([
                 handle: { crumb: { title: "Change Password" } },
               },
             ],
+          },
+          {
+            path: "*",
+            element: <ErrorPage />,
           },
         ]
       },
@@ -191,6 +202,20 @@ const router = createBrowserRouter([
                       crumb: { title: "Create AlgoTime Session" }
                     }
                   },
+                  {
+                    path: "view/:id",
+                    // element: <ViewAlgotimePage />,
+                    handle: {
+                      crumb: { title: "View AlgoTime Session" }
+                    }
+                  },
+                  {
+                    path: "edit/:id",
+                    // element: <EditAlgotimePage />,
+                    handle: {
+                      crumb: { title: "Edit AlgoTime Session" }
+                    }
+                  }
                 ]
               },
             ],

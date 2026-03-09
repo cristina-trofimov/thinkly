@@ -10,7 +10,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 from src.endpoints import admin_dashboard_api
-from src.DB_Methods import database
+from src.database_operations import database
 from fastapi import FastAPI
 
 app = FastAPI()

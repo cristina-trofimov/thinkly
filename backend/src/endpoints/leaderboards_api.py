@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
-from DB_Methods.database import get_db
+from database_operations.database import get_db
 from models.schema import (
     CompetitionLeaderboardEntry,
     AlgoTimeLeaderboardEntry,
@@ -10,7 +11,7 @@ from models.schema import (
     BaseEvent
 )
 import logging
-from posthog_analytics import track_custom_event
+from services.posthog_analytics import track_custom_event
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
@@ -158,7 +159,15 @@ def get_leaderboards(
     logger.info(f"Params — sort={sort}, page={page}, page_size={page_size}")
 
     try:
-        query = db.query(Competition).join(BaseEvent)
+        query = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(
+                exists().where(
+                    CompetitionLeaderboardEntry.competition_id == Competition.event_id
+                )
+            )
+        )
 
         # --- Backend filtering ---
         if search:

@@ -4,6 +4,7 @@ import {
   type CreateAlgotimeResponse,
   type AlgoTimeQuestion,
   type AlgoTimeSession,
+  type CreateAlgotimeSession,
 } from "../types/algoTime/AlgoTime.type"
 import { logFrontend } from "./LoggerAPI";
 
@@ -57,6 +58,68 @@ export async function getAllAlgotimeSessions(): Promise<AlgoTimeSession[]> {
       component: 'AlgotimeAPI',
       url: globalThis.location.href,
   });
+    throw err;
+  }
+}
+
+export const getAlgotimeById = async (sessionId: number) => {
+  try {
+    const response = await axiosClient.get(
+      `/algotime/${sessionId}`
+    );
+    console.log("session response:", response.data); 
+
+    const session = response.data;
+
+    return {
+      ...session,
+      startTime: new Date(session.startTime),
+      endTime: new Date(session.endTime),
+      location: session.location ?? "",
+    };
+
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `Error fetching Algotime session ${sessionId}: ${err}`,
+      component: "AlgotimeAPI",
+      url: globalThis.location.href,
+    });
+    throw err;
+  }
+};
+
+export const updateAlgotime = async (
+  sessionId: number,
+  payload: CreateAlgotimeSession
+) => {
+  try {
+    const response = await axiosClient.put(
+      `/algotime/${sessionId}`,
+      payload
+    );
+    return response.data;
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `Error updating Algotime session ${sessionId}: ${err}`,
+      component: "AlgotimeAPI",
+      url: globalThis.location.href,
+    });
+    throw err;
+  }
+};
+
+export async function deleteAlgotime(sessionId: number): Promise<void> {
+  try {
+    await axiosClient.delete(`/algotime/${sessionId}`);
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `Error deleting Algotime session ${sessionId}: ${err}`,
+      component: "AlgotimeAPI",
+      url: globalThis.location.href,
+    });
     throw err;
   }
 }

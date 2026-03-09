@@ -3,7 +3,7 @@ import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
 import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
-import { getProfile } from "./AuthAPI";
+import { logFrontend } from "./LoggerAPI";
 
 
 export function parse_input_output(testcases: TestcaseType[]) {
@@ -34,12 +34,16 @@ export function parse_input_output(testcases: TestcaseType[]) {
 }
 
 export async function submitToJudge0(
-    question_instance_id: number,
+    user_id: number,
+    question_instance_id: number | undefined,
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
 ): Promise<CodeRunResponse> {
     try {
+        if (!question_instance_id) {
+            throw new Error("RunCode: Question instance cannot be undefined")
+        }
         const { stdin, expected_output } = parse_input_output(testcases)
 
         const response = await axiosClient.post(
@@ -52,11 +56,9 @@ export async function submitToJudge0(
             }
         )
 
-        const user = await getProfile()
+        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, Number.parseInt(language_id))
 
-        const mostRecentSubResponse = await updateMostRecentSub(user.id, question_instance_id, source_code, Number.parseInt(language_id))
-
-        const userPref = await updateLastProgLang(user.id, Number.parseInt(language_id))
+        const userPref = await updateLastProgLang(user_id, Number.parseInt(language_id))
 
         return {
             judge0Response: response['data'],
@@ -65,7 +67,13 @@ export async function submitToJudge0(
         }
 
       } catch (err) {
-        console.error("Error running the code:", err)
+        logFrontend({
+            level: "ERROR",
+            message: `An error occurred when running the code. Reason: ${err}`,
+            component: "Judge0API",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+        });
         throw err
       }
 }
