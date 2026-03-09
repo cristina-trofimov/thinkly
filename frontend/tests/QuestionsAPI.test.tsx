@@ -268,6 +268,48 @@ describe("QuestionsAPI", () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getRiddles()).rejects.toThrow("Network error");
     });
+
+    it("fetches subsequent riddle pages when needed", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 1,
+            page_size: 100,
+            items: [
+              {
+                riddle_id: 1,
+                riddle_question: "R1",
+                riddle_answer: "A1",
+                riddle_file: null,
+              },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 2,
+            page_size: 100,
+            items: [
+              {
+                riddle_id: 2,
+                riddle_question: "R2",
+                riddle_answer: "A2",
+                riddle_file: "hint.png",
+              },
+            ],
+          },
+        } as any);
+
+      const result = await getRiddles();
+
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/questions/get-all-riddles", {
+        params: { page: 2, page_size: 100 },
+      });
+      expect(result).toHaveLength(2);
+      expect(result[1]).toEqual({ id: 2, question: "R2", answer: "A2", file: "hint.png" });
+    });
   });
 
   describe("deleteCompetition", () => {
@@ -325,6 +367,13 @@ describe("QuestionsAPI", () => {
         data: { question_ids: [9] },
       });
     });
+
+    it("rethrows deleteQuestions errors", async () => {
+      mockedAxios.delete.mockRejectedValueOnce(new Error("delete failed"));
+
+      await expect(deleteQuestions([1])).rejects.toThrow("delete failed");
+      expect(console.error).toHaveBeenCalledWith("Error deleting questions:", expect.any(Error));
+    });
   });
 
   describe("uploadQuestions", () => {
@@ -348,6 +397,13 @@ describe("QuestionsAPI", () => {
       ] as any);
 
       expect(mockedAxios.post).toHaveBeenCalledWith("/questions/upload-question-batch", expect.any(Array));
+    });
+
+    it("rethrows upload errors", async () => {
+      mockedAxios.post.mockRejectedValueOnce(new Error("upload failed"));
+
+      await expect(uploadQuestions([] as any)).rejects.toThrow("upload failed");
+      expect(console.error).toHaveBeenCalledWith("Error uploading questions:", expect.any(Error));
     });
   });
 
@@ -380,6 +436,30 @@ describe("QuestionsAPI", () => {
         tags: ["tag"],
         testcases: [["in", "out"]],
       });
+    });
+
+    it("rethrows update errors", async () => {
+      mockedAxios.put.mockRejectedValueOnce(new Error("update failed"));
+
+      await expect(
+        updateQuestion(5, {
+          question_name: "Updated",
+          question_description: "Updated desc",
+          media: null,
+          difficulty: "medium",
+          preset_code: "",
+          from_string_function: "",
+          to_string_function: "",
+          template_solution: "def solve(): pass",
+          tags: [],
+          testcases: [],
+        })
+      ).rejects.toThrow("update failed");
+
+      expect(console.error).toHaveBeenCalledWith(
+        "Error updating question 5:",
+        expect.any(Error)
+      );
     });
   });
 

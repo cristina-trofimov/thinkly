@@ -7,6 +7,7 @@ from email.utils import format_datetime
 from types import SimpleNamespace
 import sys
 import os
+from sqlalchemy.exc import IntegrityError, DataError
 
 # 1. Boilerplate to make Python see the 'backend' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -618,3 +619,144 @@ def test_get_all_riddles_returns_paginated_envelope(client, mock_db):
         ],
     }
     assert response.headers["cache-control"] == "public, max-age=60"
+
+
+def test_get_question_by_id_unexpected_error_returns_500(client, mock_db):
+    mock_db.query.side_effect = Exception("boom")
+
+    response = client.get("/get-question-by-id/12")
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to retrieve question with id 12"
+
+
+def test_get_all_questions_invalid_if_modified_since_uses_fallback(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.scalar.return_value = datetime(2025, 2, 1, 10, 0, 0)
+    query.count.return_value = 0
+    query.all.return_value = []
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-Modified-Since": "not-a-date"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+    assert "last-modified" in response.headers
+
+
+def test_upload_question_batch_integrity_error_returns_409(client, mock_db):
+    batch_payload = [
+        {
+            "question_name": "Batch Q",
+            "question_description": "desc",
+            "difficulty": "easy",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def s(): pass",
+            "tags": [],
+            "testcases": [],
+        }
+    ]
+
+    diag = SimpleNamespace(message_detail="question_name already exists")
+    orig = SimpleNamespace(diag=diag)
+    mock_db.commit.side_effect = IntegrityError("stmt", {}, orig)
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+
+    assert response.status_code == 409
+    assert "question_name already exists" in response.json()["detail"]
+    mock_db.rollback.assert_called_once()
+
+
+def test_upload_question_batch_data_error_returns_400(client, mock_db):
+    batch_payload = [
+        {
+            "question_name": "Batch Q",
+            "question_description": "desc",
+            "difficulty": "easy",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def s(): pass",
+            "tags": [],
+            "testcases": [],
+        }
+    ]
+
+    mock_db.commit.side_effect = DataError("stmt", {}, Exception("bad value\nextra"))
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+
+    assert response.status_code == 400
+    assert "bad value" in response.json()["detail"]
+    mock_db.rollback.assert_called_once()
+
+
+def test_batch_delete_questions_when_ids_missing_returns_zero(client, mock_db):
+    id_query = MagicMock()
+    id_query.filter.return_value.all.return_value = []
+    mock_db.query.return_value = id_query
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [10, 11]})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["deleted_count"] == 0
+    assert payload["deleted_questions"] == []
+    assert payload["errors"] == [
+        {"question_id": 10, "error": "Question not found."},
+        {"question_id": 11, "error": "Question not found."},
+    ]
+    mock_db.commit.assert_called_once()
+
+
+def test_update_question_success_replaces_fields_tags_and_testcases(client, mock_db):
+    existing_question = SimpleNamespace(
+        question_id=7,
+        question_name="Old",
+        question_description="Old desc",
+        media=None,
+        difficulty="easy",
+        preset_code="",
+        from_string_function="",
+        to_string_function="",
+        template_solution="old",
+        tags=[],
+        test_cases=[SimpleNamespace(test_case_id=1, input_data="in", expected_output="out")],
+    )
+
+    question_query = MagicMock()
+    question_query.filter.return_value.first.return_value = existing_question
+
+    tag_query = MagicMock()
+    tag_query.filter.return_value.all.return_value = []
+
+    mock_db.query.side_effect = [question_query, tag_query]
+
+    payload = {
+        "question_name": "Updated",
+        "question_description": "Updated description",
+        "media": None,
+        "difficulty": "medium",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solve(): return 1",
+        "tags": ["arrays"],
+        "testcases": [["1 2", "3"]],
+    }
+
+    response = client.put("/update-question/7", json=payload)
+
+    assert response.status_code == 200
+    assert existing_question.question_name == "Updated"
+    assert existing_question.difficulty == "medium"
+    assert len(existing_question.test_cases) == 1
+    assert existing_question.test_cases[0].question_id == 7
+    mock_db.delete.assert_called_once()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(existing_question)

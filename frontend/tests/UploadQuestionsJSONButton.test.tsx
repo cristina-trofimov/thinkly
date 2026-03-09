@@ -70,4 +70,19 @@ describe("UploadQuestionsJSONButton", () => {
       expect(onFailure).toHaveBeenCalled();
     });
   });
+
+  it("opens file picker when button is clicked", () => {
+    const clickSpy = jest
+      .spyOn(HTMLInputElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    render(
+      <UploadQuestionsJSONButton>Upload JSON</UploadQuestionsJSONButton>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Upload JSON" }));
+
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
 });

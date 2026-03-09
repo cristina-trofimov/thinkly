@@ -3,9 +3,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ManageQuestionsDataTable } from "../src/components/manageQuestions/ManageQuestionsDataTable";
 import { columns } from "../src/components/manageQuestions/ManageQuestionsColumns";
 import type { Question } from "../src/types/questions/Question.type";
-import { deleteQuestions } from "../src/api/QuestionsAPI";
+import { deleteQuestion, deleteQuestions } from "../src/api/QuestionsAPI";
 import { toast } from "sonner";
 import { MemoryRouter } from "react-router-dom";
+import userEvent from "@testing-library/user-event";
 
 jest.mock("../src/lib/axiosClient", () => ({
   __esModule: true,
@@ -60,6 +61,7 @@ jest.mock("../src/components/ui/alert-dialog", () => ({
 }));
 
 const mockedDeleteQuestions = deleteQuestions as jest.MockedFunction<typeof deleteQuestions>;
+const mockedDeleteQuestion = deleteQuestion as jest.MockedFunction<typeof deleteQuestion>;
 const mockedToast = toast as jest.Mocked<typeof toast>;
 
 const data: Question[] = [
@@ -148,6 +150,139 @@ describe("ManageQuestionsDataTable", () => {
       expect(onDeleteQuestions).toHaveBeenCalledWith([1]);
       expect(mockedToast.success).toHaveBeenCalled();
     });
+  });
+
+  it("handles partial success for batch delete", async () => {
+    mockedDeleteQuestions.mockResolvedValueOnce({
+      status_code: 200,
+      deleted_count: 1,
+      deleted_questions: [{ question_id: 1 }],
+      total_requested: 2,
+      errors: [{ question_id: 2, error: "Question not found." }],
+    } as any);
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={data} onDeleteQuestions={jest.fn()} />
+      </MemoryRouter>
+    );
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[1]);
+    fireEvent.click(checkboxes[2]);
+    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+    await waitFor(() => {
+      expect(mockedToast.success).toHaveBeenCalledWith(
+        "Deleted 1/2 questions successfully."
+      );
+      expect(mockedToast.warning).toHaveBeenCalledWith(
+        "1 questions could not be deleted."
+      );
+    });
+  });
+
+  it("shows default batch delete error when backend detail is absent", async () => {
+    mockedDeleteQuestions.mockRejectedValueOnce({ response: {} } as any);
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={data} />
+      </MemoryRouter>
+    );
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    fireEvent.click(checkboxes[1]);
+    fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalledWith(
+        "Failed to delete selected question(s)."
+      );
+    });
+  });
+
+  it("deletes a single row from actions cell", async () => {
+    const user = userEvent.setup();
+    mockedDeleteQuestion.mockResolvedValueOnce(undefined);
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={data} />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getAllByRole("button", { name: /open menu/i })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: /delete question/i }));
+
+    await waitFor(() => {
+      expect(mockedDeleteQuestion).toHaveBeenCalledWith(1);
+      expect(mockedToast.success).toHaveBeenCalledWith("Question 1 deleted successfully!");
+    });
+  });
+
+  it("shows parsed error when single row delete fails", async () => {
+    const user = userEvent.setup();
+    mockedDeleteQuestion.mockRejectedValueOnce(new Error("failed"));
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={data} />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getAllByRole("button", { name: /open menu/i })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: /delete question/i }));
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalledWith("Failed to delete question 1: boom");
+    });
+  });
+
+  it("applies difficulty filters from dropdown options", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={data} />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: /all difficulties/i }));
+    await user.click(await screen.findByRole("menuitem", { name: "Easy" }));
+
+    await user.click(screen.getByRole("button", { name: /easy/i }));
+    await user.click(await screen.findByRole("menuitem", { name: "Medium" }));
+
+    await user.click(screen.getByRole("button", { name: /medium/i }));
+    await user.click(await screen.findByRole("menuitem", { name: "Hard" }));
+
+    await user.click(screen.getByRole("button", { name: /hard/i }));
+    await user.click(await screen.findByRole("menuitem", { name: "All" }));
+
+    expect(screen.getByRole("button", { name: /all difficulties/i })).toBeInTheDocument();
+  });
+
+  it("navigates between pages", async () => {
+    const manyRows = Array.from({ length: 12 }, (_, idx) => ({
+      ...data[0],
+      question_id: idx + 1,
+      question_name: `Question ${idx + 1}`,
+    }));
+
+    render(
+      <MemoryRouter>
+        <ManageQuestionsDataTable columns={columns as any} data={manyRows as any} />
+      </MemoryRouter>
+    );
+
+    const nextButton = screen.getByRole("button", { name: /next/i });
+    expect(nextButton).toBeEnabled();
+    fireEvent.click(nextButton);
+
+    const previousButton = screen.getByRole("button", { name: /previous/i });
+    expect(previousButton).toBeEnabled();
+    fireEvent.click(previousButton);
   });
 
   it("handles upload callbacks", () => {
