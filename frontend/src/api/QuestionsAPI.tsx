@@ -6,32 +6,18 @@ import type { Riddle } from "@/types/riddle/Riddle.type";
 
 const DEFAULT_PAGE_SIZE = 100;
 
-type QuestionListItemResponse = {
-  question_id: number;
-  question_name: string;
-  question_description: string;
-  media: string | null;
-  preset_code: string | null;
-  template_solution: string;
-  difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
-  from_string_function?: string;
-  to_string_function?: string;
-  created_at?: string;
-  last_modified_at: string;
-};
-
 type QuestionsResponse = {
   total: number;
   page: number;
   page_size: number;
-  items: QuestionListItemResponse[];
+  items: Question[];
 };
 
 type QuestionByIdResponse =
-  | QuestionListItemResponse
+  | Question
   | {
       status_code: number;
-      data: QuestionListItemResponse;
+      data: Question;
     };
 
 type RiddlesResponse = {
@@ -62,7 +48,7 @@ export type QuestionsPageResult = {
 };
 
 function normalizeDifficulty(
-  difficulty: QuestionListItemResponse["difficulty"],
+  difficulty: Question["difficulty"],
 ): Question["difficulty"] {
   const lowered = difficulty.toLowerCase();
   if (lowered === "easy") return "Easy";
@@ -70,7 +56,7 @@ function normalizeDifficulty(
   return "Hard";
 }
 
-function mapQuestion(question: QuestionListItemResponse): Question {
+function mapQuestion(question: Question): Question {
   const createdAt = question.created_at ?? question.last_modified_at;
 
   return {
