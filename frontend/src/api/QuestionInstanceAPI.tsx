@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
+import { logFrontend } from "./LoggerAPI";
 
 export async function updateQuestionInstance(
   question_instance: QuestionInstance | undefined,
@@ -21,7 +22,13 @@ export async function updateQuestionInstance(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating most recent submission:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -43,7 +50,13 @@ export async function getQuestionInstance(
 
     return response['data']['data'] || []
   } catch (err) {
-    console.error("Error fetching most recent submission:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }

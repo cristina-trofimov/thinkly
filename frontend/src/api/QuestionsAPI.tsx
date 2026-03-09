@@ -2,6 +2,7 @@ import axiosClient from "@/lib/axiosClient";
 import type { Question } from "../types/questions/Question.type";
 import type { Riddle } from "../types/riddle/Riddle.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
+import { logFrontend } from "./LoggerAPI";
 
 export async function getQuestions(): Promise<Question[]> {
   try {
@@ -29,7 +30,13 @@ export async function getQuestions(): Promise<Question[]> {
 
     return formatted;
   } catch (err) {
-    console.error("Error fetching questions:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching questions. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -52,7 +59,13 @@ export async function getRiddles(): Promise<Riddle[]> {
 
     return formatted;
   } catch (err) {
-    console.error("Error fetching questions:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching riddles. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -77,7 +90,13 @@ export async function getTestcases(question_id: number): Promise<TestcaseType[]>
 
       return formatted;
     } catch (err) {
-      console.error("Error fetching testcases:", err);
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when fetching testcases. Reason: ${err}`,
+        component: "QuestionsAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      })
       throw err;
     }
 }

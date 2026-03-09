@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient"
 import type { UserPreferences } from "@/types/UserPreferences.type"
+import { logFrontend } from "./LoggerAPI"
 
 
 export async function updateAllPrefs(
@@ -19,7 +20,13 @@ export async function updateAllPrefs(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating all user preferences:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating all user preferences. Reason: ${err}`,
+      component: "UserPreferencesAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -39,7 +46,13 @@ export async function updateThemePref(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating user's theme preference:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating user's theme preference. Reason: ${err}`,
+      component: "UserPreferencesAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -59,7 +72,13 @@ export async function updateNotifPref(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating user's notification settings:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating user's notification settings. Reason: ${err}`,
+      component: "UserPreferencesAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -78,7 +97,13 @@ export async function updateLastProgLang(
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating user's last programming language used:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating user's last programming language used. Reason: ${err}`,
+      component: "UserPreferencesAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -98,7 +123,13 @@ export async function getUserPrefs(
 
     return response['data']['data']
   } catch (err) {
-    console.error("Error fetching user preferences:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching user preferences. Reason: ${err}`,
+      component: "UserPreferencesAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
