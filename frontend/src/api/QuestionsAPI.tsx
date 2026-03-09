@@ -67,10 +67,13 @@ function normalizeDifficulty(
   return "Hard";
 }
 
-function mapQuestion(question: QuestionListItemResponse): Question {
+function mapQuestion(
+  question: QuestionListItemResponse,
+  options: { includeCollections?: boolean } = {},
+): Question {
   const createdAt = question.created_at ?? question.last_modified_at;
 
-  return {
+  const baseQuestion: Question = {
     question_id: question.question_id,
     question_name: question.question_name,
     question_description: question.question_description,
@@ -80,11 +83,16 @@ function mapQuestion(question: QuestionListItemResponse): Question {
     difficulty: normalizeDifficulty(question.difficulty),
     from_string_function: question.from_string_function ?? "",
     to_string_function: question.to_string_function ?? "",
-    tags: question.tags ?? [],
-    testcases: question.testcases ?? [],
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
   };
+
+  if (options.includeCollections) {
+    baseQuestion.tags = question.tags ?? [];
+    baseQuestion.testcases = question.testcases ?? [];
+  }
+
+  return baseQuestion;
 }
 
 export async function getQuestionsPage({
@@ -111,7 +119,7 @@ export async function getQuestionsPage({
     total: response.data.total,
     page: response.data.page,
     pageSize: response.data.page_size,
-    items: response.data.items.map(mapQuestion),
+    items: response.data.items.map((question) => mapQuestion(question)),
   };
 }
 
@@ -148,7 +156,7 @@ export async function getQuestionByID(questionId: number): Promise<Question> {
       `/questions/get-question-by-id/${questionId}`,
     );
 
-    return mapQuestion(response.data);
+    return mapQuestion(response.data, { includeCollections: true });
   } catch (err) {
     console.error("Error fetching question:", err);
     throw err;
@@ -236,6 +244,7 @@ export async function getTestcases(
 export async function deleteCompetition(competitionId: string): Promise<void> {
   try {
     await axiosClient.delete(`/competitions/delete-competition/${competitionId}`);
+    console.log(`Competition ${competitionId} deleted successfully`);
   } catch (err) {
     console.error("Error deleting competition:", err);
     throw err;
