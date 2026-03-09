@@ -7,6 +7,7 @@ import { getCompetitionsDetails } from "@/api/LeaderboardsAPI";
 import { ScoreboardDataTable } from "@/components/leaderboards/ScoreboardDataTable";
 import type { Competition } from "@/types/competition/Competition.type";
 import type { Participant } from "@/types/leaderboards/CurrentStandings.type";
+import { useNavigate } from "react-router-dom";
 
 const getCompetitionStatus = (
   competitionStart: Date | string
@@ -50,20 +51,20 @@ const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "bg-green-100 text-green-700";
     case "Upcoming":
-      return "bg-green-100 text-green-700";
+      return "bg-blue-100 text-blue-700";
     default:
-      return "bg-gray-200 text-gray-500";
+      return "bg-muted text-muted-foreground";
   }
 };
 
 const getCardGradient = (status: "Active" | "Upcoming" | "Completed") => {
   switch (status) {
     case "Active":
-      return "from-green-50 via-green-50/60 to-background";
+      return "from-green-100/60 via-green-50/40 to-background";
     case "Upcoming":
-      return "from-green-50 via-green-50/40 to-background";
+      return "from-blue-100/60 via-blue-50/40 to-background";
     default:
-      return "from-gray-100 via-gray-50 to-background";
+      return "from-muted/40 via-muted/20 to-background";
   }
 };
 
@@ -72,9 +73,9 @@ const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "border-2 border-green-300";
     case "Upcoming":
-      return "border-2 border-green-200";
+      return "border-2 border-blue-200";
     default:
-      return "border border-gray-200 opacity-70";
+      return "border border-border opacity-70";
   }
 };
 
@@ -83,9 +84,9 @@ const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "text-green-800";
     case "Upcoming":
-      return "text-green-700";
+      return "text-blue-700";
     default:
-      return "text-gray-400";
+      return "text-muted-foreground";
   }
 };
 
@@ -95,12 +96,12 @@ type ModalState =
   | null;
 
 export default function CompetitionsPage() {
+  const nav = useNavigate()
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<"All" | "Active" | "Upcoming" | "Completed">("All");
   const [modal, setModal] = useState<ModalState>(null);
 
-  // Leaderboard modal state
   const [leaderboardParticipants, setLeaderboardParticipants] = useState<Participant[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
@@ -122,7 +123,6 @@ export default function CompetitionsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch leaderboard when a completed competition is opened
   useEffect(() => {
     if (modal?.type !== "leaderboard") {
       setLeaderboardParticipants([]);
@@ -196,7 +196,7 @@ export default function CompetitionsPage() {
               variant={selectedFilter === filter ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedFilter(filter as "All" | "Active" | "Upcoming" | "Completed")}
-              className={selectedFilter === filter ? "bg-primary text-white" : ""}
+              className={selectedFilter === filter ? "bg-primary text-primary-foreground" : ""}
             >
               {filter}
             </Button>
@@ -215,8 +215,9 @@ export default function CompetitionsPage() {
             return (
               <Card
                 key={comp.id}
-                className={`overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col ${getCardBorder(status)}`}
+                className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getCardBorder(status)}`}
               >
+                {/* Card header */}
                 <div className={`aspect-4/3 bg-linear-to-br ${getCardGradient(status)} flex items-center justify-center relative overflow-hidden p-6`}>
                   <div className="absolute inset-0 bg-grid-primary/5"></div>
                   <div className="absolute top-3 right-3 z-20">
@@ -231,46 +232,54 @@ export default function CompetitionsPage() {
                   </div>
                 </div>
 
-                <CardContent className={`p-4 space-y-3 flex-1 flex flex-col justify-between ${isCompleted ? "text-gray-400" : ""}`}>
+                {/* Card body */}
+                <CardContent className="p-4 flex flex-col gap-2">
                   <div>
-                    <p className={`text-sm font-medium ${isCompleted ? "text-gray-400" : ""}`}>
+                    <p className={`text-sm font-medium ${isCompleted ? "text-muted-foreground" : ""}`}>
                       {comp.competitionLocation || "Online"}
                     </p>
-                    <p className={`text-xs mt-1 ${isCompleted ? "text-gray-400" : "text-muted-foreground"}`}>
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {formatCompetitionDate(comp.startDate)}
                     </p>
                   </div>
 
-                  <div className={`flex ${isActive ? "flex-col gap-2" : "items-center justify-between"} pt-2 border-t`}>
+                  {/* Buttons — always right-aligned */}
+                  <div className="flex items-center justify-end gap-2 pt-1.5 border-t">
                     {isActive ? (
                       <>
-                        <Button size="sm" className="h-8 w-full bg-green-600 hover:bg-green-700">
-                          Join Now
-                        </Button>
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="h-8"
-                          onClick={() => setModal({ type: "details", competition: comp })}
+                          className="h-7 text-xs bg-green-600 hover:bg-green-700 text-primary-foreground"
+                          onClick={() => {
+                            nav(`/app/comp/${comp.competitionTitle}`, {
+                              state: {
+                                fromFeed: true,
+                                comp: comp,
+                              },
+                            });
+                          }}
                         >
-                          View details
+                          Join Now
                         </Button>
                       </>
                     ) : isCompleted ? (
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-gray-500 border-gray-300 hover:bg-gray-50"
+                        className="h-7 text-xs text-muted-foreground hover:bg-muted"
                         onClick={() => setModal({ type: "leaderboard", competition: comp })}
                       >
                         View leaderboard
                       </Button>
                     ) : (
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <Button size="sm" className="h-8 bg-green-600 hover:bg-green-700" onClick={() => setModal({ type: "details", competition: comp })}>
-                          View details
-                        </Button>
-                      </div>
+                      /* Upcoming */
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+                        onClick={() => setModal({ type: "details", competition: comp })}
+                      >
+                        View details
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -278,22 +287,25 @@ export default function CompetitionsPage() {
             );
           })}
         </div>
-      )}
+      )
+      }
 
-      {filteredCompetitions.length === 0 && !loading && (
-        <div className="text-center py-16">
-          <h3 className="text-lg font-semibold mb-2">
-            No {selectedFilter !== "All" ? selectedFilter.toLowerCase() : ""} competitions available
-          </h3>
-          <p className="text-muted-foreground">
-            {selectedFilter !== "All" ? "Try selecting a different filter." : "Check back later for upcoming events."}
-          </p>
-        </div>
-      )}
+      {
+        filteredCompetitions.length === 0 && !loading && (
+          <div className="text-center py-16">
+            <h3 className="text-lg font-semibold mb-2">
+              No {selectedFilter !== "All" ? selectedFilter.toLowerCase() : ""} competitions available
+            </h3>
+            <p className="text-muted-foreground">
+              {selectedFilter !== "All" ? "Try selecting a different filter." : "Check back later for upcoming events."}
+            </p>
+          </div>
+        )
+      }
 
       {/* Leaderboard Modal */}
       <Dialog open={modal?.type === "leaderboard"} onOpenChange={(open) => { if (!open) setModal(null); }}>
-        <DialogContent className="!max-w-3xl">
+        <DialogContent className="sm:!max-w-3xl w-full">
           <DialogHeader>
             <DialogTitle className="text-primary">
               {modal?.type === "leaderboard" ? (modal.competition.competitionTitle || "Competition") : ""}
@@ -301,15 +313,15 @@ export default function CompetitionsPage() {
             <p className="text-xs text-muted-foreground">Final standings</p>
           </DialogHeader>
 
-          <div className="mt-2">
+          <div className="mt-2 overflow-x-auto">
             {leaderboardLoading && (
-              <div className="py-10 text-center text-gray-500 text-sm">Loading leaderboard…</div>
+              <div className="py-10 text-center text-muted-foreground text-sm">Loading leaderboard…</div>
             )}
             {leaderboardError && (
-              <div className="py-10 text-center text-red-500 text-sm">{leaderboardError}</div>
+              <div className="py-10 text-center text-destructive text-sm bg-destructive/10 rounded-lg border border-destructive/20">{leaderboardError}</div>
             )}
             {!leaderboardLoading && !leaderboardError && leaderboardParticipants.length === 0 && (
-              <div className="py-10 text-center text-gray-400 text-sm">No results available for this competition.</div>
+              <div className="py-10 text-center text-muted-foreground text-sm">No results available for this competition.</div>
             )}
             {!leaderboardLoading && !leaderboardError && leaderboardParticipants.length > 0 && (
               <ScoreboardDataTable participants={leaderboardParticipants} />
@@ -353,6 +365,6 @@ export default function CompetitionsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }
