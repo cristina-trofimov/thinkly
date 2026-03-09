@@ -33,26 +33,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Filter,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { Filter, Search, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -68,11 +55,14 @@ import {
 import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
 import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
+import {
+  getPageItems,
+  PAGE_SIZE_OPTIONS,
+  TablePagination,
+} from "@/components/helpers/Pagination";
 
 type UserTypeFilter = "all" | "owner" | "admin" | "participant";
-type PaginationItemValue = number | "ellipsis-left" | "ellipsis-right";
 
-const PAGE_SIZE_OPTIONS = ["10", "25", "50", "100"] as const;
 const USER_TYPE_OPTIONS: Array<{ value: UserTypeFilter; label: string }> = [
   { value: "all", label: "All" },
   { value: "participant", label: "Participant" },
@@ -88,30 +78,6 @@ function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
   return userTypeFilter === "all"
     ? "All Account Types"
     : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1);
-}
-
-function getPageItems(currentPage: number, pageCount: number): readonly PaginationItemValue[] {
-  if (pageCount <= 3) {
-    return Array.from({ length: pageCount }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 2) {
-    return [1, 2, 3, "ellipsis-right", pageCount] as const;
-  }
-
-  if (currentPage >= pageCount - 1) {
-    return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
-  }
-
-  return [
-    1,
-    "ellipsis-left",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis-right",
-    pageCount,
-  ] as const;
 }
 
 declare module "@tanstack/react-table" {
@@ -135,70 +101,6 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
-}
-
-interface ManageAccountsPaginationProps {
-  page: number;
-  pageCount: number;
-  pageItems: readonly PaginationItemValue[];
-  onPageChange: (page: number) => void;
-}
-
-function ManageAccountsPagination({
-  page,
-  pageCount,
-  pageItems,
-  onPageChange,
-}: Readonly<ManageAccountsPaginationProps>) {
-  const createPageClickHandler =
-    (targetPage: number) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      onPageChange(targetPage);
-    };
-
-  return (
-    <Pagination className="mx-0 w-auto">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            onClick={createPageClickHandler(Math.max(1, page - 1))}
-            className={
-              page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"
-            }
-          />
-        </PaginationItem>
-        <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-          Page {page} of {pageCount}
-        </PaginationItem>
-        {pageItems.map((item, index) => (
-          <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
-            {typeof item === "number" ? (
-              <PaginationLink
-                href="#"
-                isActive={page === item}
-                onClick={createPageClickHandler(item)}
-                className="cursor-pointer"
-              >
-                {item}
-              </PaginationLink>
-            ) : (
-              <PaginationEllipsis />
-            )}
-          </PaginationItem>
-        ))}
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            onClick={createPageClickHandler(Math.min(pageCount, page + 1))}
-            className={
-              page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"
-            }
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  );
 }
 
 interface SelectionActionsProps {
@@ -281,33 +183,26 @@ export function ManageAccountsDataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
-    meta: {
-      onUserUpdate,
-    },
-    state: {
-      sorting,
-      rowSelection,
-    },
+    meta: { onUserUpdate },
+    state: { sorting, rowSelection },
   });
 
   React.useEffect(() => {
     const activeSort = sorting[0];
-
-    if (!activeSort) {
-      return;
-    }
+    if (!activeSort) return;
 
     const sortValue = SORT_ID_TO_VALUE[activeSort.id];
     if (sortValue) {
       onSortChange?.(activeSort.desc ? sortValue.desc : sortValue.asc);
     }
   }, [onSortChange, sorting]);
+
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = page;
   const pageItems = React.useMemo(
-    () => getPageItems(currentPage, pageCount),
-    [currentPage, pageCount],
+    () => getPageItems(page, pageCount),
+    [page, pageCount],
   );
+
   const clearSelection = () => setRowSelection({});
 
   const handleDelete = async () => {
@@ -319,7 +214,6 @@ export function ManageAccountsDataTable<TData, TValue>({
 
     try {
       const response = await deleteAccounts(userIds);
-
       const deletedIds = response.deleted_users.map((user) => user.user_id);
 
       if (response?.errors?.length) {
@@ -327,28 +221,19 @@ export function ManageAccountsDataTable<TData, TValue>({
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
         toast.warning(`${response.errors.length} users could not be deleted.`);
-        onDeleteUsers?.(deletedIds);
       } else {
-        toast.success(
-          `Successfully deleted ${response.deleted_count} user(s).`
-        );
-        onDeleteUsers?.(deletedIds);
+        toast.success(`Successfully deleted ${response.deleted_count} user(s).`);
       }
+
+      onDeleteUsers?.(deletedIds);
     } catch (error: unknown) {
-
       const axiosError = error as { response?: { data?: { detail?: string } } };
-      const errorMessage =
-        axiosError.response?.data?.detail ||
-        "Failed to delete selected user(s).";
-
-      toast.error(errorMessage);
+      toast.error(
+        axiosError.response?.data?.detail ?? "Failed to delete selected user(s)."
+      );
     } finally {
       clearSelection();
     }
-  };
-
-  const handleCancelSelection = () => {
-    clearSelection();
   };
 
   return (
@@ -389,7 +274,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         <SelectionActions
           selectedCount={selectedCount}
           onDelete={handleDelete}
-          onCancel={handleCancelSelection}
+          onCancel={clearSelection}
         />
       </div>
       <div className="overflow-hidden rounded-md border">
@@ -397,18 +282,16 @@ export function ManageAccountsDataTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
                           header.column.columnDef.header,
                           header.getContext()
                         )}
-                    </TableHead>
-                  );
-                })}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -419,24 +302,16 @@ export function ManageAccountsDataTable<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => {
-                    return (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    );
-                  })}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -464,16 +339,14 @@ export function ManageAccountsDataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          {selectedCount > 0 ? (
+          {selectedCount > 0 && (
             <div className="text-sm text-muted-foreground">
-              {selectedCount} of{" "}
-              {table.getRowModel().rows.length} row(s) selected
+              {selectedCount} of {table.getRowModel().rows.length} row(s) selected
             </div>
-          ) : null}
+          )}
         </div>
-
-        <ManageAccountsPagination
-          page={currentPage}
+        <TablePagination
+          page={page}
           pageCount={pageCount}
           pageItems={pageItems}
           onPageChange={onPageChange}

@@ -30,26 +30,20 @@ import { useNavigate } from "react-router-dom";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { Question } from "@/types/questions/Question.type";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  getPageItems,
+  PAGE_SIZE_OPTIONS,
+  TablePagination,
+} from "@/components/helpers/Pagination";
 
 export type DifficultyFilter = "all" | "easy" | "medium" | "hard";
-type PaginationItemValue = number | "ellipsis-left" | "ellipsis-right";
 
-const PAGE_SIZE_OPTIONS = ["10", "25", "50", "100"] as const;
 const DIFFICULTY_OPTIONS: Array<{
   value: DifficultyFilter;
   label: string;
@@ -67,30 +61,6 @@ function getDifficultyFilterLabel(difficultyFilter: DifficultyFilter) {
     : difficultyFilter.charAt(0).toUpperCase() + difficultyFilter.slice(1);
 }
 
-function getPageItems(currentPage: number, pageCount: number): readonly PaginationItemValue[] {
-  if (pageCount <= 3) {
-    return Array.from({ length: pageCount }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 2) {
-    return [1, 2, 3, "ellipsis-right", pageCount] as const;
-  }
-
-  if (currentPage >= pageCount - 1) {
-    return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
-  }
-
-  return [
-    1,
-    "ellipsis-left",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis-right",
-    pageCount,
-  ] as const;
-}
-
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -103,70 +73,6 @@ interface DataTableProps<TData, TValue> {
   onDifficultyFilterChange: (value: DifficultyFilter) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
-}
-
-interface QuestionTablePaginationProps {
-  page: number;
-  pageCount: number;
-  pageItems: readonly PaginationItemValue[];
-  onPageChange: (page: number) => void;
-}
-
-function QuestionTablePagination({
-  page,
-  pageCount,
-  pageItems,
-  onPageChange,
-}: Readonly<QuestionTablePaginationProps>) {
-  const createPageClickHandler =
-    (targetPage: number) => (event: React.MouseEvent<HTMLAnchorElement>) => {
-      event.preventDefault();
-      onPageChange(targetPage);
-    };
-
-  return (
-    <Pagination className="mx-0 w-auto">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href="#"
-            onClick={createPageClickHandler(Math.max(1, page - 1))}
-            className={
-              page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"
-            }
-          />
-        </PaginationItem>
-        <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-          Page {page} of {pageCount}
-        </PaginationItem>
-        {pageItems.map((item, index) => (
-          <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
-            {typeof item === "number" ? (
-              <PaginationLink
-                href="#"
-                isActive={page === item}
-                onClick={createPageClickHandler(item)}
-                className="cursor-pointer"
-              >
-                {item}
-              </PaginationLink>
-            ) : (
-              <PaginationEllipsis />
-            )}
-          </PaginationItem>
-        ))}
-        <PaginationItem>
-          <PaginationNext
-            href="#"
-            onClick={createPageClickHandler(Math.min(pageCount, page + 1))}
-            className={
-              page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"
-            }
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  );
 }
 
 export function DataTable<TData extends Question, TValue>({
@@ -188,10 +94,9 @@ export function DataTable<TData extends Question, TValue>({
     getCoreRowModel: getCoreRowModel(),
   });
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = page;
   const pageItems = React.useMemo(
-    () => getPageItems(currentPage, pageCount),
-    [currentPage, pageCount],
+    () => getPageItems(page, pageCount),
+    [page, pageCount],
   );
 
   const nav = useNavigate();
@@ -201,7 +106,6 @@ export function DataTable<TData extends Question, TValue>({
     trackQuestionFilteredByDifficulty,
   } = useAnalytics();
 
-  // Debounce search tracking so we don't fire on every keystroke
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
@@ -262,7 +166,6 @@ export function DataTable<TData extends Question, TValue>({
               </span>
             </Button>
           </DropdownMenuTrigger>
-
           <DropdownMenuContent align="start">
             <DropdownMenuLabel>Filter by Difficulty</DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -282,18 +185,16 @@ export function DataTable<TData extends Question, TValue>({
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                );
-              })}
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                </TableHead>
+              ))}
             </TableRow>
           ))}
         </TableHeader>
@@ -307,20 +208,14 @@ export function DataTable<TData extends Question, TValue>({
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="text-left cursor-pointer">
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center"
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 No results.
               </TableCell>
             </TableRow>
@@ -346,8 +241,8 @@ export function DataTable<TData extends Question, TValue>({
             </SelectContent>
           </Select>
         </div>
-        <QuestionTablePagination
-          page={currentPage}
+        <TablePagination
+          page={page}
           pageCount={pageCount}
           pageItems={pageItems}
           onPageChange={onPageChange}
