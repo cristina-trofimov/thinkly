@@ -466,7 +466,7 @@ def test_batch_delete_questions_error_rolls_back(client, mock_db):
     mock_db.rollback.assert_called_once()
 
 
-def test_update_question_not_found_returns_500_with_message(client, mock_db):
+def test_update_question_not_found_returns_404_with_message(client, mock_db):
     mock_db.query.return_value.filter.return_value.first.return_value = None
 
     payload = {
@@ -483,7 +483,7 @@ def test_update_question_not_found_returns_500_with_message(client, mock_db):
 
     response = client.put("/update-question/999", json=payload)
 
-    assert response.status_code == 500
+    assert response.status_code == 404
     assert "Update failed" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
