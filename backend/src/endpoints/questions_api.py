@@ -495,7 +495,7 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
         if not db_question:
             raise HTTPException(
                 status_code=404,
-                detail=f"Question with id {question_id} not found"
+                detail=f"Update failed: Question with id {question_id} not found"
             )
         updated_question: Question = get_question_from_request(db, question_request)
         db_question.question_name=updated_question.question_name

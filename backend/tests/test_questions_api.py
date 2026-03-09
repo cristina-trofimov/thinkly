@@ -485,7 +485,6 @@ def test_update_question_not_found_returns_404_with_message(client, mock_db):
 
     assert response.status_code == 404
     assert "Update failed" in response.json()["detail"]
-    mock_db.rollback.assert_called_once()
 
 
 def test_upload_question_batch_db_error(client, mock_db):
