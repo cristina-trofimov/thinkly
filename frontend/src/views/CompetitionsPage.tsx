@@ -6,7 +6,7 @@ import { getCompetitions } from "@/api/CompetitionAPI";
 import { getCompetitionsDetails } from "@/api/LeaderboardsAPI";
 import { ScoreboardDataTable } from "@/components/leaderboards/ScoreboardDataTable";
 import type { Competition } from "@/types/competition/Competition.type";
-import type { Participant } from "@/types/leaderboards/CurrentStandings.type";
+import type { Participant } from "@/types/account/Participant.type";
 import { useNavigate } from "react-router-dom";
 
 const getCompetitionStatus = (
@@ -218,7 +218,7 @@ export default function CompetitionsPage() {
                 className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getCardBorder(status)}`}
               >
                 {/* Card header */}
-                <div className={`aspect-4/3 bg-linear-to-br ${getCardGradient(status)} flex items-center justify-center relative overflow-hidden p-6`}>
+                <div className={`aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6`}>
                   <div className="absolute inset-0 bg-grid-primary/5"></div>
                   <div className="absolute top-3 right-3 z-20">
                     <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}>
@@ -354,12 +354,6 @@ export default function CompetitionsPage() {
                   <span className="text-muted-foreground font-medium shrink-0">Location</span>
                   <span>{modal.competition.competitionLocation || "Online"}</span>
                 </div>
-                {modal.competition.description && (
-                  <div className="pt-1">
-                    <p className="text-muted-foreground font-medium mb-1">About</p>
-                    <p className="leading-relaxed">{modal.competition.description}</p>
-                  </div>
-                )}
               </div>
             </div>
           )}

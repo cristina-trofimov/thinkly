@@ -3,11 +3,30 @@ import { render, screen, waitFor } from "@testing-library/react";
 import CompetitionsPage from "../src/views/CompetitionsPage";
 import { getCompetitions } from "@/api/CompetitionAPI";
 
-jest.mock("@/lib/axiosClient", () => ({
-  default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
-}));
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 
 jest.mock("@/api/CompetitionAPI");
+
+// LeaderboardsAPI is imported by the component for the leaderboard modal
+jest.mock("@/api/LeaderboardsAPI", () => ({
+  getCompetitionsDetails: jest.fn().mockResolvedValue({ competitions: [] }),
+}));
+
+// useNavigate is used by the "Join Now" button on Active competitions
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}));
 
 const now = new Date();
 const yesterday = new Date(now);
@@ -39,6 +58,7 @@ const mockCompetitions = [
 describe("CompetitionsPage", () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    mockNavigate.mockClear();
   });
 
   it("shows loading state initially", () => {
@@ -85,21 +105,33 @@ describe("CompetitionsPage", () => {
     });
   });
 
-  it("shows Register button for Upcoming competition", async () => {
+  // Upcoming competitions show a "View details" button (not "Register")
+  it("shows 'View details' button for Upcoming competition", async () => {
     (getCompetitions as jest.Mock).mockResolvedValue([mockCompetitions[0]]);
     render(<CompetitionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /register/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /view details/i })).toBeInTheDocument();
     });
   });
 
-  it("shows View button for Completed competition", async () => {
+  // Active competitions show a "Join Now" button
+  it("shows 'Join Now' button for Active competition", async () => {
+    (getCompetitions as jest.Mock).mockResolvedValue([mockCompetitions[2]]);
+    render(<CompetitionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /join now/i })).toBeInTheDocument();
+    });
+  });
+
+  // Completed competitions show a "View leaderboard" button (not a bare "View")
+  it("shows 'View leaderboard' button for Completed competition", async () => {
     (getCompetitions as jest.Mock).mockResolvedValue([mockCompetitions[1]]);
     render(<CompetitionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^view$/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /view leaderboard/i })).toBeInTheDocument();
     });
   });
 
@@ -109,19 +141,23 @@ describe("CompetitionsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("New York, NY")).toBeInTheDocument();
-      // null location falls back to "Online"
+      // mockCompetitions[1] has explicit "Online" location,
+      // mockCompetitions[2] has null location which falls back to "Online"
       expect(screen.getAllByText("Online")).toHaveLength(2);
     });
   });
 
-  it("sorts competitions by startDate ascending", async () => {
+  // Sort order is: Active (0) → Upcoming (1) → Completed (2), then by date within each group.
+  // "Spring Championship" is Upcoming (1), "Winter Open" is Completed (2),
+  // so Spring Championship appears first.
+  it("sorts competitions by status priority then by startDate ascending", async () => {
     (getCompetitions as jest.Mock).mockResolvedValue([mockCompetitions[0], mockCompetitions[1]]);
     render(<CompetitionsPage />);
 
     await waitFor(() => {
       const cards = screen.getAllByText(/Winter Open|Spring Championship/);
-      expect(cards[0].textContent).toBe("Winter Open"); // earlier
-      expect(cards[1].textContent).toBe("Spring Championship"); // later
+      expect(cards[0].textContent).toBe("Spring Championship"); // Upcoming comes before Completed
+      expect(cards[1].textContent).toBe("Winter Open");
     });
   });
 
