@@ -56,10 +56,12 @@ import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
 import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
 import {
-  getPageItems,
-  PAGE_SIZE_OPTIONS,
   TablePagination,
 } from "@/components/helpers/Pagination";
+import {
+  getPageItems,
+  PAGE_SIZE_OPTIONS,
+} from "@/utils/paginationUtils";
 
 type UserTypeFilter = "all" | "owner" | "admin" | "participant";
 

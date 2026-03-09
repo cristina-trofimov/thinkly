@@ -37,10 +37,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  getPageItems,
-  PAGE_SIZE_OPTIONS,
   TablePagination,
 } from "@/components/helpers/Pagination";
+import {
+  getPageItems,
+  PAGE_SIZE_OPTIONS,
+} from "@/utils/paginationUtils";
 
 export type DifficultyFilter = "all" | "easy" | "medium" | "hard";
 
