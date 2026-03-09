@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
@@ -158,7 +159,15 @@ def get_leaderboards(
     logger.info(f"Params — sort={sort}, page={page}, page_size={page_size}")
 
     try:
-        query = db.query(Competition).join(BaseEvent)
+        query = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(
+                exists().where(
+                    CompetitionLeaderboardEntry.competition_id == Competition.event_id
+                )
+            )
+        )
 
         # --- Backend filtering ---
         if search:

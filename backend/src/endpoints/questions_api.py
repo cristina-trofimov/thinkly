@@ -1,7 +1,8 @@
-from typing import Annotated, Optional, List
+from typing import Annotated, Literal, Optional, List
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
 from models.schema import Question, Riddle, Tag, TestCase
@@ -11,6 +12,120 @@ from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
 questions_router = APIRouter(tags=["Questions"])
+DEFAULT_PAGE_SIZE = 25
+MAX_PAGE_SIZE = 100
+
+
+class TagResponse(BaseModel):
+    tag_id: int
+    tag_name: str
+
+
+class QuestionListItemResponse(BaseModel):
+    question_id: int
+    question_name: str
+    question_description: str
+    media: str | None = None
+    difficulty: str
+    preset_code: str | None = None
+    from_string_function: str
+    to_string_function: str
+    template_solution: str
+    created_at: str
+    last_modified_at: str
+    tags: list[TagResponse]
+
+
+class PaginatedQuestionsResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[QuestionListItemResponse]
+
+
+class RiddleListItemResponse(BaseModel):
+    riddle_id: int
+    riddle_question: str
+    riddle_answer: str
+    riddle_file: str | None = None
+
+
+class PaginatedRiddlesResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: list[RiddleListItemResponse]
+
+
+class TestCaseResponse(BaseModel):
+    test_case_id: int
+    question_id: int
+    input_data: str
+    expected_output: str
+
+
+def apply_text_search(query, search: Optional[str], *columns):
+    if search and search.strip():
+        needle = f"%{search.strip()}%"
+        query = query.filter(or_(*(column.ilike(needle) for column in columns)))
+    return query
+
+
+def paginate_query(query, page: int, page_size: int):
+    total = query.count()
+    offset = (page - 1) * page_size
+    items = query.offset(offset).limit(page_size).all()
+    return total, items
+
+
+def build_paginated_response(total: int, page: int, page_size: int, items: list[dict]) -> dict:
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "items": items,
+    }
+
+
+def serialize_question(question: Question) -> dict:
+    return {
+        "question_id": question.question_id,
+        "question_name": question.question_name,
+        "question_description": question.question_description,
+        "media": question.media,
+        "difficulty": question.difficulty,
+        "preset_code": question.preset_code,
+        "from_string_function": question.from_string_function,
+        "to_string_function": question.to_string_function,
+        "template_solution": question.template_solution,
+        "created_at": question.created_at.isoformat(),
+        "last_modified_at": question.last_modified_at.isoformat(),
+        "tags": [
+            {
+                "tag_id": tag.tag_id,
+                "tag_name": tag.tag_name,
+            }
+            for tag in question.tags
+        ],
+    }
+
+
+def serialize_riddle(riddle: Riddle) -> dict:
+    return {
+        "riddle_id": riddle.riddle_id,
+        "riddle_question": riddle.riddle_question,
+        "riddle_answer": riddle.riddle_answer,
+        "riddle_file": riddle.riddle_file,
+    }
+
+
+def serialize_test_case(test_case: TestCase) -> dict:
+    return {
+        "test_case_id": test_case.test_case_id,
+        "question_id": test_case.question_id,
+        "input_data": test_case.input_data,
+        "expected_output": test_case.expected_output,
+    }
 
 class QuestionResponse(BaseModel):
     question_id: int
@@ -69,16 +184,69 @@ def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]
 
 @questions_router.get(
     "/get-all-questions",
+    response_model=PaginatedQuestionsResponse,
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_questions(db: Annotated[Session, Depends(get_db)]):
+def get_all_questions(
+    response: Response,
+    db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Annotated[Optional[str], Query(max_length=200)] = None,
+    difficulty: Annotated[Optional[Literal["easy", "medium", "hard"]], Query()] = None,
+    sort: Annotated[Literal["asc", "desc"], Query()] = "asc",
+):
     try:
-        questions = db.query(Question).all()
-        logger.info(f"Fetched {len(questions)} questions from the database.")
-        return [QuestionResponse.from_question(question) for question in questions]
+        query = db.query(Question)
+        query = apply_text_search(
+            query,
+            search,
+            Question.question_name,
+            Question.question_description,
+        )
+
+        if difficulty:
+            query = query.filter(Question.difficulty == difficulty)
+
+        if sort == "desc":
+            query = query.order_by(Question.question_id.desc())
+        else:
+            query = query.order_by(Question.question_id.asc())
+
+        total, questions = paginate_query(query, page, page_size)
+
+        response.headers["Cache-Control"] = "public, max-age=60"
+
+        logger.info(
+            "Fetched %s question(s) for page=%s, page_size=%s (total=%s).",
+            len(questions),
+            page,
+            page_size,
+            total,
+        )
+        return build_paginated_response(
+            total,
+            page,
+            page_size,
+            [serialize_question(question) for question in questions],
+        )
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
+
+
+@questions_router.get(
+    "/question",
+    responses={500: {"description": "Failed to retrieve question."}}
+)
+def get_question(db: Annotated[str, Depends(get_db)], question_id: int):
+    try:
+        question = db.query(Question).filter_by(question_id = question_id).first()
+        logger.info("Fetched question from the database.")
+        return { 'status_code': 200, 'data': question}
+    except Exception as e:
+        logger.error(f"Error fetching question: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question. Exception: {str(e)}")
 
 
 class CreateQuestionRequest(BaseModel):
@@ -188,13 +356,44 @@ def upload_question_batch(question_request: list[CreateQuestionRequest] = Body(.
         
 @questions_router.get(
     "/get-all-riddles",
+    response_model=PaginatedRiddlesResponse,
     responses={500: {"description": "Failed to retrieve questions."}}
 )
-def get_all_riddles(db: Annotated[Session, Depends(get_db)]):
+def get_all_riddles(
+    response: Response,
+    db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Annotated[Optional[str], Query(max_length=200)] = None,
+):
     try:
-        riddles = db.query(Riddle).all()
-        logger.info(f"Fetched {len(riddles)} riddles from the database.")
-        return riddles
+        query = db.query(Riddle)
+        query = apply_text_search(
+            query,
+            search,
+            Riddle.riddle_question,
+            Riddle.riddle_answer,
+        )
+
+        query = query.order_by(Riddle.riddle_id.desc())
+
+        total, riddles = paginate_query(query, page, page_size)
+
+        response.headers["Cache-Control"] = "public, max-age=60"
+
+        logger.info(
+            "Fetched %s riddle(s) for page=%s, page_size=%s (total=%s).",
+            len(riddles),
+            page,
+            page_size,
+            total,
+        )
+        return build_paginated_response(
+            total,
+            page,
+            page_size,
+            [serialize_riddle(riddle) for riddle in riddles],
+        )
     except Exception as e:
         logger.error(f"Error fetching riddles: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve riddles.")
@@ -202,16 +401,17 @@ def get_all_riddles(db: Annotated[Session, Depends(get_db)]):
 
 @questions_router.get(
     "/get-all-testcases/{question_id}",
+    response_model=list[TestCaseResponse],
     responses={500: {"description": "Failed to upload test cases."}}
 )
 def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)]):
     try:
         testcases = db.query(TestCase).filter_by(question_id=question_id).all()
         logger.info(f"Fetched {len(testcases)} test cases from the database.")
-        return testcases
+        return [serialize_test_case(test_case) for test_case in testcases]
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve test cases. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")
 
 class BatchDeleteQuestionsRequest(BaseModel):
     question_ids: list[int]

@@ -1,8 +1,6 @@
 import * as React from "react"
 import {
   BadgeCheck,
-  Bell,
-  // ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 import {
@@ -125,10 +123,6 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
           <DropdownMenuItem onClick={handleProfileClick}>
             <BadgeCheck />
             Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Bell />
-            Notifications
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

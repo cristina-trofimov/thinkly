@@ -28,6 +28,26 @@ type RiddleDTO = {
     riddle_file: string | null;
 };
 
+type PaginatedRiddlesResponse = {
+    total: number;
+    page: number;
+    page_size: number;
+    items: RiddleDTO[];
+};
+
+export interface RiddlesQueryParams {
+    page?: number;
+    pageSize?: number;
+    search?: string;
+}
+
+export interface RiddlesPage {
+    total: number;
+    page: number;
+    pageSize: number;
+    items: Riddle[];
+}
+
 function mapRiddle(dto: RiddleDTO): Riddle {
     return {
         id: dto.riddle_id,
@@ -41,8 +61,51 @@ function mapRiddle(dto: RiddleDTO): Riddle {
 
 export async function getRiddles(): Promise<Riddle[]> {
     try {
-        const response = await axiosClient.get<RiddleDTO[]>("/riddles/");
-        return response.data.map(mapRiddle);
+        const firstPage = await getRiddlesPage();
+        let items = [...firstPage.items];
+        const totalPages = Math.ceil(firstPage.total / firstPage.pageSize);
+
+        for (let page = 2; page <= totalPages; page += 1) {
+            const nextPage = await getRiddlesPage({
+                page,
+                pageSize: firstPage.pageSize,
+            });
+            items = [...items, ...nextPage.items];
+        }
+
+        return items;
+    } catch (err) {
+        logFrontend({
+            level: "ERROR",
+            message: `Failed fetch riddles: ${String(err)}`,
+            component: "RiddlesAPI.ts",
+            url: globalThis.location.href,
+        });
+        throw err;
+    }
+}
+
+export async function getRiddlesPage(params: RiddlesQueryParams = {}): Promise<RiddlesPage> {
+    try {
+        const { page = 1, pageSize = 25, search } = params;
+        const response = await axiosClient.get<PaginatedRiddlesResponse>("/riddles/", {
+            params: {
+                page,
+                page_size: pageSize,
+                search: search?.trim() || undefined,
+            },
+            headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+            },
+        });
+
+        return {
+            total: response.data.total,
+            page: response.data.page,
+            pageSize: response.data.page_size,
+            items: response.data.items.map(mapRiddle),
+        };
     } catch (err) {
         logFrontend({
             level: "ERROR",
@@ -138,8 +201,11 @@ export async function deleteRiddle(riddleId: number): Promise<void> {
 /**
  * Get a single riddle by ID
  */
-export async function getRiddleById(riddleId: number): Promise<Riddle> {
+export async function getRiddleById(riddleId: number | undefined | null): Promise<Riddle | null> {
     try {
+        if (!riddleId) {
+            return null
+        }
         const response = await axiosClient.get<RiddleDTO>(`/riddles/${riddleId}`);
         return mapRiddle(response.data);
     } catch (err) {

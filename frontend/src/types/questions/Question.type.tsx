@@ -1,16 +1,17 @@
 export interface Question {
-    id: number;
-    title: string;
-    description: string;
-    media: string | null;
-    preset_code: string;
-    template_solution: string;
-    from_string_function: string;
-    to_string_function: string;
-    tags: string[];
-    testcases: Array<[string, string]>;
-    difficulty: "Easy"|"Medium"|"Hard";
-    date: Date;
+  question_id: number;
+  question_name: string;
+  question_description: string;
+  media: string | null;
+  preset_code: string | null;
+  template_solution: string;
+  from_string_function: string;
+  to_string_function: string;
+  tags?: string[];
+  testcases?: Array<[string, string]>;
+  difficulty: "Easy" | "Medium" | "Hard";
+  created_at: Date;
+  last_modified_at: Date;
 }
 
 export interface EditableQuestionFields {
@@ -28,15 +29,15 @@ export interface EditableQuestionFields {
 
 export function getQuestionFields(question: Question): EditableQuestionFields {
   return {
-    question_name: question.title,
-    question_description: question.description,
+    question_name: question.question_name,
+    question_description: question.question_description,
     media: question.media,
     difficulty: question.difficulty.toLowerCase() as "easy" | "medium" | "hard",
-    preset_code: question.preset_code,
+    preset_code: question.preset_code ?? "",
     from_string_function: question.from_string_function,
     to_string_function: question.to_string_function,
     template_solution: question.template_solution,
-    tags: question.tags || [],
-    testcases: question.testcases,
+    tags: question.tags ?? [],
+    testcases: question.testcases ?? [],
   };
 }

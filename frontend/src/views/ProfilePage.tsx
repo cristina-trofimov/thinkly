@@ -132,12 +132,13 @@ function ProfilePage() {
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
   const [preferences, setPreferences] = React.useState<UserPreferences>({
-    theme: "light",
+    theme: storedTheme ?? "light",
     notifications_enabled: true,
   });
   const [savedPreferences, setSavedPreferences] = React.useState<UserPreferences>({
-    theme: "light",
+    theme: storedTheme ?? "light",
     notifications_enabled: true,
   });
   const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
@@ -217,14 +218,14 @@ function ProfilePage() {
 
   React.useEffect(() => {
     const root = document.documentElement;
-    if (preferences.theme === "dark") {
+    if (savedPreferences.theme === "dark") {
       root.classList.add("dark");
       localStorage.setItem("theme", "dark");
     } else {
       root.classList.remove("dark");
       localStorage.setItem("theme", "light");
     }
-  }, [preferences.theme]);
+  }, [savedPreferences.theme]);
 
   const startEditing = (
     field: EditableFieldName,

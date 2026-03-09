@@ -2,9 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { columns } from "../components/questionsTable/questionsColumns";
 import type { Question } from "@/types/questions/Question.type";
-import { DataTable } from "../components/questionsTable/questionDataTable";
+import {
+  DataTable,
+  type DifficultyFilter,
+} from "../components/questionsTable/questionDataTable";
 import { getCompetitions } from "@/api/CompetitionAPI";
-import { getQuestions } from "@/api/QuestionsAPI";
+import { getQuestionsPage } from "@/api/QuestionsAPI";
 import { logFrontend } from "../api/LoggerAPI";
 import type { Competition } from "@/types/competition/Competition.type";
 import CompetitionItem from "@/components/helpers/CompetitionItem";
@@ -14,6 +17,11 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 function HomePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [questionsPage, setQuestionsPage] = useState<number>(1);
+  const [questionsPageSize, setQuestionsPageSize] = useState<number>(25);
+  const [questionSearch, setQuestionSearch] = useState<string>("");
+  const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
   const [competitions, setCompetitions] = useState<Competition[]>([]);
 
   const {
@@ -31,12 +39,20 @@ function HomePage() {
   useEffect(() => {
     const getAllQuestions = async () => {
       try {
-        const data = await getQuestions();
-        setQuestions(data);
+        const result = await getQuestionsPage({
+          page: questionsPage,
+          pageSize: questionsPageSize,
+          search: questionSearch,
+          difficulty:
+            difficultyFilter === "all" ? undefined : difficultyFilter,
+          sort: "asc",
+        });
+        setQuestions(result.items);
+        setTotalQuestions(result.total);
 
         logFrontend({
           level: "DEBUG",
-          message: `Finished initial data fetch for questions successfully.`,
+          message: `Finished question fetch successfully for page=${questionsPage}, pageSize=${questionsPageSize}, search=${questionSearch || "none"}, difficulty=${difficultyFilter}.`,
           component: "HomePage",
           url: globalThis.location.href,
         });
@@ -59,7 +75,7 @@ function HomePage() {
     };
 
     getAllQuestions();
-  }, []);
+  }, [difficultyFilter, questionSearch, questionsPage, questionsPageSize]);
 
   useEffect(() => {
     const getAllCompetitions = async () => {
@@ -126,7 +142,28 @@ function HomePage() {
         <div className="flex flex-col flex-1 min-w-0 gap-4">
           <HomePageBanner competitions={competitions} />
           <div className="flex flex-col gap-4">
-            <DataTable columns={columns} data={questions} />
+            <DataTable
+              columns={columns}
+              data={questions}
+              total={totalQuestions}
+              page={questionsPage}
+              pageSize={questionsPageSize}
+              search={questionSearch}
+              difficultyFilter={difficultyFilter}
+              onSearchChange={(value) => {
+                setQuestionsPage(1);
+                setQuestionSearch(value);
+              }}
+              onDifficultyFilterChange={(value) => {
+                setQuestionsPage(1);
+                setDifficultyFilter(value);
+              }}
+              onPageChange={setQuestionsPage}
+              onPageSizeChange={(value) => {
+                setQuestionsPage(1);
+                setQuestionsPageSize(value);
+              }}
+            />
           </div>
         </div>
 

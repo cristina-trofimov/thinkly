@@ -2,6 +2,7 @@ import axiosClient from "../src/lib/axiosClient";
 import {
   getQuestionByID,
   getQuestions,
+  getQuestionsPage,
   getRiddles,
   deleteCompetition,
   getTestcases,
@@ -33,50 +34,156 @@ describe("QuestionsAPI", () => {
   describe("getQuestions", () => {
     it("fetches and formats questions correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            question_id: 1,
-            question_name: "What is 2+2?",
-            question_description: "Calculate the sum of 2 and 2.",
-            media: null,
-            difficulty: "Easy",
-            testcases: [],
-            to_string_function: "def to_string(): pass",
-            from_string_function: "def from_string(): pass",
-            preset_code: "class X:\n    pass",
-            template_solution: "def solution(): pass",
-            tags: ["math", "easy"],
-            last_modified_at: "2025-01-01T00:00:00Z",
-          },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 100,
+          items: [
+            {
+              question_id: 1,
+              question_name: "What is 2+2?",
+              question_description: "Add two numbers",
+              media: null,
+              preset_code: "",
+              template_solution: "def solve(): pass",
+              difficulty: "easy",
+              last_modified_at: "2025-01-01T00:00:00Z",
+            },
+          ],
+        },
       } as any);
 
       const result = await getQuestions();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: { page: 1, page_size: 100, search: undefined, difficulty: undefined, sort: "asc" },
+      });
       expect(result).toEqual([
         {
-          id: 1,
-          title: "What is 2+2?",
-          description: "Calculate the sum of 2 and 2.",
+          question_id: 1,
+          question_name: "What is 2+2?",
+          question_description: "Add two numbers",
           media: null,
+          preset_code: "",
+          template_solution: "def solve(): pass",
           difficulty: "Easy",
-          testcases: [],
-          to_string_function: "def to_string(): pass",
-          from_string_function: "def from_string(): pass",
-          template_solution: "def solution(): pass",
-          preset_code: "class X:\n    pass",
-          tags: ["math", "easy"],
-          date: new Date("2025-01-01T00:00:00Z"),
+          from_string_function: "",
+          to_string_function: "",
+          created_at: new Date("2025-01-01T00:00:00Z"),
+          last_modified_at: new Date("2025-01-01T00:00:00Z"),
         },
       ]);
+    });
+
+    it("fetches subsequent question pages when needed", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 1,
+            page_size: 100,
+            items: [
+              {
+                question_id: 1,
+                question_name: "Page One",
+                question_description: "",
+                media: null,
+                preset_code: "",
+                template_solution: "",
+                difficulty: "easy",
+                last_modified_at: "2025-01-01T00:00:00Z",
+              },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            total: 101,
+            page: 2,
+            page_size: 100,
+            items: [
+              {
+                question_id: 2,
+                question_name: "Page Two",
+                question_description: "",
+                media: null,
+                preset_code: "",
+                template_solution: "",
+                difficulty: "hard",
+                last_modified_at: "2025-01-02T00:00:00Z",
+              },
+            ],
+          },
+        } as any);
+
+      const result = await getQuestions();
+
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/questions/get-all-questions", {
+        params: { page: 2, page_size: 100, search: undefined, difficulty: undefined, sort: "asc" },
+      });
+      expect(result).toHaveLength(2);
+      expect(result[1].difficulty).toBe("Hard");
+    });
+
+    it("fetches a paginated questions slice", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 25,
+          page: 2,
+          page_size: 10,
+          items: [
+            {
+              question_id: 11,
+              question_name: "Sorted Question",
+              question_description: "Page item",
+              media: null,
+              preset_code: "",
+              template_solution: "",
+              difficulty: "medium",
+              last_modified_at: "2025-01-11T00:00:00Z",
+            },
+          ],
+        },
+      } as any);
+
+      const result = await getQuestionsPage({
+        page: 2,
+        pageSize: 10,
+        search: "sort",
+        difficulty: "medium",
+        sort: "desc",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: { page: 2, page_size: 10, search: "sort", difficulty: "medium", sort: "desc" },
+      });
+      expect(result).toEqual({
+        total: 25,
+        page: 2,
+        pageSize: 10,
+        items: [
+          {
+            question_id: 11,
+            question_name: "Sorted Question",
+            question_description: "Page item",
+            media: null,
+            preset_code: "",
+            template_solution: "",
+            difficulty: "Medium",
+            from_string_function: "",
+            to_string_function: "",
+            created_at: new Date("2025-01-11T00:00:00Z"),
+            last_modified_at: new Date("2025-01-11T00:00:00Z"),
+          },
+        ],
+      });
     });
 
     it("throws error if axios fails", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getQuestions()).rejects.toThrow("Network error");
     });
-  });
+  })
 
   describe("getQuestionByID", () => {
     it("fetches and formats a single question", async () => {
@@ -101,38 +208,52 @@ describe("QuestionsAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-question-by-id/7");
       expect(result).toEqual({
-        id: 7,
-        title: "Single",
-        description: "One question",
+        question_id: 7,
+        question_name: "Single",
+        question_description: "One question",
         media: null,
         preset_code: "",
         template_solution: "def solve(): pass",
         difficulty: "Hard",
-        date: new Date("2025-02-02T00:00:00Z"),
+        created_at: new Date("2025-02-02T00:00:00Z"),
+        last_modified_at: new Date("2025-02-02T00:00:00Z"),
         from_string_function: "",
         to_string_function: "",
         tags: ["graph"],
         testcases: [["1", "2"]],
       });
     });
+
+    it("handles error if getQuestionByID fails", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
+      expect(mockedAxios.get).toHaveBeenCalled();
+    });
   });
 
   describe("getRiddles", () => {
     it("fetches and formats riddles correctly", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            riddle_id: 10,
-            riddle_question: "What has keys but can't open locks?",
-            riddle_answer: "Piano",
-            riddle_file: null,
-          },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 100,
+          items: [
+            {
+              riddle_id: 10,
+              riddle_question: "What has keys but can't open locks?",
+              riddle_answer: "Piano",
+              riddle_file: null,
+            },
+          ],
+        },
       } as any);
 
       const result = await getRiddles();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles", {
+        params: { page: 1, page_size: 100 },
+      });
       expect(result).toEqual([
         {
           id: 10,

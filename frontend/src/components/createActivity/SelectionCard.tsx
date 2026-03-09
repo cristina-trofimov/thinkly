@@ -5,7 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface SelectionCardProps<T> {
+type ItemWithId = { id: string | number } | { question_id: string | number };
+
+// Helper function to get the ID regardless of which property is used
+function getItemId(item: ItemWithId): string | number {
+    if ('id' in item) return item.id;
+    return item.question_id;
+}
+
+interface SelectionCardProps<T extends ItemWithId> {
     title: React.ReactNode;
     description: string;
     searchPlaceholder: string;
@@ -25,12 +33,12 @@ interface SelectionCardProps<T> {
     isInvalid?: boolean;
 }
 
-// 1. Extracted Available Item Component
-function AvailableItem<T extends { id: string | number }>({
+
+function AvailableItem<T extends ItemWithId>({
     item, index, onAdd, renderItemTitle, renderExtraInfo
 }: Readonly<{ item: T, index: number, onAdd: (item: T) => void, renderItemTitle: (item: T) => string, renderExtraInfo?: (item: T) => React.ReactNode }>) {
     return (
-        <Draggable draggableId={`avail-${item.id}`} index={index}>
+        <Draggable draggableId={`avail-${getItemId(item)}`} index={index}>
             {(p, snapshot) => (
                 <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
                     className={`group bg-card mb-2 p-3 rounded-lg border shadow-sm flex items-center justify-between hover:border-primary transition-all ${snapshot.isDragging ? "opacity-50" : ""}`}>
@@ -47,8 +55,7 @@ function AvailableItem<T extends { id: string | number }>({
     );
 }
 
-// 2. Extracted Ordered Item Component
-function OrderedItem<T extends { id: string | number }>({
+function OrderedItem<T extends ItemWithId>({
     item,
     index,
     total,
@@ -66,7 +73,7 @@ function OrderedItem<T extends { id: string | number }>({
     renderExtraInfo?: (item: T) => React.ReactNode;
 }>) {
     return (
-        <Draggable draggableId={`ordered-${item.id}`} index={index}>
+        <Draggable draggableId={`ordered-${getItemId(item)}`} index={index}>
             {(p, snapshot) => (
                 <div ref={p.innerRef} {...p.draggableProps}
                     className={`bg-card mb-2 p-3 rounded-lg border flex items-center gap-2 ${snapshot.isDragging ? "shadow-lg ring-1 ring-primary" : ""}`}>
@@ -83,7 +90,7 @@ function OrderedItem<T extends { id: string | number }>({
                         <Button variant="ghost" size="icon" className="h-7 w-7" disabled={index === total - 1} onClick={() => onMove(index, 'down')}>
                             <ArrowDown className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemove(item.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemove(getItemId(item))}>
                             <X className="h-3.5 w-3.5" />
                         </Button>
                     </div>
@@ -93,7 +100,7 @@ function OrderedItem<T extends { id: string | number }>({
     );
 }
 
-export function SelectionCard<T extends { id: string | number }>(props: Readonly<SelectionCardProps<T>>) {
+export function SelectionCard<T extends ItemWithId>(props: Readonly<SelectionCardProps<T>>) {
     return (
         <DragDropContext onDragEnd={props.onDragEnd}>
             <Card className={props.isInvalid ? "border-destructive ring-1 ring-destructive" : ""}>
@@ -132,7 +139,14 @@ export function SelectionCard<T extends { id: string | number }>(props: Readonly
                                         )}
                                     </div>
                                     {props.availableItems.map((item, idx) => (
-                                        <AvailableItem key={item.id} item={item} index={idx} onAdd={props.onAdd} renderItemTitle={props.renderItemTitle} renderExtraInfo={props.renderExtraInfo} />
+                                        <AvailableItem 
+                                            key={getItemId(item)} 
+                                            item={item} 
+                                            index={idx} 
+                                            onAdd={props.onAdd} 
+                                            renderItemTitle={props.renderItemTitle} 
+                                            renderExtraInfo={props.renderExtraInfo} 
+                                        />
                                     ))}
                                     {provided.placeholder}
                                 </div>
@@ -150,7 +164,16 @@ export function SelectionCard<T extends { id: string | number }>(props: Readonly
                                         )}
                                     </div>
                                     {props.orderedItems.map((item, idx) => (
-                                        <OrderedItem key={item.id} item={item} index={idx} total={props.orderedItems.length} onMove={props.onMove} onRemove={props.onRemove} renderItemTitle={props.renderItemTitle} renderExtraInfo={props.renderExtraInfo} />
+                                        <OrderedItem 
+                                            key={getItemId(item)} 
+                                            item={item} 
+                                            index={idx} 
+                                            total={props.orderedItems.length} 
+                                            onMove={props.onMove} 
+                                            onRemove={props.onRemove} 
+                                            renderItemTitle={props.renderItemTitle} 
+                                            renderExtraInfo={props.renderExtraInfo} 
+                                        />
                                     ))}
                                     {provided.placeholder}
                                 </div>

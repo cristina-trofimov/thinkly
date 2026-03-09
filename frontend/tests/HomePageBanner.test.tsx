@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import HomePageBanner from "../src/components/helpers/HomePageBanner";
+import React from "react";
+import { MemoryRouter } from "react-router-dom";
 
 describe("HomePageBanner", () => {
   beforeEach(() => {
@@ -13,7 +15,7 @@ describe("HomePageBanner", () => {
   });
 
   test("renders the no competitions message", () => {
-    render(<HomePageBanner competitions={[]} />);
+    render(<MemoryRouter><HomePageBanner competitions={[]} /></MemoryRouter>);
 
     expect(
       screen.getByText(/Welcome to Thinkly Competitions!/i)
@@ -27,24 +29,26 @@ describe("HomePageBanner", () => {
     jest.setSystemTime(new Date(2025, 10, 3, 12, 0, 0));
 
     render(
-      <HomePageBanner
-        competitions={[
-          {
-            id: 1,
-            competitionTitle: "WebComp",
-            competitionLocation: "Toronto",
-            startDate: new Date(2025, 10, 3, 9, 0, 0),
-            endDate: new Date(2025, 10, 3, 17, 0, 0),
-          },
-          {
-            id: 2,
-            competitionTitle: "CyberComp",
-            competitionLocation: "Montreal",
-            startDate: new Date(2025, 10, 9, 9, 0, 0),
-            endDate: new Date(2025, 10, 9, 17, 0, 0),
-          },
-        ]}
-      />
+      <MemoryRouter>
+        <HomePageBanner
+          competitions={[
+            {
+              id: 1,
+              competitionTitle: "WebComp",
+              competitionLocation: "Toronto",
+              startDate: new Date(2025, 10, 3, 9, 0, 0),
+              endDate: new Date(2025, 10, 3, 17, 0, 0),
+            },
+            {
+              id: 2,
+              competitionTitle: "CyberComp",
+              competitionLocation: "Montreal",
+              startDate: new Date(2025, 10, 9, 9, 0, 0),
+              endDate: new Date(2025, 10, 9, 17, 0, 0),
+            },
+          ]}
+        />
+      </MemoryRouter>
     );
 
     expect(screen.getByText(/Active now/i)).toBeInTheDocument();
@@ -58,24 +62,26 @@ describe("HomePageBanner", () => {
     jest.setSystemTime(new Date(2025, 0, 1, 0, 0, 0));
 
     render(
-      <HomePageBanner
-        competitions={[
-          {
-            id: 1,
-            competitionTitle: "NextUp",
-            competitionLocation: "Toronto",
-            startDate: new Date(2025, 0, 2, 0, 0, 5),
-            endDate: new Date(2025, 0, 2, 8, 0, 0),
-          },
-          {
-            id: 2,
-            competitionTitle: "LaterComp",
-            competitionLocation: "Montreal",
-            startDate: new Date(2025, 0, 5, 9, 0, 0),
-            endDate: new Date(2025, 0, 5, 17, 0, 0),
-          },
-        ]}
-      />
+      <MemoryRouter>
+        <HomePageBanner
+          competitions={[
+            {
+              id: 1,
+              competitionTitle: "NextUp",
+              competitionLocation: "Toronto",
+              startDate: new Date(2025, 0, 2, 0, 0, 5),
+              endDate: new Date(2025, 0, 2, 8, 0, 0),
+            },
+            {
+              id: 2,
+              competitionTitle: "LaterComp",
+              competitionLocation: "Montreal",
+              startDate: new Date(2025, 0, 5, 9, 0, 0),
+              endDate: new Date(2025, 0, 5, 17, 0, 0),
+            },
+          ]}
+        />
+      </MemoryRouter>
     );
 
     await waitFor(() => {
