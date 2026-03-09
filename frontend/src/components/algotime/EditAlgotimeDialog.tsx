@@ -148,11 +148,11 @@ interface EditAlgoTimeSessionDialogProps {
                   <p className="text-sm text-muted-foreground">No questions selected</p>
                 ) : (
                   initialData.selectedQuestions.map((qId) => {
-                    const question = allQuestions.find((q) => q.id === qId);
+                    const question = allQuestions.find((q) => q.question_id === qId);
                     return (
                       <div key={qId} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
                         <span className="text-sm font-medium">
-                          {question?.title ?? `Question ${qId}`}
+                          {question?.question_name ?? `Question ${qId}`}
                         </span>
                         {question && (
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getDifficultyClass(question.difficulty)}`}>
