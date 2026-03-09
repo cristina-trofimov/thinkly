@@ -57,17 +57,6 @@ const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
   }
 };
 
-const getCardGradient = (status: "Active" | "Upcoming" | "Completed") => {
-  switch (status) {
-    case "Active":
-      return "from-green-500/20 via-green-500/10 to-background";
-    case "Upcoming":
-      return "from-blue-500/20 via-blue-500/10 to-background";
-    default:
-      return "from-primary/10 via-primary/5 to-background";
-  }
-};
-
 const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
   switch (status) {
     case "Active":
