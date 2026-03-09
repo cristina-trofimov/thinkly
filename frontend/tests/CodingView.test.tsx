@@ -92,10 +92,6 @@ jest.mock('../src/api/QuestionInstanceAPI', () => ({
     getAllQuestionInstancesByEventID: jest.fn()
 }))
 
-jest.mock('../src/api/AuthAPI', () => ({
-    getProfile: jest.fn()
-}))
-
 jest.mock('../src/hooks/useAnalytics', () => ({
     useAnalytics: () => ({
         trackCodingPageOpened: jest.fn(),
@@ -456,10 +452,7 @@ describe('CodingView Component without event', () => {
         expect(submitAttempt).toHaveBeenCalled()
         expect(getProfile).toHaveBeenCalled()
 
-        expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message, expect.objectContaining({
-            position: 'top-right',
-            style: { backgroundColor: '#DAE9DA' },
-        }))
+        expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message)
         expect(toast.warning).not.toHaveBeenCalled()
     })
 
@@ -476,10 +469,7 @@ describe('CodingView Component without event', () => {
         expect(submitAttempt).toHaveBeenCalled()
         expect(getProfile).toHaveBeenCalled()
 
-        expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message, expect.objectContaining({
-            position: 'top-right',
-            style: { backgroundColor: '#E9E2DA' },
-        }))
+        expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message)
         expect(toast.success).not.toHaveBeenCalled()
     })
 
