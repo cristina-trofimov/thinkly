@@ -117,8 +117,16 @@ export function DataTable<TData extends Question, TValue>({
   // Debounce search tracking so we don't fire on every keystroke
   const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  React.useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSearchChange = (value: string) => {
-    table.getColumn("question_name")?.setFilterValue(value);
+    onSearchChange(value);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -140,9 +148,7 @@ export function DataTable<TData extends Question, TValue>({
       <div className="flex items-center mb-3 gap-3">
         <Input
           placeholder="Search questions..."
-          value={
-            (table.getColumn("question_name")?.getFilterValue() as string) ?? ""
-          }
+          value={search}
           onChange={(event) => handleSearchChange(event.target.value)}
           className="max-w-sm w-[250px]"
         />
