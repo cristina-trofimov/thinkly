@@ -39,23 +39,23 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("🚀 Starting up...")
+    logger.info("🚀 Starting up...")
     init_posthog()
-    print("✓ PostHog analytics initialized")
+    logger.info("✓ PostHog analytics initialized")
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
     scheduler.start()
-    print("✓ Email scheduler started (polling every 60s)")
+    logger.info("✓ Email scheduler started (polling every 60s)")
 
     yield  # Application runs here
 
     # Shutdown
-    print("🛑 Shutting down...")
+    logger.info("🛑 Shutting down...")
     scheduler.shutdown(wait=False)
-    print("✓ Email scheduler stopped")
+    logger.info("✓ Email scheduler stopped")
     shutdown_posthog()
-    print("✓ PostHog analytics shut down")
+    logger.info("✓ PostHog analytics shut down")
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
@@ -142,7 +142,7 @@ async def analytics_middleware(request: Request, call_next):
 # --- Request Logging Middleware ---
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
+    logger.info(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
     response = await call_next(request)
     return response
 
@@ -172,7 +172,7 @@ try:
     app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
     app.include_router(base_event_router, prefix="/events")
 except Exception:
-    print("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
+    logger.warning("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 
 # Run server
 if __name__ == "__main__":
