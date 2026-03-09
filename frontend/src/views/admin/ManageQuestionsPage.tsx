@@ -70,7 +70,7 @@ export default function ManageQuestionsPage() {
     });
 
     setData((prevData) =>
-      prevData.filter((question) => !deletedQuestionIds.includes(question.id))
+      prevData.filter((question) => !deletedQuestionIds.includes(question.question_id))
     );
   };
 
