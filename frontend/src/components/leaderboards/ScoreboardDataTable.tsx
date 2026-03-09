@@ -28,14 +28,14 @@ interface Props {
 // --- Move headers and cells out of parent component ---
 const RankHeader = () => (
   <div className="flex items-center gap-1">
-    <Hash className="w-4 h-4 text-gray-500" />
+    <Hash className="w-4 h-4 text-muted-foreground" />
     Rank
   </div>
 );
 
 const NameHeader = () => (
   <div className="flex items-center gap-1">
-    <User className="w-4 h-4 text-gray-500" />
+    <User className="w-4 h-4 text-muted-foreground" />
     Name
   </div>
 );
@@ -43,30 +43,30 @@ const NameHeader = () => (
 
 const PointsHeader = () => (
   <div className="flex items-center gap-1">
-    <Star className="w-4 h-4 text-gray-500" />
+    <Star className="w-4 h-4 text-muted-foreground" />
     Total Points
   </div>
 );
 
 const ProblemsSolvedHeader = () => (
   <div className="flex items-center gap-1">
-    <ListChecks className="w-4 h-4 text-gray-500" />
+    <ListChecks className="w-4 h-4 text-muted-foreground" />
     Problems Solved
   </div>
 );
 
 const TotalTimeHeader = () => (
   <div className="flex items-center gap-1">
-    <Clock className="w-4 h-4 text-gray-500" />
+    <Clock className="w-4 h-4 text-muted-foreground" />
     Total Time
   </div>
 );
 
 // --- Helper for row background color based on rank ---
 const getRowBgClass = (rank: number) => {
-  if (rank === 1) return "bg-yellow-100";
-  if (rank === 2) return "bg-gray-100";
-  if (rank === 3) return "bg-orange-100";
+  if (rank === 1) return "bg-yellow-100 dark:bg-yellow-900/20 hover:bg-yellow-200 dark:hover:bg-yellow-900/40";
+  if (rank === 2) return "bg-muted hover:bg-muted/70";
+  if (rank === 3) return "bg-orange-100 dark:bg-orange-900/20 hover:bg-orange-200 dark:hover:bg-orange-900/40";
   return "";
 };
 
@@ -161,8 +161,8 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
                       ))}
                     </TableRow>
                     {shouldShowSeparator && (
-                      <TableRow className="bg-gray-50 hover:bg-gray-50">
-                        <TableCell colSpan={5} className="text-center py-2 text-gray-400">
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableCell colSpan={5} className="text-center py-2 text-muted-foreground">
                           <div className="flex items-center justify-center gap-2">
                             <span className="text-2xl">. . .</span>
                           </div>
@@ -175,10 +175,7 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
             </>
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="text-center py-6 text-gray-400"
-              >
+              <TableCell colSpan={columns.length} className="text-center py-6 text-muted-foreground">
                 No participants found
               </TableCell>
             </TableRow>

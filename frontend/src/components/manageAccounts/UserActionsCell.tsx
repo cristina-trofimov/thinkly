@@ -81,24 +81,19 @@ export function ActionsCell({
     }
 
     if (Object.keys(updatedFields).length === 0) {
-      console.log("No changes made. Skipping update.");
       setIsDialogOpen(false);
       return;
     }
 
-    console.log("Attempting to update user: ", user);
-
     try {
       const response = await updateAccount(user.id, updatedFields);
 
-      console.log("Update response:", response);
       toast.success("User updated successfully!");
 
       if (onUserUpdate && response) {
         onUserUpdate(response);
       }
-    } catch (error: unknown) {
-      console.error("Failed to update user:", error);
+    } catch {
       toast.error("Failed to update user.");
       handleCancel();
     } finally {
@@ -118,7 +113,7 @@ export function ActionsCell({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0 cursor-pointer">
+          <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">Open menu</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>

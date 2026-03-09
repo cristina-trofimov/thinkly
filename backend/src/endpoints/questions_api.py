@@ -158,7 +158,7 @@ def get_all_questions(
         }
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve questions.")
 
 
 class CreateQuestionRequest(BaseModel):
@@ -221,7 +221,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question.")
 
 
 @questions_router.post("/upload-question-batch", status_code=201,
@@ -250,7 +250,7 @@ def upload_question_batch(question_request: list[CreateQuestionRequest], db: Ann
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question batch: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question batch. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question batch.")
 
 
 @questions_router.get(
@@ -299,8 +299,8 @@ def get_all_riddles(
             "items": [serialize_riddle(riddle) for riddle in riddles],
         }
     except Exception as e:
-        logger.error(f"Error fetching questions: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve questions. Exception: {str(e)}")
+        logger.error(f"Error fetching riddles: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve riddles.")
 
 
 @questions_router.get(
@@ -315,7 +315,4 @@ def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)])
         return [serialize_test_case(test_case) for test_case in testcases]
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve test cases. Exception: {str(e)}",
-        )
+        raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")

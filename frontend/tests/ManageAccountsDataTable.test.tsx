@@ -580,8 +580,7 @@ describe("ManageAccountsDataTable", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
   });
 
-  it("console logs delete response on successful deletion", async () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
+  it("shows success toast on successful deletion", async () => {
     const mockDeleteResponse = {
       deleted_count: 1,
       total_requested: 1,
@@ -601,23 +600,13 @@ describe("ManageAccountsDataTable", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Delete response:",
-        mockDeleteResponse
-      );
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Deleted users:",
-        mockDeleteResponse.deleted_users
+      expect(toast.success).toHaveBeenCalledWith(
+        "Successfully deleted 1 user(s)."
       );
     });
-
-    consoleSpy.mockRestore();
   });
 
-  it("console logs and warns on partial deletion", async () => {
-    const consoleSpy = jest.spyOn(console, "log").mockImplementation();
-    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
-
+  it("shows warning toast on partial deletion", async () => {
     const mockDeleteResponse = {
       deleted_count: 1,
       total_requested: 2,
@@ -638,18 +627,13 @@ describe("ManageAccountsDataTable", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "Partial deletion errors:",
-        mockDeleteResponse.errors
+      expect(toast.warning).toHaveBeenCalledWith(
+        "1 users could not be deleted."
       );
     });
-
-    consoleSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
   });
 
-  it("console errors on deletion failure", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+  it("shows error toast on deletion failure", async () => {
     const mockError = new Error("Network error");
     (deleteAccounts as jest.Mock).mockRejectedValue(mockError);
 
@@ -664,12 +648,9 @@ describe("ManageAccountsDataTable", () => {
     await user.click(confirmButton);
 
     await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Error deleting users:",
-        mockError
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to delete selected user(s)."
       );
     });
-
-    consoleErrorSpy.mockRestore();
   });
 });

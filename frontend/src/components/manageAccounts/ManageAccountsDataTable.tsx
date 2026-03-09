@@ -179,14 +179,10 @@ export function ManageAccountsDataTable<TData, TValue>({
       .getSelectedRowModel()
       .rows.map((row) => row.original as Account);
 
-    console.log("Deleting rows: ", selectedRows);
-
     const userIds = selectedRows.map((row) => Number(row.id));
 
     try {
       const response = await deleteAccounts(userIds);
-
-      console.log("Delete response:", response);
 
       const deletedIds = response.deleted_users.map((user) => user.user_id);
 
@@ -194,19 +190,15 @@ export function ManageAccountsDataTable<TData, TValue>({
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} users successfully.`
         );
-        console.log("Deleted users:", response.deleted_users);
-        console.warn("Partial deletion errors:", response.errors);
         toast.warning(`${response.errors.length} users could not be deleted.`);
         onDeleteUsers?.(deletedIds);
       } else {
         toast.success(
           `Successfully deleted ${response.deleted_count} user(s).`
         );
-        console.log("Deleted users:", response.deleted_users);
         onDeleteUsers?.(deletedIds);
       }
     } catch (error: unknown) {
-      console.error("Error deleting users:", error);
 
       const axiosError = error as { response?: { data?: { detail?: string } } };
       const errorMessage =
@@ -237,7 +229,7 @@ export function ManageAccountsDataTable<TData, TValue>({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-0.5 cursor-pointer">
+            <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
                 {userTypeFilter === "all"
@@ -281,7 +273,7 @@ export function ManageAccountsDataTable<TData, TValue>({
               <AlertDialogTrigger asChild>
                 <Button
                 size="icon"
-                  className="cursor-pointer text-destructive bg-destructive/10 hover:bg-destructive/20"
+                  className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
                 >
                   <Trash2/>
                 </Button>
@@ -299,7 +291,7 @@ export function ManageAccountsDataTable<TData, TValue>({
                     Cancel
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+                    className="bg-destructive cursor-pointer hover:bg-destructive/90"
                     onClick={handleDelete}
                   >
                     Delete
@@ -309,7 +301,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             </AlertDialog>
             <Button
               variant="outline"
-              className="cursor-pointer"
+              className=""
               onClick={handleCancelSelection}
             >
               Cancel

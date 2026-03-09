@@ -4,9 +4,12 @@ import { submitToJudge0 } from "./Judge0API"
 import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
+import type { SubmissionType } from "@/types/SubmissionType.type"
+import { logFrontend } from "./LoggerAPI"
 
 
 export async function submitAttempt(
+    user_id: number,
     question_id: number,
     event_id: number | null,
     source_code: string,
@@ -27,9 +30,7 @@ export async function submitAttempt(
                 question_instance_id: -1,
                 question_id: question_id,
                 event_id: event_id,
-                points: null,
-                riddle_id: null,
-                is_riddle_completed: null,
+                riddle_id: null
             }
         }
 
@@ -43,7 +44,7 @@ export async function submitAttempt(
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
-                user_id: mostRecentSubResponse.user_id,
+                user_id: user_id,
                 question_instance_id: updatedInstance.question_instance_id,
                 status: judge0Response['status']['description'],
                 memory: judge0Response['memory'],
@@ -67,7 +68,41 @@ export async function submitAttempt(
         }
 
     } catch (err) {
-        console.error("Error submitting coding attempt:", err);
-        throw err;
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodeSubmissionAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err;
     }
 }
+
+export async function getAllSubmissions(
+    user_id: number,
+    question_instance_id: number,
+  ): Promise<SubmissionType[]> {
+    try {
+      const response = await axiosClient.get<{
+        status_code: number
+        data: SubmissionType[]
+      }>(`/attempts/all`, {
+            params: {
+              user_id: user_id,
+              question_instance_id: question_instance_id,
+            }
+        })
+  
+      return response['data']['data']
+    } catch (err) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when fetching user's submission. Reason: ${err}`,
+        component: "CodeSubmissionAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err;
+    }
+  }

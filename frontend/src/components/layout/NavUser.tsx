@@ -38,12 +38,12 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         if (mounted) setLocalUser(profile)
       } catch (err) {
         logFrontend({
-        level: 'ERROR',
-        message: `Error finding user profile: ${(err as Error).message}`,
-        component: 'NavUser',
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
+          level: 'ERROR',
+          message: `Error finding user profile: ${(err as Error).message}`,
+          component: 'NavUser',
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
       }
     }
     fetch()
@@ -55,6 +55,8 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       await logout();
       alert("You have been logged out.");
       navigate('/');
+      localStorage.removeItem("theme");
+      document.documentElement.classList.remove("dark");
     } catch (err) {
       logFrontend({
         level: 'ERROR',
@@ -89,7 +91,7 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
+        <button className="cursor-pointer flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
           <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
           </div>

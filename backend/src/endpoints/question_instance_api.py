@@ -25,7 +25,7 @@ def query_get_question_instance(
         return query
     except SQLAlchemyError as e:
         logger.error(f"Database: getting question instance query error: {e}")
-        raise HTTPException(status_code=500, detail=f"Database: getting question instance query error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to query question instance.")
 
 
 @question_instance_router.get("/find", response_model = dict,
@@ -46,9 +46,7 @@ def get_question_instance(
                 "question_instance_id": inst.question_instance_id,
                 "event_id": inst.event_id,
                 "question_id": inst.question_id,
-                "points": inst.points,
                 "riddle_id": inst.riddle_id,
-                "is_riddle_completed": inst.is_riddle_completed,
             }
             for inst in instances
         ]
@@ -58,7 +56,7 @@ def get_question_instance(
         return {"status_code": 200, 'data': data}
     except Exception as e:
         logger.error(f"Error fetching question instance: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve question instance. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve question instance.")
         
     
 
@@ -78,9 +76,7 @@ def create_question_instance(
             instance = QuestionInstance(
                 question_id = request['question_id'],
                 event_id = None,
-                points = request['points'],
-                riddle_id = request['riddle_id'],
-                is_riddle_completed = request['is_riddle_completed'],
+                riddle_id = request['riddle_id']
             )
             db.add(instance)
         else:
@@ -95,18 +91,14 @@ def create_question_instance(
                 instance = QuestionInstance(
                     question_id = request['question_id'],
                     event_id = request['event_id'],
-                    points = request['points'],
                     riddle_id = request['riddle_id'],
-                    is_riddle_completed = request['is_riddle_completed'],
                 )
                 db.add(instance)
             else:
                 # update if it exist
                 instance.question_id = request['question_id'],
                 instance.event_id = request['event_id'],
-                instance.points = request['points'],
                 instance.riddle_id = request['riddle_id'],
-                instance.is_riddle_completed = request['is_riddle_completed'],
 
         db.commit()
         db.refresh(instance)
@@ -117,11 +109,9 @@ def create_question_instance(
             "question_instance_id": instance.question_instance_id,
             "event_id": instance.event_id,
             "question_id": instance.question_id,
-            "points": instance.points,
             "riddle_id": instance.riddle_id,
-            "is_riddle_completed": instance.is_riddle_completed,
         }}
     except Exception as e:
         db.rollback()
         logger.error(f"Error uploading question instance: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload question instance. Exception: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload question instance.")

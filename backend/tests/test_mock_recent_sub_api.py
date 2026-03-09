@@ -140,7 +140,7 @@ def test_add_most_recent_sub_db_error(client, mock_db):
     response = client.post("/update", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to updating most recent submission" in response.json()["detail"]
+    assert "Failed to update most recent submission" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
 def test_create_question_instance_missing_fields(client):

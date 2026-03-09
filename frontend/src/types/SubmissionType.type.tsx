@@ -1,4 +1,5 @@
 export type SubmissionType = {
+    submission_id: number,
     user_id: number,
     question_instance_id: number,
     compile_output: string | null,

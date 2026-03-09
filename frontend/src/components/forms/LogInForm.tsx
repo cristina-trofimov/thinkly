@@ -10,13 +10,14 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { googleLogin, login } from "@/api/AuthAPI";
+import { getProfile, googleLogin, login } from "@/api/AuthAPI";
 import type { LoginRequest, DecodedToken } from "../../types/Auth.type";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { getUserPreferences } from "@/api/AccountsAPI";
 
 export function LoginForm({
   className,
@@ -54,6 +55,20 @@ export function LoginForm({
       localStorage.setItem("token", token);
 
       const decoded = jwtDecode<DecodedToken>(token);
+
+      try {
+        const profile = await getProfile();
+        const prefs = await getUserPreferences(profile.id);
+        localStorage.setItem("theme", prefs.theme ?? "light");
+        if (prefs.theme === "dark") document.documentElement.classList.add("dark");
+      } catch {
+        logFrontend({
+        level: "ERROR",
+        message: `Error fetching user preferences`,
+        component: "LoginForm",
+        url: globalThis.location.href,
+      });
+      }
 
       trackLoginSuccess("email_password");
 
@@ -146,11 +161,7 @@ export function LoginForm({
         stack: isError ? err.stack : undefined,
       });
 
-      if (isError) {
-        toast.error("Google login failed: " + err.message);
-      } else {
-        toast.error("Google login failed");
-      }
+      toast.error("Google login failed. Please try again.");
     }
   };
 
@@ -201,7 +212,7 @@ export function LoginForm({
             <FieldDescription className="text-right">
               <button
                 type="button"
-                className="text-sm text-gray-500 underline cursor-pointer hover:text-gray-700"
+                className="cursor-pointer text-sm text-gray-500 underline hover:text-gray-700"
                 onClick={() => navigate("/forgot-password")}
               >
                 Forgot password?

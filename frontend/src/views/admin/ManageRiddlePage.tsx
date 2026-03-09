@@ -225,7 +225,7 @@ export default function ManageRiddles() {
           }}
         >
           <DialogTrigger asChild>
-            <Card className="overflow-hidden cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
+            <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
               <div className="h-full flex flex-col items-center justify-center p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <Plus className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
@@ -257,7 +257,7 @@ export default function ManageRiddles() {
         {riddles.map((riddle) => (
           <Card
             key={riddle.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-white flex flex-col h-full"
+            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
           >
             <CardHeader className="bg-muted/30 pb-4">
               <div className="flex justify-between items-start gap-2">
