@@ -79,7 +79,7 @@ def test_get_all_questions_success(client, mock_db):
             template_solution="def two_sum(nums, target):\n    return []",
             created_at=datetime(2025, 1, 10, 12, 0, 0),
             last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
-            tags=[SimpleNamespace(tag_name="array"), SimpleNamespace(tag_name="hashmap")],
+            tags=[SimpleNamespace(tag_id=1, tag_name="array"), SimpleNamespace(tag_id=2, tag_name="hashmap")],
             test_cases=[
                 SimpleNamespace(input_data="[2,7,11,15],9", expected_output="[0,1]"),
                 SimpleNamespace(input_data="[3,2,4],6", expected_output="[1,2]")
@@ -97,7 +97,7 @@ def test_get_all_questions_success(client, mock_db):
             template_solution="def reverse_list(head):\n    return head",
             created_at=datetime(2025, 2, 15, 14, 30, 0),
             last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
-            tags=[SimpleNamespace(tag_name="linked-list")],
+            tags=[SimpleNamespace(tag_id=0, tag_name="linked-list")],
             test_cases=[
                 SimpleNamespace(input_data="[1,2,3,4,5]", expected_output="[5,4,3,2,1]")
             ]
