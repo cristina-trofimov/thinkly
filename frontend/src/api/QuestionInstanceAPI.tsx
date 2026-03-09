@@ -14,7 +14,7 @@ export async function updateQuestionInstance(
       {
         question_id: question_instance.question_id,
         event_id: question_instance.event_id,
-        riddle_id: question_instance.riddle_id,
+        riddle_id: question_instance.riddle_id
       }
     )
 

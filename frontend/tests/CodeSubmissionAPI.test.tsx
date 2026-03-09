@@ -109,7 +109,7 @@ const mockQuestionInstances: QuestionInstance[] = [{
   question_instance_id: question_instance_id,
   question_id: question_id,
   event_id: event_id,
-  riddle_id: null,
+  riddle_id: null
 }]
 
 const mockSubmissions: SubmissionType[] = [{

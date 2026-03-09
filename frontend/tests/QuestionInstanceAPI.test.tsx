@@ -35,13 +35,13 @@ const mockQuestionInstances: QuestionInstance[] = [
         question_instance_id: 123,
         question_id: question_id,
         event_id: event_id,
-        riddle_id: null,
+        riddle_id: null
     },
     {
         question_instance_id: 334,
         question_id: question_id,
         event_id: 2,
-        riddle_id: null,
+        riddle_id: null
     }
 ]
 
@@ -52,13 +52,13 @@ const mockGetResponse = {
             question_instance_id: 123,
             question_id: question_id,
             event_id: event_id,
-            riddle_id: null,
+            riddle_id: null
         },
         {
             question_instance_id: 334,
             question_id: question_id,
             event_id: 2,
-            riddle_id: null,
+            riddle_id: null
         }
     ]
   }
@@ -69,7 +69,7 @@ const mockUpdateResponse = {
         question_instance_id: 123,
         question_id: question_id,
         event_id: event_id,
-        riddle_id: null,
+        riddle_id: null
     }
   }
 
@@ -89,7 +89,7 @@ describe("Question Instance", () => {
             expect.objectContaining({
                 question_id: mockQuestionInstances[0].question_id,
                 event_id: mockQuestionInstances[0].event_id,
-                riddle_id: mockQuestionInstances[0].riddle_id,
+                riddle_id: mockQuestionInstances[0].riddle_id
             })
         )
     })
