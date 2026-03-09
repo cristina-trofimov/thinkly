@@ -28,9 +28,6 @@ const CodeDescArea = (
       mostRecentSub: MostRecentSub | undefined
     }
 ) => {
-    if(!question) {
-        return
-    }
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -46,17 +43,14 @@ const CodeDescArea = (
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
-    const [ submissions, setSubmissions ] = useState<SubmissionType[]>()
+    const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-
-    // Riddle-------
     const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
-    //-------------
 
     useEffect(() => {
-        // Reset state for new question
+        if (!question?.question_id) return
         setHasSolvedRiddle(false)
         setRiddleObject(null)
         setIsLoadingRiddle(true)
@@ -70,7 +64,7 @@ const CodeDescArea = (
                 toast.error("Failed to load riddle...", {
                     position: 'top-right',
                     style: { backgroundColor: '#E9DADA' }
-                  })
+                })
                 logFrontend({
                     level: "ERROR",
                     message: `An error occurred when loading riddle. Reason: ${error}`,
@@ -78,8 +72,6 @@ const CodeDescArea = (
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
                   });
-
-                // If the backend fails, let the user see the question so they aren't stuck
                 setHasSolvedRiddle(true)
             } finally {
                 setIsLoadingRiddle(false)
@@ -88,7 +80,7 @@ const CodeDescArea = (
 
         fetchRiddle()
 
-    }, [question?.question_id])
+    }, [question?.question_id, question_instance?.question_instance_id])
 
     useEffect(() => {
         const FetchSubmissions = async () => {
@@ -115,6 +107,8 @@ const CodeDescArea = (
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
 
+    if (!question) return
+
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
     if (fullSize) {
@@ -132,7 +126,6 @@ const CodeDescArea = (
     const needsRiddle = !hasSolvedRiddle;
 
     if (needsRiddle) {
-        
         if (isLoadingRiddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -141,7 +134,6 @@ const CodeDescArea = (
                 </div>
             )
         }
-
         
         if (riddleObject) {
             return (
@@ -150,7 +142,7 @@ const CodeDescArea = (
                     <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="mb-8 text-center space-y-3">
                             <p className="text-white text-lg">
-                                Solve the riddle below to reveal the description for<br/><span className="text-foreground font-semibold">{question.question_name}</span>
+                                Solve the riddle below to reveal the description for<br /><span className="text-foreground font-semibold">{question.question_name}</span>
                             </p>
                         </div>
 

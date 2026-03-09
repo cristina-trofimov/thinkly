@@ -12,10 +12,6 @@ const Testcases = (
     { question_id }:
     { question_id: number | undefined }
 ) => {
-    if (!question_id) {
-        return
-    }
-
     const {
         testcases, addTestcase, removeTestcase, loading,
         updateTestcase, activeTestcase, setActiveTestcase
@@ -23,13 +19,12 @@ const Testcases = (
 
     const { trackTestcaseAdded, trackTestcaseRemoved } = useAnalytics()
 
-    if (loading) {
-        console.log("Loading test cases")
-    }
-
     useEffect(() => {
+        if (!question_id) return
         if (!testcases) addTestcase()
     }, [testcases]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!question_id) return null
 
     const handleAddTestcase = () => {
         addTestcase()
