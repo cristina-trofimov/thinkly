@@ -84,6 +84,12 @@ const SORT_ID_TO_VALUE: Partial<Record<string, { asc: AccountsSort; desc: Accoun
   email: { asc: "email_asc", desc: "email_desc" },
 };
 
+function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
+  return userTypeFilter === "all"
+    ? "All Account Types"
+    : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1);
+}
+
 function getPageItems(currentPage: number, pageCount: number): readonly PaginationItemValue[] {
   if (pageCount <= 3) {
     return Array.from({ length: pageCount }, (_, index) => index + 1);
@@ -129,6 +135,124 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
+}
+
+interface ManageAccountsPaginationProps {
+  page: number;
+  pageCount: number;
+  pageItems: readonly PaginationItemValue[];
+  onPageChange: (page: number) => void;
+}
+
+function ManageAccountsPagination({
+  page,
+  pageCount,
+  pageItems,
+  onPageChange,
+}: Readonly<ManageAccountsPaginationProps>) {
+  const createPageClickHandler =
+    (targetPage: number) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+      event.preventDefault();
+      onPageChange(targetPage);
+    };
+
+  return (
+    <Pagination className="mx-0 w-auto">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={createPageClickHandler(Math.max(1, page - 1))}
+            className={
+              page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"
+            }
+          />
+        </PaginationItem>
+        <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
+          Page {page} of {pageCount}
+        </PaginationItem>
+        {pageItems.map((item, index) => (
+          <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
+            {typeof item === "number" ? (
+              <PaginationLink
+                href="#"
+                isActive={page === item}
+                onClick={createPageClickHandler(item)}
+                className="cursor-pointer"
+              >
+                {item}
+              </PaginationLink>
+            ) : (
+              <PaginationEllipsis />
+            )}
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={createPageClickHandler(Math.min(pageCount, page + 1))}
+            className={
+              page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"
+            }
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
+interface SelectionActionsProps {
+  selectedCount: number;
+  onDelete: () => void;
+  onCancel: () => void;
+}
+
+function SelectionActions({
+  selectedCount,
+  onDelete,
+  onCancel,
+}: Readonly<SelectionActionsProps>) {
+  if (selectedCount === 0) {
+    return <div className="ml-auto" />;
+  }
+
+  return (
+    <div className="ml-auto flex gap-2">
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="icon"
+            className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
+          >
+            <Trash2 />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete
+              the account(s) and remove their data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive cursor-pointer hover:bg-destructive/90"
+              onClick={onDelete}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <Button variant="outline" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
+  );
 }
 
 export function ManageAccountsDataTable<TData, TValue>({
@@ -184,9 +308,6 @@ export function ManageAccountsDataTable<TData, TValue>({
     () => getPageItems(currentPage, pageCount),
     [currentPage, pageCount],
   );
-  const changePage = (nextPage: number) => onPageChange(nextPage);
-  const goToPreviousPage = () => changePage(Math.max(1, currentPage - 1));
-  const goToNextPage = () => changePage(Math.min(pageCount, currentPage + 1));
   const clearSelection = () => setRowSelection({});
 
   const handleDelete = async () => {
@@ -247,9 +368,7 @@ export function ManageAccountsDataTable<TData, TValue>({
             <Button variant="outline" className="gap-0.5">
               <Filter className="h-4 w-4 text-primary" />
               <span className="ml-2 hidden md:inline-flex items-center">
-                {userTypeFilter === "all"
-                  ? "All Account Types"
-                  : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1)}
+                {getUserTypeFilterLabel(userTypeFilter)}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -267,49 +386,11 @@ export function ManageAccountsDataTable<TData, TValue>({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {selectedCount > 0 ? (
-          <div className="ml-auto flex gap-2">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                size="icon"
-                  className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
-                >
-                  <Trash2/>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    the account(s) and remove their data.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="cursor-pointer">
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-destructive cursor-pointer hover:bg-destructive/90"
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button
-              variant="outline"
-              className=""
-              onClick={handleCancelSelection}
-            >
-              Cancel
-            </Button>
-          </div>
-        ) : (
-          <div className="ml-auto" />
-        )}
+        <SelectionActions
+          selectedCount={selectedCount}
+          onDelete={handleDelete}
+          onCancel={handleCancelSelection}
+        />
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -391,60 +472,12 @@ export function ManageAccountsDataTable<TData, TValue>({
           ) : null}
         </div>
 
-        <Pagination className="mx-0 w-auto">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  goToPreviousPage();
-                }}
-                className={
-                  currentPage > 1
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
-              Page {currentPage} of {pageCount}
-            </PaginationItem>
-            {pageItems.map((item, index) => (
-              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
-                {typeof item === "number" ? (
-                  <PaginationLink
-                    href="#"
-                    isActive={currentPage === item}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      changePage(item);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {item}
-                  </PaginationLink>
-                ) : (
-                  <PaginationEllipsis />
-                )}
-              </PaginationItem>
-            ))}
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  goToNextPage();
-                }}
-                className={
-                  currentPage < pageCount
-                    ? "cursor-pointer"
-                    : "pointer-events-none opacity-50"
-                }
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+        <ManageAccountsPagination
+          page={currentPage}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          onPageChange={onPageChange}
+        />
       </div>
     </div>
   );
