@@ -16,6 +16,7 @@ from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from endpoints.languages_api import languages_router
+from endpoints.base_event_api import base_event_router
 from logging_config import setup_logging
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
@@ -144,6 +145,7 @@ try:
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
     app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
     app.include_router(languages_router, prefix="/lang")
+    app.include_router(base_event_router, prefix="/events")
 except Exception:
     print("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 

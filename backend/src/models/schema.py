@@ -221,15 +221,15 @@ class QuestionInstance(Base):
         UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
     )
 
-    class Language(Base):
-        __tablename__ = 'language'
+class Language(Base):
+    __tablename__ = 'language'
 
-        row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-        lang_judge_id: Mapped[int] = mapped_column(unique=True)
-        display_name: Mapped[str] = mapped_column()
-        active: Mapped[bool] = mapped_column(default=False)
+    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    lang_judge_id: Mapped[int] = mapped_column(unique=True)
+    display_name: Mapped[str] = mapped_column()
+    active: Mapped[bool] = mapped_column(default=False)
 
-        __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
+    __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
 
 
 class MostRecentSubmission(Base):

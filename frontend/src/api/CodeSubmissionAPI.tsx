@@ -1,7 +1,6 @@
 import axiosClient from "@/lib/axiosClient"
 import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
-import { getQuestionInstance, updateQuestionInstance } from "./QuestionInstanceAPI"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 import type { SubmissionType } from "@/types/SubmissionType.type"
@@ -9,43 +8,30 @@ import { logFrontend } from "./LoggerAPI"
 
 
 export async function submitAttempt(
+    question_instance: QuestionInstance | undefined,
     user_id: number,
-    question_id: number,
-    event_id: number | null,
+    event_id: number | undefined,
     source_code: string,
     language_id: string,
     testcases: TestcaseType[],
 ): Promise<SubmitAttemptResponse> {
     try {
-        // 1. Get/create instance for question_instance_id
-        let q_inst: QuestionInstance | undefined 
-
-        if (event_id) {
-            const instances = await getQuestionInstance(question_id, event_id)
-            q_inst = instances[0]
+        if (!question_instance) {
+            throw new Error("SubmitAttempt: Question instance cannot be undefined")
+        }
+        if(event_id) {
+            // 1.a Competition/Algotime points calculation
         }
 
-        if (!q_inst) {
-            q_inst = {
-                question_instance_id: -1,
-                question_id: question_id,
-                event_id: event_id,
-                riddle_id: null
-            }
-        }
+        // 1.b Submit to judge0 and save most recent submission
+        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(user_id, question_instance.question_instance_id, source_code, language_id, testcases)
 
-        // 2. Update question instance
-        const updatedInstance = await updateQuestionInstance(q_inst)
-
-        // 3. Submit to judge0 and save most recent submission
-        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(updatedInstance.question_instance_id, source_code, language_id, testcases)
-
-        // 4. Save submission's output details
+        // 2. Save submission's output details
         const submissionResponse = await axiosClient.post(
             "/attempts/add",
             {
                 user_id: user_id,
-                question_instance_id: updatedInstance.question_instance_id,
+                question_instance_id: question_instance.question_instance_id,
                 status: judge0Response['status']['description'],
                 memory: judge0Response['memory'],
                 runtime: judge0Response['time'],
@@ -64,7 +50,7 @@ export async function submitAttempt(
                 userPrefs: userPrefs
             },
             submissionResponse: submissionResponse.data,
-            questionInstance: updatedInstance
+            leaderboard: null
         }
 
     } catch (err) {
@@ -81,9 +67,12 @@ export async function submitAttempt(
 
 export async function getAllSubmissions(
     user_id: number,
-    question_instance_id: number,
+    question_instance_id: number | undefined,
   ): Promise<SubmissionType[]> {
     try {
+      if(!question_instance_id) {
+        throw new Error("getAllSubmissions: Question instance cannot be undefined")
+      }
       const response = await axiosClient.get<{
         status_code: number
         data: SubmissionType[]

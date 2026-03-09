@@ -4,7 +4,6 @@ import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
-import { useStateCallback } from '../helpers/UseStateCallback'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/Question.type'
 import { useTestcases } from '../helpers/useTestcases'
@@ -16,12 +15,18 @@ import { getProfile } from '@/api/AuthAPI'
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
+import { toast } from 'sonner'
+
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 
 const CodeDescArea = (
-    { question, mostRecentSub, }:
-    { question: Question, mostRecentSub: MostRecentSub | undefined }
+    { question, question_instance, mostRecentSub, }:
+    { question: Question | undefined,
+      question_instance: QuestionInstance | undefined | null,
+      mostRecentSub: MostRecentSub | undefined
+    }
 ) => {
 
     const tabs = [
@@ -30,37 +35,33 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { testcases } = useTestcases(question?.id)
+    const { testcases } = useTestcases(question?.question_id)
     const { trackCodingTabSwitched } = useAnalytics()
 
-    const [activeTab, setActiveTab] = useStateCallback("description")
-    const [ submissions, setSubmissions ] = useState<SubmissionType[]>()
-    const [selectedSubmission, setSelectedSubmission] = useStateCallback<SubmissionType | null>(null)
+    const [activeTab, setActiveTab] = useState("description")
+    const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const [containerWidth, setContainerWidth] = useStateCallback(0)
+    const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
+    const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-
-    // Riddle-------
     const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
-    //-------------
 
     useEffect(() => {
-        // Reset state for new question
+        if (!question?.question_id) return
         setHasSolvedRiddle(false)
         setRiddleObject(null)
         setIsLoadingRiddle(true)
 
         const fetchRiddle = async () => {
             try {
-                // HARDCODED RIDDLE ID FOR NOW: 1
-                const HARDCODED_RIDDLE_ID = 7;
-                const data = await getRiddleById(HARDCODED_RIDDLE_ID)
+                const data = await getRiddleById(question_instance?.riddle_id)
 
                 setRiddleObject(data)
             } catch (error) {
+                toast.error("Failed to load riddle...")
                 logFrontend({
                     level: "ERROR",
                     message: `An error occurred when loading riddle. Reason: ${error}`,
@@ -68,8 +69,6 @@ const CodeDescArea = (
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
                   });
-
-                // If the backend fails, let the user see the question so they aren't stuck
                 setHasSolvedRiddle(true)
             } finally {
                 setIsLoadingRiddle(false)
@@ -77,12 +76,14 @@ const CodeDescArea = (
         }
 
         fetchRiddle()
-    }, [question?.id])
+
+    }, [question?.question_id, question_instance?.question_instance_id])
+
     useEffect(() => {
         const FetchSubmissions = async () => {
             const user = await getProfile()
             // hardcoding for now
-            await getAllSubmissions(user.id, 1)
+            await getAllSubmissions(user.id, question_instance?.question_instance_id)
                 .then((response) => {
                     setSubmissions(response)
                 })
@@ -103,6 +104,8 @@ const CodeDescArea = (
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
 
+    if (!question) return
+
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
     if (fullSize) {
@@ -113,14 +116,13 @@ const CodeDescArea = (
     const handleTabChange = (tab: string) => {
         setActiveTab(tab)
         trackCodingTabSwitched(
-            question.id,
+            question.question_id,
             tab as "description" | "submissions" | "leaderboard"
         )
     }//  Riddle Rendering ------------------------------------
     const needsRiddle = !hasSolvedRiddle;
 
     if (needsRiddle) {
-        
         if (isLoadingRiddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -129,16 +131,15 @@ const CodeDescArea = (
                 </div>
             )
         }
-
         
         if (riddleObject) {
             return (
-                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background overflow-y-auto">
+                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
 
                     <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="mb-8 text-center space-y-3">
                             <p className="text-muted-foreground text-lg">
-                                Solve the riddle below to reveal the description for <span className="text-foreground font-semibold">{question.title}</span>.
+                                Solve the riddle below to reveal the description for<br /><span className="text-foreground font-semibold">{question.question_name}</span>
                             </p>
                         </div>
 
@@ -192,10 +193,10 @@ const CodeDescArea = (
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-6'>
                     <h1 className='font-bold mb-3'>
-                        {question.title}
+                        {question.question_name}
                     </h1>
                     <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
-                        {question.description}
+                        {question.question_description}
                     </p>
                     {testcases?.map((t, idx) => {
                         return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
