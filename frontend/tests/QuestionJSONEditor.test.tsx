@@ -63,19 +63,17 @@ describe("QuestionJSONEditor", () => {
 
   it("loads question payload and submits edited JSON", async () => {
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: ["tag"],
-      testcases: [["in", "out"]],
+      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
 
     render(<QuestionJSONEditor />);
 
@@ -109,19 +107,17 @@ describe("QuestionJSONEditor", () => {
 
   it("shows error when JSON is invalid", async () => {
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: [],
       testcases: [],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
 
     render(<QuestionJSONEditor />);
 
@@ -182,19 +178,17 @@ describe("QuestionJSONEditor", () => {
 
   it("shows validation error when JSON shape is invalid", async () => {
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: [],
       testcases: [],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
 
     render(<QuestionJSONEditor />);
 
@@ -217,19 +211,17 @@ describe("QuestionJSONEditor", () => {
   it("shows parsed API error when update fails with non-syntax error", async () => {
     mockedParseAxiosErrorMessage.mockReturnValueOnce("request failed");
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: [],
       testcases: [],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
     mockedUpdateQuestion.mockRejectedValueOnce(new Error("server down"));
 
     render(<QuestionJSONEditor />);
@@ -265,19 +257,17 @@ describe("QuestionJSONEditor", () => {
 
   it("submits on Ctrl+S when form has unsaved changes", async () => {
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: [],
-      testcases: [["in", "out"]],
+      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
 
     render(<QuestionJSONEditor />);
     await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());
@@ -309,19 +299,17 @@ describe("QuestionJSONEditor", () => {
 
   it("opens discard dialog on back with unsaved changes and navigates on discard", async () => {
     mockedGetQuestionByID.mockResolvedValueOnce({
-      id: 9,
-      title: "Q",
-      description: "Desc",
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
       media: null,
-      preset_code: "",
-      template_solution: "",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
       tags: [],
-      testcases: [["in", "out"]],
+      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
-      date: new Date("2025-01-01"),
-    } as any);
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
 
     render(<QuestionJSONEditor />);
     await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());

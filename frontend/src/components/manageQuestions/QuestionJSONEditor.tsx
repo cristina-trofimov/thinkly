@@ -321,7 +321,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
       input_data: unknown;
       expected_output: unknown;
     };
-    
+
     if (
       !Object.hasOwn(record, "input_data") ||
       !Object.hasOwn(record, "expected_output")
@@ -344,7 +344,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
   return {
     question_name: data.question_name,
     question_description: data.question_description,
-    media: data.media,
+    media: data.media as string | null,
     difficulty: data.difficulty as "easy" | "medium" | "hard",
     language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
     tags: data.tags,
