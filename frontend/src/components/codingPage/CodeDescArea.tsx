@@ -80,16 +80,18 @@ const CodeDescArea = (
     }, [question?.question_id, question_instance?.question_instance_id])
 
     useEffect(() => {
-        const FetchSubmissions = async () => {
-            const user = await getProfile()
-            // hardcoding for now
-            await getAllSubmissions(user.id, question_instance?.question_instance_id)
-                .then((response) => {
-                    setSubmissions(response)
-                })
+        if (hasSolvedRiddle) {
+            const FetchSubmissions = async () => {
+                const user = await getProfile()
+                // hardcoding for now
+                await getAllSubmissions(user.id, question_instance?.question_instance_id)
+                    .then((response) => {
+                        setSubmissions(response)
+                    })
+            }
+            FetchSubmissions()
         }
-        FetchSubmissions()
-    }, [mostRecentSub])
+    }, [hasSolvedRiddle, mostRecentSub])
 
     useEffect(() => {
         if (!containerRef.current) return
