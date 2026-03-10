@@ -398,20 +398,18 @@ describe("QuestionsAPI", () => {
       mockedAxios.post.mockResolvedValueOnce({} as any);
       await uploadQuestions([
         {
-          id: 1,
-          title: "Q1",
-          description: "D",
+          question_id: 1,
+          question_name: "Q1",
+          question_description: "D",
           media: null,
-          preset_code: "",
-          template_solution: "",
-          from_string_function: "",
-          to_string_function: "",
+          language_specific_properties: [],
           tags: [],
           testcases: [],
           difficulty: "Easy",
-          date: new Date(),
+          created_at: new Date(),
+          last_modified_at: new Date(),
         },
-      ] as any);
+      ]);
 
       expect(mockedAxios.post).toHaveBeenCalledWith("/questions/upload-question-batch", expect.any(Array));
     });
