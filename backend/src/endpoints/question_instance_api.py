@@ -5,10 +5,17 @@ from database_operations.database import get_db
 from models.schema import QuestionInstance
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import APIRouter, HTTPException, Depends, Query
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
 question_instance_router = APIRouter(tags=["Instances"])
+
+class QuestionInstanceModel(BaseModel):
+    question_instance_id: int
+    question_id: int
+    event_id: int | None = None
+    riddle_id: int | None = None
 
 def query_get_question_instance(
     db: Session, question_id: int,
@@ -39,12 +46,12 @@ def get_question_instance(
         logger.info("Fetched question instance from the database.")
         
         instances = [
-            {
-                "question_instance_id": inst.question_instance_id,
-                "event_id": inst.event_id,
-                "question_id": inst.question_id,
-                "riddle_id": inst.riddle_id,
-            }
+            QuestionInstanceModel(
+                question_instance_id = inst.question_instance_id,
+                event_id =  inst.event_id,
+                question_id = inst.question_id,
+                riddle_id = inst.riddle_id,
+            )
             for inst in query
         ]
 
@@ -65,12 +72,12 @@ def get_all_question_instances_by_event_id(
         query = db.query(QuestionInstance).filter_by(event_id = event_id).all()
 
         instances = [
-            {
-                "question_instance_id": inst.question_instance_id,
-                "event_id": inst.event_id,
-                "question_id": inst.question_id,
-                "riddle_id": inst.riddle_id,
-            }
+            QuestionInstanceModel(
+                question_instance_id = inst.question_instance_id,
+                event_id =  inst.event_id,
+                question_id = inst.question_id,
+                riddle_id = inst.riddle_id,
+            )
             for inst in query
         ]
 
@@ -82,18 +89,18 @@ def get_all_question_instances_by_event_id(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve question instances associated to an event. Exception: {str(e)}")
         
 
-@question_instance_router.post("/update",
+@question_instance_router.put("/put",
     status_code=201,
-    responses={500: {"description": "Failed to upload question instance."}}
+    responses={500: {"description": "Failed to push question instance."}}
 )
-def create_question_instance(
+def push_question_instance(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):
     try:
         instance = None
 
-        # If event_id is null -> practicing: save automaticall
+        # If event_id is null -> practicing: save automatically
         if request['event_id'] is None:
             instance = QuestionInstance(
                 question_id = request['question_id'],
@@ -125,15 +132,16 @@ def create_question_instance(
         db.commit()
         db.refresh(instance)
 
-        logger.info("Uploaded question instance.")
+        logger.info("Pushed question instance.")
 
-        return {"status_code": 200, 'data': {
-            "question_instance_id": instance.question_instance_id,
-            "event_id": instance.event_id,
-            "question_id": instance.question_id,
-            "riddle_id": instance.riddle_id,
-        }}
+        return {"status_code": 200, 'data': QuestionInstanceModel(
+                question_instance_id = instance.question_instance_id,
+                event_id =  instance.event_id,
+                question_id = instance.question_id,
+                riddle_id = instance.riddle_id,
+            )
+        }
     except Exception as e:
         db.rollback()
-        logger.error(f"Error uploading question instance: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload question instance.")
+        logger.error(f"Error pushing question instance: {e}")
+        raise HTTPException(status_code=500, detail="Failed to push question instance.")

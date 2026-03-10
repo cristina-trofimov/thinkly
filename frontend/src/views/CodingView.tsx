@@ -22,7 +22,7 @@ import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import type { MostRecentSub } from '@/types/submissions/MostRecentSub.type';
-import { getAllQuestionInstancesByEventID, getQuestionInstance } from '@/api/QuestionInstanceAPI';
+import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
 import type { BaseEvent } from '@/types/BaseEvent.type';
@@ -121,7 +121,7 @@ const CodingView = () => {
         setIsQuestionLoading(true)
         try {
           // TODO
-          await getQuestionInstance(question?.question_id, null)
+          await putQuestionInstance(undefined, question?.question_id, null, null)
             .then((response) => {
               setQuestionsInstances([response])
             })
