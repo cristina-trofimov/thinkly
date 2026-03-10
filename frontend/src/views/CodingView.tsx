@@ -117,14 +117,12 @@ const CodingView = () => {
       }
       InitializeQuestionInstances()
     } else if(question?.question_id) {
-      console.log('question', question)
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
           // TODO
           await getQuestionInstance(question?.question_id, null)
             .then((response) => {
-              console.log('question response', response)
               setQuestionsInstances([response])
             })
         } catch (err) {
@@ -192,8 +190,6 @@ const CodingView = () => {
         await getAllLanguages()
         .then((response) => {
           setLanguages(response)
-          setSelectedLang(response[0])
-          prevLangRef.current = response[0]
         })
 
         await getUserPrefs(user.id)
@@ -217,13 +213,17 @@ const CodingView = () => {
   }, [questions, questionsInstances])
 
   useEffect(() => {
-    if (languages && (languages.length > 0 && !selectedLang)) {
-      if (userPreferences) {
-        console.log('userPreferences 2', userPreferences)
-        setSelectedLang(languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language ))
-      } else {
-        setSelectedLang(languages[0])
+    if (!languages) return
+
+    if (userPreferences) {
+      const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
+
+      if (lang) {
+        setSelectedLang(lang)
+        prevLangRef.current = lang
       }
+    } else {
+      setSelectedLang(languages[0])
     }
     
   }, [languages, userPreferences])
@@ -293,7 +293,6 @@ const CodingView = () => {
         setLoadingMsg("Running")
   
         const user = await getProfile()
-        console.log('activeQuestionInstance', activeQuestionInstance)
         const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
         
         setLogs(prev => [...prev, judge0Response])
