@@ -13,8 +13,8 @@ export type QuestionLanguageSpecificPropertiesResponse = {
 export type TestCaseResponse = {
   question_id: number;
   test_case_id: number;
-  input_data: any;
-  expected_output: any;
+  input_data: unknown;
+  expected_output: unknown;
 }
 
 export type TagResponse = {

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint, JSON
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database_operations.db import Base

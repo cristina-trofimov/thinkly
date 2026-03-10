@@ -223,12 +223,20 @@ const QuestionJSONEditor: FC = () => {
   );
 };
 
-function normalizeEditableQuestionFields(payload: any): EditableQuestionFields {
+function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFields {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     throw new QuestionPayloadValidationError("Question payload must be a JSON object");
   }
 
-  const data = payload;
+  const data = payload as {
+    question_name: unknown;
+    question_description: unknown;
+    media: unknown;
+    difficulty: unknown;
+    language_specific_properties: unknown;
+    tags: unknown;
+    testcases: unknown;
+  };
   const hasValidDifficulty =
     data.difficulty === "easy" ||
     data.difficulty === "medium" ||
@@ -262,17 +270,23 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields {
     throw new QuestionPayloadValidationError("media must be a string or null");
   }
 
-  if (data.tags.some((tag: any) => typeof tag !== "string")) {
+  if (data.tags.some((tag: unknown) => typeof tag !== "string")) {
     throw new QuestionPayloadValidationError("all tags must be strings");
   }
 
   const languageSpecificProperties: Array<EditableQuestionFields["language_specific_properties"][number] | null> =
-    data.language_specific_properties.map((prop: any) => {
+    data.language_specific_properties.map((prop: unknown) => {
     if (!prop || typeof prop !== "object" || Array.isArray(prop)) {
       return null;
     }
 
-    const record = prop;
+    const record = prop as {
+      language_name: unknown;
+      preset_code: unknown;
+      template_solution: unknown;
+      from_json_function: unknown;
+      to_json_function: unknown;
+    };
     if (
       typeof record.language_name !== "string" ||
       typeof record.preset_code !== "string" ||
@@ -298,12 +312,16 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields {
     );
   }
 
-  const testcases: Array<EditableQuestionFields["testcases"][number] | null> = data.testcases.map((testcase: any) => {
+  const testcases: Array<EditableQuestionFields["testcases"][number] | null> = data.testcases.map((testcase: unknown) => {
     if (!testcase || typeof testcase !== "object") {
       return null;
     }
 
-    const record = testcase;
+    const record = testcase as {
+      input_data: unknown;
+      expected_output: unknown;
+    };
+    
     if (
       !Object.hasOwn(record, "input_data") ||
       !Object.hasOwn(record, "expected_output")
@@ -327,7 +345,7 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields {
     question_name: data.question_name,
     question_description: data.question_description,
     media: data.media,
-    difficulty: data.difficulty,
+    difficulty: data.difficulty as "easy" | "medium" | "hard",
     language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
     tags: data.tags,
     testcases: testcases as EditableQuestionFields["testcases"],

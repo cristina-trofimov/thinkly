@@ -1,4 +1,3 @@
-import json
 from typing import Annotated, Literal, Optional, List, Any as AnyJSONNode
 from datetime import datetime, timezone
 from email.utils import format_datetime, parsedate_to_datetime
