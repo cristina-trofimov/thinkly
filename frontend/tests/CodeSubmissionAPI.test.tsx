@@ -48,7 +48,7 @@ const question_instance_id = 123
 const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
-const language_id = "71"
+const language_id = 71
 const testcases: TestcaseType[] = [
   {
     test_case_id: 1,
@@ -76,7 +76,7 @@ const mockMostRecentSubResponse: MostRecentSub = {
   user_id: user_id,
   question_instance_id: question_instance_id,
   code: source_code,
-  lang_judge_id: parseInt(language_id)
+  lang_judge_id: language_id
 }
 
 const mockUserPrefs: UserPreferences = {
@@ -190,7 +190,7 @@ describe("Code Submission", () => {
 
   it("submitAttempt: throws an error if the given question instance is undefined", async () => {
     await expect(submitAttempt(undefined, user_id, undefined, source_code, language_id, testcases))
-                .rejects.toThrow("SubmitAttempt: Question instance cannot be undefined")
+                .rejects.toThrow("SubmitAttempt: Question instance and language cannot be undefined")
     expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()
     // Skip point calculations steps

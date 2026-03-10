@@ -32,7 +32,7 @@ const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 const mockedLogger = logFrontend as jest.Mock
 
 const code = "print('Hello')";
-const language_id = "71";
+const language_id = 71
 const user_id = 1;
 
 const question_instance_id = 1;
@@ -98,7 +98,7 @@ describe("Judge0API", () => {
 
   it("throws an error if the given question instance id is undefined", async () => {
     await expect(submitToJudge0(user_id, undefined, code, language_id, testcases))
-                .rejects.toThrow("RunCode: Question instance cannot be undefined")
+                .rejects.toThrow("RunCode: Question instance or language cannot be undefined")
     expect(updateLastProgLang).not.toHaveBeenCalled()
     expect(updateMostRecentSub).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()

@@ -1,6 +1,6 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
@@ -159,22 +159,6 @@ jest.mock("react-resizable-panels", () => ({
     PanelResizeHandle: () => <div data-testid="resizable-handle" />,
 }))
 
-jest.mock("../src/components/helpers/monacoConfig", () => ({
-    __esModule: true,
-    buildMonacoCode: jest.fn(() => ({
-        Javascript: {
-            monacoID: "javascript",
-            judgeID: "63",
-            templateCode: "console.log('test javascript')",
-        },
-        Typescript: {
-            monacoID: "typescript",
-            judgeID: "74",
-            templateCode: "console.log('test typescript')",
-        },
-    })),
-}))
-
 jest.mock('../src/components/helpers/useTestcases')
 
 const mockedToast = toast as jest.Mocked<typeof toast>
@@ -215,7 +199,7 @@ const question_instance_id = 123
 const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
-const language_id = "71"
+const language_id = 71
 
 
 const mockProfile: Account = {
@@ -241,7 +225,7 @@ const mockMostRecentSubResponse: MostRecentSub = {
     user_id: user_id,
     question_instance_id: question_instance_id,
     code: source_code,
-    lang_judge_id: parseInt(language_id)
+    lang_judge_id: language_id
 }
 
 const mockJudge0Response = {
