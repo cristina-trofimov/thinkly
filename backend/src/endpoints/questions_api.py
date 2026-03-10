@@ -497,21 +497,32 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
                 status_code=404,
                 detail=f"Update failed: Question with id {question_id} not found"
             )
-        updated_question: Question = get_question_from_request(db, question_request)
-        db_question.question_name=updated_question.question_name
-        db_question.question_description=updated_question.question_description
-        db_question.media=updated_question.media
-        db_question.difficulty=updated_question.difficulty
-        db_question.preset_code=updated_question.preset_code
-        db_question.from_string_function=updated_question.from_string_function
-        db_question.to_string_function=updated_question.to_string_function
-        db_question.template_solution=updated_question.template_solution
-        db_question.tags=updated_question.tags
+        
+        db_question.question_name=question_request.question_name
+        db_question.question_description=question_request.question_description
+        db_question.media=question_request.media
+        db_question.difficulty=question_request.difficulty
+        db_question.preset_code=question_request.preset_code
+        db_question.from_string_function=question_request.from_string_function
+        db_question.to_string_function=question_request.to_string_function
+        db_question.template_solution=question_request.template_solution
+        
+        existing_tags = db.query(Tag).filter(Tag.tag_name.in_(question_request.tags)).all()
+        existing_tag_names = [tag.tag_name for tag in existing_tags]
+        new_tags = [Tag(tag_name=tag_name) for tag_name in question_request.tags if tag_name not in existing_tag_names]
+        db_question.tags = existing_tags + new_tags
+        
         for old_tc in db_question.test_cases:
             db.delete(old_tc)
-        for tc in updated_question.test_cases:
-            tc.question_id = question_id
-        db_question.test_cases=updated_question.test_cases
+        
+        db_question.test_cases = []
+        for (tc_input, tc_output) in question_request.testcases:
+            db_question.test_cases.append(TestCase(
+                question_id=db_question.question_id,
+                input_data=tc_input,
+                expected_output=tc_output
+            ))
+
         db.commit()
         db.refresh(db_question)
         logger.info(f"Updated question: {question_id}")
