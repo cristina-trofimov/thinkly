@@ -120,7 +120,6 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          // TODO
           await getQuestionInstance(question?.question_id, null)
             .then((response) => {
               setQuestionsInstances([response])
@@ -328,8 +327,8 @@ const CodingView = () => {
   const [code, setCode] = useState<string>('')
 
   // Reset editor to language's default code on language change
-  // Will be needed later
   // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  // ^^ Will be needed later
 
   useEffect(() => {
     if (mostRecentSub) {
@@ -528,9 +527,8 @@ const CodingView = () => {
                 key={selectedLang?.monaco_id}
                 language={selectedLang?.monaco_id}
                 value={code}
-                theme="vs-dark"
-                // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
-                onChange={(value) => { setCode(value ?? 'templateCode') }}
+                theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
+                onChange={(value) => { setCode(value ?? 'templateCode') }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
                 options={{
                   fontSize: 14,
                   automaticLayout: true,
