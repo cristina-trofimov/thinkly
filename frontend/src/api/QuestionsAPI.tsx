@@ -1,64 +1,14 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Question } from "@/types/questions/Question.type";
+import type {
+  EditableQuestionFields,
+  Question,
+} from "@/types/questions/Question.type";
+import type { QuestionListItemResponse, QuestionsPageParams, QuestionsPageResult, QuestionsResponse, RiddlesResponse } from "@/types/questions/QuestionPagination.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 import type { Riddle } from "@/types/riddle/Riddle.type";
+import { logFrontend } from "./LoggerAPI";
 
 const DEFAULT_PAGE_SIZE = 100;
-
-type QuestionListItemResponse = {
-  question_id: number;
-  question_name: string;
-  question_description: string;
-  media: string | null;
-  preset_code: string | null;
-  template_solution: string;
-  difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
-  from_string_function?: string;
-  to_string_function?: string;
-  created_at?: string;
-  last_modified_at: string;
-};
-
-type QuestionsResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: QuestionListItemResponse[];
-};
-
-type QuestionByIdResponse =
-  | QuestionListItemResponse
-  | {
-      status_code: number;
-      data: QuestionListItemResponse;
-    };
-
-type RiddlesResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: {
-    riddle_file: string | null;
-    riddle_id: number;
-    riddle_question: string;
-    riddle_answer: string;
-  }[];
-};
-
-export type QuestionsPageParams = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  difficulty?: "easy" | "medium" | "hard";
-  sort?: "asc" | "desc";
-};
-
-export type QuestionsPageResult = {
-  total: number;
-  page: number;
-  pageSize: number;
-  items: Question[];
-};
 
 function normalizeDifficulty(
   difficulty: QuestionListItemResponse["difficulty"],
@@ -69,10 +19,13 @@ function normalizeDifficulty(
   return "Hard";
 }
 
-function mapQuestion(question: QuestionListItemResponse): Question {
+function mapQuestion(
+  question: QuestionListItemResponse,
+  options: { includeCollections?: boolean } = {},
+): Question {
   const createdAt = question.created_at ?? question.last_modified_at;
 
-  return {
+  const baseQuestion: Question = {
     question_id: question.question_id,
     question_name: question.question_name,
     question_description: question.question_description,
@@ -85,6 +38,13 @@ function mapQuestion(question: QuestionListItemResponse): Question {
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
   };
+
+  if (options.includeCollections) {
+    baseQuestion.tags = question.tags ?? [];
+    baseQuestion.testcases = question.testcases ?? [];
+  }
+
+  return baseQuestion;
 }
 
 export async function getQuestionsPage({
@@ -111,7 +71,7 @@ export async function getQuestionsPage({
     total: response.data.total,
     page: response.data.page,
     pageSize: response.data.page_size,
-    items: response.data.items.map(mapQuestion),
+    items: response.data.items.map((question) => mapQuestion(question)),
   };
 }
 
@@ -142,25 +102,39 @@ export async function getQuestions(): Promise<Question[]> {
   }
 }
 
-export async function getQuestionByID(question_id: number): Promise<Question> {
+export async function getQuestionByID(questionId: number): Promise<Question> {
   try {
-    const response = await axiosClient.get<QuestionByIdResponse>(
-      "/questions/question",
-      {
-        params: {
-          question_id,
-        },
-      },
+    const response = await axiosClient.get<QuestionListItemResponse>(
+      `/questions/get-question-by-id/${questionId}`,
     );
 
-    const question =
-      "data" in response.data ? response.data.data : response.data;
-
-    return mapQuestion(question);
+    return mapQuestion(response.data, { includeCollections: true });
   } catch (err) {
     console.error("Error fetching question:", err);
     throw err;
   }
+}
+
+export async function deleteQuestions(questionIds: number[]): Promise<{
+  status_code: number;
+  deleted_count: number;
+  deleted_questions: Array<{ question_id: number }>;
+  total_requested: number;
+  errors?: Array<{ question_id: number; error: string }>;
+}> {
+  try {
+    const response = await axiosClient.delete("/questions/batch-delete", {
+      data: { question_ids: questionIds },
+    });
+    return response.data;
+  } catch (err) {
+    console.error("Error deleting questions:", err);
+    throw err;
+  }
+}
+
+export async function deleteQuestion(questionId: number): Promise<void> {
+  await deleteQuestions([questionId]);
 }
 
 export async function getRiddles(): Promise<Riddle[]> {
@@ -215,6 +189,42 @@ export async function getTestcases(
     }));
   } catch (err) {
     console.error("Error fetching testcases:", err);
+    throw err;
+  }
+}
+
+export async function deleteCompetition(competitionId: string): Promise<void> {
+  try {
+    await axiosClient.delete(`/competitions/delete-competition/${competitionId}`);
+    void logFrontend({
+      level: "INFO",
+      message: `Competition ${competitionId} deleted successfully`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+    });
+  } catch (err) {
+    console.error("Error deleting competition:", err);
+    throw err;
+  }
+}
+
+export async function uploadQuestions(questions: Question[]): Promise<void> {
+  try {
+    await axiosClient.post("/questions/upload-question-batch", questions);
+  } catch (err) {
+    console.error("Error uploading questions:", err);
+    throw err;
+  }
+}
+
+export async function updateQuestion(
+  questionId: number,
+  updatedFields: EditableQuestionFields,
+): Promise<void> {
+  try {
+    await axiosClient.put(`/questions/update-question/${questionId}`, updatedFields);
+  } catch (err) {
+    console.error(`Error updating question ${questionId}:`, err);
     throw err;
   }
 }

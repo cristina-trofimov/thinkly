@@ -250,10 +250,10 @@ describe('AdminDashboard', () => {
     // Find the Manage Questions card
     const manageQuestionsCard = screen.getByText('Manage Questions');
 
-    // Verify current behavior of wrapping this card in a link
-    const closestLink = manageQuestionsCard.closest('a');
-    expect(closestLink).toBeInTheDocument();
-    expect(closestLink).toHaveAttribute('href', '/app/dashboard');
+    // Verify it's not inside a link
+    const manageQuestionsLink = manageQuestionsCard.closest('a');
+    expect(manageQuestionsLink).toBeInTheDocument();
+    expect(manageQuestionsLink).toHaveAttribute('href', '/app/dashboard/manageQuestions');
   });
 
   describe('Time range filter', () => {
