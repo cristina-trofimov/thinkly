@@ -60,7 +60,7 @@ def get_all_prefs(
         logger.error(f"Error fetching user preferences: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve user preferences.")
 
-@user_preferences_router.post("/theme", status_code=201,
+@user_preferences_router.patch("/theme", status_code=201,
     responses={
         500: {"description": "Failed to update user themes."},
         404: {"description": "User preferences not found"}
@@ -97,7 +97,7 @@ def update_user_theme(
         raise HTTPException(status_code=500, detail="Failed to update user's preferred theme.")
 
 
-@user_preferences_router.post("/notif", status_code=201,
+@user_preferences_router.patch("/notif", status_code=201,
     responses={
         500: {"description": "Failed to update user notifications_enabled."},
         404: {"description": "User preferences not found"}
@@ -134,7 +134,7 @@ def update_notifications(
         raise HTTPException(status_code=500, detail="Failed to update user's notification settings.")
 
 
-@user_preferences_router.post("/prog", status_code=201,
+@user_preferences_router.patch("/prog", status_code=201,
     responses={
         500: {"description": "Failed to update user last_used_programming_language."},
         404: {"description": "User preferences not found"}
@@ -171,13 +171,13 @@ def update_last_prog(
         raise HTTPException(status_code=500, detail="Failed to update user's last programming language.")
 
 
-@user_preferences_router.post("/update", status_code=201,
+@user_preferences_router.post("/add", status_code=201,
     responses={
         500: {"description": "Failed to add/update all user preferences."},
         404: {"description": "User preferences not found"}
     }
 )
-def update_all_prefs(
+def add_new_prefs(
     db: Annotated[Session, Depends(get_db)],
     request: dict,
 ):

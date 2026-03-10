@@ -8,7 +8,7 @@ export async function updateAllPrefs(
 ): Promise<UserPreferences> {
   try {
     const response = await axiosClient.post(
-      "/prefs/update",
+      "/prefs/add",
       {
         user_id: prefs.user_id,
         theme: prefs.theme,
@@ -35,7 +35,7 @@ export async function updateThemePref(
   user_id: number, theme: string,
 ): Promise<UserPreferences> {
   try {
-    const response = await axiosClient.post(
+    const response = await axiosClient.patch(
       "/prefs/theme",
       {
         user_id: user_id,
@@ -61,7 +61,7 @@ export async function updateNotifPref(
   user_id: number, notifications_enabled: boolean
 ): Promise<UserPreferences> {
   try {
-    const response = await axiosClient.post(
+    const response = await axiosClient.patch(
       "/prefs/notif",
       {
         user_id: user_id,
@@ -86,7 +86,7 @@ export async function updateLastProgLang(
   user_id: number, last_used_programming_language: number,
 ): Promise<UserPreferences> {
   try {
-    const response = await axiosClient.post(
+    const response = await axiosClient.patch(
       "/prefs/prog",
       {
         user_id: user_id,
