@@ -226,7 +226,7 @@ class Language(Base):
 
     row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     lang_judge_id: Mapped[int] = mapped_column(unique=True)
-    monaco: Mapped[str] = mapped_column(unique=True)
+    monaco_id: Mapped[str] = mapped_column(unique=True)
     display_name: Mapped[str] = mapped_column()
     active: Mapped[bool] = mapped_column(default=False)
 
