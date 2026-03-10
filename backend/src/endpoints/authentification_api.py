@@ -1,7 +1,6 @@
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr, Field, constr
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr, Field
 from typing import Annotated, Optional
 from models.schema import UserAccount, UserPreferences, UserSession
 from google.oauth2 import id_token
