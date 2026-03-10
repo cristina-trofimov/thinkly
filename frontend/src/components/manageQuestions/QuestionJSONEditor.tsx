@@ -228,50 +228,46 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
     throw new QuestionPayloadValidationError("Question payload must be a JSON object");
   }
 
-  const data = payload as {
-    question_name: unknown;
-    question_description: unknown;
-    media: unknown;
-    difficulty: unknown;
-    language_specific_properties: unknown;
-    tags: unknown;
-    testcases: unknown;
-  };
-  const hasValidDifficulty =
-    data.difficulty === "easy" ||
-    data.difficulty === "medium" ||
-    data.difficulty === "hard";
+  const data = payload as Record<string, unknown>;
 
   if (typeof data.question_name !== "string") {
-    throw new QuestionPayloadValidationError("question_name must be a string");
+    throw new QuestionPayloadValidationError("Question_name must be a string");
   }
+  const question_name: string = data.question_name;
 
   if (typeof data.question_description !== "string") {
-    throw new QuestionPayloadValidationError("question_description must be a string");
+    throw new QuestionPayloadValidationError("Question_description must be a string");
+  }
+  const question_description: string = data.question_description;
+
+  let media: string | null = null;
+  if (typeof data.media === "string") {
+    media = data.media; 
+  } else if (data.media !== null) {
+    throw new QuestionPayloadValidationError("Media must be a string or null");
   }
 
-  if (!hasValidDifficulty) {
-    throw new QuestionPayloadValidationError("difficulty must be one of: easy, medium, hard");
-  }
-
-  if (!Array.isArray(data.language_specific_properties)) {
-    throw new QuestionPayloadValidationError("language_specific_properties must be an array");
+  let difficulty: "easy" | "medium" | "hard";
+  if (data.difficulty === "easy" || data.difficulty === "medium" || data.difficulty === "hard") {
+    difficulty = data.difficulty;
+  } else {
+    throw new QuestionPayloadValidationError("Difficulty must be one of: easy, medium, hard");
   }
 
   if (!Array.isArray(data.tags)) {
-    throw new QuestionPayloadValidationError("tags must be an array");
+    throw new QuestionPayloadValidationError("Tags must be an array");
+  }
+  if (data.tags.some((tag: unknown) => typeof tag !== "string")) {
+    throw new QuestionPayloadValidationError("All tags must be strings");
+  }
+  const tags = data.tags as string[];
+
+  if (!Array.isArray(data.language_specific_properties)) {
+    throw new QuestionPayloadValidationError("Language_specific_properties must be an array");
   }
 
   if (!Array.isArray(data.testcases)) {
-    throw new QuestionPayloadValidationError("testcases must be an array");
-  }
-
-  if (!(typeof data.media === "string" || data.media === null)) {
-    throw new QuestionPayloadValidationError("media must be a string or null");
-  }
-
-  if (data.tags.some((tag: unknown) => typeof tag !== "string")) {
-    throw new QuestionPayloadValidationError("all tags must be strings");
+    throw new QuestionPayloadValidationError("Testcases must be an array");
   }
 
   const languageSpecificProperties: Array<EditableQuestionFields["language_specific_properties"][number] | null> =
@@ -280,13 +276,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
       return null;
     }
 
-    const record = prop as {
-      language_name: unknown;
-      preset_code: unknown;
-      template_solution: unknown;
-      from_json_function: unknown;
-      to_json_function: unknown;
-    };
+    const record = prop as Record<string, unknown>;
     if (
       typeof record.language_name !== "string" ||
       typeof record.preset_code !== "string" ||
@@ -308,7 +298,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
 
   if (languageSpecificProperties.includes(null)) {
     throw new QuestionPayloadValidationError(
-      "each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
+      "Each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
     );
   }
 
@@ -317,10 +307,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
       return null;
     }
 
-    const record = testcase as {
-      input_data: unknown;
-      expected_output: unknown;
-    };
+    const record = testcase as Record<string, unknown>;
 
     if (
       !Object.hasOwn(record, "input_data") ||
@@ -342,12 +329,12 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
   }
 
   return {
-    question_name: data.question_name,
-    question_description: data.question_description,
-    media: data.media,
-    difficulty: data.difficulty as "easy" | "medium" | "hard",
+    question_name,
+    question_description,
+    media,
+    difficulty,
     language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
-    tags: data.tags,
+    tags,
     testcases: testcases as EditableQuestionFields["testcases"],
   };
 }

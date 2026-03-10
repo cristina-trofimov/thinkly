@@ -204,7 +204,7 @@ describe("QuestionJSONEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(mockedToast.error).toHaveBeenCalledWith("question_description must be a string");
+      expect(mockedToast.error).toHaveBeenCalledWith("Question_description must be a string");
     });
   });
 
