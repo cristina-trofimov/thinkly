@@ -514,6 +514,8 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
         
         for old_tc in db_question.test_cases:
             db.delete(old_tc)
+        
+        db_question.test_cases = []
         for (tc_input, tc_output) in question_request.testcases:
             db_question.test_cases.append(TestCase(
                 question_id=db_question.question_id,
