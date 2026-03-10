@@ -33,6 +33,7 @@ import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
 import { getQuestionByID } from '@/api/QuestionsAPI';
 import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
+import { getUserPrefs } from '@/api/UserPreferencesAPI';
 
 
 const CodingView = () => {
@@ -45,6 +46,7 @@ const CodingView = () => {
   const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
   const [ event, setEvent ] = useState<BaseEvent | null>(null)
 
+  const [ lastProgLangUsed, setLastProgLangUsed ] = useState<number | null>(null)
   const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
 
   const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
@@ -174,6 +176,25 @@ const CodingView = () => {
     if (questionsInstances.length > 0 && !activeQuestionInstance) {
       setActiveQuestionInstance(questionsInstances[0])
     }
+
+    const initialzeLastProgLangUsed = async () => {
+      try {
+        const user = await getProfile()
+        await getUserPrefs(user.id)
+          .then((response) => {
+            setLastProgLangUsed(response.last_used_programming_language)
+          })
+      } catch (err) {
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to fetch user's last used programming language. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        })
+      }
+    }
+    initialzeLastProgLangUsed()
   }, [questions, questionsInstances])
 
 
