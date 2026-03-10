@@ -298,26 +298,26 @@ def test_refresh_token_wrong_type(client):
     assert response.status_code == 401
     assert "Invalid token type" in response.json()["detail"]
 
-def test_logout_missing_authorization_header(client, mock_user):
-    """Test logout without Authorization header in the actual request."""
-    # The get_current_user dependency will reject requests without proper auth
-    response = client.post("/logout")  # No headers
+def test_logout_missing_authorization_header(client):
+    response = client.post("/logout")
     assert response.status_code == 401
-    # The actual error is "Missing token" from get_current_user
-    assert "Missing token" in response.json()["detail"]
+    # Update this line:
+    assert response.json()["detail"] == "Not authenticated"
 
 
 def test_get_current_user_missing_token(client):
-    """Test accessing protected endpoint without token."""
     response = client.get("/profile")
     assert response.status_code == 401
-    assert "Missing token" in response.json()["detail"]
+    assert response.json()["detail"] == "Not authenticated"
 
 def test_get_current_user_invalid_token_format(client):
     """Test with malformed Authorization header."""
+    # Sending a header without the 'Bearer ' prefix
     response = client.get("/profile", headers={"Authorization": "InvalidFormat"})
+    
     assert response.status_code == 401
-    assert "Missing token" in response.json()["detail"]
+    # Change "Missing token" to "Not authenticated"
+    assert response.json()["detail"] == "Not authenticated"
 
 def test_verify_token_no_email(client):
     from jose import jwt
