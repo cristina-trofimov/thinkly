@@ -242,6 +242,46 @@ describe("QuestionsAPI", () => {
       await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
       expect(mockedAxios.get).toHaveBeenCalled();
     });
+
+    it("maps language specific properties when present", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          question_id: 8,
+          question_name: "With language props",
+          question_description: "Has per-language fields",
+          media: null,
+          difficulty: "easy",
+          last_modified_at: "2025-02-03T00:00:00Z",
+          language_specific_properties: [
+            {
+              language_id: 1,
+              question_id: 8,
+              language_display_name: "Python",
+              preset_code: "def solve():\n    pass",
+              template_solution: "def solve():\n    return 1",
+              from_json_function: "def from_json(v): return v",
+              to_json_function: "def to_json(v): return v",
+            },
+          ],
+          tags: [],
+          test_cases: [],
+        },
+      } as any);
+
+      const result = await getQuestionByID(8);
+
+      expect(result.language_specific_properties).toEqual([
+        {
+          language_id: 1,
+          question_id: 8,
+          language_name: "Python",
+          preset_code: "def solve():\n    pass",
+          template_solution: "def solve():\n    return 1",
+          from_json_function: "def from_json(v): return v",
+          to_json_function: "def to_json(v): return v",
+        },
+      ]);
+    });
   });
 
   describe("getRiddles", () => {
