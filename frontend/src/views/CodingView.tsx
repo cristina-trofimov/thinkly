@@ -57,8 +57,11 @@ const CodingView = () => {
   const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+
   const [languages, setLanguages] = useState<Language[]>()
   const [selectedLang, setSelectedLang] = useState<Language>()
+  // Keep a ref to the previous language so we can log "from → to" on change
+  const prevLangRef = useRef<Language | null>(null)
   const [userPreferences, setUserPreferences] = useState<UserPreferences>()
 
   // Getting the competition or algotime event if it exists
@@ -190,6 +193,7 @@ const CodingView = () => {
         .then((response) => {
           setLanguages(response)
           setSelectedLang(response[0])
+          prevLangRef.current = response[0]
         })
 
         await getUserPrefs(user.id)
@@ -322,13 +326,10 @@ const CodingView = () => {
     }
   }
 
-  // Keep a ref to the previous language so we can log "from → to" on change
-  // const prevLangRef = useRef<Language>("Java")
-  // const prevLangRef = useRef<SupportedLanguagesType>("Java")
-
   const [code, setCode] = useState<string>('')
 
   // Reset editor to language's default code on language change
+  // Will be needed later
   // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -341,7 +342,7 @@ const CodingView = () => {
 
   const handleLanguageChange = (lang: Language) => {
     trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
-    // prevLangRef.current = lang
+    prevLangRef.current = lang
     setSelectedLang(lang)
     setCode('templateCode')
   }
