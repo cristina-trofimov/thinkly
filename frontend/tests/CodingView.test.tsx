@@ -490,24 +490,6 @@ describe('CodingView Component without event', () => {
             .rejects.toThrow("Network error")
     })
 
-    it('handles language dropdown interaction', async () => {
-        render(<CodingView />)
-
-        const languageBtn = screen.getByTestId('language-btn')
-        expect(languageBtn).toHaveTextContent('Java')
-
-        expect(languageBtn).toBeInTheDocument()
-    })
-
-    it('handles question change', async () => {
-        render(<CodingView />)
-
-        const languageBtn = screen.getByTestId('language-btn')
-        expect(languageBtn).toHaveTextContent('Java')
-
-        expect(languageBtn).toBeInTheDocument()
-    })
-
     it('handles async loading state during code execution', async () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
