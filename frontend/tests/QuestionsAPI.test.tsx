@@ -11,6 +11,7 @@ import {
   uploadQuestions,
   updateQuestion,
 } from "../src/api/QuestionsAPI";
+import { logFrontend } from "../src/api/LoggerAPI";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -23,6 +24,12 @@ jest.mock('../src/lib/axiosClient', () => ({
   API_URL: 'http://localhost:8000',
 }))
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
+
+jest.mock("../src/api/LoggerAPI", () => ({
+  logFrontend: jest.fn()
+}));
+
+const mockedLogFrontend = logFrontend as jest.MockedFunction<typeof logFrontend>;
 
 describe("QuestionsAPI", () => {
   beforeEach(() => {
@@ -315,11 +322,15 @@ describe("QuestionsAPI", () => {
   describe("deleteCompetition", () => {
     it("calls axios delete and logs success", async () => {
       mockedAxios.delete.mockResolvedValueOnce({} as any);
-
       await deleteCompetition("123");
 
       expect(mockedAxios.delete).toHaveBeenCalledWith("/competitions/delete-competition/123");
-      expect(console.log).toHaveBeenCalledWith("Competition 123 deleted successfully");
+      const expectedLog = expect.objectContaining({
+        level: 'INFO',
+        message: "Competition 123 deleted successfully"
+      });
+
+      expect(mockedLogFrontend).toHaveBeenCalledWith(expectedLog);
     });
 
     it("throws error if axios delete fails", async () => {

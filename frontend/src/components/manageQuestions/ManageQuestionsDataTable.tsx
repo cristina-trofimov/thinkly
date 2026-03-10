@@ -62,6 +62,7 @@ import type { Question } from "@/types/questions/Question.type";
 import { deleteQuestion, deleteQuestions } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
+import { logFrontend } from "@/api/LoggerAPI";
 
 async function handleQuestionDelete(questionId: number): Promise<void> {
   try {
@@ -118,14 +119,24 @@ export function ManageQuestionsDataTable<TData, TValue>({
       .getSelectedRowModel()
       .rows.map((row) => row.original as Question);
 
-    console.log("Deleting rows: ", selectedRows);
+    void logFrontend({
+      level: "INFO",
+      message: `Deleting ${selectedRows.length} selected question row(s).`,
+      component: "ManageQuestionsDataTable",
+      url: globalThis.location.href,
+    });
 
     const questionIds = selectedRows.map((row) => Number(row.question_id));
 
     try {
       const response = await deleteQuestions(questionIds);
 
-      console.log("Delete response:", response);
+      void logFrontend({
+        level: "INFO",
+        message: `Delete response received: ${response.deleted_count}/${response.total_requested} deleted.`,
+        component: "ManageQuestionsDataTable",
+        url: globalThis.location.href,
+      });
 
       const deletedIds = response.deleted_questions.map((question) => question.question_id);
 
@@ -133,7 +144,12 @@ export function ManageQuestionsDataTable<TData, TValue>({
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} questions successfully.`
         );
-        console.log("Deleted questions:", response.deleted_questions);
+        void logFrontend({
+          level: "INFO",
+          message: `Deleted question IDs: ${response.deleted_questions.map((q) => q.question_id).join(", ")}`,
+          component: "ManageQuestionsDataTable",
+          url: globalThis.location.href,
+        });
         console.warn("Partial deletion errors:", response.errors);
         toast.warning(`${response.errors.length} questions could not be deleted.`);
         onDeleteQuestions?.(deletedIds);
@@ -141,7 +157,12 @@ export function ManageQuestionsDataTable<TData, TValue>({
         toast.success(
           `Successfully deleted ${response.deleted_count} question(s).`
         );
-        console.log("Deleted questions:", response.deleted_questions);
+        void logFrontend({
+          level: "INFO",
+          message: `Deleted question IDs: ${response.deleted_questions.map((q) => q.question_id).join(", ")}`,
+          component: "ManageQuestionsDataTable",
+          url: globalThis.location.href,
+        });
         onDeleteQuestions?.(deletedIds);
       }
     } catch (error: unknown) {

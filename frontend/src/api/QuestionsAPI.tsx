@@ -6,6 +6,7 @@ import type {
 import type { QuestionListItemResponse, QuestionsPageParams, QuestionsPageResult, QuestionsResponse, RiddlesResponse } from "@/types/questions/QuestionPagination.type";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 import type { Riddle } from "@/types/riddle/Riddle.type";
+import { logFrontend } from "./LoggerAPI";
 
 const DEFAULT_PAGE_SIZE = 100;
 
@@ -195,7 +196,12 @@ export async function getTestcases(
 export async function deleteCompetition(competitionId: string): Promise<void> {
   try {
     await axiosClient.delete(`/competitions/delete-competition/${competitionId}`);
-    console.log(`Competition ${competitionId} deleted successfully`);
+    void logFrontend({
+      level: "INFO",
+      message: `Competition ${competitionId} deleted successfully`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+    });
   } catch (err) {
     console.error("Error deleting competition:", err);
     throw err;
