@@ -2,10 +2,12 @@ import pytest
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from email.utils import format_datetime
 from types import SimpleNamespace
 import sys
 import os
+from sqlalchemy.exc import IntegrityError, DataError
 
 # 1. Boilerplate to make Python see the 'backend' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -54,9 +56,11 @@ def build_query_mock(mock_db):
     mock_db.query.return_value = query
     query.filter.return_value = query
     query.filter_by.return_value = query
+    query.with_entities.return_value = query
     query.order_by.return_value = query
     query.offset.return_value = query
     query.limit.return_value = query
+    query.scalar.return_value = datetime(2025, 1, 1, 0, 0, 0)
     return query
 
 # --- TESTS ---
@@ -65,35 +69,42 @@ def test_get_all_questions_success(client, mock_db):
     """Test the happy path where questions are returned correctly."""
     
     # 1. Arrange: Create fake question objects
-    # We use SimpleNamespace so we can access attributes like q.title via dot notation
+    # We use SimpleNamespace so we can access attributes like q.question_name via dot notation
     fake_questions = [
         SimpleNamespace(
             question_id=1, 
-            question_name="Two Sum", 
-            question_description="Find two numbers that add up to a target.",
+            question_name="Two Sum",
+            question_description="Given an array of integers, return indices of two numbers that add to target.",
             media=None,
-            preset_code="",
-            from_string_function="",
-            to_string_function="",
-            template_solution="def solve(): pass",
             difficulty="Easy",
+            preset_code="def two_sum(nums, target):\n    pass",
+            from_string_function="def from_string(s):\n    return s",
+            to_string_function="def to_string(result):\n    return str(result)",
+            template_solution="def two_sum(nums, target):\n    return []",
             created_at=datetime(2025, 1, 10, 12, 0, 0),
             last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
-            tags=[SimpleNamespace(tag_id=1, tag_name="arrays")],
+            tags=[SimpleNamespace(tag_id=1, tag_name="array"), SimpleNamespace(tag_id=2, tag_name="hashmap")],
+            test_cases=[
+                SimpleNamespace(input_data="[2,7,11,15],9", expected_output="[0,1]"),
+                SimpleNamespace(input_data="[3,2,4],6", expected_output="[1,2]")
+            ]
         ),
         SimpleNamespace(
             question_id=2, 
-            question_name="Reverse Linked List", 
-            question_description="Reverse a linked list.",
+            question_name="Reverse Linked List",
+            question_description="Reverse a singly linked list.",
             media=None,
-            preset_code="",
-            from_string_function="",
-            to_string_function="",
-            template_solution="def solve(): pass",
             difficulty="Medium",
+            preset_code="def reverse_list(head):\n    pass",
+            from_string_function="def from_string(s):\n    return s",
+            to_string_function="def to_string(result):\n    return str(result)",
+            template_solution="def reverse_list(head):\n    return head",
             created_at=datetime(2025, 2, 15, 14, 30, 0),
             last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
-            tags=[],
+            tags=[SimpleNamespace(tag_id=0, tag_name="linked-list")],
+            test_cases=[
+                SimpleNamespace(input_data="[1,2,3,4,5]", expected_output="[5,4,3,2,1]")
+            ]
         )
     ]
 
@@ -117,8 +128,26 @@ def test_get_all_questions_success(client, mock_db):
     assert data["items"][0]["question_id"] == 1
     assert data["items"][0]["question_name"] == "Two Sum"
     assert data["items"][0]["difficulty"] == "Easy"
+    assert data["items"][0]["question_description"].startswith("Given an array")
     # Verify date handling (FastAPI usually serializes datetime to ISO string)
     assert "2025-01-10" in data["items"][0]["created_at"]
+    assert response.headers["cache-control"] == "no-cache, must-revalidate"
+    assert "last-modified" in response.headers
+
+
+def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.scalar.return_value = latest
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-Modified-Since": format_datetime(latest + timedelta(seconds=1), usegmt=True)},
+    )
+
+    assert response.status_code == 304
+    assert response.headers["cache-control"] == "no-cache, must-revalidate"
+    assert response.headers["last-modified"] == format_datetime(latest, usegmt=True)
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 
@@ -367,6 +396,98 @@ def test_upload_question_existing_tags(client, mock_db):
     mock_db.commit.assert_called_once()
 
 
+def test_get_question_by_id_success(client, mock_db):
+    fake_question = SimpleNamespace(
+        question_id=42,
+        question_name="Find Pair",
+        question_description="Return two indices.",
+        media=None,
+        difficulty="easy",
+        preset_code="",
+        from_string_function="def from_string(s): return s",
+        to_string_function="def to_string(x): return str(x)",
+        template_solution="def solve(): pass",
+        created_at=datetime(2025, 1, 1, 0, 0, 0),
+        last_modified_at=datetime(2025, 1, 2, 0, 0, 0),
+        tags=[SimpleNamespace(tag_name="array")],
+        test_cases=[SimpleNamespace(input_data="1 2", expected_output="3")],
+    )
+    mock_db.query.return_value.filter.return_value.first.return_value = fake_question
+
+    response = client.get("/get-question-by-id/42")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["question_id"] == 42
+    assert payload["tags"] == ["array"]
+    assert payload["testcases"] == [["1 2", "3"]]
+
+
+def test_get_question_by_id_not_found(client, mock_db):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    response = client.get("/get-question-by-id/404")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Question with id 404 not found"
+
+
+def test_batch_delete_questions_partial_success(client, mock_db):
+    id_query = MagicMock()
+    id_query.filter.return_value.all.return_value = [
+        SimpleNamespace(question_id=1),
+        SimpleNamespace(question_id=3),
+    ]
+
+    delete_query = MagicMock()
+    delete_query.filter.return_value.delete.return_value = 2
+
+    mock_db.query.side_effect = [id_query, delete_query]
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [1, 2, 3, 3]})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["deleted_count"] == 2
+    assert payload["deleted_questions"] == [{"question_id": 1}, {"question_id": 3}]
+    assert payload["total_requested"] == 3
+    assert payload["errors"] == [{"question_id": 2, "error": "Question not found."}]
+    mock_db.commit.assert_called_once()
+
+
+def test_batch_delete_questions_error_rolls_back(client, mock_db):
+    failing_query = MagicMock()
+    failing_query.filter.side_effect = Exception("DB exploded")
+    mock_db.query.return_value = failing_query
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [1]})
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Error deleting questions."
+    mock_db.rollback.assert_called_once()
+
+
+def test_update_question_not_found_returns_404_with_message(client, mock_db):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    payload = {
+        "question_name": "Updated",
+        "question_description": "Updated description",
+        "difficulty": "easy",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solve(): pass",
+        "tags": [],
+        "testcases": [],
+    }
+
+    response = client.put("/update-question/999", json=payload)
+
+    assert response.status_code == 404
+    assert "Update failed" in response.json()["detail"]
+
+
 def test_upload_question_batch_db_error(client, mock_db):
     """Test that a DB error during batch upload returns 500 with generic message."""
     batch_payload = [
@@ -387,8 +508,7 @@ def test_upload_question_batch_db_error(client, mock_db):
 
     response = client.post("/upload-question-batch", json=batch_payload)
     assert response.status_code == 500
-    assert response.json()["detail"] == "Failed to upload question batch."
-
+    assert response.json()["detail"].startswith("Failed to upload question batch")
 
 # --- get_all_riddles ---
 
@@ -499,3 +619,144 @@ def test_get_all_riddles_returns_paginated_envelope(client, mock_db):
         ],
     }
     assert response.headers["cache-control"] == "public, max-age=60"
+
+
+def test_get_question_by_id_unexpected_error_returns_500(client, mock_db):
+    mock_db.query.side_effect = Exception("boom")
+
+    response = client.get("/get-question-by-id/12")
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Failed to retrieve question with id 12"
+
+
+def test_get_all_questions_invalid_if_modified_since_uses_fallback(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.scalar.return_value = datetime(2025, 2, 1, 10, 0, 0)
+    query.count.return_value = 0
+    query.all.return_value = []
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-Modified-Since": "not-a-date"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+    assert "last-modified" in response.headers
+
+
+def test_upload_question_batch_integrity_error_returns_409(client, mock_db):
+    batch_payload = [
+        {
+            "question_name": "Batch Q",
+            "question_description": "desc",
+            "difficulty": "easy",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def s(): pass",
+            "tags": [],
+            "testcases": [],
+        }
+    ]
+
+    diag = SimpleNamespace(message_detail="question_name already exists")
+    orig = SimpleNamespace(diag=diag)
+    mock_db.commit.side_effect = IntegrityError("stmt", {}, orig)
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+
+    assert response.status_code == 409
+    assert "question_name already exists" in response.json()["detail"]
+    mock_db.rollback.assert_called_once()
+
+
+def test_upload_question_batch_data_error_returns_400(client, mock_db):
+    batch_payload = [
+        {
+            "question_name": "Batch Q",
+            "question_description": "desc",
+            "difficulty": "easy",
+            "preset_code": "",
+            "from_string_function": "",
+            "to_string_function": "",
+            "template_solution": "def s(): pass",
+            "tags": [],
+            "testcases": [],
+        }
+    ]
+
+    mock_db.commit.side_effect = DataError("stmt", {}, Exception("bad value\nextra"))
+
+    response = client.post("/upload-question-batch", json=batch_payload)
+
+    assert response.status_code == 400
+    assert "bad value" in response.json()["detail"]
+    mock_db.rollback.assert_called_once()
+
+
+def test_batch_delete_questions_when_ids_missing_returns_zero(client, mock_db):
+    id_query = MagicMock()
+    id_query.filter.return_value.all.return_value = []
+    mock_db.query.return_value = id_query
+
+    response = client.request("DELETE", "/batch-delete", json={"question_ids": [10, 11]})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["deleted_count"] == 0
+    assert payload["deleted_questions"] == []
+    assert payload["errors"] == [
+        {"question_id": 10, "error": "Question not found."},
+        {"question_id": 11, "error": "Question not found."},
+    ]
+    mock_db.commit.assert_called_once()
+
+
+def test_update_question_success_replaces_fields_tags_and_testcases(client, mock_db):
+    existing_question = SimpleNamespace(
+        question_id=7,
+        question_name="Old",
+        question_description="Old desc",
+        media=None,
+        difficulty="easy",
+        preset_code="",
+        from_string_function="",
+        to_string_function="",
+        template_solution="old",
+        tags=[],
+        test_cases=[SimpleNamespace(test_case_id=1, input_data="in", expected_output="out")],
+    )
+
+    question_query = MagicMock()
+    question_query.filter.return_value.first.return_value = existing_question
+
+    tag_query = MagicMock()
+    tag_query.filter.return_value.all.return_value = []
+
+    mock_db.query.side_effect = [question_query, tag_query]
+
+    payload = {
+        "question_name": "Updated",
+        "question_description": "Updated description",
+        "media": None,
+        "difficulty": "medium",
+        "preset_code": "",
+        "from_string_function": "",
+        "to_string_function": "",
+        "template_solution": "def solve(): return 1",
+        "tags": ["arrays"],
+        "testcases": [["1 2", "3"]],
+    }
+
+    response = client.put("/update-question/7", json=payload)
+
+    assert response.status_code == 200
+    assert existing_question.question_name == "Updated"
+    assert existing_question.difficulty == "medium"
+    assert len(existing_question.test_cases) == 1
+    assert existing_question.test_cases[0].question_id == 7
+    mock_db.delete.assert_called_once()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(existing_question)

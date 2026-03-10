@@ -1,8 +1,11 @@
-from typing import Annotated, Literal, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from typing import Annotated, Literal, Optional, List
+from datetime import datetime, timezone
+from email.utils import format_datetime, parsedate_to_datetime
+from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
 from pydantic import BaseModel
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, DataError
 from models.schema import Question, Riddle, Tag, TestCase
 from database_operations.database import get_db
 import logging
@@ -125,6 +128,60 @@ def serialize_test_case(test_case: TestCase) -> dict:
         "expected_output": test_case.expected_output,
     }
 
+class QuestionResponse(BaseModel):
+    question_id: int
+    question_name: str
+    question_description: str
+    media: Optional[str] = None
+    difficulty: str
+    preset_code: Optional[str] = None
+    from_string_function: str
+    to_string_function: str
+    template_solution: str
+    created_at: datetime
+    last_modified_at: datetime
+    tags: List[str]
+    testcases: List[tuple[str, str]]
+
+    @staticmethod
+    def from_question(question: Question) -> "QuestionResponse":
+        return QuestionResponse(
+            question_id=question.question_id,
+            question_name=question.question_name,
+            question_description=question.question_description,
+            media=question.media,
+            difficulty=question.difficulty,
+            preset_code=question.preset_code,
+            from_string_function=question.from_string_function,
+            to_string_function=question.to_string_function,
+            template_solution=question.template_solution,
+            created_at=question.created_at,
+            last_modified_at=question.last_modified_at,
+            tags=[tag.tag_name for tag in question.tags],
+            testcases=[(tc.input_data, tc.expected_output) for tc in question.test_cases],
+        )
+        
+
+@questions_router.get(
+    "/get-question-by-id/{question_id}",
+    response_model=QuestionResponse,
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Failed to retrieve question."},
+    }
+)
+def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]):
+    try:
+        question: Question = db.query(Question).filter(Question.question_id == question_id).first()
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
+        logger.info(f"Fetched question with ID {question_id}")
+        return QuestionResponse.from_question(question)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching question with ID: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve question with id {question_id}")
 
 @questions_router.get(
     "/get-all-questions",
@@ -132,6 +189,7 @@ def serialize_test_case(test_case: TestCase) -> dict:
     responses={500: {"description": "Failed to retrieve questions."}}
 )
 def get_all_questions(
+    request: Request,
     response: Response,
     db: Annotated[Session, Depends(get_db)],
     page: Annotated[int, Query(ge=1)] = 1,
@@ -152,6 +210,29 @@ def get_all_questions(
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
 
+        latest_modified = query.with_entities(func.max(Question.last_modified_at)).scalar()
+        if latest_modified is None:
+            latest_modified = datetime.now(timezone.utc)
+        elif latest_modified.tzinfo is None:
+            latest_modified = latest_modified.replace(tzinfo=timezone.utc)
+        else:
+            latest_modified = latest_modified.astimezone(timezone.utc)
+        latest_modified = latest_modified.replace(microsecond=0)
+
+        common_headers = {
+            "Cache-Control": "no-cache, must-revalidate",
+            "Last-Modified": format_datetime(latest_modified, usegmt=True),
+        }
+
+        if_modified_since = request.headers.get("if-modified-since")
+        if if_modified_since:
+            try:
+                client_timestamp = parsedate_to_datetime(if_modified_since).astimezone(timezone.utc)
+                if client_timestamp >= latest_modified:
+                    return Response(status_code=304, headers=common_headers)
+            except (TypeError, ValueError):
+                logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
+
         if sort == "desc":
             query = query.order_by(Question.question_id.desc())
         else:
@@ -159,7 +240,7 @@ def get_all_questions(
 
         total, questions = paginate_query(query, page, page_size)
 
-        response.headers["Cache-Control"] = "public, max-age=60"
+        response.headers.update(common_headers)
 
         logger.info(
             "Fetched %s question(s) for page=%s, page_size=%s (total=%s).",
@@ -197,7 +278,7 @@ class CreateQuestionRequest(BaseModel):
     question_name: str
     question_description: str
     media: str | None = None
-    difficulty: str = "Easy"
+    difficulty: str = "easy"
     preset_code: str = ""
     from_string_function: str = ""
     to_string_function: str = ""
@@ -228,7 +309,7 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
     "/upload-question", status_code=201,
     responses={500: {"description": "Failed to upload question."}}
 )
-def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, Depends(get_db)]):
+def upload_question(question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
     try:
         question = get_question_from_request(db, question_request)
         db.add(question)
@@ -257,9 +338,14 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[str, 
 
 
 @questions_router.post("/upload-question-batch", status_code=201,
-                       responses={500: {"description": "Failed to upload question batch."}}
-                       )
-def upload_question_batch(question_request: list[CreateQuestionRequest], db: Annotated[str, Depends(get_db)]):
+    responses={ 500: { "description": "Failed to upload question batch." } }
+)
+def upload_question_batch(
+    question_request: Annotated[list[CreateQuestionRequest], Body(min_length=1)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    error_message = None
+    error_code = 500
     try:
         questions = [
             get_question_from_request(db, q) for q in question_request
@@ -279,12 +365,22 @@ def upload_question_batch(question_request: list[CreateQuestionRequest], db: Ann
         )
 
         return {"message": f"Successfully uploaded {len(questions)} questions."}
+    except IntegrityError as e:
+        error_message = getattr(e.orig, 'diag', {}).message_detail or "Duplicate entry found."
+        error_code = 409
+        logger.warning(f"Integrity Error: {e}")
+    except DataError as e:
+        error_message = str(e.orig).split('\n')[0]
+        error_code = 400
+        logger.warning(f"Data validation error: {e}")
     except Exception as e:
-        db.rollback()
+        error_message = str(e)
+        error_code = 500
         logger.error(f"Error uploading question batch: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload question batch.")
 
-
+    db.rollback()
+    raise HTTPException(status_code=error_code, detail=f"Failed to upload question batch: {error_message}")
+        
 @questions_router.get(
     "/get-all-riddles",
     response_model=PaginatedRiddlesResponse,
@@ -343,3 +439,86 @@ def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)])
     except Exception as e:
         logger.error(f"Error fetching test cases: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")
+
+class BatchDeleteQuestionsRequest(BaseModel):
+    question_ids: list[int]
+
+@questions_router.delete(
+    "/batch-delete",
+    responses={500: {"description": "Error deleting questions."}},
+)
+def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        requested_ids = list(dict.fromkeys(payload.question_ids))
+        existing_ids = [
+            row.question_id
+            for row in db.query(Question.question_id)
+            .filter(Question.question_id.in_(requested_ids))
+            .all()
+        ]
+        if existing_ids:
+            deleted_count = (
+                db.query(Question)
+                .filter(Question.question_id.in_(existing_ids))
+                .delete(synchronize_session=False)
+            )
+        else:
+            deleted_count = 0
+        db.commit()
+        logger.info(f"Deleted {deleted_count} questions from the database.")
+
+        existing_set = set(existing_ids)
+        missing_ids = [question_id for question_id in requested_ids if question_id not in existing_set]
+        errors = [{"question_id": question_id, "error": "Question not found."} for question_id in missing_ids]
+
+        return {
+            "deleted_count": deleted_count,
+            "deleted_questions": [{"question_id": question_id} for question_id in existing_ids],
+            "total_requested": len(requested_ids),
+            "errors": errors,
+        }
+    except Exception as e:
+        logger.error(f"Error deleting questions: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error deleting questions.")
+    
+@questions_router.put(
+    '/update-question/{question_id}',
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Update failed."},
+    },
+)
+def update_question(question_id: int, question_request: CreateQuestionRequest, db: Annotated[Session, Depends(get_db)]):
+    try:
+        db_question = db.query(Question).filter(Question.question_id == int(question_id)).first()
+        if not db_question:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Update failed: Question with id {question_id} not found"
+            )
+        updated_question: Question = get_question_from_request(db, question_request)
+        db_question.question_name=updated_question.question_name
+        db_question.question_description=updated_question.question_description
+        db_question.media=updated_question.media
+        db_question.difficulty=updated_question.difficulty
+        db_question.preset_code=updated_question.preset_code
+        db_question.from_string_function=updated_question.from_string_function
+        db_question.to_string_function=updated_question.to_string_function
+        db_question.template_solution=updated_question.template_solution
+        db_question.tags=updated_question.tags
+        for old_tc in db_question.test_cases:
+            db.delete(old_tc)
+        for tc in updated_question.test_cases:
+            tc.question_id = question_id
+        db_question.test_cases=updated_question.test_cases
+        db.commit()
+        db.refresh(db_question)
+        logger.info(f"Updated question: {question_id}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.warning(f"Error updating question: {question_id}")
+        raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
+

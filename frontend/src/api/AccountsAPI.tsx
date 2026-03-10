@@ -1,9 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Account } from "@/types/account/Account.type";
+import type { Account, AccountsApiItem, AccountsApiResponse, UserType } from "@/types/account/Account.type";
 
-// Backend user type value for accountAPI.
-// this is because the backend uses lowercase values while frontend capitalizes the first  letter
-type UserType = "participant" | "admin" | "owner";
 export type AccountsSort =
   | "name_asc"
   | "name_desc"
@@ -13,21 +10,6 @@ export type AccountsSort =
 const formatAccountType = (userType: UserType): Account["accountType"] => {
   return (userType.charAt(0).toUpperCase() +
     userType.slice(1)) as Account["accountType"];
-};
-
-type AccountsApiItem = {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  user_type: UserType;
-};
-
-type AccountsApiResponse = {
-  total: number;
-  page: number;
-  page_size: number;
-  items: AccountsApiItem[];
 };
 
 const mapAccount = (user: AccountsApiItem): Account => ({
