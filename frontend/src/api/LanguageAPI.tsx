@@ -47,7 +47,7 @@ export async function AddLanguage(
   ): Promise<Language> {
     try {
       const response = await axiosClient.post(
-        "/langs/add",
+        "/lang/add",
         {
             lang_judge_id: lang.lang_judge_id,
             display_name: lang.display_name,
@@ -75,7 +75,7 @@ export async function UpdateLanguage(
   ): Promise<Language> {
     try {
       const response = await axiosClient.patch(
-        "/langs/update",
+        "/lang/update",
         {
             lang_judge_id: lang.lang_judge_id,
             display_name: lang.display_name,
