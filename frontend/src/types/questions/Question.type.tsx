@@ -20,9 +20,9 @@ export type Question = {
   question_name: string;
   question_description: string;
   media: string | null;
-  language_specific_properties?: Array<LanguageSpecificProperties>;
-  tags?: string[];
-  testcases?: Array<TestCase>;
+  language_specific_properties: Array<LanguageSpecificProperties>;
+  tags: string[];
+  testcases: Array<TestCase>;
   difficulty: "Easy" | "Medium" | "Hard";
   created_at: Date;
   last_modified_at: Date;
@@ -44,7 +44,7 @@ export type EditableLanguageSpecificProperties = {
 export type EditableQuestionFields = {
   question_name: string;
   question_description: string;
-  media?: string | null;
+  media: string | null;
   difficulty: "easy" | "medium" | "hard";
   language_specific_properties: Array<EditableLanguageSpecificProperties>;
   tags: string[];
@@ -52,22 +52,24 @@ export type EditableQuestionFields = {
 }
 
 export function getQuestionFields(question: Question): EditableQuestionFields {
+  const testcases = question.testcases.map((testcase) => ({
+    input_data: testcase.input_data,
+    expected_output: testcase.expected_output,
+  }));
+
   return {
     question_name: question.question_name,
     question_description: question.question_description,
     media: question.media,
     difficulty: question.difficulty.toLowerCase() as "easy" | "medium" | "hard",
-    language_specific_properties: question.language_specific_properties!.map((prop) => ({
+    language_specific_properties: question.language_specific_properties.map((prop) => ({
       language_name: prop.language_name,
       preset_code: prop.preset_code,
       template_solution: prop.template_solution,
       from_json_function: prop.from_json_function,
       to_json_function: prop.to_json_function,
     })),
-    tags: question.tags!,
-    testcases: question.testcases!.map((testcase) => ({
-      input_data: testcase.input_data,
-      expected_output: testcase.expected_output,
-    })),
+    tags: question.tags,
+    testcases,
   };
 }

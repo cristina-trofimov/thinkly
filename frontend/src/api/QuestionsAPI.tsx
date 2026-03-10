@@ -32,17 +32,21 @@ function mapQuestion(
     difficulty: normalizeDifficulty(question.difficulty),
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    tags: [],
+    testcases: [],
+    language_specific_properties: [],
   };
 
   if (options.includeCollections) {
-    baseQuestion.tags = question.tags.map((tag) => tag.tag_name);
-    baseQuestion.testcases = question.test_cases.map((testcase) => ({
+    baseQuestion.tags = (question.tags ?? []).map((tag) => tag.tag_name);
+    baseQuestion.testcases = (question.test_cases ?? []).map((testcase) => ({
       test_case_id: testcase.test_case_id,
       question_id: testcase.question_id,
       input_data: testcase.input_data,
       expected_output: testcase.expected_output,
     }));
-    baseQuestion.language_specific_properties = question.language_specific_properties.map((prop) => ({
+
+    baseQuestion.language_specific_properties = (question.language_specific_properties ?? []).map((prop) => ({
       language_id: prop.language_id,
       question_id: prop.question_id,
       language_name: prop.language_display_name,

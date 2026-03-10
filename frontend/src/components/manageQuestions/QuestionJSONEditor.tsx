@@ -83,8 +83,8 @@ const QuestionJSONEditor: FC = () => {
           value: loadedValue,
           initialValue: loadedValue,
         }));
-      } catch (error) {
-        const errorValue = JSON.stringify({ error: `Failed to fetch question: ${error}` }, null, 2);
+      } catch {
+        const errorValue = JSON.stringify({ error: "Failed to fetch question" }, null, 2);
         setState((prev) => ({
           ...prev,
           value: errorValue,
@@ -105,16 +105,16 @@ const QuestionJSONEditor: FC = () => {
     }
 
     try {
-      const parsedPayload = JSON.parse(value) as unknown;
+      const parsedPayload = JSON.parse(value);
 
-      const validationError = validateEditableQuestionFields(parsedPayload);
-      if (validationError) {
-        toast.error(validationError);
+      const normalizedPayload = normalizeEditableQuestionFields(parsedPayload);
+      if (!normalizedPayload) {
+        toast.error("Invalid question JSON shape");
         return;
       }
 
       setState((prev) => ({ ...prev, isSubmitting: true }));
-      await updateQuestion(parsedQuestionId, parsedPayload as EditableQuestionFields);
+      await updateQuestion(parsedQuestionId, normalizedPayload);
       setState((prev) => ({ ...prev, initialValue: prev.value }));
       toast.success(`Question ${parsedQuestionId} updated successfully!`);
     } catch (error) {
@@ -224,78 +224,92 @@ const QuestionJSONEditor: FC = () => {
   );
 };
 
-function validateEditableQuestionFields(payload: unknown): string | null {
+function normalizeEditableQuestionFields(payload: any): EditableQuestionFields | null {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return "Question payload must be a JSON object";
+    return null;
   }
 
-  const data = payload as Record<string, unknown>;
-
-  if (typeof data.question_name !== "string") {
-    return "question_name must be a string";
-  }
-
-  if (typeof data.question_description !== "string") {
-    return "question_description must be a string";
-  }
-
-  if (!(data.media === undefined || typeof data.media === "string" || data.media === null)) {
-    return "media must be a string, null, or omitted";
-  }
-
+  const data = payload;
   const hasValidDifficulty =
     data.difficulty === "easy" ||
     data.difficulty === "medium" ||
     data.difficulty === "hard";
-  if (!hasValidDifficulty) {
-    return "difficulty must be one of: easy, medium, hard";
+
+  if (
+    typeof data.question_name !== "string" ||
+    typeof data.question_description !== "string" ||
+    !hasValidDifficulty ||
+    !Array.isArray(data.language_specific_properties) ||
+    !Array.isArray(data.tags) ||
+    !Array.isArray(data.testcases) ||
+    !(typeof data.media === "string" || data.media === null)
+  ) {
+    return null;
   }
 
-  if (!Array.isArray(data.language_specific_properties)) {
-    return "language_specific_properties must be an array";
+  if (data.tags.some((tag: any) => typeof tag !== "string")) {
+    return null;
   }
 
-  const invalidLanguagePropertyIndex = data.language_specific_properties.findIndex(
-    (prop) =>
-      !prop ||
-      typeof prop !== "object" ||
-      Array.isArray(prop) ||
-      typeof (prop as Record<string, unknown>).language_name !== "string" ||
-      typeof (prop as Record<string, unknown>).preset_code !== "string" ||
-      typeof (prop as Record<string, unknown>).template_solution !== "string" ||
-      typeof (prop as Record<string, unknown>).from_json_function !== "string" ||
-      typeof (prop as Record<string, unknown>).to_json_function !== "string"
-  );
-  if (invalidLanguagePropertyIndex !== -1) {
-    return `language_specific_properties[${invalidLanguagePropertyIndex}] is invalid`;
+  const languageSpecificProperties: Array<EditableQuestionFields["language_specific_properties"][number] | null> =
+    data.language_specific_properties.map((prop: any) => {
+    if (!prop || typeof prop !== "object" || Array.isArray(prop)) {
+      return null;
+    }
+
+    const record = prop;
+    if (
+      typeof record.language_name !== "string" ||
+      typeof record.preset_code !== "string" ||
+      typeof record.template_solution !== "string" ||
+      typeof record.from_json_function !== "string" ||
+      typeof record.to_json_function !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      language_name: record.language_name,
+      preset_code: record.preset_code,
+      template_solution: record.template_solution,
+      from_json_function: record.from_json_function,
+      to_json_function: record.to_json_function,
+    };
+  });
+
+  if (languageSpecificProperties.includes(null)) {
+    return null;
   }
 
-  if (!Array.isArray(data.tags)) {
-    return "tags must be an array";
+  const testcases: Array<EditableQuestionFields["testcases"][number] | null> = data.testcases.map((testcase: any) => {
+    if (!testcase || typeof testcase !== "object") {
+      return null;
+    }
+
+    const record = testcase;
+    if (typeof record.input_data !== "string" || typeof record.expected_output !== "string") {
+      return null;
+    }
+
+    return {
+      input_data: record.input_data,
+      expected_output: record.expected_output,
+    };
+  });
+
+  if (testcases.includes(null)) {
+    return null;
   }
 
-  const invalidTagIndex = data.tags.findIndex((tag) => typeof tag !== "string");
-  if (invalidTagIndex !== -1) {
-    return `tags[${invalidTagIndex}] must be a string`;
-  }
-
-  if (!Array.isArray(data.testcases)) {
-    return "testcases must be an array";
-  }
-
-  const invalidTestcaseIndex = data.testcases.findIndex(
-    (testcase) =>
-      !testcase ||
-      typeof testcase !== "object" ||
-      Array.isArray(testcase) ||
-      (testcase as Record<string, unknown>).input_data === undefined ||
-      (testcase as Record<string, unknown>).expected_output === undefined
-  );
-  if (invalidTestcaseIndex !== -1) {
-    return `testcases[${invalidTestcaseIndex}] must include input_data and expected_output`;
-  }
-
-  return null;
+  return {
+    question_name: data.question_name,
+    question_description: data.question_description,
+    media: data.media,
+    difficulty: data.difficulty,
+    language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
+    tags: data.tags,
+    testcases: testcases as EditableQuestionFields["testcases"],
+  };
 }
 
 export default QuestionJSONEditor;
