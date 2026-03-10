@@ -20,6 +20,8 @@ import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
+import { getAllLanguages } from '@/api/LanguageAPI'
+import type { Language } from '@/types/questions/Language.type'
 
 const CodeDescArea = (
     { question, question_instance, mostRecentSub, }:
@@ -48,6 +50,8 @@ const CodeDescArea = (
     const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
+
+    const [languages, setLanguages] = useState<Language[]>()
 
     useEffect(() => {
         if (!question?.question_id) return
@@ -87,6 +91,10 @@ const CodeDescArea = (
                 await getAllSubmissions(user.id, question_instance?.question_instance_id)
                     .then((response) => {
                         setSubmissions(response)
+                    })
+                await getAllLanguages()
+                    .then((response) => {
+                        setLanguages(response)
                     })
             }
             FetchSubmissions()
@@ -223,39 +231,46 @@ const CodeDescArea = (
             <TabsContent value='submissions' data-testid="tabs-content-submissions">
                 <div className='h-full p-6'>
                     {selectedSubmission === null ?
-                        <Table data-testid="table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Language</TableHead>
-                                    <TableHead className="text-right">Memory</TableHead>
-                                    <TableHead className="text-right">Runtime</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {submissions?.map((s, idx) => {
-                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+                        (submissions ? (
+                            <Table data-testid="table">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Language</TableHead>
+                                        <TableHead className="text-right">Memory</TableHead>
+                                        <TableHead className="text-right">Runtime</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {submissions?.map((s, idx) => {
+                                        const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                    
+                                        
 
-                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                    onClick={() => setSelectedSubmission(s)}
-                                    >
-                                        <TableCell className='grid grid-rows-2' >
-                                            <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
-                                        </TableCell>
-                                        <TableCell className="" >Java</TableCell>
-                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                        </TableRow>
-                                })}
-                            </TableBody>
-                            <TableFooter className='mt-3' >
-                                <TableRow>
-                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
+                                        return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
+                                        onClick={() => setSelectedSubmission(s)}
+                                        >
+                                            <TableCell className='grid grid-rows-2' >
+                                                <span className={`${status_color}`} >{s.status}</span>
+                                                <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
+                                            </TableCell>
+                                            <TableCell className="" >
+                                                {languages?.find(lang => lang.lang_judge_id === s.question_instance_id)?.display_name}
+                                            </TableCell>
+                                            <TableCell className="text-right text-card" >{s?.memory}</TableCell>
+                                            </TableRow>
+                                    })}
+                                </TableBody>
+                                <TableFooter className='mt-3' >
+                                    <TableRow>
+                                        <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        )
+                        : (
+                            <div>You've yet to submit anything</div>
+                        ))
                         : (
                             <div className='space-y-6' >
                                 <div className='flex flex-col gap-3'>
