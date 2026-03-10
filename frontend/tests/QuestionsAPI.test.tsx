@@ -478,7 +478,7 @@ describe("QuestionsAPI", () => {
           {
             test_case_id: 1,
             question_id: 1,
-            input_data: '{ "a": [1, 2], "b": 6 }',
+            input_data: { "a": [1, 2], "b": 6 },
             expected_output: "",
           },
         ],
