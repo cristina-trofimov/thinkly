@@ -30,6 +30,13 @@ const QuestionJSONEditor: FC = () => {
   const { questionId } = useParams();
   const navigate = useNavigate();
 
+  const getMonacoThemeFromDocument = () => {
+    const root = document.documentElement;
+    const dataTheme = root.dataset.theme;
+    const isDark = root.classList.contains("dark") || dataTheme === "dark";
+    return isDark ? "vs-dark" : "light";
+  };
+
   const [state, setState] = useState<QuestionJSONEditorState>({
     value: "{}",
     initialValue: null,
@@ -37,6 +44,7 @@ const QuestionJSONEditor: FC = () => {
     isSubmitting: false,
     isBackWarningOpen: false,
   });
+  const [editorTheme, setEditorTheme] = useState<string>(getMonacoThemeFromDocument());
 
   const { value, initialValue, isLoading, isSubmitting, isBackWarningOpen } = state;
   const parsedQuestionId = Number(questionId);
@@ -75,8 +83,8 @@ const QuestionJSONEditor: FC = () => {
           value: loadedValue,
           initialValue: loadedValue,
         }));
-      } catch {
-        const errorValue = JSON.stringify({ error: "Failed to fetch question" }, null, 2);
+      } catch (error) {
+        const errorValue = JSON.stringify({ error: `Failed to fetch question: ${error}` }, null, 2);
         setState((prev) => ({
           ...prev,
           value: errorValue,
@@ -99,13 +107,14 @@ const QuestionJSONEditor: FC = () => {
     try {
       const parsedPayload = JSON.parse(value) as unknown;
 
-      if (!validateEditableQuestionFields(parsedPayload)) {
-        toast.error("Invalid question JSON shape");
+      const validationError = validateEditableQuestionFields(parsedPayload);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
 
       setState((prev) => ({ ...prev, isSubmitting: true }));
-      await updateQuestion(parsedQuestionId, parsedPayload);
+      await updateQuestion(parsedQuestionId, parsedPayload as EditableQuestionFields);
       setState((prev) => ({ ...prev, initialValue: prev.value }));
       toast.success(`Question ${parsedQuestionId} updated successfully!`);
     } catch (error) {
@@ -144,6 +153,21 @@ const QuestionJSONEditor: FC = () => {
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [canSubmit, handleSubmit]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => setEditorTheme(getMonacoThemeFromDocument());
+
+    syncTheme();
+
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleBackClick = () => {
     if (canSubmit) {
       setState((prev) => ({ ...prev, isBackWarningOpen: true }));
@@ -168,6 +192,7 @@ const QuestionJSONEditor: FC = () => {
         height="90vh"
         language="json"
         value={value}
+        theme={editorTheme}
         onChange={(nextValue) =>
           setState((prev) => ({
             ...prev,
@@ -199,37 +224,78 @@ const QuestionJSONEditor: FC = () => {
   );
 };
 
-function validateEditableQuestionFields(payload: unknown): payload is EditableQuestionFields {
+function validateEditableQuestionFields(payload: unknown): string | null {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return false;
+    return "Question payload must be a JSON object";
   }
 
   const data = payload as Record<string, unknown>;
+
+  if (typeof data.question_name !== "string") {
+    return "question_name must be a string";
+  }
+
+  if (typeof data.question_description !== "string") {
+    return "question_description must be a string";
+  }
+
+  if (!(data.media === undefined || typeof data.media === "string" || data.media === null)) {
+    return "media must be a string, null, or omitted";
+  }
+
   const hasValidDifficulty =
     data.difficulty === "easy" ||
     data.difficulty === "medium" ||
     data.difficulty === "hard";
+  if (!hasValidDifficulty) {
+    return "difficulty must be one of: easy, medium, hard";
+  }
 
-  return (
-    typeof data.question_name === "string" &&
-    typeof data.question_description === "string" &&
-    (typeof data.media === "string" || data.media === null) &&
-    hasValidDifficulty &&
-    typeof data.preset_code === "string" &&
-    typeof data.from_string_function === "string" &&
-    typeof data.to_string_function === "string" &&
-    typeof data.template_solution === "string" &&
-    Array.isArray(data.tags) &&
-    data.tags.every((tag) => typeof tag === "string") &&
-    Array.isArray(data.testcases) &&
-    data.testcases.every(
-      (testcase) =>
-        Array.isArray(testcase) &&
-        testcase.length === 2 &&
-        typeof testcase[0] === "string" &&
-        typeof testcase[1] === "string"
-    )
+  if (!Array.isArray(data.language_specific_properties)) {
+    return "language_specific_properties must be an array";
+  }
+
+  const invalidLanguagePropertyIndex = data.language_specific_properties.findIndex(
+    (prop) =>
+      !prop ||
+      typeof prop !== "object" ||
+      Array.isArray(prop) ||
+      typeof (prop as Record<string, unknown>).language_name !== "string" ||
+      typeof (prop as Record<string, unknown>).preset_code !== "string" ||
+      typeof (prop as Record<string, unknown>).template_solution !== "string" ||
+      typeof (prop as Record<string, unknown>).from_json_function !== "string" ||
+      typeof (prop as Record<string, unknown>).to_json_function !== "string"
   );
+  if (invalidLanguagePropertyIndex !== -1) {
+    return `language_specific_properties[${invalidLanguagePropertyIndex}] is invalid`;
+  }
+
+  if (!Array.isArray(data.tags)) {
+    return "tags must be an array";
+  }
+
+  const invalidTagIndex = data.tags.findIndex((tag) => typeof tag !== "string");
+  if (invalidTagIndex !== -1) {
+    return `tags[${invalidTagIndex}] must be a string`;
+  }
+
+  if (!Array.isArray(data.testcases)) {
+    return "testcases must be an array";
+  }
+
+  const invalidTestcaseIndex = data.testcases.findIndex(
+    (testcase) =>
+      !testcase ||
+      typeof testcase !== "object" ||
+      Array.isArray(testcase) ||
+      (testcase as Record<string, unknown>).input_data === undefined ||
+      (testcase as Record<string, unknown>).expected_output === undefined
+  );
+  if (invalidTestcaseIndex !== -1) {
+    return `testcases[${invalidTestcaseIndex}] must include input_data and expected_output`;
+  }
+
+  return null;
 }
 
 export default QuestionJSONEditor;

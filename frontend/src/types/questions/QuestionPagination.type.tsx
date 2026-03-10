@@ -1,19 +1,38 @@
 import type { Question } from "./Question.type";
 
+export type QuestionLanguageSpecificPropertiesResponse = {
+  question_id: number;
+  language_id: number;
+  language_display_name: string;
+  preset_code: string;
+  template_solution: string;
+  from_json_function: string;
+  to_json_function: string;
+};
+
+export type TestCaseResponse = {
+  question_id: number;
+  test_case_id: number;
+  input_data: any;
+  expected_output: any;
+}
+
+export type TagResponse = {
+  tag_id: number;
+  tag_name: string;
+}
+
 export type QuestionListItemResponse = {
   question_id: number;
   question_name: string;
   question_description: string;
-  media: string | null;
-  preset_code: string | null;
-  template_solution: string;
+  media?: string | null;
   difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
-  from_string_function?: string;
-  to_string_function?: string;
-  created_at?: string;
+  language_specific_properties: Array<QuestionLanguageSpecificPropertiesResponse>;
+  created_at: string;
   last_modified_at: string;
-  tags?: string[];
-  testcases?: Array<[string, string]>;
+  tags: TagResponse[];
+  test_cases: Array<TestCaseResponse>;
 };
 
 export type QuestionsResponse = {
