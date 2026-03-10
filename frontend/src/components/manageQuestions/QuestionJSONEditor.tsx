@@ -344,7 +344,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
   return {
     question_name: data.question_name,
     question_description: data.question_description,
-    media: data.media as string | null,
+    media: data.media,
     difficulty: data.difficulty as "easy" | "medium" | "hard",
     language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
     tags: data.tags,
