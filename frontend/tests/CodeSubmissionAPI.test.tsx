@@ -2,10 +2,10 @@ import axiosClient from "../src/lib/axiosClient"
 import { submitToJudge0 } from "../src/api/Judge0API"
 import { getAllSubmissions, submitAttempt } from "../src/api/CodeSubmissionAPI"
 import type { TestcaseType } from "../src/types/questions/Testcases.type"
-import type { MostRecentSub } from "../src/types/MostRecentSub.type"
+import type { MostRecentSub } from "../src/types/submissions/MostRecentSub.type"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
-import { UserPreferences } from "../src/types/UserPreferences.type"
-import { SubmissionType } from "../src/types/SubmissionType.type"
+import { UserPreferences } from "../src/types/account/UserPreferences.type"
+import { SubmissionType } from "../src/types/submissions/SubmissionType.type"
 import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {

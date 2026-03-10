@@ -1,5 +1,5 @@
 import axiosClient from "../src/lib/axiosClient"
-import type { MostRecentSub } from "../src/types/MostRecentSub.type"
+import type { MostRecentSub } from "../src/types/submissions/MostRecentSub.type"
 import { updateMostRecentSub, getMostRecentSub } from "../src/api/MostRecentSubAPI"
 import { logFrontend } from "../src/api/LoggerAPI"
 

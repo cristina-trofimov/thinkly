@@ -1,7 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
-import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
+import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 

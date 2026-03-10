@@ -21,7 +21,7 @@ import ConsoleOutput from '../components/codingPage/ConsoleOutput';
 import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
-import type { MostRecentSub } from '@/types/MostRecentSub.type';
+import type { MostRecentSub } from '@/types/submissions/MostRecentSub.type';
 import { getAllQuestionInstancesByEventID, getQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
@@ -33,7 +33,7 @@ import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import type { Language } from '@/types/questions/Language.type';
 import { getAllLanguages } from '@/api/LanguageAPI';
-import type { UserPreferences } from '@/types/UserPreferences.type';
+import type { UserPreferences } from '@/types/account/UserPreferences.type';
 import { getUserPrefs } from '@/api/UserPreferencesAPI';
 
 

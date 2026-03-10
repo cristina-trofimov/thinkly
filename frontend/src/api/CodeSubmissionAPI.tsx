@@ -2,8 +2,8 @@ import axiosClient from "@/lib/axiosClient"
 import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
-import type { SubmissionType } from "@/types/SubmissionType.type"
+import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
+import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import { logFrontend } from "./LoggerAPI"
 
 

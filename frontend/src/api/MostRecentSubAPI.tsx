@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient"
-import type { MostRecentSub } from "@/types/MostRecentSub.type"
+import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { logFrontend } from "./LoggerAPI"
 
 export async function updateMostRecentSub(
