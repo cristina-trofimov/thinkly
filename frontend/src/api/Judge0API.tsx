@@ -37,28 +37,30 @@ export async function submitToJudge0(
     user_id: number,
     question_instance_id: number | undefined,
     source_code: string,
-    language_id: string,
+    language_id: number | undefined,
     testcases: TestcaseType[],
 ): Promise<CodeRunResponse> {
     try {
-        if (!question_instance_id) {
-            throw new Error("RunCode: Question instance cannot be undefined")
+        if (!question_instance_id || !language_id) {
+            throw new Error("RunCode: Question instance or language cannot be undefined")
         }
         const { stdin, expected_output } = parse_input_output(testcases)
+
+        console.log("sumbitting")
 
         const response = await axiosClient.post(
             "/judge0",
             {
                 source_code: source_code.trim(),
-                language_id: language_id,
+                language_id: `${language_id}`,
                 stdin: stdin,
                 expected_output: expected_output,
             }
         )
 
-        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, Number.parseInt(language_id))
+        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, language_id)
 
-        const userPref = await updateLastProgLang(user_id, Number.parseInt(language_id))
+        const userPref = await updateLastProgLang(user_id, language_id)
 
         return {
             judge0Response: response['data'],

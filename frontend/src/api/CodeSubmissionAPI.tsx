@@ -12,12 +12,12 @@ export async function submitAttempt(
     user_id: number,
     event_id: number | undefined,
     source_code: string,
-    language_id: string,
+    language_id: number | undefined,
     testcases: TestcaseType[],
 ): Promise<SubmitAttemptResponse> {
     try {
-        if (!question_instance) {
-            throw new Error("SubmitAttempt: Question instance cannot be undefined")
+        if (!question_instance || !language_id) {
+            throw new Error("SubmitAttempt: Question instance and language cannot be undefined")
         }
         if(event_id) {
             // 1.a Competition/Algotime points calculation
