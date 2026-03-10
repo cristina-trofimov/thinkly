@@ -1,8 +1,9 @@
+import json
 from typing import Annotated, Literal, Optional, List, Any as AnyJSONNode
 from datetime import datetime, timezone
 from email.utils import format_datetime, parsedate_to_datetime
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
@@ -23,8 +24,8 @@ class TagResponse(BaseModel):
     @staticmethod
     def from_tag(tag: Tag):
         return TagResponse(
-            tag_id=tag.tag_id,
-            tag_name=tag.tag_name
+            tag_id=getattr(tag, "tag_id", 0),
+            tag_name=getattr(tag, "tag_name", "")
         )
 
 class TestCaseResponse(BaseModel):
@@ -36,10 +37,10 @@ class TestCaseResponse(BaseModel):
     @staticmethod
     def from_testcase(tc: TestCase):
         return TestCaseResponse(
-            test_case_id=tc.test_case_id,
-            question_id=tc.question_id,
-            input_data=tc.input_data,
-            expected_output=tc.expected_output
+            test_case_id=getattr(tc, "test_case_id", 0),
+            question_id=getattr(tc, "question_id", 0),
+            input_data=getattr(tc, "input_data", None),
+            expected_output=getattr(tc, "expected_output", None)
         )
 
 class QuestionLanguageSpecificPropertiesResponse(BaseModel):
@@ -54,13 +55,13 @@ class QuestionLanguageSpecificPropertiesResponse(BaseModel):
     @staticmethod
     def from_question_language_specific_properties(qlsp: QuestionLanguageSpecificProperties):
         return QuestionLanguageSpecificPropertiesResponse(
-            question_id=qlsp.question_id,
-            language_id=qlsp.language_id,
-            language_display_name=qlsp.language.display_name,
-            from_json_function=qlsp.from_json_function,
-            to_json_function=qlsp.to_json_function,
-            preset_code=qlsp.preset_code,
-            template_solution=qlsp.template_solution
+            question_id=getattr(qlsp, "question_id", 0),
+            language_id=getattr(qlsp, "language_id", 0),
+            language_display_name=getattr(getattr(qlsp, "language", None), "display_name", ""),
+            from_json_function=getattr(qlsp, "from_json_function", ""),
+            to_json_function=getattr(qlsp, "to_json_function", ""),
+            preset_code=getattr(qlsp, "preset_code", ""),
+            template_solution=getattr(qlsp, "template_solution", "")
         )
 
 class QuestionListItemResponse(BaseModel):
@@ -83,11 +84,14 @@ class QuestionListItemResponse(BaseModel):
             question_description=question.question_description,
             media=question.media,
             difficulty=question.difficulty,
-            language_specific_properties=[QuestionLanguageSpecificPropertiesResponse.from_question_language_specific_properties(qlsp) for qlsp in question.language_specific_properties],
-            test_cases=[TestCaseResponse.from_testcase(tc) for tc in question.test_cases],
+            language_specific_properties=[
+                QuestionLanguageSpecificPropertiesResponse.from_question_language_specific_properties(qlsp)
+                for qlsp in getattr(question, "language_specific_properties", [])
+            ],
+            test_cases=[TestCaseResponse.from_testcase(tc) for tc in getattr(question, "test_cases", [])],
             created_at=question.created_at.isoformat(),
             last_modified_at=question.last_modified_at.isoformat(),
-            tags=[TagResponse.from_tag(tag) for tag in question.tags],
+            tags=[TagResponse.from_tag(tag) for tag in getattr(question, "tags", [])],
         )
 
 
@@ -275,14 +279,26 @@ class CreateTestCaseRequest(BaseModel):
     input_data: AnyJSONNode
     expected_output: AnyJSONNode
 
+    @model_validator(mode="before")
+    @classmethod
+    def allow_tuple_payload(cls, value):
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            return {
+                "input_data": value[0],
+                "expected_output": value[1],
+            }
+        return value
+
 class CreateQuestionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     question_name: str
     question_description: str
     media: str | None = None
     difficulty: str = "easy"
-    language_specific_properties: List[CreateLanguageSpecificPropertiesRequest] = []
-    tags: List[str] = []
-    test_cases: List[CreateTestCaseRequest] = []
+    language_specific_properties: List[CreateLanguageSpecificPropertiesRequest] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+    test_cases: List[CreateTestCaseRequest] = Field(default_factory=list, alias="testcases")
 
 
 def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Question:
@@ -330,7 +346,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[Sessi
                 "question_name": question.question_name,
                 "difficulty": question_request.difficulty,
                 "tag_count": len(question_request.tags),
-                "testcase_count": len(question_request.testcases),
+                "testcase_count": len(question_request.test_cases),
             }
         )
 
@@ -501,9 +517,23 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
                 status_code=404,
                 detail=f"Update failed: Question with id {question_id} not found"
             )
-        for old_qlsp in db_question.language_specific_properties:
+        for old_qlsp in getattr(db_question, "language_specific_properties", []):
             db.delete(old_qlsp)
-        db_question.language_specific_properties=question_request.language_specific_properties
+        db_question.language_specific_properties = []
+        for qlsp in question_request.language_specific_properties:
+            language = db.query(Language).filter(Language.display_name == qlsp.language_name).first()
+            if language is None:
+                continue
+            db_question.language_specific_properties.append(
+                QuestionLanguageSpecificProperties(
+                    question_id=db_question.question_id,
+                    language=language,
+                    preset_code=qlsp.preset_code,
+                    from_json_function=qlsp.from_json_function,
+                    to_json_function=qlsp.to_json_function,
+                    template_solution=qlsp.template_solution,
+                )
+            )
         
         db_question.question_name=question_request.question_name
         db_question.question_description=question_request.question_description
@@ -515,15 +545,15 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
         new_tags = [Tag(tag_name=tag_name) for tag_name in question_request.tags if tag_name not in existing_tag_names]
         db_question.tags = existing_tags + new_tags
         
-        for old_tc in db_question.test_cases:
+        for old_tc in getattr(db_question, "test_cases", []):
             db.delete(old_tc)
         
         db_question.test_cases = []
-        for (tc_input, tc_output) in question_request.test_cases:
+        for tc in question_request.test_cases:
             db_question.test_cases.append(TestCase(
                 question_id=db_question.question_id,
-                input_data=tc_input,
-                expected_output=tc_output
+                input_data=tc.input_data,
+                expected_output=tc.expected_output
             ))
 
         db.commit()

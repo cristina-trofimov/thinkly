@@ -1,6 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 import type {
   EditableQuestionFields,
+  JsonValue,
   Question,
 } from "@/types/questions/Question.type";
 import type { QuestionListItemResponse, QuestionsPageParams, QuestionsPageResult, QuestionsResponse, RiddlesResponse } from "@/types/questions/QuestionPagination.type";
@@ -9,6 +10,18 @@ import type { Riddle } from "@/types/riddle/Riddle.type";
 import { logFrontend } from "./LoggerAPI";
 
 const DEFAULT_PAGE_SIZE = 100;
+
+function parseJsonValue(value: JsonValue | string): JsonValue {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value) as JsonValue;
+  } catch {
+    return value;
+  }
+}
 
 function normalizeDifficulty(
   difficulty: QuestionListItemResponse["difficulty"],
@@ -79,7 +92,7 @@ export async function getQuestionsPage({
       },
     },
   );
-
+  
   return {
     total: response.data.total,
     page: response.data.page,
@@ -120,7 +133,6 @@ export async function getQuestionByID(questionId: number): Promise<Question> {
     const response = await axiosClient.get<QuestionListItemResponse>(
       `/questions/get-question-by-id/${questionId}`,
     );
-    
     return mapQuestion(response.data, { includeCollections: true });
   } catch (err) {
     console.error("Error fetching question:", err);
@@ -188,16 +200,16 @@ export async function getTestcases(
       {
         test_case_id: number;
         question_id: number;
-        input_data: string;
-        expected_output: string;
+        input_data: JsonValue | string;
+        expected_output: JsonValue | string;
       }[]
     >(`/questions/get-all-testcases/${question_id}`);
 
     return response.data.map((testcase, index) => ({
       test_case_id: testcase.test_case_id,
       question_id: testcase.question_id,
-      input_data: JSON.parse(testcase.input_data),
-      expected_output: testcase.expected_output,
+      input_data: parseJsonValue(testcase.input_data),
+      expected_output: parseJsonValue(testcase.expected_output),
       caseID: `Case ${index + 1}`,
     }));
   } catch (err) {

@@ -1,8 +1,9 @@
 from __future__ import annotations
-from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint
+from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, Table, UniqueConstraint, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database_operations.db import Base
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime, timezone
 
 # Foreign key reference constants
@@ -195,8 +196,8 @@ class TestCase(Base):
 
     test_case_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
-    input_data: Mapped[str] = mapped_column()
-    expected_output: Mapped[str] = mapped_column()
+    input_data: Mapped[Any] = mapped_column(JSONB)
+    expected_output: Mapped[Any] = mapped_column(JSONB)
 
     question: Mapped[Question] = relationship('Question', back_populates='test_cases', uselist=False)
 

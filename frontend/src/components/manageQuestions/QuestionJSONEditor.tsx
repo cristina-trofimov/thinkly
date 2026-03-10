@@ -26,6 +26,8 @@ interface QuestionJSONEditorState {
   isBackWarningOpen: boolean;
 }
 
+class QuestionPayloadValidationError extends Error {}
+
 const QuestionJSONEditor: FC = () => {
   const { questionId } = useParams();
   const navigate = useNavigate();
@@ -106,12 +108,7 @@ const QuestionJSONEditor: FC = () => {
 
     try {
       const parsedPayload = JSON.parse(value);
-
       const normalizedPayload = normalizeEditableQuestionFields(parsedPayload);
-      if (!normalizedPayload) {
-        toast.error("Invalid question JSON shape");
-        return;
-      }
 
       setState((prev) => ({ ...prev, isSubmitting: true }));
       await updateQuestion(parsedQuestionId, normalizedPayload);
@@ -120,6 +117,8 @@ const QuestionJSONEditor: FC = () => {
     } catch (error) {
       if (error instanceof SyntaxError) {
         toast.error("Invalid JSON format");
+      } else if (error instanceof QuestionPayloadValidationError) {
+        toast.error(error.message);
       } else {
         const message = parseAxiosErrorMessage(error);
         toast.error(`Failed to update question ${parsedQuestionId}: ${message}`);
@@ -224,9 +223,9 @@ const QuestionJSONEditor: FC = () => {
   );
 };
 
-function normalizeEditableQuestionFields(payload: any): EditableQuestionFields | null {
+function normalizeEditableQuestionFields(payload: any): EditableQuestionFields {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return null;
+    throw new QuestionPayloadValidationError("Question payload must be a JSON object");
   }
 
   const data = payload;
@@ -235,20 +234,36 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields |
     data.difficulty === "medium" ||
     data.difficulty === "hard";
 
-  if (
-    typeof data.question_name !== "string" ||
-    typeof data.question_description !== "string" ||
-    !hasValidDifficulty ||
-    !Array.isArray(data.language_specific_properties) ||
-    !Array.isArray(data.tags) ||
-    !Array.isArray(data.testcases) ||
-    !(typeof data.media === "string" || data.media === null)
-  ) {
-    return null;
+  if (typeof data.question_name !== "string") {
+    throw new QuestionPayloadValidationError("question_name must be a string");
+  }
+
+  if (typeof data.question_description !== "string") {
+    throw new QuestionPayloadValidationError("question_description must be a string");
+  }
+
+  if (!hasValidDifficulty) {
+    throw new QuestionPayloadValidationError("difficulty must be one of: easy, medium, hard");
+  }
+
+  if (!Array.isArray(data.language_specific_properties)) {
+    throw new QuestionPayloadValidationError("language_specific_properties must be an array");
+  }
+
+  if (!Array.isArray(data.tags)) {
+    throw new QuestionPayloadValidationError("tags must be an array");
+  }
+
+  if (!Array.isArray(data.testcases)) {
+    throw new QuestionPayloadValidationError("testcases must be an array");
+  }
+
+  if (!(typeof data.media === "string" || data.media === null)) {
+    throw new QuestionPayloadValidationError("media must be a string or null");
   }
 
   if (data.tags.some((tag: any) => typeof tag !== "string")) {
-    return null;
+    throw new QuestionPayloadValidationError("all tags must be strings");
   }
 
   const languageSpecificProperties: Array<EditableQuestionFields["language_specific_properties"][number] | null> =
@@ -278,7 +293,9 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields |
   });
 
   if (languageSpecificProperties.includes(null)) {
-    return null;
+    throw new QuestionPayloadValidationError(
+      "each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
+    );
   }
 
   const testcases: Array<EditableQuestionFields["testcases"][number] | null> = data.testcases.map((testcase: any) => {
@@ -287,7 +304,10 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields |
     }
 
     const record = testcase;
-    if (typeof record.input_data !== "string" || typeof record.expected_output !== "string") {
+    if (
+      !Object.hasOwn(record, "input_data") ||
+      !Object.hasOwn(record, "expected_output")
+    ) {
       return null;
     }
 
@@ -298,7 +318,9 @@ function normalizeEditableQuestionFields(payload: any): EditableQuestionFields |
   });
 
   if (testcases.includes(null)) {
-    return null;
+    throw new QuestionPayloadValidationError(
+      "Each testcase must include input_data and expected_output"
+    );
   }
 
   return {

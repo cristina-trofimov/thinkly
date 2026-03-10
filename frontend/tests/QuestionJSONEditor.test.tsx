@@ -90,12 +90,9 @@ describe("QuestionJSONEditor", () => {
         question_description: "Desc2",
         media: null,
         difficulty: "easy",
-        preset_code: "",
-        from_string_function: "",
-        to_string_function: "",
-        template_solution: "",
+        language_specific_properties: [],
         tags: ["tag"],
-        testcases: [["in", "out"]],
+        testcases: [{ input_data: "in", expected_output: "out" }],
       },
       null,
       2
@@ -213,7 +210,7 @@ describe("QuestionJSONEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(mockedToast.error).toHaveBeenCalledWith("Invalid question JSON shape");
+      expect(mockedToast.error).toHaveBeenCalledWith("question_description must be a string");
     });
   });
 
@@ -247,12 +244,9 @@ describe("QuestionJSONEditor", () => {
             question_description: "Desc2",
             media: null,
             difficulty: "easy",
-            preset_code: "",
-            from_string_function: "",
-            to_string_function: "",
-            template_solution: "",
+            language_specific_properties: [],
             tags: [],
-            testcases: [["in", "out"]],
+            testcases: [{ input_data: "in", expected_output: "out" }],
           },
           null,
           2
@@ -296,12 +290,9 @@ describe("QuestionJSONEditor", () => {
             question_description: "Desc2",
             media: null,
             difficulty: "easy",
-            preset_code: "",
-            from_string_function: "",
-            to_string_function: "",
-            template_solution: "",
+            language_specific_properties: [],
             tags: [],
-            testcases: [["in", "out"]],
+            testcases: [{ input_data: "in", expected_output: "out" }],
           },
           null,
           2
@@ -343,12 +334,9 @@ describe("QuestionJSONEditor", () => {
             question_description: "Desc2",
             media: null,
             difficulty: "easy",
-            preset_code: "",
-            from_string_function: "",
-            to_string_function: "",
-            template_solution: "",
+            language_specific_properties: [],
             tags: [],
-            testcases: [["in", "out"]],
+            testcases: [{ input_data: "in", expected_output: "out" }],
           },
           null,
           2

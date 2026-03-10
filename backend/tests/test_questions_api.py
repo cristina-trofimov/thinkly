@@ -419,8 +419,15 @@ def test_get_question_by_id_success(client, mock_db):
     assert response.status_code == 200
     payload = response.json()
     assert payload["question_id"] == 42
-    assert payload["tags"] == ["array"]
-    assert payload["testcases"] == [["1 2", "3"]]
+    assert payload["tags"] == [{"tag_id": 0, "tag_name": "array"}]
+    assert payload["test_cases"] == [
+        {
+            "test_case_id": 0,
+            "question_id": 0,
+            "input_data": "1 2",
+            "expected_output": "3",
+        }
+    ]
 
 
 def test_get_question_by_id_not_found(client, mock_db):

@@ -1,8 +1,16 @@
+export type JsonPrimitive = string | number | boolean | null;
+
+export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
+
+export type JsonObject = {
+  [key: string]: JsonValue;
+};
+
 export type TestCase = {
   test_case_id: number;
   question_id: number;
-  input_data: any;
-  expected_output: any;
+  input_data: JsonValue;
+  expected_output: JsonValue;
 }
 
 export type LanguageSpecificProperties = {
@@ -29,8 +37,8 @@ export type Question = {
 }
 
 export type EditableTestCaseFields = {
-  input_data: string;
-  expected_output: string;
+  input_data: JsonValue;
+  expected_output: JsonValue;
 }
 
 export type EditableLanguageSpecificProperties = {
