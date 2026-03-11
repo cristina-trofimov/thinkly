@@ -28,7 +28,7 @@ import {
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 import {
   Select,
   SelectContent,

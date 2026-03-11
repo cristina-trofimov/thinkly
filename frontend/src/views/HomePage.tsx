@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { columns } from "../components/questionsTable/questionsColumns";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 import {
   DataTable,
   type DifficultyFilter,

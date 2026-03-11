@@ -13,7 +13,7 @@ import {  getAlgotimeById,} from "@/api/AlgotimeAPI"
 import { getQuestions } from "@/api/QuestionsAPI";
 import {AlgoTimeSessionForm}from "../forms/AlgoTimeForm";
 import { Button } from "@/components/ui/button";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 
 interface EditAlgoTimeSessionDialogProps {
     open: boolean;

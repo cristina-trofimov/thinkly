@@ -2,7 +2,7 @@ import { Editor } from "@monaco-editor/react";
 import { getQuestionByID, updateQuestion } from "@/api/QuestionsAPI";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
+import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/QuestionPagination.type";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,

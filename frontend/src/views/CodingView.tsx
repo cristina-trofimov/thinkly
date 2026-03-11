@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
-import type { Question } from '@/types/questions/Question.type';
+import type { Question } from '@/types/questions/QuestionPagination.type';
 import { useTestcases } from '../components/helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import Loader from '../components/helpers/Loader';

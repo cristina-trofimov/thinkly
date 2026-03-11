@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
-import { type Question } from "@/types/questions/Question.type";
+import { type Question } from "@/types/questions/QuestionPagination.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
 
 // UI Components

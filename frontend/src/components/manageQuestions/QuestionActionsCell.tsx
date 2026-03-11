@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 import { useNavigate } from "react-router-dom";
 
 interface ActionsCellProps {

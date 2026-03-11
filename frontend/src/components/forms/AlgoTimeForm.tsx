@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Timer} from "lucide-react"
-import type { Question } from "../../types/questions/Question.type";
+import type { Question } from "../../types/questions/QuestionPagination.type";
 import { logFrontend } from '../../api/LoggerAPI';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
