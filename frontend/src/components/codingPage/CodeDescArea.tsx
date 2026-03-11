@@ -268,9 +268,9 @@ const CodeDescArea = (
                                 </TableFooter>
                             </Table>
                         )
-                        : (
-                            <div>You've yet to submit anything</div>
-                        ))
+                        : (<div className="flex items-center justify-center h-full text-muted-foreground">
+                                <p>You've yet to submit anything</p>
+                            </div>))
                         : (
                             <div className='space-y-6' >
                                 <div className='flex flex-col gap-3'>

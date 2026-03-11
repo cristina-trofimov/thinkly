@@ -120,7 +120,6 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          // TODO
           await putQuestionInstance(undefined, question?.question_id, null, null)
             .then((response) => {
               setQuestionsInstances([response])
@@ -293,6 +292,7 @@ const CodingView = () => {
         setLoadingMsg("Running")
   
         const user = await getProfile()
+        console.log('activeQI', activeQuestionInstance)
         const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
         
         setLogs(prev => [...prev, judge0Response])
@@ -417,7 +417,7 @@ const CodingView = () => {
           <DropdownMenu data-testid='questions-dropdown'>
             <DropdownMenuTrigger
               data-testid='questions-btn'
-              className="bg-background text-black text-base font-bold h-7
+              className="bg-background text-muted-foreground text-base font-bold h-7
                 flex items-center gap-2 rounded-md p-2
                 hover:bg-primary/20 focus:bg-primary/55"
             >
@@ -499,7 +499,7 @@ const CodingView = () => {
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <div data-testid='language-btn'
-                        className="bg-background text-black text-base font-bold h-7
+                        className="bg-background text-foreground text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
                       >
@@ -509,7 +509,7 @@ const CodingView = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
-                        className="z-10 text-sm bg-white w-26 border rounded-lg"
+                        className="z-10 text-sm bg-muted-foreground text-foreground w-26 border rounded-lg"
                       >
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
