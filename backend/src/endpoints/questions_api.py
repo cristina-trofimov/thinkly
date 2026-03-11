@@ -1,12 +1,12 @@
-from typing import Annotated, Literal, Optional, List
+from typing import Annotated, Literal, Optional, List, Any as AnyJSONNode
 from datetime import datetime, timezone
 from email.utils import format_datetime, parsedate_to_datetime
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
-from models.schema import Question, Riddle, Tag, TestCase
+from models.schema import Language, Question, QuestionLanguageSpecificProperties, Riddle, Tag, TestCase
 from database_operations.database import get_db
 import logging
 from services.posthog_analytics import track_custom_event
@@ -16,11 +16,52 @@ questions_router = APIRouter(tags=["Questions"])
 DEFAULT_PAGE_SIZE = 25
 MAX_PAGE_SIZE = 100
 
-
 class TagResponse(BaseModel):
     tag_id: int
     tag_name: str
 
+    @staticmethod
+    def from_tag(tag: Tag):
+        return TagResponse(
+            tag_id=getattr(tag, "tag_id", 0),
+            tag_name=getattr(tag, "tag_name", "")
+        )
+
+class TestCaseResponse(BaseModel):
+    test_case_id: int
+    question_id: int
+    input_data: AnyJSONNode
+    expected_output: AnyJSONNode
+
+    @staticmethod
+    def from_testcase(tc: TestCase):
+        return TestCaseResponse(
+            test_case_id=getattr(tc, "test_case_id", 0),
+            question_id=getattr(tc, "question_id", 0),
+            input_data=getattr(tc, "input_data", None),
+            expected_output=getattr(tc, "expected_output", None)
+        )
+
+class QuestionLanguageSpecificPropertiesResponse(BaseModel):
+    question_id: int
+    language_id: int
+    language_display_name: str
+    from_json_function: str
+    to_json_function: str
+    preset_code: str
+    template_solution: str
+
+    @staticmethod
+    def from_question_language_specific_properties(qlsp: QuestionLanguageSpecificProperties):
+        return QuestionLanguageSpecificPropertiesResponse(
+            question_id=getattr(qlsp, "question_id", 0),
+            language_id=getattr(qlsp, "language_id", 0),
+            language_display_name=getattr(getattr(qlsp, "language", None), "display_name", ""),
+            from_json_function=getattr(qlsp, "from_json_function", ""),
+            to_json_function=getattr(qlsp, "to_json_function", ""),
+            preset_code=getattr(qlsp, "preset_code", ""),
+            template_solution=getattr(qlsp, "template_solution", "")
+        )
 
 class QuestionListItemResponse(BaseModel):
     question_id: int
@@ -28,13 +69,29 @@ class QuestionListItemResponse(BaseModel):
     question_description: str
     media: str | None = None
     difficulty: str
-    preset_code: str | None = None
-    from_string_function: str
-    to_string_function: str
-    template_solution: str
+    language_specific_properties: List[QuestionLanguageSpecificPropertiesResponse]
+    test_cases: List[TestCaseResponse]
     created_at: str
     last_modified_at: str
-    tags: list[TagResponse]
+    tags: List[TagResponse]
+
+    @staticmethod
+    def from_question(question: Question) -> "QuestionListItemResponse":
+        return QuestionListItemResponse(
+            question_id=question.question_id,
+            question_name=question.question_name,
+            question_description=question.question_description,
+            media=question.media,
+            difficulty=question.difficulty,
+            language_specific_properties=[
+                QuestionLanguageSpecificPropertiesResponse.from_question_language_specific_properties(qlsp)
+                for qlsp in getattr(question, "language_specific_properties", [])
+            ],
+            test_cases=[TestCaseResponse.from_testcase(tc) for tc in getattr(question, "test_cases", [])],
+            created_at=question.created_at.isoformat(),
+            last_modified_at=question.last_modified_at.isoformat(),
+            tags=[TagResponse.from_tag(tag) for tag in getattr(question, "tags", [])],
+        )
 
 
 class PaginatedQuestionsResponse(BaseModel):
@@ -56,13 +113,6 @@ class PaginatedRiddlesResponse(BaseModel):
     page: int
     page_size: int
     items: list[RiddleListItemResponse]
-
-
-class TestCaseResponse(BaseModel):
-    test_case_id: int
-    question_id: int
-    input_data: str
-    expected_output: str
 
 
 def apply_text_search(query, search: Optional[str], *columns):
@@ -88,29 +138,6 @@ def build_paginated_response(total: int, page: int, page_size: int, items: list[
     }
 
 
-def serialize_question(question: Question) -> dict:
-    return {
-        "question_id": question.question_id,
-        "question_name": question.question_name,
-        "question_description": question.question_description,
-        "media": question.media,
-        "difficulty": question.difficulty,
-        "preset_code": question.preset_code,
-        "from_string_function": question.from_string_function,
-        "to_string_function": question.to_string_function,
-        "template_solution": question.template_solution,
-        "created_at": question.created_at.isoformat(),
-        "last_modified_at": question.last_modified_at.isoformat(),
-        "tags": [
-            {
-                "tag_id": tag.tag_id,
-                "tag_name": tag.tag_name,
-            }
-            for tag in question.tags
-        ],
-    }
-
-
 def serialize_riddle(riddle: Riddle) -> dict:
     return {
         "riddle_id": riddle.riddle_id,
@@ -127,44 +154,11 @@ def serialize_test_case(test_case: TestCase) -> dict:
         "input_data": test_case.input_data,
         "expected_output": test_case.expected_output,
     }
-
-class QuestionResponse(BaseModel):
-    question_id: int
-    question_name: str
-    question_description: str
-    media: Optional[str] = None
-    difficulty: str
-    preset_code: Optional[str] = None
-    from_string_function: str
-    to_string_function: str
-    template_solution: str
-    created_at: datetime
-    last_modified_at: datetime
-    tags: List[str]
-    testcases: List[tuple[str, str]]
-
-    @staticmethod
-    def from_question(question: Question) -> "QuestionResponse":
-        return QuestionResponse(
-            question_id=question.question_id,
-            question_name=question.question_name,
-            question_description=question.question_description,
-            media=question.media,
-            difficulty=question.difficulty,
-            preset_code=question.preset_code,
-            from_string_function=question.from_string_function,
-            to_string_function=question.to_string_function,
-            template_solution=question.template_solution,
-            created_at=question.created_at,
-            last_modified_at=question.last_modified_at,
-            tags=[tag.tag_name for tag in question.tags],
-            testcases=[(tc.input_data, tc.expected_output) for tc in question.test_cases],
-        )
         
 
 @questions_router.get(
     "/get-question-by-id/{question_id}",
-    response_model=QuestionResponse,
+    response_model=QuestionListItemResponse,
     responses={
         404: {"description": "Question not found."},
         500: {"description": "Failed to retrieve question."},
@@ -176,7 +170,7 @@ def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]
         if not question:
             raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
         logger.info(f"Fetched question with ID {question_id}")
-        return QuestionResponse.from_question(question)
+        return QuestionListItemResponse.from_question(question)
     except HTTPException:
         raise
     except Exception as e:
@@ -253,7 +247,7 @@ def get_all_questions(
             total,
             page,
             page_size,
-            [serialize_question(question) for question in questions],
+            [QuestionListItemResponse.from_question(question) for question in questions],
         )
     except Exception as e:
         logger.error(f"Error fetching questions: {e}")
@@ -273,36 +267,61 @@ def get_question(db: Annotated[str, Depends(get_db)], question_id: int):
         logger.error(f"Error fetching question: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve question. Exception: {str(e)}")
 
+class CreateLanguageSpecificPropertiesRequest(BaseModel):
+    language_name: str
+    preset_code: str
+    from_json_function: str
+    to_json_function: str
+    template_solution: str
+
+class CreateTestCaseRequest(BaseModel):
+    input_data: AnyJSONNode
+    expected_output: AnyJSONNode
+
+    @model_validator(mode="before")
+    @classmethod
+    def allow_tuple_payload(cls, value):
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            return {
+                "input_data": value[0],
+                "expected_output": value[1],
+            }
+        return value
 
 class CreateQuestionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     question_name: str
     question_description: str
     media: str | None = None
     difficulty: str = "easy"
-    preset_code: str = ""
-    from_string_function: str = ""
-    to_string_function: str = ""
-    template_solution: str
-    tags: list[str] = []
-    testcases: list[tuple[str, str]] = []  # input-output pairs
+    language_specific_properties: List[CreateLanguageSpecificPropertiesRequest] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+    test_cases: List[CreateTestCaseRequest] = Field(default_factory=list, alias="testcases")
 
 
 def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Question:
     existing_tags = db.query(Tag).filter(Tag.tag_name.in_(request.tags)).all()
     new_tags = [Tag(tag_name=tag_name) for tag_name in request.tags if
                 tag_name not in [tag.tag_name for tag in existing_tags]]
-    return Question(
+    question = Question(
         question_name=request.question_name,
         question_description=request.question_description,
         media=request.media,
         difficulty=request.difficulty,
-        preset_code=request.preset_code,
-        from_string_function=request.from_string_function,
-        to_string_function=request.to_string_function,
-        template_solution=request.template_solution,
-        tags=existing_tags + new_tags,
-        test_cases=[TestCase(input_data=tc[0], expected_output=tc[1]) for tc in request.testcases]
+        tags=existing_tags + new_tags
     )
+
+    question.language_specific_properties = [QuestionLanguageSpecificProperties(
+        question_id=question.question_id,
+        language=db.query(Language).filter(Language.display_name == qlsp.language_name).first(),
+        preset_code=qlsp.preset_code,
+        from_json_function=qlsp.from_json_function,
+        to_json_function=qlsp.to_json_function,
+        template_solution=qlsp.template_solution
+    ) for qlsp in request.language_specific_properties]
+
+    return question
 
 
 @questions_router.post(
@@ -326,7 +345,7 @@ def upload_question(question_request: CreateQuestionRequest, db: Annotated[Sessi
                 "question_name": question.question_name,
                 "difficulty": question_request.difficulty,
                 "tag_count": len(question_request.tags),
-                "testcase_count": len(question_request.testcases),
+                "testcase_count": len(question_request.test_cases),
             }
         )
 
@@ -497,30 +516,43 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
                 status_code=404,
                 detail=f"Update failed: Question with id {question_id} not found"
             )
+        for old_qlsp in getattr(db_question, "language_specific_properties", []):
+            db.delete(old_qlsp)
+        db_question.language_specific_properties = []
+        for qlsp in question_request.language_specific_properties:
+            language = db.query(Language).filter(Language.display_name == qlsp.language_name).first()
+            if language is None:
+                continue
+            db_question.language_specific_properties.append(
+                QuestionLanguageSpecificProperties(
+                    question_id=db_question.question_id,
+                    language=language,
+                    preset_code=qlsp.preset_code,
+                    from_json_function=qlsp.from_json_function,
+                    to_json_function=qlsp.to_json_function,
+                    template_solution=qlsp.template_solution,
+                )
+            )
         
         db_question.question_name=question_request.question_name
         db_question.question_description=question_request.question_description
         db_question.media=question_request.media
         db_question.difficulty=question_request.difficulty
-        db_question.preset_code=question_request.preset_code
-        db_question.from_string_function=question_request.from_string_function
-        db_question.to_string_function=question_request.to_string_function
-        db_question.template_solution=question_request.template_solution
         
         existing_tags = db.query(Tag).filter(Tag.tag_name.in_(question_request.tags)).all()
         existing_tag_names = [tag.tag_name for tag in existing_tags]
         new_tags = [Tag(tag_name=tag_name) for tag_name in question_request.tags if tag_name not in existing_tag_names]
         db_question.tags = existing_tags + new_tags
         
-        for old_tc in db_question.test_cases:
+        for old_tc in getattr(db_question, "test_cases", []):
             db.delete(old_tc)
         
         db_question.test_cases = []
-        for (tc_input, tc_output) in question_request.testcases:
+        for tc in question_request.test_cases:
             db_question.test_cases.append(TestCase(
                 question_id=db_question.question_id,
-                input_data=tc_input,
-                expected_output=tc_output
+                input_data=tc.input_data,
+                expected_output=tc.expected_output
             ))
 
         db.commit()

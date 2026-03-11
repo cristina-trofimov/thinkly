@@ -71,11 +71,10 @@ describe("QuestionsAPI", () => {
           question_name: "What is 2+2?",
           question_description: "Add two numbers",
           media: null,
-          preset_code: "",
-          template_solution: "def solve(): pass",
           difficulty: "Easy",
-          from_string_function: "",
-          to_string_function: "",
+          language_specific_properties: [],
+          tags: [],
+          testcases: [],
           created_at: new Date("2025-01-01T00:00:00Z"),
           last_modified_at: new Date("2025-01-01T00:00:00Z"),
         },
@@ -174,11 +173,10 @@ describe("QuestionsAPI", () => {
             question_name: "Sorted Question",
             question_description: "Page item",
             media: null,
-            preset_code: "",
-            template_solution: "",
             difficulty: "Medium",
-            from_string_function: "",
-            to_string_function: "",
+            language_specific_properties: [],
+            tags: [],
+            testcases: [],
             created_at: new Date("2025-01-11T00:00:00Z"),
             last_modified_at: new Date("2025-01-11T00:00:00Z"),
           },
@@ -200,14 +198,18 @@ describe("QuestionsAPI", () => {
           question_name: "Single",
           question_description: "One question",
           media: null,
-          preset_code: "",
-          template_solution: "def solve(): pass",
           difficulty: "hard",
           last_modified_at: "2025-02-02T00:00:00Z",
-          tags: ["graph"],
-          from_string_function: "",
-          to_string_function: "",
-          testcases: [["1", "2"]],
+          language_specific_properties: [],
+          tags: [{ tag_id: 1, tag_name: "graph" }],
+          test_cases: [
+            {
+              test_case_id: 1,
+              question_id: 7,
+              input_data: "1",
+              expected_output: "2",
+            },
+          ],
         },
       } as any);
 
@@ -219,15 +221,19 @@ describe("QuestionsAPI", () => {
         question_name: "Single",
         question_description: "One question",
         media: null,
-        preset_code: "",
-        template_solution: "def solve(): pass",
         difficulty: "Hard",
         created_at: new Date("2025-02-02T00:00:00Z"),
         last_modified_at: new Date("2025-02-02T00:00:00Z"),
-        from_string_function: "",
-        to_string_function: "",
+        language_specific_properties: [],
         tags: ["graph"],
-        testcases: [["1", "2"]],
+        testcases: [
+          {
+            test_case_id: 1,
+            question_id: 7,
+            input_data: "1",
+            expected_output: "2",
+          },
+        ],
       });
     });
 
@@ -235,6 +241,46 @@ describe("QuestionsAPI", () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
       expect(mockedAxios.get).toHaveBeenCalled();
+    });
+
+    it("maps language specific properties when present", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          question_id: 8,
+          question_name: "With language props",
+          question_description: "Has per-language fields",
+          media: null,
+          difficulty: "easy",
+          last_modified_at: "2025-02-03T00:00:00Z",
+          language_specific_properties: [
+            {
+              language_id: 1,
+              question_id: 8,
+              language_display_name: "Python",
+              preset_code: "def solve():\n    pass",
+              template_solution: "def solve():\n    return 1",
+              from_json_function: "def from_json(v): return v",
+              to_json_function: "def to_json(v): return v",
+            },
+          ],
+          tags: [],
+          test_cases: [],
+        },
+      } as any);
+
+      const result = await getQuestionByID(8);
+
+      expect(result.language_specific_properties).toEqual([
+        {
+          language_id: 1,
+          question_id: 8,
+          language_name: "Python",
+          preset_code: "def solve():\n    pass",
+          template_solution: "def solve():\n    return 1",
+          from_json_function: "def from_json(v): return v",
+          to_json_function: "def to_json(v): return v",
+        },
+      ]);
     });
   });
 
@@ -392,20 +438,18 @@ describe("QuestionsAPI", () => {
       mockedAxios.post.mockResolvedValueOnce({} as any);
       await uploadQuestions([
         {
-          id: 1,
-          title: "Q1",
-          description: "D",
+          question_id: 1,
+          question_name: "Q1",
+          question_description: "D",
           media: null,
-          preset_code: "",
-          template_solution: "",
-          from_string_function: "",
-          to_string_function: "",
+          language_specific_properties: [],
           tags: [],
           testcases: [],
           difficulty: "Easy",
-          date: new Date(),
+          created_at: new Date(),
+          last_modified_at: new Date(),
         },
-      ] as any);
+      ]);
 
       expect(mockedAxios.post).toHaveBeenCalledWith("/questions/upload-question-batch", expect.any(Array));
     });
@@ -427,12 +471,9 @@ describe("QuestionsAPI", () => {
         question_description: "Updated desc",
         media: null,
         difficulty: "medium",
-        preset_code: "",
-        from_string_function: "",
-        to_string_function: "",
-        template_solution: "def solve(): pass",
+        language_specific_properties: [],
         tags: ["tag"],
-        testcases: [["in", "out"]],
+        testcases: [{ input_data: "in", expected_output: "out" }],
       });
 
       expect(mockedAxios.put).toHaveBeenCalledWith("/questions/update-question/5", {
@@ -440,12 +481,9 @@ describe("QuestionsAPI", () => {
         question_description: "Updated desc",
         media: null,
         difficulty: "medium",
-        preset_code: "",
-        from_string_function: "",
-        to_string_function: "",
-        template_solution: "def solve(): pass",
+        language_specific_properties: [],
         tags: ["tag"],
-        testcases: [["in", "out"]],
+        testcases: [{ input_data: "in", expected_output: "out" }],
       });
     });
 
@@ -458,10 +496,7 @@ describe("QuestionsAPI", () => {
           question_description: "Updated desc",
           media: null,
           difficulty: "medium",
-          preset_code: "",
-          from_string_function: "",
-          to_string_function: "",
-          template_solution: "def solve(): pass",
+          language_specific_properties: [],
           tags: [],
           testcases: [],
         })
@@ -481,7 +516,7 @@ describe("QuestionsAPI", () => {
           {
             test_case_id: 1,
             question_id: 1,
-            input_data: '{ "a": [1, 2], "b": 6 }',
+            input_data: { "a": [1, 2], "b": 6 },
             expected_output: "",
           },
         ],
