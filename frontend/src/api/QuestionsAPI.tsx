@@ -25,24 +25,37 @@ function mapQuestion(
   options: { includeCollections?: boolean } = {},
 ): Question {
   const createdAt = question.created_at ?? question.last_modified_at;
-
   const baseQuestion: Question = {
     question_id: question.question_id,
     question_name: question.question_name,
     question_description: question.question_description,
-    media: question.media,
-    preset_code: question.preset_code,
-    template_solution: question.template_solution,
+    media: question.media ?? null,
     difficulty: normalizeDifficulty(question.difficulty),
-    from_string_function: question.from_string_function ?? "",
-    to_string_function: question.to_string_function ?? "",
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    tags: [],
+    testcases: [],
+    language_specific_properties: [],
   };
 
   if (options.includeCollections) {
-    baseQuestion.tags = question.tags ?? [];
-    baseQuestion.testcases = question.testcases ?? [];
+    baseQuestion.tags = (question.tags ?? []).map((tag) => tag.tag_name);
+    baseQuestion.testcases = (question.test_cases ?? []).map((testcase) => ({
+      test_case_id: testcase.test_case_id,
+      question_id: testcase.question_id,
+      input_data: testcase.input_data,
+      expected_output: testcase.expected_output,
+    }));
+
+    baseQuestion.language_specific_properties = (question.language_specific_properties ?? []).map((prop) => ({
+      language_id: prop.language_id,
+      question_id: prop.question_id,
+      language_name: prop.language_display_name,
+      preset_code: prop.preset_code,
+      template_solution: prop.template_solution,
+      from_json_function: prop.from_json_function,
+      to_json_function: prop.to_json_function,
+    }));
   }
 
   return baseQuestion;
@@ -67,7 +80,7 @@ export async function getQuestionsPage({
       },
     },
   );
-
+  
   return {
     total: response.data.total,
     page: response.data.page,
@@ -108,7 +121,6 @@ export async function getQuestionByID(questionId: number): Promise<Question> {
     const response = await axiosClient.get<QuestionListItemResponse>(
       `/questions/get-question-by-id/${questionId}`,
     );
-
     return mapQuestion(response.data, { includeCollections: true });
   } catch (err) {
     logFrontend({
@@ -188,28 +200,22 @@ export async function getTestcases(
       {
         test_case_id: number;
         question_id: number;
-        input_data: string;
-        expected_output: string;
+        input_data: unknown;
+        expected_output: unknown;
       }[]
     >(`/questions/get-all-testcases/${question_id}`);
 
-      return response.data.map((testcase, index) => ({
-        test_case_id: testcase.test_case_id,
-        question_id: testcase.question_id,
-        input_data: JSON.parse(testcase.input_data),
-        expected_output: testcase.expected_output,
-        caseID: `Case ${index + 1}`,
-      }));
-    } catch (err) {
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when fetching testcases. Reason: ${err}`,
-        component: "QuestionsAPI",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      })
-      throw err;
-    }
+    return response.data.map((testcase, index) => ({
+      test_case_id: testcase.test_case_id,
+      question_id: testcase.question_id,
+      input_data: testcase.input_data,
+      expected_output: testcase.expected_output,
+      caseID: `Case ${index + 1}`,
+    }));
+  } catch (err) {
+    console.error("Error fetching testcases:", err);
+    throw err;
+  }
 }
 
 export async function deleteCompetition(competitionId: string): Promise<void> {
