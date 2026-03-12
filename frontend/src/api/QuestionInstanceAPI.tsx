@@ -10,8 +10,8 @@ export async function updateQuestionInstance(
   }
 
   try {
-    const response = await axiosClient.post(
-      "/instances/update",
+    const response = await axiosClient.put(
+      "/instances/put",
       {
         question_id: question_instance.question_id,
         event_id: question_instance.event_id,

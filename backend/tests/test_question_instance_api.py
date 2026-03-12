@@ -217,7 +217,6 @@ def test_update_existing_question_instance(client, mock_db):
     )
 
     mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = existing
-    # mock_db.query.return_value.filter_by.return_value.first.return_value = existing
 
     def fake_refresh(instance):
         instance = instance
@@ -226,7 +225,6 @@ def test_update_existing_question_instance(client, mock_db):
 
     response = client.put("/put", json=payload)
 
-    assert response == 201
     assert response.status_code == 201
     # add should NOT be called since the instance already exists
     mock_db.add.assert_not_called()
