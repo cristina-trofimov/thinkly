@@ -15,7 +15,7 @@ const Testcases = (
 ) => {
     const {
         testcases, addTestcase, removeTestcase,
-        updateTestcase, activeTestcase, setActiveTestcase
+        updateTestcase, 
     } = useTestcases(question_id)
 
     const { trackTestcaseAdded, trackTestcaseRemoved } = useAnalytics()
@@ -38,7 +38,7 @@ const Testcases = (
     }
 
     return (
-        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase}
+        <Tabs key="all-testcase-tabs"
         >
             <div key="testcases-triggers" className='flex'>
                 <TabsList className='w-full flex gap-2'>
