@@ -289,6 +289,7 @@ class MostRecentSubmission(Base):
     user_question_instance_id: Mapped[int] = mapped_column(
         ForeignKey('user_question_instance.user_question_instance_id', ondelete='CASCADE'))
     code: Mapped[str] = mapped_column()
+    submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     lang_judge_id: Mapped[int] = mapped_column(ForeignKey(FK_LANGUAGE_LANG_JUDGE_ID, ondelete='CASCADE'))
 
     user_question_instance: Mapped[UserQuestionInstance] = relationship('UserQuestionInstance', back_populates='most_recent_submission',
