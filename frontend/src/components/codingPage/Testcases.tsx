@@ -6,6 +6,7 @@ import { Button } from '../ui/button'
 import { useTestcases } from '../helpers/useTestcases'
 import { useEffect } from 'react'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import type { TestCase } from '@/types/questions/QuestionPagination.type'
 
 
 const Testcases = (
@@ -14,7 +15,7 @@ const Testcases = (
 ) => {
     const {
         testcases, addTestcase, removeTestcase,
-        updateTestcase, activeTestcase, setActiveTestcase
+        updateTestcase, 
     } = useTestcases(question_id)
 
     const { trackTestcaseAdded, trackTestcaseRemoved } = useAnalytics()
@@ -31,17 +32,18 @@ const Testcases = (
         trackTestcaseAdded(question_id)
     }
 
-    const handleRemoveTestcase = (caseID: string) => {
-        removeTestcase(caseID)
+    const handleRemoveTestcase = (tc: TestCase) => {
+        removeTestcase(tc)
         trackTestcaseRemoved(question_id)
     }
 
     return (
-        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase}>
+        <Tabs key="all-testcase-tabs"
+        >
             <div key="testcases-triggers" className='flex'>
                 <TabsList className='w-full flex gap-2'>
-                    {testcases?.map((tc) => (
-                        <TabsTrigger value={tc?.caseID} key={`trigger-${tc?.caseID}`} data-testid={`trigger-${tc?.caseID}`}
+                    {testcases?.map((tc, idx) => (
+                        <TabsTrigger value={`Case ${idx+1}`} key={`trigger-case-${idx+1}`} data-testid={`trigger-case-${idx+1}`}
                             className='rounded-sm p-2 flex items-center gap-1
                             data-[state=active]:text-primary
                             hover:border-t-2 hover:border-primary/40 hover:bg-muted
@@ -53,9 +55,9 @@ const Testcases = (
                             dark:data-[state=active]:border-primary
                             transition-all'
                         >
-                            {tc?.caseID}
+                            {`Case ${idx + 1}`}
                             <X size={16}
-                                onClick={() => handleRemoveTestcase(tc?.caseID)}
+                                onClick={() => handleRemoveTestcase(tc)}
                                 className='hover:text-red-700 rounded-full'
                             />
                         </TabsTrigger>
@@ -70,20 +72,17 @@ const Testcases = (
                     <Plus size={4} />
                 </Button>
             </div>
-            {testcases?.map((tc) => (
-                <TabsContent value={tc.caseID} key={`content-${tc.caseID}`} data-testid={`content-${tc.caseID}`}
+            {testcases?.map((tc, idx) => (
+                <TabsContent value={`Case ${idx+1}`} key={`content-${idx+1}`} data-testid={`content-${idx+1}`}
                     className='mt-3 space-y-6'
                 >
                     {Object.entries(tc.input_data).map(([key, val]) => (
                         <div key={`${key}-input-row`} className='flex flex-col gap-2'>
-                            <Label data-testid={`${tc.caseID}-${key}-label`}>
+                            <Label data-testid={`Case-${idx+1}-${key}-label`}>
                                 {key}
                             </Label>
-                            <Input key={key} value={`${val}`} data-testid={`${tc.caseID}-${key}-input`}
-                                onChange={(e) => {
-                                    updateTestcase(tc.caseID, "input_data", e.target.value)
-                                    console.log(tc.input_data)
-                                }}
+                            <Input key={key} value={`${val}`} data-testid={`Case-${idx+1}-${key}-input`}
+                                onChange={(e) => { updateTestcase(tc, "input_data", e.target.value) }}
                             />
                         </div>
                     ))}

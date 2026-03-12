@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { columns } from "../src/components/manageQuestions/ManageQuestionsColumns";
-import type { Question } from "./../src/types/questions/Question.type";
+import type { Question } from "./../src/types/questions/QuestionPagination.type";
 
 const mockQuestion: Question = {
   question_id: 1,
@@ -9,8 +9,8 @@ const mockQuestion: Question = {
   question_description: "Given an array of integers, return indices of the two numbers such that they add up to a specific target.",
   difficulty: "Easy",
   language_specific_properties: [],
-  tags: ["array", "hash-table"],
-  testcases: [
+  tags: [{ tag_id: 1, tag_name: "array" }, { tag_id: 2, tag_name: "hash-table" }],
+  test_cases: [
     { test_case_id: 1, question_id: 1, input_data: "[2,7,11,15], 9", expected_output: "[0,1]" },
     { test_case_id: 2, question_id: 1, input_data: "[3,2,4], 6", expected_output: "[1,2]" },
   ],

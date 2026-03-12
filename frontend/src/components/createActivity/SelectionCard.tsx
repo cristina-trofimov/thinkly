@@ -131,7 +131,7 @@ export function SelectionCard<T extends ItemWithId>(props: Readonly<SelectionCar
                         {/* Available Column */}
                         <Droppable droppableId={`${props.droppableIdPrefix}-available`}>
                             {(provided) => (
-                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-muted/50 p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-muted/50 p-4 min-h-50 max-h-100 overflow-y-auto">
                                     <div className="flex items-center justify-between mb-2">
                                         <Label className="text-[10px] uppercase text-muted-foreground font-bold">Available</Label>
                                         {props.availableItems.length > 0 && (
@@ -156,7 +156,7 @@ export function SelectionCard<T extends ItemWithId>(props: Readonly<SelectionCar
                         {/* Ordered Column */}
                         <Droppable droppableId={`${props.droppableIdPrefix}-ordered`}>
                             {(provided) => (
-                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-accent/50 border-accent p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                                <div {...provided.droppableProps} ref={provided.innerRef} className="border rounded-xl bg-accent/50 border-accent p-4 min-h-50 max-h-100 overflow-y-auto">
                                     <div className="flex items-center justify-between mb-2">
                                         <Label className="text-[10px] uppercase text-primary font-bold">Sequence</Label>
                                         {props.orderedItems.length > 0 && (

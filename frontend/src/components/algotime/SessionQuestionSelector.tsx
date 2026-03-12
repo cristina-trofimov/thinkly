@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react"
-import type { Question } from "../../types/questions/Question.type";
+import type { Question } from "../../types/questions/QuestionPagination.type";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns"

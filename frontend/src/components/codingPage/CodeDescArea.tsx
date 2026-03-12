@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
 import { Button } from '../ui/button'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
-import type { Question } from '@/types/questions/Question.type'
+import type { Question } from '@/types/questions/QuestionPagination.type'
 import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import type { MostRecentSub } from '@/types/submissions/MostRecentSub.type'
@@ -87,12 +87,11 @@ const CodeDescArea = (
         if (hasSolvedRiddle) {
             const FetchSubmissions = async () => {
                 const user = await getProfile()
-                // hardcoding for now
                 await getAllSubmissions(user.id, question_instance?.question_instance_id)
                     .then((response) => {
                         setSubmissions(response)
                     })
-                await getAllLanguages()
+                await getAllLanguages(null)
                     .then((response) => {
                         setLanguages(response)
                     })

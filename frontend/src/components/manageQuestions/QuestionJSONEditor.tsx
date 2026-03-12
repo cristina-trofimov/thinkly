@@ -2,7 +2,7 @@ import { Editor } from "@monaco-editor/react";
 import { getQuestionByID, updateQuestion } from "@/api/QuestionsAPI";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
+import { getQuestionFields, type EditableQuestionFields, type TagResponse } from "@/types/questions/QuestionPagination.type";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -257,10 +257,8 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
   if (!Array.isArray(data.tags)) {
     throw new QuestionPayloadValidationError("Tags must be an array");
   }
-  if (data.tags.some((tag: unknown) => typeof tag !== "string")) {
-    throw new QuestionPayloadValidationError("All tags must be strings");
-  }
-  const tags = data.tags as string[];
+
+  const tags = data.tags as TagResponse[];
 
   if (!Array.isArray(data.language_specific_properties)) {
     throw new QuestionPayloadValidationError("Language_specific_properties must be an array");

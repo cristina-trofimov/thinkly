@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
-import { Question } from '../src/types/questions/Question.type'
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/submissions/MostRecentSub.type'
 import { CodeRunResponse } from '../src/types/submissions/CodeRunResponse.type'
@@ -175,8 +175,8 @@ const mockProblem: Question = {
     media: "string",
     difficulty: "Easy",
     language_specific_properties: [],
-    tags: [],
-    testcases: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date("2025-10-28T10:00:00Z"),
     last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
-import type { Question } from '@/types/questions/Question.type';
+import type { Question } from '@/types/questions/QuestionPagination.type';
 import { useTestcases } from '../components/helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import Loader from '../components/helpers/Loader';
@@ -186,7 +186,7 @@ const CodingView = () => {
       try {
         const user = await getProfile()
 
-        await getAllLanguages()
+        await getAllLanguages(true)
         .then((response) => {
           setLanguages(response)
         })
@@ -328,8 +328,8 @@ const CodingView = () => {
   const [code, setCode] = useState<string>('')
 
   // Reset editor to language's default code on language change
-  // Will be needed later
   // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  // ^^ Will be needed later
 
   useEffect(() => {
     if (mostRecentSub) {
@@ -499,7 +499,8 @@ const CodingView = () => {
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <div data-testid='language-btn'
-                        className="bg-background text-foreground text-base font-bold h-7
+                        // className="bg-background text-foreground text-base font-bold h-7
+                        className="bg-background text-muted-foreground text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
                       >
@@ -510,6 +511,7 @@ const CodingView = () => {
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
                         className="z-10 text-sm bg-muted-foreground text-foreground w-26 border rounded-lg"
+                        // className="z-10 text-sm bg-muted w-26 border rounded-lg"
                       >
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
@@ -528,9 +530,8 @@ const CodingView = () => {
                 key={selectedLang?.monaco_id}
                 language={selectedLang?.monaco_id}
                 value={code}
-                theme="vs-dark"
-                // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
-                onChange={(value) => { setCode(value ?? 'templateCode') }}
+                theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
+                onChange={(value) => { setCode(value ?? 'templateCode') }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
                 options={{
                   fontSize: 14,
                   automaticLayout: true,

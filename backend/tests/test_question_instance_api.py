@@ -217,7 +217,6 @@ def test_update_existing_question_instance(client, mock_db):
     )
 
     mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = existing
-    # mock_db.query.return_value.filter_by.return_value.first.return_value = existing
 
     def fake_refresh(instance):
         instance = instance

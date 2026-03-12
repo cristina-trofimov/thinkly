@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { EditableQuestionFields, Question } from "@/types/questions/Question.type";
+import type { EditableQuestionFields, Question } from "@/types/questions/QuestionPagination.type";
 import ActionsCell from "./QuestionActionsCell";
 
 const difficultyOrder: Record<string, number> = {
