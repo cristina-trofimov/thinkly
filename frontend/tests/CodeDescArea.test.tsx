@@ -2,7 +2,7 @@ import React from 'react'
 import '@testing-library/jest-dom'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { Question } from '../src/types/questions/Question.type'
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { getProfile } from '../src/api/AuthAPI'
@@ -162,8 +162,8 @@ const mockProblem: Question = {
   media: "string",
   difficulty: "Easy",
   language_specific_properties: [],
-  tags: [],
-  testcases: [],
+  tags: [] as TagResponse[],
+  test_cases: [] as TestCase[],
   created_at: new Date("2025-10-28T10:00:00Z"),
   last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }

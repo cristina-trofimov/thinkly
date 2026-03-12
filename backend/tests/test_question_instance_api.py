@@ -152,9 +152,9 @@ def test_get_all_question_instances_db_error(client, mock_db):
     assert "Failed to retrieve question instances associated to an event" in response.json()["detail"]
 
 
-# --- POST /update TESTS ---
+# --- PUT /put TESTS ---
 
-def test_create_question_instance_no_event_id(client, mock_db):
+def test_push_question_instance_no_event_id(client, mock_db):
     """Test creating a practice instance (event_id is None) — always inserts."""
     payload = {
         "question_id": 5,
@@ -168,7 +168,7 @@ def test_create_question_instance_no_event_id(client, mock_db):
 
     mock_db.refresh.side_effect = fake_refresh
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 201
     mock_db.add.assert_called_once()
@@ -178,7 +178,7 @@ def test_create_question_instance_no_event_id(client, mock_db):
     assert data["data"]["question_id"] == 5
     assert data["data"]["event_id"] is None
 
-def test_create_question_instance_new_with_event_id(client, mock_db):
+def test_put_question_instance_new_with_event_id(client, mock_db):
     """Test creating a new instance when one doesn't exist yet for the event."""
     payload = {
         "question_id": 5,
@@ -195,7 +195,7 @@ def test_create_question_instance_new_with_event_id(client, mock_db):
 
     mock_db.refresh.side_effect = fake_refresh
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 201
     mock_db.add.assert_called_once()
@@ -217,21 +217,22 @@ def test_update_existing_question_instance(client, mock_db):
     )
 
     mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = existing
-    mock_db.query.return_value.filter_by.return_value.first.return_value = existing
+    # mock_db.query.return_value.filter_by.return_value.first.return_value = existing
 
     def fake_refresh(instance):
-        pass  # attributes already set on existing by the endpoint
+        instance = instance
 
     mock_db.refresh.side_effect = fake_refresh
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
+    assert response == 201
     assert response.status_code == 201
     # add should NOT be called since the instance already exists
     mock_db.add.assert_not_called()
     mock_db.commit.assert_called_once()
 
-def test_create_question_instance_db_error(client, mock_db):
+def test_put_question_instance_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
         "question_id": 5,
@@ -241,15 +242,15 @@ def test_create_question_instance_db_error(client, mock_db):
 
     mock_db.commit.side_effect = Exception("Commit Failed")
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 500
-    assert "Failed to upload question instance" in response.json()["detail"]
+    assert "Failed to push question instance" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
-def test_create_question_instance_missing_fields(client):
+def test_put_question_instance_missing_fields(client):
     """Test that a malformed request body returns 422 or 500."""
     # Sending completely wrong data
-    response = client.post("/update", json={"bad_field": "value"})
+    response = client.put("/put", json={"bad_field": "value"})
     # Will raise a KeyError internally -> 500
     assert response.status_code in (422, 500)

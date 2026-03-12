@@ -1,10 +1,10 @@
 import axiosClient from "@/lib/axiosClient"
-import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 import type { SubmissionType } from "@/types/SubmissionType.type"
 import { logFrontend } from "./LoggerAPI"
+import type { TestCase } from "@/types/questions/QuestionPagination.type"
 
 
 export async function submitAttempt(
@@ -13,7 +13,7 @@ export async function submitAttempt(
     event_id: number | undefined,
     source_code: string,
     language_id: number | undefined,
-    testcases: TestcaseType[],
+    testcases: TestCase[],
 ): Promise<SubmitAttemptResponse> {
     try {
         if (!question_instance || !language_id) {

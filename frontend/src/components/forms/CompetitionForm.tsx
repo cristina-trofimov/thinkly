@@ -270,7 +270,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
-                    <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-[140px]">
+                    <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-35">
                         {isSubmitting ? "Processing..." : submitLabel}
                     </Button>
                 </div>

@@ -213,10 +213,10 @@ const CodeDescArea = (
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1'>
                                 <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {Object.entries(t.input_data).map(([key, val], idx) => {
+                                    {/* {Object.entries(t.input_data).map(([key, val], idx) => {
                                         const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
                                         return `${key} = ${JSON.stringify(val)}${separator}`
-                                    })}
+                                    })} */}
                                 </span></p>
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
                                     {JSON.stringify(t.expected_output, undefined, 2)}</span>

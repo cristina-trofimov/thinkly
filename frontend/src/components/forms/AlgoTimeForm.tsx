@@ -426,7 +426,7 @@ export const AlgoTimeSessionForm = ({
     if (formData.repeatType !== "none" && formData.repeatEndDate && generalData.date) {
       return (
         <Tabs value={activeSession} onValueChange={setActiveSession} className="w-full">
-          <div className="flex h-[500px] gap-6">
+          <div className="flex h-125 gap-6">
             <TabsList className="flex flex-col h-full w-48 shrink-0 justify-start overflow-y-auto rounded-none border-r border-gray-200 bg-transparent p-1 gap-1">
               {repeatSessions.map((session) => (
                 <TabsTrigger

@@ -1,12 +1,12 @@
 import axiosClient from "../src/lib/axiosClient"
 import { submitToJudge0 } from "../src/api/Judge0API"
 import { getAllSubmissions, submitAttempt } from "../src/api/CodeSubmissionAPI"
-import type { TestcaseType } from "../src/types/questions/Testcases.type"
 import type { MostRecentSub } from "../src/types/MostRecentSub.type"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
 import { UserPreferences } from "../src/types/UserPreferences.type"
 import { SubmissionType } from "../src/types/SubmissionType.type"
 import { logFrontend } from "../src/api/LoggerAPI"
+import { TestCase } from "../src/types/questions/QuestionPagination.type"
 
 beforeAll(() => {
   Object.defineProperty(global, 'import', {
@@ -49,7 +49,7 @@ const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
 const language_id = 71
-const testcases: TestcaseType[] = [
+const testcases: TestCase[] = [
   {
     test_case_id: 1,
     question_id: 1,
@@ -58,7 +58,6 @@ const testcases: TestcaseType[] = [
       "target": 19
     },
     expected_output: "[1,2]",
-    caseID: 'Case 1'
   },
   {
     test_case_id: 2,
@@ -68,7 +67,6 @@ const testcases: TestcaseType[] = [
       "target": 9
     },
     expected_output: "[0,1]",
-    caseID: 'Case 2'
   },
 ]
 

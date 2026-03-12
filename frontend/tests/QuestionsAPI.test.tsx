@@ -12,6 +12,7 @@ import {
   updateQuestion,
 } from "../src/api/QuestionsAPI";
 import { logFrontend } from "../src/api/LoggerAPI";
+import { TagResponse, TestCase } from "../src/types/questions/QuestionPagination.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -73,8 +74,8 @@ describe("QuestionsAPI", () => {
           media: null,
           difficulty: "Easy",
           language_specific_properties: [],
-          tags: [],
-          testcases: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           created_at: new Date("2025-01-01T00:00:00Z"),
           last_modified_at: new Date("2025-01-01T00:00:00Z"),
         },
@@ -443,8 +444,8 @@ describe("QuestionsAPI", () => {
           question_description: "D",
           media: null,
           language_specific_properties: [],
-          tags: [],
-          testcases: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           difficulty: "Easy",
           created_at: new Date(),
           last_modified_at: new Date(),
@@ -472,8 +473,8 @@ describe("QuestionsAPI", () => {
         media: null,
         difficulty: "medium",
         language_specific_properties: [],
-        tags: ["tag"],
-        testcases: [{ input_data: "in", expected_output: "out" }],
+        tags: [] as TagResponse[],
+        testcases: [] as TestCase[],
       });
 
       expect(mockedAxios.put).toHaveBeenCalledWith("/questions/update-question/5", {
@@ -482,8 +483,8 @@ describe("QuestionsAPI", () => {
         media: null,
         difficulty: "medium",
         language_specific_properties: [],
-        tags: ["tag"],
-        testcases: [{ input_data: "in", expected_output: "out" }],
+        tags: [] as TagResponse[],
+        testcases: [] as TestCase[],
       });
     });
 

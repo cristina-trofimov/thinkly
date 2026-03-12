@@ -212,12 +212,11 @@ export async function getTestcases(
       }[]
     >(`/questions/get-all-testcases/${question_id}`);
 
-    return response.data.map((testcase, index) => ({
+    return response.data.map((testcase) => ({
       test_case_id: testcase.test_case_id,
       question_id: testcase.question_id,
       input_data: testcase.input_data,
       expected_output: testcase.expected_output,
-      // caseID: `Case ${index + 1}`,
     }));
   } catch (err) {
     console.error("Error fetching testcases:", err);

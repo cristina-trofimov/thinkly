@@ -1,12 +1,12 @@
 import axiosClient from "@/lib/axiosClient";
-import type { TestcaseType } from "@/types/questions/Testcases.type";
 import { updateMostRecentSub } from "./MostRecentSubAPI";
 import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
+import type { TestCase } from "@/types/questions/QuestionPagination.type";
 
 
-export function parse_input_output(testcases: TestcaseType[]) {
+export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
     let expected_output: string | null = ''
 
@@ -38,7 +38,7 @@ export async function submitToJudge0(
     question_instance_id: number | undefined,
     source_code: string,
     language_id: number | undefined,
-    testcases: TestcaseType[],
+    testcases: TestCase[],
 ): Promise<CodeRunResponse> {
     try {
         if (!question_instance_id || !language_id) {

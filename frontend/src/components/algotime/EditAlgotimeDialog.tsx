@@ -174,7 +174,7 @@ interface EditAlgoTimeSessionDialogProps {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogOverlay className="bg-white/10 backdrop-blur-sm" />
-        <DialogContent className={`max-h-[90vh] overflow-y-auto ${isEditing ? "!w-[95vw] !max-w-[95vw]" : "!w-[50vw] !max-w-[50vw]"}`}>
+        <DialogContent className={`max-h-[90vh] overflow-y-auto ${isEditing ? "w-[95vw]! max-w-[95vw]!" : "w-[50vw]! max-w-[50vw]!"}`}>
           <DialogHeader>
           <div className="flex items-center justify-between">
               <DialogTitle className="text-xl font-bold text-primary">

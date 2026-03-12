@@ -157,7 +157,7 @@ export function DataTable<TData extends Question, TValue>({
           placeholder="Search questions..."
           value={search}
           onChange={(event) => handleSearchChange(event.target.value)}
-          className="max-w-sm w-[250px]"
+          className="max-w-sm w-62.5"
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -8,7 +8,6 @@ export type TestCase = {
   question_id: number;
   input_data: unknown;
   expected_output: unknown;
-  // caseID: string
 }
 
 export type LanguageSpecificProperties = {
@@ -53,7 +52,7 @@ export type EditableQuestionFields = {
   media: string | null;
   difficulty: "easy" | "medium" | "hard";
   language_specific_properties: Array<EditableLanguageSpecificProperties>;
-  tags: string[];
+  tags: TagResponse[],
   testcases: Array<EditableTestCaseFields>;
 }
 
