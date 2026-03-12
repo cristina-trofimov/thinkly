@@ -38,7 +38,7 @@ const Testcases = (
     }
 
     return (
-        <Tabs key="all-testcase-tabs" //value={activeTestcase} onValueChange={setActiveTestcase}
+        <Tabs key="all-testcase-tabs" value={activeTestcase} onValueChange={setActiveTestcase}
         >
             <div key="testcases-triggers" className='flex'>
                 <TabsList className='w-full flex gap-2'>

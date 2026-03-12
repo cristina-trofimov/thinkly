@@ -71,6 +71,72 @@ def test_get_all_languages(client, mock_db):
     assert data["data"][0]["active"] == True
     assert data["data"][0]["monaco_id"] == "java"
 
+def test_get_all_active_languages(client, mock_db):
+    """Test fetching get all languages."""
+    langs = [
+        SimpleNamespace(
+            row_id = 2,
+            lang_judge_id = 51,
+            display_name = "Java",
+            active = True,
+            monaco_id = "java"
+        ),
+        SimpleNamespace(
+            row_id = 1,
+            lang_judge_id = 71,
+            display_name = "Python",
+            active = False,
+            monaco_id = "python"
+        )
+    ]
+
+    mock_db.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = [langs[1]]
+
+    response = client.get("/all?active=true")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status_code"] == 200
+    assert len(data["data"]) == 1
+    assert data["data"][0]["row_id"] == 1
+    assert data["data"][0]["lang_judge_id"] == 71
+    assert data["data"][0]["display_name"] == "Python"
+    assert data["data"][0]["active"] == False
+    assert data["data"][0]["monaco_id"] == "python"
+
+def test_get_all_active_languages(client, mock_db):
+    """Test fetching get all languages."""
+    langs = [
+        SimpleNamespace(
+            row_id = 2,
+            lang_judge_id = 51,
+            display_name = "Java",
+            active = True,
+            monaco_id = "java"
+        ),
+        SimpleNamespace(
+            row_id = 1,
+            lang_judge_id = 71,
+            display_name = "Python",
+            active = False,
+            monaco_id = "python"
+        )
+    ]
+
+    mock_db.query.return_value.filter_by.return_value.order_by.return_value.all.return_value = [langs[0]]
+
+    response = client.get("/all?active=true")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status_code"] == 200
+    assert len(data["data"]) == 1
+    assert data["data"][0]["row_id"] == 2
+    assert data["data"][0]["lang_judge_id"] == 51
+    assert data["data"][0]["display_name"] == "Java"
+    assert data["data"][0]["active"] == True
+    assert data["data"][0]["monaco_id"] == "java"
+
 def test_get_all_langs_empty(client, mock_db):
     """Test fetching languages that don't exist."""
     mock_db.query.return_value.order_by.return_value.all.return_value = []

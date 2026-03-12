@@ -204,6 +204,7 @@ const mockedUseTestcases = useTestcases as jest.Mock
 const mockedGetRiddleById = getRiddleById as jest.Mock
 const mockedGetProfile = getProfile as jest.Mock
 const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
+const mockedGetAllLanguages = getAllLanguages as jest.Mock
 
 // -------------------- SETUP --------------------
 
@@ -221,7 +222,7 @@ beforeEach(() => {
 
     mockedGetProfile.mockResolvedValue(mockProfile);
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions);
-    getAllLanguages.mockResolvedValue(languages);
+    mockedGetAllLanguages.mockResolvedValue(languages);
 });
 
 const setup = async (options: { 

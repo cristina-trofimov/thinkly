@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 from database_operations.database import get_db
 from models.schema import Language
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,15 @@ class LanguageModel(BaseModel):
 @languages_router.get("/all",
     responses={500: {"description": "Error retrieving languages."}}
 )
-def get_all_languages(db: Annotated[str, Depends(get_db)]):
+def get_all_languages(db: Annotated[str, Depends(get_db)], active: Annotated[bool, Query()] = None):
     try:
-        langs = db.query(Language).order_by(Language.display_name.asc()).all()
+        langs = db.query(Language)
+
+        if active is not None:
+            langs = langs.filter_by(active = active)
+
+        langs = langs.order_by(Language.display_name.asc()).all()
+
         logger.info(f"Fetched {len(langs)} languages from the database.")
 
         return {"status_code": 200, "data": [

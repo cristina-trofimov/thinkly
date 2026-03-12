@@ -2,12 +2,14 @@ import axiosClient from "@/lib/axiosClient";
 import type { Language } from "@/types/questions/Language.type";
 import { logFrontend } from "./LoggerAPI";
 
-export async function getAllLanguages(): Promise<Language[]> {
+export async function getAllLanguages(active: boolean | null): Promise<Language[]> {
   try {
     const response = await axiosClient.get<{
       status_code: number,
       data: Language[]
-    }>(`/lang/all`)
+    }>(`/lang/all`, {
+      params: { active: active }
+    })
 
     return response['data']['data'];
   } catch (err) {
