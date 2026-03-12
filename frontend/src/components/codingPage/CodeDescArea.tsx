@@ -219,7 +219,7 @@ const CodeDescArea = (
                                     })}
                                 </span></p>
                                 <p className='font-bold'>Outputs: <span className='font-normal'>
-                                    {(t.expected_output)}</span>
+                                    {JSON.stringify(t.expected_output, undefined, 2)}</span>
                                 </p>
                             </div>
                         </div>
