@@ -176,8 +176,8 @@ describe("QuestionsAPI", () => {
             media: null,
             difficulty: "Medium",
             language_specific_properties: [],
-            tags: [],
-            testcases: [],
+            tags: [] as TagResponse[],
+            test_cases: [] as TestCase[],
             created_at: new Date("2025-01-11T00:00:00Z"),
             last_modified_at: new Date("2025-01-11T00:00:00Z"),
           },
@@ -226,8 +226,8 @@ describe("QuestionsAPI", () => {
         created_at: new Date("2025-02-02T00:00:00Z"),
         last_modified_at: new Date("2025-02-02T00:00:00Z"),
         language_specific_properties: [],
-        tags: ["graph"],
-        testcases: [
+        tags: [{ tag_id: 1, tag_name: "graph"}],
+        test_cases: [
           {
             test_case_id: 1,
             question_id: 7,
@@ -275,7 +275,7 @@ describe("QuestionsAPI", () => {
         {
           language_id: 1,
           question_id: 8,
-          language_name: "Python",
+          language_display_name: "Python",
           preset_code: "def solve():\n    pass",
           template_solution: "def solve():\n    return 1",
           from_json_function: "def from_json(v): return v",
@@ -532,7 +532,6 @@ describe("QuestionsAPI", () => {
           question_id: 1,
           input_data: { a: [1, 2], b: 6 },
           expected_output: "",
-          caseID: "Case 1",
         },
       ]);
     });

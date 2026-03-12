@@ -76,7 +76,7 @@ const Testcases = (
                 <TabsContent value={`Case ${idx+1}`} key={`content-${idx+1}`} data-testid={`content-${idx+1}`}
                     className='mt-3 space-y-6'
                 >
-                    {/* {Object.entries(tc.input_data).map(([key, val]) => (
+                    {Object.entries(tc.input_data).map(([key, val]) => (
                         <div key={`${key}-input-row`} className='flex flex-col gap-2'>
                             <Label data-testid={`Case-${idx+1}-${key}-label`}>
                                 {key}
@@ -85,7 +85,7 @@ const Testcases = (
                                 onChange={(e) => { updateTestcase(tc, "input_data", e.target.value) }}
                             />
                         </div>
-                    ))} */}
+                    ))}
                 </TabsContent>
             ))}
         </Tabs>

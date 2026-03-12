@@ -186,7 +186,7 @@ const CodingView = () => {
       try {
         const user = await getProfile()
 
-        await getAllLanguages()
+        await getAllLanguages(true)
         .then((response) => {
           setLanguages(response)
         })
@@ -416,7 +416,7 @@ const CodingView = () => {
           <DropdownMenu data-testid='questions-dropdown'>
             <DropdownMenuTrigger
               data-testid='questions-btn'
-              className="bg-background text-black text-base font-bold h-7
+              className="bg-background text-muted-foreground text-base font-bold h-7
                 flex items-center gap-2 rounded-md p-2
                 hover:bg-primary/20 focus:bg-primary/55"
             >
@@ -498,7 +498,7 @@ const CodingView = () => {
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <div data-testid='language-btn'
-                        className="bg-background text-black text-base font-bold h-7
+                        className="bg-background text-muted-foreground text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
                       >
@@ -508,7 +508,7 @@ const CodingView = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
-                        className="z-10 text-sm bg-white w-26 border rounded-lg"
+                        className="z-10 text-sm bg-muted w-26 border rounded-lg"
                       >
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}

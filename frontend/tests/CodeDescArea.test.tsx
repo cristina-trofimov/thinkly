@@ -10,8 +10,10 @@ import { Account } from '../src/types/account/Account.type'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
 import { SubmissionType } from '../src/types/SubmissionType.type'
 import { getAllSubmissions } from '../src/api/CodeSubmissionAPI'
+import { getAllLanguages } from '../src/api/LanguageAPI'
 import { getRiddleById } from '../src/api/RiddlesAPI'
 import { describe } from 'node:test'
+import { Language } from '../src/types/questions/Language.type'
 
 // -------------------- MOCKS --------------------
 
@@ -19,6 +21,10 @@ jest.mock('../src/components/helpers/useTestcases')
 
 jest.mock('../src/api/RiddlesAPI', () => ({
     getRiddleById: jest.fn()
+}))
+
+jest.mock('../src/api/LanguageAPI', () => ({
+  getAllLanguages: jest.fn()
 }))
 
 jest.mock('@/hooks/useAnalytics', () => ({
@@ -86,13 +92,6 @@ jest.mock("../src/components/ui/table", () => ({
     TableCell: ({ children, className }: any) => <td className={className}>{children}</td>,
 }))
 
-// jest.mock('../src/components/helpers/UseStateCallback', () => ({
-//     useStateCallback: (initial: any) => {
-//         const [state, setState] = React.useState(initial)
-//         return [state, (v: any) => setState(v), jest.fn()]
-//     }
-// }))
-
 jest.mock('../src/components/leaderboards/CurrentLeaderboard', () => ({
     __esModule: true,
     CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
@@ -155,6 +154,23 @@ const mockSubmissions: SubmissionType[] = [
     }
 ]
 
+const languages: Language[] = [
+  {
+    row_id: 1,
+    lang_judge_id: 71,
+    display_name: "Python",
+    monaco_id: "python",
+    active: true
+  },
+  {
+    row_id: 2,
+    lang_judge_id: 51,
+    display_name: "Java",
+    monaco_id: "java",
+    active: false
+  },
+]
+
 const mockProblem: Question = {
   question_id: problem_id,
   question_name: "Sum Problem",
@@ -205,6 +221,7 @@ beforeEach(() => {
 
     mockedGetProfile.mockResolvedValue(mockProfile);
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions);
+    getAllLanguages.mockResolvedValue(languages);
 });
 
 const setup = async (options: { 
