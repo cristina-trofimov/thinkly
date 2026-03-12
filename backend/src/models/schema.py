@@ -34,10 +34,7 @@ class UserAccount(Base):
     algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry',
                                                                                         back_populates='user_account',
                                                                                         uselist=True)
-    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='user_account', uselist=True)
-    most_recent_submission: Mapped[List[MostRecentSubmission]] = relationship('MostRecentSubmission',
-                                                                              back_populates='user_account',
-                                                                              uselist=True)
+    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance', back_populates='user_account', uselist=True)
 
 
 class UserPreferences(Base):
@@ -220,25 +217,6 @@ class Riddle(Base):
     riddle_answer: Mapped[str] = mapped_column()
     riddle_file: Mapped[Optional[str]] = mapped_column()
 
-
-class QuestionInstance(Base):
-    __tablename__ = 'question_instance'
-
-    question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
-    event_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), nullable=True)
-    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete=ON_DELETE_SET_NULL))
-
-    question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
-    riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
-    event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
-    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='question_instance', uselist=True)
-    most_recent_submission: Mapped[List[MostRecentSubmission]] = relationship('MostRecentSubmission', back_populates='question_instance', uselist=True)
-
-    __table_args__ = (
-        UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
-    )
-
 class Language(Base):
     __tablename__ = 'language'
 
@@ -252,33 +230,46 @@ class Language(Base):
 
     __table_args__ = (UniqueConstraint('lang_judge_id', 'display_name', name='uix_language'),)
 
+class QuestionInstance(Base):
+    __tablename__ = 'question_instance'
 
-class MostRecentSubmission(Base):
-    __tablename__ = 'most_recent_submission'
+    question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'))
+    event_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'), nullable=True)
+    riddle_id: Mapped[Optional[int]] = mapped_column(ForeignKey('riddle.riddle_id', ondelete=ON_DELETE_SET_NULL))
 
-    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
+    riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
+    event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
+    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance', back_populates='question_instance', uselist=True)
+
+    __table_args__ = (UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),)
+
+class UserQuestionInstance(Base):
+    __tablename__ = 'user_question_instance'
+
+    user_question_instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
     question_instance_id: Mapped[int] = mapped_column(
         ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
-    code: Mapped[str] = mapped_column()
-    lang_judge_id: Mapped[int] = mapped_column(
-        ForeignKey(FK_LANGUAGE_LANG_JUDGE_ID, ondelete='CASCADE'))
+    points: Mapped[Optional[int]] = mapped_column(nullable=True)
+    riddle_complete: Mapped[Optional[bool]] = mapped_column(nullable=True)
+    lapse_time: Mapped[Optional[int]] = mapped_column(nullable=True)
+    attempts: Mapped[Optional[int]] = mapped_column(nullable=True)
 
-    question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance',
-                                                               back_populates='most_recent_submission',
+    question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='user_question_instances',
                                                                uselist=False)
-    __table_args__ = (UniqueConstraint('question_instance_id', 'user_id', name='uix_most_recent_submission'),)
-    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='most_recent_submission',
+    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='user_question_instances',
                                                      uselist=False)
-
+    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='user_question_instance', uselist=True)
+    most_recent_submission: Mapped[MostRecentSubmission] = relationship('MostRecentSubmission', back_populates='user_question_instance', uselist=False)
 
 class Submission(Base):
     __tablename__ = 'submission'
 
     submission_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID))
-    question_instance_id: Mapped[int] = mapped_column(
-        ForeignKey('question_instance.question_instance_id', ondelete='CASCADE'))
+    user_question_instance_id: Mapped[int] = mapped_column(
+        ForeignKey('user_question_instance.user_question_instance_id', ondelete='CASCADE'))
     compile_output: Mapped[str | None] = mapped_column(nullable=True)
     submitted_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
     runtime: Mapped[Optional[int]] = mapped_column(nullable=True)
@@ -288,10 +279,22 @@ class Submission(Base):
     stdout: Mapped[Optional[str]] = mapped_column(nullable=True)
     stderr: Mapped[Optional[str]] = mapped_column(nullable=True)
 
-    question_instance: Mapped[QuestionInstance] = relationship('QuestionInstance', back_populates='submissions',
+    user_question_instance: Mapped[UserQuestionInstance] = relationship('UserQuestionInstance', back_populates='submissions',
                                                                uselist=False)
-    user_account: Mapped[UserAccount] = relationship('UserAccount', back_populates='submissions',
-                                                     uselist=False)
+
+class MostRecentSubmission(Base):
+    __tablename__ = 'most_recent_submission'
+
+    row_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_question_instance_id: Mapped[int] = mapped_column(
+        ForeignKey('user_question_instance.user_question_instance_id', ondelete='CASCADE'))
+    code: Mapped[str] = mapped_column()
+    lang_judge_id: Mapped[int] = mapped_column(ForeignKey(FK_LANGUAGE_LANG_JUDGE_ID, ondelete='CASCADE'))
+
+    user_question_instance: Mapped[UserQuestionInstance] = relationship('UserQuestionInstance', back_populates='most_recent_submission',
+                                                               uselist=False)
+    __table_args__ = (UniqueConstraint('user_question_instance_id', name='uix_most_recent_submission'),)
+
 
 class CompetitionLeaderboardEntry(Base):
     __tablename__ = 'competition_leaderboard_entry'
