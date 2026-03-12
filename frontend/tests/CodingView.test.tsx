@@ -304,6 +304,8 @@ describe('CodingView Component without event', () => {
             activeTestcase: 'Case 1',
             setActiveTestcase,
         })
+
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', async () => {
@@ -428,12 +430,19 @@ describe('CodingView Component without event', () => {
 
         render(<CodingView />)
 
+        // Wait for the async init chain to complete:
+        // getQuestionInstance resolves → setQuestionsInstances → effect sets activeQuestionInstance
+        // Without this, submitCode hits the !activeQuestionInstance guard and never calls submitAttempt
+        await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument())
+
         expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
 
-        expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
+        await waitFor(() => {
+            expect(submitAttempt).toHaveBeenCalled()
+            expect(getProfile).toHaveBeenCalled()
+        })
 
         expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message)
         expect(toast.warning).not.toHaveBeenCalled()
@@ -445,12 +454,17 @@ describe('CodingView Component without event', () => {
 
         render(<CodingView />)
 
+        // Same as above - wait for activeQuestionInstance to be set before clicking
+        await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument())
+
         expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
 
-        expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
+        await waitFor(() => {
+            expect(submitAttempt).toHaveBeenCalled()
+            expect(getProfile).toHaveBeenCalled()
+        })
 
         expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message)
         expect(toast.success).not.toHaveBeenCalled()
