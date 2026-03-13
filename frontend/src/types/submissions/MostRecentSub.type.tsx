@@ -1,6 +1,7 @@
 export type MostRecentSub = {
-    user_id: number,
-    question_instance_id: number,
+    row_id: number,
+    user_question_instance_id: number,
     code: string,
+    submitted_on: Date,
     lang_judge_id: number,
 }
