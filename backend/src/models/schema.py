@@ -233,11 +233,9 @@ class QuestionInstance(Base):
     question: Mapped[Question] = relationship('Question', back_populates='question_instances', uselist=False)
     riddle: Mapped[Optional[Riddle]] = relationship('Riddle', uselist=False)
     event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='question_instances', uselist=False)
-    submissions: Mapped[List[Submission]] = relationship('Submission', back_populates='question_instance', uselist=True)
-    most_recent_submission: Mapped[List[MostRecentSubmission]] = relationship('MostRecentSubmission', back_populates='question_instance', uselist=True)
-    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance',
-                                                                               back_populates='question_instance',
-                                                                               uselist=True)
+    submissions: Mapped[List[Submission]] = relationship('Submission', primaryjoin='QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id', secondary='user_question_instance', secondaryjoin='UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id', uselist=True, viewonly=True,)
+    most_recent_submission: Mapped[List[MostRecentSubmission]] = relationship('MostRecentSubmission', primaryjoin='QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id', secondary='user_question_instance', secondaryjoin='UserQuestionInstance.user_question_instance_id == MostRecentSubmission.user_question_instance_id', uselist=True, viewonly=True,)
+    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance', back_populates='question_instance', uselist=True)
 
     __table_args__ = (
         UniqueConstraint('question_id', 'event_id', name='uix_question_instance'),
