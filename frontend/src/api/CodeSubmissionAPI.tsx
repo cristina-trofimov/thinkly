@@ -1,10 +1,10 @@
 import axiosClient from "@/lib/axiosClient"
-import type { TestcaseType } from "@/types/questions/Testcases.type"
 import { submitToJudge0 } from "./Judge0API"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
 import type { SubmitAttemptResponse } from "@/types/SubmitAttemptResponse.type"
 import type { SubmissionType } from "@/types/SubmissionType.type"
 import { logFrontend } from "./LoggerAPI"
+import type { TestCase } from "@/types/questions/QuestionPagination.type"
 
 
 export async function submitAttempt(
@@ -12,12 +12,12 @@ export async function submitAttempt(
     user_id: number,
     event_id: number | undefined,
     source_code: string,
-    language_id: string,
-    testcases: TestcaseType[],
+    language_id: number | undefined,
+    testcases: TestCase[],
 ): Promise<SubmitAttemptResponse> {
     try {
-        if (!question_instance) {
-            throw new Error("SubmitAttempt: Question instance cannot be undefined")
+        if (!question_instance || !language_id) {
+            throw new Error("SubmitAttempt: Question instance and language cannot be undefined")
         }
         if(event_id) {
             // 1.a Competition/Algotime points calculation

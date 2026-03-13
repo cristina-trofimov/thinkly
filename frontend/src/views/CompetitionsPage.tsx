@@ -243,7 +243,7 @@ export default function CompetitionsPage() {
                     </span>
                   </div>
                   <div className="relative z-10 text-center w-full">
-                    <div className={`text-xl md:text-2xl font-bold break-words leading-tight ${getTitleColor(status)}`}>
+                    <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}>
                       {title}
                     </div>
                   </div>
@@ -322,7 +322,7 @@ export default function CompetitionsPage() {
 
       {/* Leaderboard Modal */}
       <Dialog open={modal?.type === "leaderboard"} onOpenChange={(open) => { if (!open) setModal(null); }}>
-        <DialogContent className="sm:!max-w-3xl w-full">
+        <DialogContent className="sm:max-w-3xl! w-full">
           <DialogHeader>
             <DialogTitle className="text-primary">
               {modal?.type === "leaderboard" ? (modal.competition.competitionTitle || "Competition") : ""}

@@ -10,8 +10,8 @@ export async function updateQuestionInstance(
   }
 
   try {
-    const response = await axiosClient.post(
-      "/instances/update",
+    const response = await axiosClient.put(
+      "/instances/put",
       {
         question_id: question_instance.question_id,
         event_id: question_instance.event_id,
@@ -24,7 +24,7 @@ export async function updateQuestionInstance(
   } catch (err) {
     logFrontend({
       level: "ERROR",
-      message: `Failed to update question instance. Reason: ${err}`,
+      message: `An error occurred when updating question instance. Reason: ${err}`,
       component: "QuestionInstanceAPI",
       url: globalThis.location.href,
       stack: (err as Error).stack,
@@ -52,7 +52,7 @@ export async function getQuestionInstance(
   } catch (err) {
     logFrontend({
       level: "ERROR",
-      message: `Failed to fetching question instance. Reason: ${err}`,
+      message: `An error occurred when fetching question instance. Reason: ${err}`,
       component: "QuestionInstanceAPI",
       url: globalThis.location.href,
       stack: (err as Error).stack,

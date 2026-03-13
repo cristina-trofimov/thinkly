@@ -1,7 +1,6 @@
 import React from "react";
 import { getProfile, isGoogleAccount } from "@/api/AuthAPI";
-import { updateAccount, getUserPreferences, updateUserPreferences } from "@/api/AccountsAPI";
-import type { UserPreferences } from "@/api/AccountsAPI";
+import { updateAccount } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -27,6 +26,8 @@ import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import type { UserPreferences } from "@/types/UserPreferences.type";
+import { getUserPrefs, updateAllPrefs } from "@/api/UserPreferencesAPI";
 
 // Extending the local Account type to include the Google provider check
 interface ProfileAccount extends Account {
@@ -136,10 +137,16 @@ function ProfilePage() {
   const [preferences, setPreferences] = React.useState<UserPreferences>({
     theme: storedTheme ?? "light",
     notifications_enabled: true,
+    last_used_programming_language: null,
+    pref_id: -1,
+    user_id: -1
   });
   const [savedPreferences, setSavedPreferences] = React.useState<UserPreferences>({
     theme: storedTheme ?? "light",
     notifications_enabled: true,
+    last_used_programming_language: null,
+    pref_id: -1,
+    user_id: -1
   });
   const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
   const navigate = useNavigate();
@@ -189,7 +196,7 @@ function ProfilePage() {
 
         // Fetch preferences after we have the user id
         try {
-          const prefs = await getUserPreferences(currentAccount.id);
+          const prefs = await getUserPrefs(currentAccount.id);
           setPreferences(prefs);
           setSavedPreferences(prefs);
         } catch {
@@ -249,7 +256,7 @@ function ProfilePage() {
     if (!user) return;
     setIsSavingPrefs(true);
     try {
-      const updated = await updateUserPreferences(user.id, preferences);
+      const updated = await updateAllPrefs(preferences);
       setPreferences(updated);
       setSavedPreferences(updated);
       toast.success("Preferences saved.");

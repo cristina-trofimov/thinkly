@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import QuestionActionsCell from "../src/components/manageQuestions/QuestionActionsCell";
+import { TagResponse, TestCase } from "../src/types/questions/QuestionPagination.type";
 
 const mockNavigate = jest.fn();
 
@@ -41,8 +42,8 @@ describe("QuestionActionsCell", () => {
           media: null,
           language_specific_properties: [],
           difficulty: "Easy",
-          tags: [],
-          testcases: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           created_at: new Date("2025-01-01"),
           last_modified_at: new Date("2025-01-01"),
         }}
@@ -71,8 +72,8 @@ describe("QuestionActionsCell", () => {
           media: null,
           language_specific_properties: [],
           difficulty: "Easy",
-          tags: [],
-          testcases: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           created_at: new Date("2025-01-01"),
           last_modified_at: new Date("2025-01-01"),
         }}

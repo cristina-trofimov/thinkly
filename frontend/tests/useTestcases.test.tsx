@@ -2,6 +2,7 @@ import { renderHook, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { getTestcases } from '../src/api/QuestionsAPI'
 import { useTestcases } from '../src/components/helpers/useTestcases'
+import { TestCase } from '../src/types/questions/QuestionPagination.type'
 
 
 jest.mock('../src/api/QuestionsAPI', () => ({
@@ -12,28 +13,28 @@ const mockTestcases = [
   {
     test_case_id: 1,
     question_id: 1,
-    caseID: 'Case 1',
     input_data: {
       a: 10,
       b: 20,
     },
+    expected_output: "12"
   },
   {
     test_case_id: 2,
     question_id: 1,
-    caseID: 'Case 2',
     input_data: {
       x: 5,
       y: 5,
     },
+    expected_output: "123"
   },
   {
-    test_case_id: 2,
+    test_case_id: 3,
     question_id: 1,
-    caseID: 'Case 3',
     input_data: {
       k: "kjb"
     },
+    expected_output: "12df"
   },
 ]
 
@@ -70,7 +71,7 @@ describe('useTestcases hooks', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.activeTestcase).toBe("Case 1")
+    expect(result.current.activeTestcase).toBe(mockTestcases[0])
   })
 
   it('addTestcase and set the new case as the active case', async () => {
@@ -89,7 +90,12 @@ describe('useTestcases hooks', () => {
     })
 
     expect(result.current.testcases.length).toBe(4)
-    expect(result.current.activeTestcase).toBe("Case 4")
+    expect(result.current.activeTestcase).toEqual({
+      "expected_output": "",
+      "input_data": {},
+      "question_id": -1,
+      "test_case_id": -1,
+    } as TestCase)
   })
 
   it('updateTestcase changes the given value if the case is found', async () => {
@@ -104,7 +110,7 @@ describe('useTestcases hooks', () => {
     })
 
     act(() => {
-      result.current.updateTestcase("Case 1", "input_data", "99")
+      result.current.updateTestcase(mockTestcases[0], "input_data", "99")
     })
 
     expect(result.current.testcases[0].input_data).toEqual("99")
@@ -122,7 +128,7 @@ describe('useTestcases hooks', () => {
     })
 
     act(() => {
-      result.current.updateTestcase("Case 6", "input_data", "99")
+      result.current.updateTestcase(undefined, "input_data", "99")
     })
 
     expect(result.current.testcases).toEqual(mockTestcases)
@@ -148,7 +154,7 @@ describe('useTestcases hooks', () => {
     })
 
     act(() => {
-      result.current.removeTestcase("Case 1")
+      result.current.removeTestcase(mockTestcases[0])
     })
 
     expect(result.current.testcases.length).toBe(1)
@@ -166,7 +172,7 @@ describe('useTestcases hooks', () => {
     })
 
     act(() => {
-      result.current.removeTestcase("Case 3")
+      result.current.removeTestcase(mockTestcases[2])
     })
 
     expect(result.current.testcases.length).toBe(2)
@@ -174,23 +180,23 @@ describe('useTestcases hooks', () => {
       {
         test_case_id: 1,
         question_id: 1,
-        caseID: 'Case 1',
         input_data: {
           a: 10,
           b: 20,
         },
+        expected_output: "12"
       },
       {
         test_case_id: 2,
         question_id: 1,
-        caseID: 'Case 2',
         input_data: {
           x: 5,
           y: 5,
         },
+        expected_output: "123"
       },
     ])
-    expect(result.current.activeTestcase).toBe("Case 2")
+    expect(result.current.activeTestcase).toBe(mockTestcases[0])
   })
 
   it('removes active testcase, renumbers the remaining, and set new active case', async () => {
@@ -205,13 +211,13 @@ describe('useTestcases hooks', () => {
     })
 
     act(() => {
-      result.current.setActiveTestcase("Case 2")
+      result.current.setActiveTestcase(mockTestcases[1])
     })
 
-    expect(result.current.activeTestcase).toBe("Case 2")
+    expect(result.current.activeTestcase).toBe(mockTestcases[1])
 
     act(() => {
-      result.current.removeTestcase("Case 2")
+      result.current.removeTestcase(mockTestcases[1])
     })
 
     expect(result.current.testcases.length).toBe(2)
@@ -219,21 +225,21 @@ describe('useTestcases hooks', () => {
       {
         test_case_id: 1,
         question_id: 1,
-        caseID: 'Case 1',
         input_data: {
           a: 10,
           b: 20,
         },
+        expected_output: "12"
       },
       {
-        test_case_id: 2,
+        test_case_id: 3,
         question_id: 1,
-        caseID: 'Case 2',
         input_data: {
           k: "kjb"
         },
+        expected_output: "12df"
       },
     ])
-    expect(result.current.activeTestcase).toBe("Case 2")
+    expect(result.current.activeTestcase).toBe(mockTestcases[0])
   })
 })

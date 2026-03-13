@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { columns } from "../src/components/questionsTable/questionsColumns"
-import { type Question } from "../src/types/questions/Question.type"
+import { TagResponse, type Question, TestCase } from "../src/types/questions/QuestionPagination.type"
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
+import React from "react"
 
 // Helper component to test columns
 function TestTable({ data }: { data: Question[] }) {
@@ -47,8 +48,8 @@ describe("Questions Columns", () => {
       question_description: "string",
       media: "string",
       language_specific_properties: [],
-      tags: [],
-      testcases: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-01-15"),
     },
     {
@@ -59,8 +60,8 @@ describe("Questions Columns", () => {
       question_description: "string",
       media: "string",
       language_specific_properties: [],
-      tags: [],
-      testcases: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-02-20"),
     },
     {
@@ -71,8 +72,8 @@ describe("Questions Columns", () => {
       question_description: "string",
       media: "string",
       language_specific_properties: [],
-      tags: [],
-      testcases: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-03-10"),
     },
   ]

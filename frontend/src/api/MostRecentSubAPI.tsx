@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient"
 import type { MostRecentSub } from "@/types/MostRecentSub.type"
+import { logFrontend } from "./LoggerAPI"
 
 export async function updateMostRecentSub(
     user_id: number,
@@ -22,6 +23,13 @@ export async function updateMostRecentSub(
 
       } catch (err) {
         console.error("Error updating most recent submission:", err)
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when updating most recent submission. Reason: ${err}`,
+          component: "MostRecentSubAPI",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        })
         throw err
       }
 }
@@ -45,6 +53,13 @@ export async function getMostRecentSub(
       return response.data.data
     } catch (err) {
       console.error("Error fetching most recent submission:", err);
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when fetching most recent submission. Reason: ${err}`,
+        component: "MostRecentSubAPI",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      })
       throw err;
     }
 }

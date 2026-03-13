@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { columns } from "../components/questionsTable/questionsColumns";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 import {
   DataTable,
   type DifficultyFilter,
@@ -167,7 +167,7 @@ function HomePage() {
           </div>
         </div>
 
-        <div className="flex flex-col w-[300px] shrink-0 gap-4 ml-auto">
+        <div className="flex flex-col w-75 shrink-0 gap-4 ml-auto">
           <Calendar
             mode="single"
             selected={date}
@@ -181,7 +181,7 @@ function HomePage() {
             }}
           />
 
-          <div className="w-[300px] flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
+          <div className="w-75 flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
             <p className="text-left text-lg font-semibold mb-1">
               Competitions on {date?.toLocaleDateString() ?? "—"}
             </p>

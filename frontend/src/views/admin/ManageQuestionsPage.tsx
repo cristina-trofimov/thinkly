@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { columns } from "../../components/manageQuestions/ManageQuestionsColumns";
 import { logFrontend } from '../../api/LoggerAPI';
 import { getQuestions } from "@/api/QuestionsAPI";
-import type { Question } from "@/types/questions/Question.type";
+import type { Question } from "@/types/questions/QuestionPagination.type";
 import { ManageQuestionsDataTable } from "@/components/manageQuestions/ManageQuestionsDataTable";
 
 export default function ManageQuestionsPage() {

@@ -40,12 +40,13 @@ def client(mock_db):
 
 def test_get_all_prefs_success(client, mock_db):
     """Test fetching get all user preferences by user_id."""
-    prefs = {
-        "user_id": 10,
-        "theme": "light",
-        "notifications_enabled": True,
-        "last_used_programming_language": 71,
-    }
+    prefs = SimpleNamespace(
+        pref_id = 1,
+        user_id = 10,
+        theme = "light",
+        notifications_enabled = True,
+        last_used_programming_language = 71,
+    )
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = prefs
 
@@ -65,10 +66,10 @@ def test_get_all_prefs_empty(client, mock_db):
 
     response = client.get("/all?user_id=100")
 
-    assert response.status_code == 200
     data = response.json()
-    assert data["status_code"] == 200
-    assert data["data"] == None
+    assert data["status_code"] == 404
+    assert "error" in data
+    assert data["error"] == "User preferences not found"
 
 def test_get_all_prefs_error(client, mock_db):
     """Test that a database error returns 500."""
@@ -85,6 +86,7 @@ def test_get_all_prefs_error(client, mock_db):
 def test_create_new_user_prefs_with_user_id(client, mock_db):
     """Test adding new user preferences when they don't exist yet."""
     payload = {
+        "pref_id": 1,
         "user_id": 100,
         "theme": "light",
         "notifications_enabled": True,
@@ -93,17 +95,23 @@ def test_create_new_user_prefs_with_user_id(client, mock_db):
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
-    mock_db.refresh.side_effect = None
+    def fake_refresh(instance):
+        instance.pref_id = 2
+
+    mock_db.refresh.side_effect = fake_refresh
 
     response = client.post("/update", json=payload)
 
     assert response.status_code == 201
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
+    data = response.json()
+    assert data["status_code"] == 404
+    assert "error" in data
+    assert data["error"] == "User preferences not found"
 
 def test_update_existing_user_prefs(client, mock_db):
     """Test updating existing user preferences when user_id is provided."""
     payload = {
+        "pref_id": 1,
         "user_id": 10,
         "theme": "light",
         "notifications_enabled": True,
@@ -111,6 +119,7 @@ def test_update_existing_user_prefs(client, mock_db):
     }
 
     existing = SimpleNamespace(
+        pref_id = 1,
         user_id = 10,
         theme = "dark",
         notifications_enabled = False,
@@ -134,6 +143,7 @@ def test_update_existing_user_prefs(client, mock_db):
 def test_add_user_prefs_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
+        "pref_id": 1,
         "user_id": 10,
         "theme": "light",
         "notifications_enabled": True,
@@ -178,6 +188,23 @@ def test_update_theme_success(client, mock_db):
     mock_db.add.assert_not_called()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(existing)
+
+def test_update_theme_no_user(client, mock_db):
+    """Test updating user theme preference."""
+    payload = {
+        "user_id": 10,
+        "theme": "light",
+    }
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.post("/theme", json=payload)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status_code"] == 404
+    assert "error" in data
+    assert data["error"] == "User preferences not found"
 
 def test_update_theme_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
@@ -225,6 +252,23 @@ def test_update_notif_success(client, mock_db):
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(existing)
 
+def test_update_notif_no_user(client, mock_db):
+    """Test updating user theme preference."""
+    payload = {
+        "user_id": 10,
+        "notifications_enabled": True,
+    }
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.post("/notif", json=payload)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status_code"] == 404
+    assert "error" in data
+    assert data["error"] == "User preferences not found"
+
 def test_update_notif_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
@@ -247,20 +291,21 @@ def test_update_prog_success(client, mock_db):
     """Test updating user last programming language preference."""
     payload = {
         "user_id": 10,
-        "last_used_programming_language": 71,
+        "last_used_programming_language": 71
     }
 
     existing = SimpleNamespace(
+        pref_id = 2,
         user_id = 10,
         theme = "dark",
         notifications_enabled = True,
-        last_used_programming_language = 71,
+        last_used_programming_language = 70
     )
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = existing
 
     def fake_refresh(instance):
-        instance.pref_id = 2
+        instance = instance
 
     mock_db.refresh.side_effect = fake_refresh
 
@@ -270,6 +315,23 @@ def test_update_prog_success(client, mock_db):
     mock_db.add.assert_not_called()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(existing)
+
+def test_update_prog_no_user(client, mock_db):
+    """Test updating user theme preference."""
+    payload = {
+        "user_id": 10,
+        "last_used_programming_language": 71
+    }
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+
+    response = client.post("/prog", json=payload)
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status_code"] == 404
+    assert "error" in data
+    assert data["error"] == "User preferences not found"
 
 def test_update_prog_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""

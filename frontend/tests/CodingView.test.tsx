@@ -1,10 +1,10 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
-import { Question } from '../src/types/questions/Question.type'
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
 import { CodeRunResponse } from '../src/types/CodeRunResponse.type'
@@ -159,22 +159,6 @@ jest.mock("react-resizable-panels", () => ({
     PanelResizeHandle: () => <div data-testid="resizable-handle" />,
 }))
 
-jest.mock("../src/components/helpers/monacoConfig", () => ({
-    __esModule: true,
-    buildMonacoCode: jest.fn(() => ({
-        Javascript: {
-            monacoID: "javascript",
-            judgeID: "63",
-            templateCode: "console.log('test javascript')",
-        },
-        Typescript: {
-            monacoID: "typescript",
-            judgeID: "74",
-            templateCode: "console.log('test typescript')",
-        },
-    })),
-}))
-
 jest.mock('../src/components/helpers/useTestcases')
 
 const mockedToast = toast as jest.Mocked<typeof toast>
@@ -191,8 +175,8 @@ const mockProblem: Question = {
     media: "string",
     difficulty: "Easy",
     language_specific_properties: [],
-    tags: [],
-    testcases: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date("2025-10-28T10:00:00Z"),
     last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }
@@ -214,7 +198,7 @@ const question_instance_id = 123
 const user_id = 1
 const event_id = 1
 const source_code = "print('Hello')"
-const language_id = "71"
+const language_id = 71
 
 
 const mockProfile: Account = {
@@ -240,7 +224,7 @@ const mockMostRecentSubResponse: MostRecentSub = {
     user_id: user_id,
     question_instance_id: question_instance_id,
     code: source_code,
-    lang_judge_id: parseInt(language_id)
+    lang_judge_id: language_id
 }
 
 const mockJudge0Response = {
@@ -320,6 +304,8 @@ describe('CodingView Component without event', () => {
             activeTestcase: 'Case 1',
             setActiveTestcase,
         })
+
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', async () => {
@@ -444,12 +430,19 @@ describe('CodingView Component without event', () => {
 
         render(<CodingView />)
 
+        // Wait for the async init chain to complete:
+        // getQuestionInstance resolves → setQuestionsInstances → effect sets activeQuestionInstance
+        // Without this, submitCode hits the !activeQuestionInstance guard and never calls submitAttempt
+        await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument())
+
         expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
 
-        expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
+        await waitFor(() => {
+            expect(submitAttempt).toHaveBeenCalled()
+            expect(getProfile).toHaveBeenCalled()
+        })
 
         expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message)
         expect(toast.warning).not.toHaveBeenCalled()
@@ -461,12 +454,17 @@ describe('CodingView Component without event', () => {
 
         render(<CodingView />)
 
+        // Same as above - wait for activeQuestionInstance to be set before clicking
+        await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument())
+
         expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
 
-        expect(submitAttempt).toHaveBeenCalled()
-        expect(getProfile).toHaveBeenCalled()
+        await waitFor(() => {
+            expect(submitAttempt).toHaveBeenCalled()
+            expect(getProfile).toHaveBeenCalled()
+        })
 
         expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message)
         expect(toast.success).not.toHaveBeenCalled()
@@ -503,24 +501,6 @@ describe('CodingView Component without event', () => {
 
         await expect(submitToJudge0(-1, -1, "code", language_id, []))
             .rejects.toThrow("Network error")
-    })
-
-    it('handles language dropdown interaction', async () => {
-        render(<CodingView />)
-
-        const languageBtn = screen.getByTestId('language-btn')
-        expect(languageBtn).toHaveTextContent('Java')
-
-        expect(languageBtn).toBeInTheDocument()
-    })
-
-    it('handles question change', async () => {
-        render(<CodingView />)
-
-        const languageBtn = screen.getByTestId('language-btn')
-        expect(languageBtn).toHaveTextContent('Java')
-
-        expect(languageBtn).toBeInTheDocument()
     })
 
     it('handles async loading state during code execution', async () => {

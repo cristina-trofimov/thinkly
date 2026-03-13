@@ -1,9 +1,9 @@
 import axiosClient from "../src/lib/axiosClient"
 import { parse_input_output, submitToJudge0 } from "../src/api/Judge0API"
 import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
-import type { TestcaseType } from "../src/types/questions/Testcases.type";
 import { updateMostRecentSub } from "../src/api/MostRecentSubAPI";
 import { logFrontend } from "../src/api/LoggerAPI"
+import { TestCase } from "../src/types/questions/QuestionPagination.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -32,11 +32,11 @@ const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 const mockedLogger = logFrontend as jest.Mock
 
 const code = "print('Hello')";
-const language_id = "71";
+const language_id = 71
 const user_id = 1;
 
 const question_instance_id = 1;
-const testcases: TestcaseType[] = [
+const testcases: TestCase[] = [
   {
     test_case_id: 1,
     question_id: 1,
@@ -45,7 +45,6 @@ const testcases: TestcaseType[] = [
       "target": 19
       },
     expected_output: "[1,2]",
-    caseID: 'Case 1'
   },
   {
     test_case_id: 2,
@@ -55,7 +54,6 @@ const testcases: TestcaseType[] = [
       "target": 9
       },
     expected_output: "[0,1]",
-    caseID: 'Case 2'
   },
 ]
 
@@ -98,7 +96,7 @@ describe("Judge0API", () => {
 
   it("throws an error if the given question instance id is undefined", async () => {
     await expect(submitToJudge0(user_id, undefined, code, language_id, testcases))
-                .rejects.toThrow("RunCode: Question instance cannot be undefined")
+                .rejects.toThrow("RunCode: Question instance or language cannot be undefined")
     expect(updateLastProgLang).not.toHaveBeenCalled()
     expect(updateMostRecentSub).not.toHaveBeenCalled()
     expect(mockedAxios.post).not.toHaveBeenCalled()

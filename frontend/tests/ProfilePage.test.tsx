@@ -1,9 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ProfilePage from "../src/views/ProfilePage";
 import { getProfile, isGoogleAccount } from "../src/api/AuthAPI";
-import { updateAccount, getUserPreferences, updateUserPreferences } from "../src/api/AccountsAPI";
+import { updateAccount } from "../src/api/AccountsAPI";
+import { getUserPrefs, updateAllPrefs } from "../src/api/UserPreferencesAPI";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -22,8 +24,11 @@ jest.mock("../src/api/AuthAPI", () => ({
 
 jest.mock("../src/api/AccountsAPI", () => ({
   updateAccount: jest.fn(),
-  getUserPreferences: jest.fn(),
-  updateUserPreferences: jest.fn(),
+}));
+
+jest.mock("../src/api/UserPreferencesAPI", () => ({
+  getUserPrefs: jest.fn(),
+  updateAllPrefs: jest.fn(),
 }));
 
 jest.mock("../src/api/LoggerAPI", () => ({ logFrontend: jest.fn() }));
@@ -106,8 +111,10 @@ const mockUser = {
 };
 
 const mockPreferences = {
+  user_id: 21,
   theme: "light" as const,
   notifications_enabled: true,
+  last_used_programming_language: 71,
 };
 
 describe("ProfilePage Component", () => {
@@ -144,8 +151,8 @@ describe("ProfilePage Component", () => {
 
     (getProfile as jest.Mock).mockResolvedValue(mockUser);
     (isGoogleAccount as jest.Mock).mockResolvedValue({ isGoogleUser: false });
-    (getUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
-    (updateUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
+    (getUserPrefs as jest.Mock).mockResolvedValue(mockPreferences);
+    (updateAllPrefs as jest.Mock).mockResolvedValue(mockPreferences);
   });
 
   // -------------------------------------------------------------------------
@@ -384,16 +391,16 @@ describe("ProfilePage Component", () => {
   // Preferences loading
   // -------------------------------------------------------------------------
 
-  test("calls getUserPreferences with the correct user ID on mount", async () => {
+  test("calls getUserPrefs with the correct user ID on mount", async () => {
     render(<ProfilePage />);
     await screen.findByText("John Doe");
     await waitFor(() => {
-      expect(getUserPreferences).toHaveBeenCalledWith("user-123");
+      expect(getUserPrefs).toHaveBeenCalledWith("user-123");
     });
   });
 
-  test("falls back to default preferences when getUserPreferences fails", async () => {
-    (getUserPreferences as jest.Mock).mockRejectedValue(new Error("404"));
+  test("falls back to default preferences when getUserPrefs fails", async () => {
+    (getUserPrefs as jest.Mock).mockRejectedValue(new Error("404"));
     render(<ProfilePage />);
     // Page should still render without crashing
     await waitFor(() => {
@@ -402,7 +409,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("does not show error toast when preferences fetch silently fails", async () => {
-    (getUserPreferences as jest.Mock).mockRejectedValue(new Error("404"));
+    (getUserPrefs as jest.Mock).mockRejectedValue(new Error("404"));
     render(<ProfilePage />);
     await waitFor(() => {
       expect(screen.getByText("John Doe")).toBeTruthy();
@@ -495,7 +502,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("notifications toggle reflects disabled initial state", async () => {
-    (getUserPreferences as jest.Mock).mockResolvedValue({
+    (getUserPrefs as jest.Mock).mockResolvedValue({
       theme: "light",
       notifications_enabled: false,
     });
@@ -533,10 +540,12 @@ describe("ProfilePage Component", () => {
   // Saving preferences
   // -------------------------------------------------------------------------
 
-  test("calls updateUserPreferences with correct args when Save Preferences is clicked", async () => {
-    (updateUserPreferences as jest.Mock).mockResolvedValue({
+  test("calls updateAllPrefs with correct args when Save Preferences is clicked", async () => {
+    (updateAllPrefs as jest.Mock).mockResolvedValue({
+      user_id: 21,
       theme: "dark",
       notifications_enabled: true,
+      last_used_programming_language: 71,
     });
 
     render(<ProfilePage />);
@@ -551,15 +560,14 @@ describe("ProfilePage Component", () => {
     fireEvent.click(screen.getByText("Save Preferences"));
 
     await waitFor(() => {
-      expect(updateUserPreferences).toHaveBeenCalledWith(
-        "user-123",
-        { theme: "dark", notifications_enabled: true }
+      expect(updateAllPrefs).toHaveBeenCalledWith(
+        { user_id: 21, theme: "dark", notifications_enabled: true, last_used_programming_language: 71 }
       );
     });
   });
 
   test("shows success toast after saving preferences", async () => {
-    (updateUserPreferences as jest.Mock).mockResolvedValue({
+    (updateAllPrefs as jest.Mock).mockResolvedValue({
       theme: "dark",
       notifications_enabled: true,
     });
@@ -576,7 +584,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("shows error toast when saving preferences fails", async () => {
-    (updateUserPreferences as jest.Mock).mockRejectedValue(new Error("Server error"));
+    (updateAllPrefs as jest.Mock).mockRejectedValue(new Error("Server error"));
 
     render(<ProfilePage />);
     await waitFor(() => expect(screen.getByText("Dark")).toBeTruthy());
@@ -590,7 +598,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("Save Preferences button is disabled again after successful save", async () => {
-    (updateUserPreferences as jest.Mock).mockResolvedValue({
+    (updateAllPrefs as jest.Mock).mockResolvedValue({
       theme: "dark",
       notifications_enabled: true,
     });
@@ -612,7 +620,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("disables Save Preferences button while saving is in progress", async () => {
-    (updateUserPreferences as jest.Mock).mockImplementation(
+    (updateAllPrefs as jest.Mock).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ theme: "dark", notifications_enabled: true }), 200))
     );
 
@@ -628,20 +636,22 @@ describe("ProfilePage Component", () => {
     });
   });
 
-  test("does not call updateUserPreferences when preferences unchanged", async () => {
+  test("does not call updateAllPrefs when preferences unchanged", async () => {
     render(<ProfilePage />);
     await waitFor(() => expect(screen.getByText("Save Preferences")).toBeTruthy());
 
     // Button is disabled — clicking it should not trigger the API call
     fireEvent.click(screen.getByText("Save Preferences"));
 
-    expect(updateUserPreferences).not.toHaveBeenCalled();
+    expect(updateAllPrefs).not.toHaveBeenCalled();
   });
 
-  test("saving notifications-only preference change calls updateUserPreferences", async () => {
-    (updateUserPreferences as jest.Mock).mockResolvedValue({
+  test("saving notifications-only preference change calls updateAllPrefs", async () => {
+    (updateAllPrefs as jest.Mock).mockResolvedValue({
+      user_id: 21,
       theme: "light",
       notifications_enabled: false,
+      last_used_programming_language: 71,
     });
 
     render(<ProfilePage />);
@@ -651,9 +661,8 @@ describe("ProfilePage Component", () => {
     fireEvent.click(screen.getByText("Save Preferences"));
 
     await waitFor(() => {
-      expect(updateUserPreferences).toHaveBeenCalledWith(
-        "user-123",
-        { theme: "light", notifications_enabled: false }
+      expect(updateAllPrefs).toHaveBeenCalledWith(
+        { user_id: 21, theme: "light", notifications_enabled: false, last_used_programming_language: 71 }
       );
     });
   });
