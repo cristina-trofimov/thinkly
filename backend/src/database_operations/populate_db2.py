@@ -1,32 +1,34 @@
-# # nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
+# nao's DB - cd backend/src ->   python -m database_operations.populate_db2
 # from sqlalchemy.orm import Session
 # from sqlalchemy import text
 # from datetime import datetime, timedelta, timezone
 # import random
-
-# from db import engine, Base, SessionLocal
-
+#
+# from .db import engine, Base, SessionLocal
+#
 # from models.schema import (
 #     UserAccount,
 #     BaseEvent,
 #     Competition,
 #     CompetitionEmail,
 #     Question,
+#     QuestionLanguageSpecificProperties,
 #     TestCase,
 #     Tag,
 #     Language,
 #     QuestionInstance,
 #     Riddle,
 #     Submission,
+#     MostRecentSubmission,
 #     CompetitionLeaderboardEntry,
 #     AlgoTimeSeries,
 #     AlgoTimeSession,
 #     AlgoTimeLeaderboardEntry,
 # )
-
+#
 # DIFFICULTIES = ["easy", "medium", "hard"]
-
-
+#
+#
 # def main():
 #     print("Dropping and recreating schema...")
 #     with engine.connect() as conn:
@@ -34,9 +36,9 @@
 #         conn.execute(text("CREATE SCHEMA public"))
 #         conn.commit()
 #     Base.metadata.create_all(bind=engine)
-
+#
 #     db: Session = SessionLocal()
-
+#
 #     try:
 #         # ---------------- LANGUAGES ----------------
 #         # Required by UserPreferences.last_used_programming_language and MostRecentSubmission.lang_judge_id
@@ -56,36 +58,36 @@
 #                 active=True,
 #             )
 #             languages.append(lang)
-
+#
 #         db.add_all(languages)
 #         db.commit()
 #         print(f"✅ {len(languages)} Languages created")
-
+#
 #         # ---------------- USERS ----------------
 #         users = []
 #         for i in range(1, 21):
 #             user = UserAccount(
 #                 email=f"user{i}@gmail.com",
-#                 hashed_password="hashed_pw",          # was: password_hash
+#                 hashed_password="hashed_pw",
 #                 first_name=f"First{i}",
 #                 last_name=f"Last{i}",
-#                 user_type="participant",               # was: type
+#                 user_type="participant",
 #             )
 #             db.add(user)
 #             users.append(user)
-
+#
 #         db.commit()
 #         print(f"✅ {len(users)} Users created")
-
+#
 #         # ---------------- EVENTS + COMPETITIONS ----------------
 #         competitions = []
 #         base_events = []
 #         now = datetime.now(timezone.utc)
-
+#
 #         for i in range(1, 6):
 #             event_start_date = now - timedelta(days=i * 7)
 #             event_end_date = event_start_date + timedelta(hours=2)
-
+#
 #             base_event = BaseEvent(
 #                 event_name=f"Competition {i}",
 #                 event_location="Online",
@@ -97,14 +99,14 @@
 #             )
 #             db.add(base_event)
 #             db.flush()
-
+#
 #             competition = Competition(
 #                 event_id=base_event.event_id,
 #                 riddle_cooldown=30,
 #             )
 #             db.add(competition)
 #             db.flush()
-
+#
 #             # CompetitionEmail — one reminder per competition
 #             email = CompetitionEmail(
 #                 competition_id=competition.event_id,
@@ -121,7 +123,7 @@
 #
 #         db.commit()
 #         print("✅ BaseEvents + Competitions + CompetitionEmails created")
-
+#
 #         # ---------------- TAGS ----------------
 #         tag_names = ["arrays", "strings", "dynamic-programming", "graphs", "sorting", "recursion"]
 #         tags = []
@@ -129,43 +131,51 @@
 #             tag = Tag(tag_name=name)
 #             db.add(tag)
 #             tags.append(tag)
-
+#
 #         db.commit()
 #         print(f"✅ {len(tags)} Tags created")
-
-#         # ---------------- QUESTIONS + TESTCASES ----------------
+#
+#         # ---------------- QUESTIONS + TESTCASES + LANGUAGE-SPECIFIC PROPERTIES ----------------
 #         questions = []
 #         for i in range(6):
 #             q = Question(
 #                 question_name=f"Problem {i + 1}",
 #                 question_description="Solve the problem efficiently.",
-#                 media=None,                            # new optional field
+#                 media=None,
 #                 difficulty=random.choice(DIFFICULTIES),
-#                 preset_code=f"# Starter code for problem {i + 1}",   # new optional field
-#                 from_string_function="def from_string(s): return s",
-#                 to_string_function="def to_string(v): return str(v)",
-#                 template_solution="Reference solution",
 #                 created_at=now,
 #                 last_modified_at=now,
-#                 tags=random.sample(tags, k=random.randint(1, 3)),     # many-to-many via question_tag
+#                 tags=random.sample(tags, k=random.randint(1, 3)),
 #             )
 #             db.add(q)
 #             db.flush()
-
-#             # TestCase — now its own model, not a simple field
+#
+#             # TestCase — input_data / expected_output are now JSONB
 #             for j in range(3):
 #                 tc = TestCase(
 #                     question_id=q.question_id,
-#                     input_data=f"input_{i}_{j}",
-#                     expected_output=f"output_{i}_{j}",
+#                     input_data={"value": f"input_{i}_{j}"},
+#                     expected_output={"value": f"output_{i}_{j}"},
 #                 )
 #                 db.add(tc)
-
+#
+#             # QuestionLanguageSpecificProperties — one entry per language
+#             for lang in languages:
+#                 qlsp = QuestionLanguageSpecificProperties(
+#                     question_id=q.question_id,
+#                     language_id=lang.lang_judge_id,
+#                     preset_code=f"# Starter code for problem {i + 1} in {lang.display_name}",
+#                     from_json_function="def from_json(s): return s",
+#                     to_json_function="def to_json(v): return str(v)",
+#                     template_solution="Reference solution",
+#                 )
+#                 db.add(qlsp)
+#
 #             questions.append(q)
-
+#
 #         db.commit()
-#         print("✅ Questions + TestCases + Tags created")
-
+#         print("✅ Questions + TestCases + Tags + QuestionLanguageSpecificProperties created")
+#
 #         # ---------------- RIDDLES ----------------
 #         riddles_data = [
 #             ("I speak without a mouth and hear without ears. What am I?", "An echo"),
@@ -175,7 +185,7 @@
 #             ("What can travel around the world while staying in one spot?", "A stamp"),
 #             ("What has a heart that doesn't beat?", "An artichoke"),
 #         ]
-
+#
 #         riddles = []
 #         for question, answer in riddles_data:
 #             riddle = Riddle(
@@ -184,11 +194,11 @@
 #                 riddle_file=None
 #             )
 #             riddles.append(riddle)
-
+#
 #         db.add_all(riddles)
 #         db.commit()
 #         print(f"✅ {len(riddles)} Riddles created")
-
+#
 #         # ---------------- QUESTION INSTANCES ----------------
 #         # Track QIs per event so we can create submissions against them later
 #         question_instances_by_event: dict[int, list] = {}
@@ -230,7 +240,7 @@
 #                         total_time=random.randint(15, 120),
 #                     )
 #                 )
-
+#
 #         db.commit()
 #         print("✅ Competition leaderboard entries created")
 #
@@ -293,16 +303,16 @@
 #         # ---------------- ALGOTIME SESSIONS ----------------
 #         algotime_participants_per_event: dict[int, list] = {}
 #
-#         for event_id in range(1, 6):
+#         for base_event in base_events:
 #             session = AlgoTimeSession(
-#                 event_id=event_id,
+#                 event_id=base_event.event_id,
 #                 algotime_series_id=series.algotime_series_id
 #             )
 #             db.add(session)
 #             db.flush()
-
+#
 #             participants = random.sample(users, random.randint(6, 10))
-#             algotime_participants_per_event[event_id] = participants
+#             algotime_participants_per_event[base_event.event_id] = participants
 #
 #         db.commit()
 #         print("✅ AlgoTime sessions created")
@@ -356,7 +366,7 @@
 #         for user_id in all_algotime_participant_ids:
 #             user = user_map[user_id]
 #             score = random.randint(500, 2500)
-
+#
 #             db.add(
 #                 AlgoTimeLeaderboardEntry(
 #                     algotime_series_id=series.algotime_series_id,
@@ -368,18 +378,18 @@
 #                     last_updated=now,
 #                 )
 #             )
-
+#
 #         db.commit()
 #         print(f"✅ AlgoTime leaderboard created with {len(all_algotime_participant_ids)} participants")
 #         print("🎉 Seeding completed successfully")
-
+#
 #     except Exception as e:
 #         db.rollback()
 #         print(f"❌ Error: {e}")
 #         raise
 #     finally:
 #         db.close()
-
-
+#
+#
 # if __name__ == "__main__":
 #     main()
