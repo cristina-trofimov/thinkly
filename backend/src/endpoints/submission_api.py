@@ -16,7 +16,7 @@ class SubmissionModel(BaseModel):
     status: str
     runtime: int | None
     memory: int | None
-    submitted_on: datetime
+    submitted_on: str
     stdout: str | None
     stderr: str | None
     message: str | None

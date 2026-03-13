@@ -16,7 +16,7 @@ class MostRecentSubModel(BaseModel):
     user_question_instance_id: int
     code: str
     lang_judge_id: int
-    submitted_on: datetime
+    submitted_on: str
 
 
 def query_get_last_run(
@@ -59,7 +59,7 @@ def get_most_recent_sub(
         
     
 
-@most_recent_sub_router.post("/update", status_code=201,
+@most_recent_sub_router.put("/put", status_code=201,
     responses={500: {"description": "Failed to update most recent submission."}}
 )
 def add_most_recent_sub(

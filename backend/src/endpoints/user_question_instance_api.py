@@ -66,7 +66,7 @@ def get_user_question_instance(
         raise HTTPException(status_code=500, detail="Failed to retrieve user's question instance from db.")
 
 
-@user_question_instance_router.post("/update", status_code=201,
+@user_question_instance_router.put("/put", status_code=201,
     responses={500: {"description": "Failed to update user's question instance."}}
 )
 def add_user_question_instance(
