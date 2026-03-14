@@ -18,6 +18,7 @@ interface EditProps {
   onOpenChange: (open: boolean) => void;
   competitionId: number;
   onSuccess?: () => void;
+  isReadOnly?: boolean; 
 }
 
 export default function EditCompetitionDialog({
@@ -25,6 +26,7 @@ export default function EditCompetitionDialog({
   onOpenChange,
   competitionId,
   onSuccess,
+  isReadOnly = false,
 }: Readonly<EditProps>) {
   const [initialData, setInitialData] = useState<CompetitionFormPayload>();
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,6 @@ export default function EditCompetitionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTitle></DialogTitle>
       <DialogContent
         className="sm:max-w-[95vw] h-[90vh] p-0 flex flex-col overflow-hidden"
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -78,7 +79,7 @@ export default function EditCompetitionDialog({
       >
         <VisuallyHidden>
           <DialogHeader>
-            <DialogTitle>Edit Competition</DialogTitle>
+            <DialogTitle>{isReadOnly ? "View Competition" : "Edit Competition"}</DialogTitle>
           </DialogHeader>
         </VisuallyHidden>
 
@@ -88,6 +89,7 @@ export default function EditCompetitionDialog({
             onSubmit={handleUpdate}
             onCancel={() => onOpenChange(false)}
             submitLabel="Save Changes"
+            isReadOnly={isReadOnly}
           />
         </div>
       </DialogContent>

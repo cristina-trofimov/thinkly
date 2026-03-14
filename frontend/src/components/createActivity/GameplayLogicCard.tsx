@@ -7,9 +7,10 @@ interface GameplayLogicCardProps {
   questionCooldown: string;
   riddleCooldown: string;
   onChange: (updates: { questionCooldownTime?: string; riddleCooldownTime?: string }) => void;
+  isReadOnly?: boolean;
 }
 
-export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange }: Readonly<GameplayLogicCardProps>) {
+export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange, isReadOnly = false }: Readonly<GameplayLogicCardProps>) {
   const handleNumericChange = (key: string, val: string) => {
     const cleanVal = Math.max(0, Number(val)).toString();
     onChange({ [key]: cleanVal });
@@ -31,6 +32,7 @@ export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange }
             min="0"
             value={questionCooldown}
             onChange={(e) => handleNumericChange("questionCooldownTime", e.target.value)}
+            disabled={isReadOnly}
           />
         </div>
         <div className="space-y-2">
@@ -41,6 +43,7 @@ export function GameplayLogicCard({ questionCooldown, riddleCooldown, onChange }
             min="0"
             value={riddleCooldown}
             onChange={(e) => handleNumericChange("riddleCooldownTime", e.target.value)}
+            disabled={isReadOnly}
           />
         </div>
       </CardContent>
