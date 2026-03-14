@@ -1,6 +1,7 @@
 export type SubmissionType = {
     submission_id: number,
     user_question_instance_id: number,
+    lang_judge_id: number,
     compile_output: string | null,
     status: string,
     runtime: number | null,

@@ -4,6 +4,6 @@ export type UserQuestionInstance = {
     question_instance_id: number,
     points: number | null,
     riddle_complete: boolean | null,
-    lapse_time: BigInt | null,
+    lapse_time: number | null,
     attempts: number | null,
 }

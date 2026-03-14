@@ -13,7 +13,7 @@ import { Account } from '../src/types/account/Account.type'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { UserPreferences } from '../src/types/account/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
-import { submitAttempt } from '../src/api/CodeSubmissionAPI'
+import { submitAttempt } from '../src/api/SubmissionAPI'
 import { getProfile } from '../src/api/AuthAPI'
 import { toast } from 'sonner'
 import { logFrontend } from "../src/api/LoggerAPI"

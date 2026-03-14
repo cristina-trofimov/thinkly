@@ -9,8 +9,11 @@ export async function updateMostRecentSub(
     lang_judge_id: number,
 ): Promise<MostRecentSub> {
     try {
-        const response = await axiosClient.post(
-            "/recent-sub/update",
+        const response = await axiosClient.put<{
+          status_code: number
+          data: MostRecentSub
+        }>(
+            "/recent-sub/put",
             {
                 user_id: user_id,
                 question_instance_id: question_instance_id,
@@ -19,7 +22,7 @@ export async function updateMostRecentSub(
             }
         )
 
-        return response.data
+        return response.data.data
 
       } catch (err) {
         console.error("Error updating most recent submission:", err)
