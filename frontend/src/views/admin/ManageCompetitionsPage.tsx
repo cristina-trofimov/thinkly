@@ -71,6 +71,7 @@ const ManageCompetitions = () => {
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   const {
     trackAdminCompetitionsViewed,
@@ -194,6 +195,9 @@ const ManageCompetitions = () => {
     });
 
   const handleCardClick = (id: number, title: string) => {
+    const comp = competitions.find((c) => c.id === id);
+    const status = comp ? getCompetitionStatus(comp.startDate) : "Upcoming";
+    setIsReadOnly(status === "Active" || status === "Completed");
     setSelectedCompetition({ id, title });
     setEditDialogOpen(true);
     trackAdminCompetitionEditOpened(id, title);
@@ -329,7 +333,7 @@ const ManageCompetitions = () => {
           return (
             <Card
               key={comp.id}
-              className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col"
+              className={`cursor-pointer overflow-hidden transition-shadow bg-card flex flex-col ${status === "Completed" ? "opacity-75 hover:shadow-lg" : "hover:shadow-lg"}`}
               onClick={() => handleCardClick(comp.id, title)}
             >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
@@ -407,6 +411,7 @@ const ManageCompetitions = () => {
           onOpenChange={setEditDialogOpen}
           competitionId={selectedCompetition.id}
           onSuccess={handleEditSuccess}
+          isReadOnly={isReadOnly}
           key={editDialogOpen ? selectedCompetition.id : "closed"}
         />
       )}

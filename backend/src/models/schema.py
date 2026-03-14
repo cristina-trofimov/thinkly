@@ -80,11 +80,11 @@ class BaseEvent(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc),
                                                  onupdate=datetime.now(timezone.utc))
 
-    competition: Mapped[Optional[Competition]] = relationship('Competition', back_populates='base_event', uselist=False)
+    competition: Mapped[Optional[Competition]] = relationship('Competition', back_populates='base_event', uselist=False, passive_deletes=True)
     algotime: Mapped[Optional[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='base_event',
-                                                               uselist=False)
+                                                               uselist=False, passive_deletes=True)
     question_instances: Mapped[List[QuestionInstance]] = relationship('QuestionInstance', back_populates='event',
-                                                                      uselist=True)
+                                                                      uselist=True, passive_deletes=True)
 
     __table_args__ = (
         CheckConstraint('event_end_date > event_start_date', name='chk_event_dates'),
