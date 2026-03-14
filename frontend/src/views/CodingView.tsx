@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useLayoutEffect, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -14,221 +14,57 @@ import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
-import { useTestcases } from '../components/helpers/useTestcases';
-import type { Judge0Response } from '@/types/questions/Judge0Response';
 import Loader from '../components/helpers/Loader';
 import ConsoleOutput from '../components/codingPage/ConsoleOutput';
-import { submitAttempt } from '@/api/CodeSubmissionAPI';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
-import type { MostRecentSub } from '@/types/submissions/MostRecentSub.type';
-import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from '@/api/QuestionInstanceAPI';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
-import type { BaseEvent } from '@/types/BaseEvent.type';
-import { getEventByName } from '@/api/BaseEventAPI';
-import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
-import { getQuestionByID } from '@/api/QuestionsAPI';
-import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import type { Language } from '@/types/questions/Language.type';
-import { getAllLanguages } from '@/api/LanguageAPI';
-import type { UserPreferences } from '@/types/account/UserPreferences.type';
-import { getUserPrefs } from '@/api/UserPreferencesAPI';
+import { submitAttempt, useCodingHooks } from '@/components/helpers/CodingHooks';
+import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
 
 
 const CodingView = () => {
   const location = useLocation()
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
-  const [ questions, setQuestions ] = useState<Question[]>([])
-  const [ activeQuestion, setActiveQuestion ] = useState<Question>()
-  const [ questionsInstances, setQuestionsInstances ] = useState<QuestionInstance[]>([])
-  const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
-  const [ event, setEvent ] = useState<BaseEvent | null>(null)
 
-  const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
+  const {
+    startTime, setStartTime, endTime, setEndTime,
+    logs, setLogs, mostRecentSub, setMostRecentSub,
+    isQuestionLoading, setIsQuestionLoading,
+    isAsyncLoading, setIsAsyncLoading,
+    currentOutputTab, setCurrentOutputTab,
+    activeQuestion, setActiveQuestion,
+    activeQuestionInstance, setActiveQuestionInstance,
+    activeDisplayQuestionName, setActiveDisplayQuestionName,
+    userQuestionInstance, setUserQuestionInstance,
+    questions, setQuestions, lapseTime, setLapseTime,
+    questionsInstances, setQuestionsInstances,
+    languages, setLanguages, prevLangRef,
+    mostRecentSubGroupClass, setMostRecentSubGroupClass,
+    selectedLang, setSelectedLang, event,
+    userPreferences,
+    testcases, loadingMsg, setLoadingMsg
+  } = useCodingHooks(question, comp) 
 
-  const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
-  const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
-  const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+  // const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
+  // const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+  // const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
-  const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
-  const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
-  const [ logs, setLogs ] = useState<Judge0Response[]>([])
-  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+  // const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+  // const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
+  // const [ logs, setLogs ] = useState<Judge0Response[]>([])
+  // const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
 
-  const [languages, setLanguages] = useState<Language[]>()
-  const [selectedLang, setSelectedLang] = useState<Language>()
-  // Keep a ref to the previous language so we can log "from → to" on change
-  const prevLangRef = useRef<Language | null>(null)
-  const [userPreferences, setUserPreferences] = useState<UserPreferences>()
+  
+  // const [selectedLang, setSelectedLang] = useState<Language>()
+  // // Keep a ref to the previous language so we can log "from → to" on change
+  // const prevLangRef = useRef<Language | null>(null)
+  // const [userPreferences, setUserPreferences] = useState<UserPreferences>()
 
-  // Getting the competition or algotime event if it exists
-  useEffect(() => {
-    if(comp?.id) {
-      const InitializeEvent = async () => {
-        setIsQuestionLoading(true)
-        try {
-          await getEventByName(location?.state?.comp?.competitionTitle)
-            .then((response) => {
-              setEvent(response)
-            })
-        } catch (err) {
-          toast.error("Error when fetching event.")
-          logFrontend({
-            level: "ERROR",
-            message: `Failed to fetch event. Reason: ${err}`,
-            component: "CodingView",
-            url: globalThis.location.href,
-            stack: (err as Error).stack,
-          })
-        } finally {
-          setIsQuestionLoading(false)
-        }
-      }
-      InitializeEvent()
-    }
-  }, [comp?.id])
-
-  // Getting the question instance (if it's a practice question and no event was passed)
-  // Or all the question instances associated to the given event
-  useEffect(() => {
-    if (event) {
-      const InitializeQuestionInstances = async () => {
-        setIsQuestionLoading(true)
-        try {
-          await getAllQuestionInstancesByEventID(event?.event_id)
-            .then((response) => {
-                setQuestionsInstances(response)
-            })
-        } catch (err) {
-          toast.error("Error when fetching question instances.")
-          logFrontend({
-            level: "ERROR",
-            message: `Failed to fetch question instances. Reason: ${err}`,
-            component: "CodingView",
-            url: globalThis.location.href,
-            stack: (err as Error).stack,
-          })
-        } finally {
-          setIsQuestionLoading(false)
-        }
-      }
-      InitializeQuestionInstances()
-    } else if(question?.question_id) {
-      const initQuestion = async () => {
-        setIsQuestionLoading(true)
-        try {
-          await putQuestionInstance(undefined, question?.question_id, null, null)
-            .then((response) => {
-              setQuestionsInstances([response])
-            })
-        } catch (err) {
-          toast.error("Error when fetching question instance.")
-          logFrontend({
-            level: "ERROR",
-            message: `Failed to fetch question instance. Reason: ${err}`,
-            component: "CodingView",
-            url: globalThis.location.href,
-            stack: (err as Error).stack,
-          })
-        } finally {
-          setIsQuestionLoading(false)
-        }
-      }
-      initQuestion()
-      setQuestions([question])
-    }
-  }, [event, question?.question_id])
-
-  // If an event is passed, get all the associated questions' details 
-  useEffect(() => {
-    if (!questionsInstances?.length || questions.length >= questionsInstances.length) {
-      setIsQuestionLoading(false)
-      return
-    }
-
-    const fetchQuestions = async () => {
-      setIsQuestionLoading(true)
-      try {
-        // Fetch all in parallel
-        const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
-        const fetchedResponses = await Promise.all(questionPromises)
-
-        setQuestions(fetchedResponses)
-      } catch (err) {
-        toast.error("Error when fetching questions.")
-        logFrontend({
-          level: "ERROR",
-          message: `Failed to fetch questions. Reason: ${err}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (err as Error).stack,
-        })
-      } finally {
-        setIsQuestionLoading(false)
-      }
-    }
-
-    fetchQuestions()
-  }, [questionsInstances])
-
-  // Setting the default active question and question instance
-  useEffect(() => {
-    if (questions.length > 0 && !activeQuestion) {
-      setActiveQuestion(questions[0])
-    }
-    if (questionsInstances.length > 0 && !activeQuestionInstance) {
-      setActiveQuestionInstance(questionsInstances[0])
-    }
-    const loadLanguages = async () => {
-      try {
-        const user = await getProfile()
-
-        await getAllLanguages(true)
-        .then((response) => {
-          setLanguages(response)
-        })
-
-        await getUserPrefs(user.id)
-          .then((response) => {
-            setUserPreferences(response)
-          })
-      } catch (error) {
-        toast.error("Error when fetching languages.")
-        logFrontend({
-          level: "ERROR",
-          message: `Failed to fetch languages. Reason: ${error}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (error as Error).stack,
-        })
-      }
-    }
-    if (questions) {
-      loadLanguages()
-    }
-  }, [questions, questionsInstances])
-
-  useEffect(() => {
-    if (!languages) return
-
-    if (userPreferences) {
-      const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
-
-      if (lang) {
-        setSelectedLang(lang)
-        prevLangRef.current = lang
-      }
-    } else {
-      setSelectedLang(languages[0])
-    }
-    
-  }, [languages, userPreferences])
-
-
-  const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
@@ -242,20 +78,28 @@ const CodingView = () => {
   } = useAnalytics()
 
   const submitCode = async () => {
-    if (!activeQuestionInstance) {
+    if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
+    // } else if (!activeQuestionInstance) {
+    } else if (mostRecentSub && event && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
+      toast.warning(`You're submitting too fast.\nTry again after ${(mostRecentSub.submitted_on.getTime() + event.question_cooldown)}`)
     } else {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Submitting")
+
+        const {
+          codeRunResponse, submissionResponse
+        } = await submitAttempt(
+            activeQuestion, activeQuestionInstance, 
+            userQuestionInstance, event?.event_id, 
+            code, selectedLang?.lang_judge_id, null, testcases
+          )
   
-        const user = await getProfile()
-        const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, selectedLang?.lang_judge_id, testcases)
-  
-        if (submissionResponse.status_code === 200) {
-          toast.success(submissionResponse.message)
+        if (submissionResponse.status === "Accepted") {
+          toast.success("Code successfully passed tests")
         } else {
-          toast.warning(submissionResponse.message)
+          toast.warning("Code failed at least one tests")
         }
   
         setLogs(prev => [...prev, codeRunResponse.judge0Response])
@@ -284,16 +128,15 @@ const CodingView = () => {
   }
 
   const runCode = async () => {
-    if (!activeQuestion) {
-      toast.warning('Please solve the riddle first...')
+    if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
+      toast.warning('Please answer the riddle first...')
     } else {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
-  
-        const user = await getProfile()
+
         console.log('activeQI', activeQuestionInstance)
-        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
+        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
         
         setLogs(prev => [...prev, judge0Response])
         setMostRecentSub(mostRecentSubResponse)
@@ -302,7 +145,7 @@ const CodingView = () => {
         // Capture run result — status comes directly from Judge0 response
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
-          activeQuestion?.question_id,
+          activeQuestionInstance?.question_id,
           selectedLang,
           judge0Response.status.description,
           passed,
@@ -331,14 +174,6 @@ const CodingView = () => {
   // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
   // ^^ Will be needed later
 
-  useEffect(() => {
-    if (mostRecentSub) {
-      setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
-    } else {
-      setMostRecentSubGroupClass("grid grid-cols-2 gap-4")
-    }
-  }, [mostRecentSub])
-
   const handleLanguageChange = (lang: Language) => {
     trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
     prevLangRef.current = lang
@@ -348,12 +183,34 @@ const CodingView = () => {
 
   const handleQuestionChange = (q: Question) => {
     setActiveQuestion(q)
-    questionsInstances.forEach((qi, idx) => {
+    questionsInstances.find(async (qi, idx) => {
       if (qi.question_id === q.question_id) {
+        setEndTime(new Date())
+        if (startTime && userQuestionInstance) {
+          userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
+        }
+        console.log('userQuestionInstance', userQuestionInstance)
+        try {
+          await putUserInstance(userQuestionInstance)
+        } catch (error) {
+          logFrontend({
+            level: "ERROR",
+            message: `An error occurred when updating user question instance. Reason: ${error}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (error as Error).stack,
+          });
+        }
         setActiveQuestionInstance(qi)
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
     })
+    // questionsInstances.forEach((qi, idx) => {
+    //   if (qi.question_id === q.question_id) {
+    //     setActiveQuestionInstance(qi)
+    //     setActiveDisplayQuestionName(`Question ${idx + 1}`)
+    //   }
+    // })
   }
 
   const handleCodeReset = () => {
@@ -449,7 +306,7 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} mostRecentSub={mostRecentSub} />
+          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"

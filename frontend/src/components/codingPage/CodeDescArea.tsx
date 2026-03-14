@@ -6,11 +6,8 @@ import type { SubmissionType } from '../../types/submissions/SubmissionType.type
 import { Button } from '../ui/button'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question } from '@/types/questions/QuestionPagination.type'
-import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import type { MostRecentSub } from '@/types/submissions/MostRecentSub.type'
-import { getAllSubmissions } from '@/api/CodeSubmissionAPI'
-import { getProfile } from '@/api/AuthAPI'
+import { getAllSubmissions } from '@/api/SubmissionAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
@@ -21,13 +18,12 @@ import { toast } from 'sonner'
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 import { getAllLanguages } from '@/api/LanguageAPI'
-import type { Language } from '@/types/questions/Language.type'
+import { useCodingHooks } from '../helpers/CodingHooks'
 
 const CodeDescArea = (
-    { question, question_instance, mostRecentSub, }:
+    { question, question_instance, }:
     { question: Question | undefined,
       question_instance: QuestionInstance | undefined | null,
-      mostRecentSub: MostRecentSub | undefined
     }
 ) => {
 
@@ -37,7 +33,24 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { testcases } = useTestcases(question?.question_id)
+    const {
+        logs, setLogs, mostRecentSub, setMostRecentSub,
+        isQuestionLoading, setIsQuestionLoading,
+        isAsyncLoading, setIsAsyncLoading,
+        currentOutputTab, setCurrentOutputTab,
+        activeQuestion, setActiveQuestion,
+        activeQuestionInstance, setActiveQuestionInstance,
+        activeDisplayQuestionName, setActiveDisplayQuestionName,
+        userQuestionInstance, setUserQuestionInstance,
+        questions, setQuestions, lapseTime, setLapseTime,
+        questionsInstances, setQuestionsInstances,
+        languages, setLanguages, prevLangRef,
+        mostRecentSubGroupClass, setMostRecentSubGroupClass,
+        selectedLang, setSelectedLang, event,
+        userPreferences, setUserPreferences,
+        testcases, loadingMsg, setLoadingMsg
+      } = useCodingHooks(question) 
+
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
@@ -47,15 +60,13 @@ const CodeDescArea = (
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
     const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-    const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
+    // const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
-    const [languages, setLanguages] = useState<Language[]>()
-
     useEffect(() => {
         if (!question?.question_id) return
-        setHasSolvedRiddle(false)
+        // setHasSolvedRiddle(false)
         setRiddleObject(null)
         setIsLoadingRiddle(true)
 
@@ -73,7 +84,7 @@ const CodeDescArea = (
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
                   });
-                setHasSolvedRiddle(true)
+                // setHasSolvedRiddle(true)
             } finally {
                 setIsLoadingRiddle(false)
             }
@@ -84,21 +95,18 @@ const CodeDescArea = (
     }, [question?.question_id, question_instance?.question_instance_id])
 
     useEffect(() => {
-        if (hasSolvedRiddle) {
+        if (userQuestionInstance) {
             const FetchSubmissions = async () => {
-                const user = await getProfile()
-                await getAllSubmissions(user.id, question_instance?.question_instance_id)
+                await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
                     .then((response) => {
                         setSubmissions(response)
                     })
                 await getAllLanguages(null)
-                    .then((response) => {
-                        setLanguages(response)
-                    })
+                    .then((response) => setLanguages(response))
             }
             FetchSubmissions()
         }
-    }, [hasSolvedRiddle, mostRecentSub])
+    }, [userQuestionInstance])
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -129,9 +137,9 @@ const CodeDescArea = (
             tab as "description" | "submissions" | "leaderboard"
         )
     }//  Riddle Rendering ------------------------------------
-    const needsRiddle = !hasSolvedRiddle;
+    // const needsRiddle = !hasSolvedRiddle;
 
-    if (needsRiddle) {
+    if (!userQuestionInstance?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -155,7 +163,12 @@ const CodeDescArea = (
                         {/* Pass the entire object to the User Form */}
                         <RiddleUserForm
                             riddle={riddleObject}
-                            onSolved={() => setHasSolvedRiddle(true)}
+                            onSolved={() => {
+                                // if (userQuestionInstance && userQuestionInstance?.riddle_complete !== null) {
+                                //     userQuestionInstance?.riddle_complete = true
+                                // }
+                                // setHasSolvedRiddle(true)
+                            }}
                         />
                     </div>
                 </div>
@@ -230,7 +243,7 @@ const CodeDescArea = (
             <TabsContent value='submissions' data-testid="tabs-content-submissions">
                 <div className='h-full p-6'>
                     {selectedSubmission === null ?
-                        (submissions ? (
+                        (submissions && submissions?.length > 0 ? (
                             <Table data-testid="table">
                                 <TableHeader>
                                     <TableRow>
@@ -244,17 +257,15 @@ const CodeDescArea = (
                                     {submissions?.map((s, idx) => {
                                         const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                        
-
                                         return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
                                         onClick={() => setSelectedSubmission(s)}
                                         >
                                             <TableCell className='grid grid-rows-2' >
                                                 <span className={`${status_color}`} >{s.status}</span>
-                                                <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
+                                                <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
                                             </TableCell>
                                             <TableCell className="" >
-                                                {languages?.find(lang => lang.lang_judge_id === s.question_instance_id)?.display_name}
+                                                {languages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
                                             </TableCell>
                                             <TableCell className="text-right text-card" >{s?.memory}</TableCell>
                                             </TableRow>
@@ -309,7 +320,7 @@ const CodeDescArea = (
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-muted-foreground">Submitted</span>
-                                                <span className="font-mono text-sm">{TimeAgoFormat(selectedSubmission.submitted_on)}</span>
+                                                <span className="font-mono text-sm">{TimeAgoFormat(selectedSubmission.submitted_on.toISOString())}</span>
                                             </div>
                                         </div>
                                     </div>

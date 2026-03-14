@@ -1,0 +1,358 @@
+import { submitToJudge0 } from "../../api/Judge0API"
+import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
+import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
+import { logFrontend } from "../../api/LoggerAPI"
+import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Competition } from "@/types/competition/Competition.type"
+import type { BaseEvent } from "@/types/BaseEvent.type"
+import { useEffect, useRef, useState } from "react"
+import type { Language } from "@/types/questions/Language.type"
+import type { UserPreferences } from "@/types/account/UserPreferences.type"
+import { getEventByName } from "@/api/BaseEventAPI"
+import { toast } from "sonner"
+import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from "@/api/QuestionInstanceAPI"
+import { getAllLanguages } from "@/api/LanguageAPI"
+import { getProfile } from "@/api/AuthAPI"
+import { getUserPrefs } from "@/api/UserPreferencesAPI"
+import { getQuestionByID } from "@/api/QuestionsAPI"
+import { saveSubmission } from "@/api/SubmissionAPI"
+import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
+import { useTestcases } from "./useTestcases"
+import type { Judge0Response } from "@/types/questions/Judge0Response"
+import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
+import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
+import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
+
+
+export function useCodingHooks(question?: Question, comp?: Competition) {
+    const [ languages, setLanguages ] = useState<Language[]>()
+    const [ selectedLang, setSelectedLang ] = useState<Language>()
+    // Keep a ref to the previous language so we can log "from → to" on change
+    const prevLangRef = useRef<Language | null>(null)
+
+    const [ questions, setQuestions ] = useState<Question[]>([])
+    const [ event, setEvent ] = useState<BaseEvent | null>(null)
+    const [ activeQuestion, setActiveQuestion ] = useState<Question>()
+    const [ questionsInstances, setQuestionsInstances ] = useState<QuestionInstance[]>([])
+    const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
+
+    const [ userPreferences, setUserPreferences ] = useState<UserPreferences>()
+    const [ userQuestionInstance, setUserQuestionInstance ] = useState<UserQuestionInstance | undefined>()
+
+    const [ lapseTime, setLapseTime ] = useState<Number | null>()
+    const [ startTime, setStartTime ] = useState<Date | null>()
+    const [ endTime, setEndTime ] = useState<Date | null>()
+
+    const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
+
+    const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
+    const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+    const [ loadingMsg, setLoadingMsg ] = useState<string>("")
+
+    const [ logs, setLogs ] = useState<Judge0Response[]>([])
+    const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+    const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
+    const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+
+    const { testcases } = useTestcases(activeQuestionInstance?.question_id)
+
+
+    // Getting the competition or algotime event if it exists
+    useEffect(() => {
+        if(comp?.id) {
+            const InitializeCompEvent = async () => {
+                setIsQuestionLoading(true)
+                try {
+                    await getEventByName(comp?.competitionTitle)
+                        .then((response) => setEvent(response))
+                } catch (err) {
+                    toast.error("Error when fetching competition event.")
+                    logFrontend({
+                        level: "ERROR",
+                        message: `Failed to fetch competition event. Reason: ${err}`,
+                        component: "CodingHooks",
+                        url: globalThis.location.href,
+                        stack: (err as Error).stack,
+                    })
+                } finally {
+                    setIsQuestionLoading(false)
+                }
+            }
+            InitializeCompEvent()
+        }
+    }, [comp?.id])
+
+    // Getting the question instance (if it's a practice question and no event was passed)
+    // Or all the question instances associated to the given event
+    useEffect(() => {
+        if (event) {
+            const InitializeQuestionInstances = async () => {
+                setIsQuestionLoading(true)
+                try {
+                    await getAllQuestionInstancesByEventID(event?.event_id)
+                        .then((response) => setQuestionsInstances(response))
+                } catch (err) {
+                    toast.error("Error when fetching event's question instances.")
+                    logFrontend({
+                        level: "ERROR",
+                        message: `Failed to fetch event's question instances. Reason: ${err}`,
+                        component: "CodingHooks",
+                        url: globalThis.location.href,
+                        stack: (err as Error).stack,
+                    })
+                } finally {
+                    setIsQuestionLoading(false)
+                }
+            }
+            InitializeQuestionInstances()
+        } else if(question?.question_id) {
+            const initQuestion = async () => {
+                setIsQuestionLoading(true)
+                try {
+                    const qi = await getQuestionInstance(question?.question_id, null)
+
+                    if (qi) {
+                        setQuestionsInstances([qi])
+                    } else {
+                        await putQuestionInstance(undefined, question?.question_id, null, null)
+                            .then((response) => setQuestionsInstances([response]))
+                    }
+                } catch (err) {
+                    toast.error("Error when fetching question instance.")
+                    logFrontend({
+                        level: "ERROR",
+                        message: `Failed to fetch question instance. Reason: ${err}`,
+                        component: "CodingHooks",
+                        url: globalThis.location.href,
+                        stack: (err as Error).stack,
+                    })
+                } finally {
+                    setIsQuestionLoading(false)
+                }
+            }
+            initQuestion()
+            setQuestions([question])
+        }
+    }, [event, question?.question_id])
+
+    // If an event is passed, get all the associated questions' details 
+    useEffect(() => {
+        if (!questionsInstances?.length || questions.length >= questionsInstances.length) return
+
+        const fetchQuestions = async () => {
+            setIsQuestionLoading(true)
+            try {
+                // Fetch all in parallel
+                const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
+                const fetchedResponses = await Promise.all(questionPromises)
+
+                console.log("promises", questionPromises)
+                console.log("allQuestionsinstances", fetchedResponses)
+
+                setQuestions(fetchedResponses)
+            } catch (err) {
+                toast.error("Error when fetching questions.")
+                logFrontend({
+                    level: "ERROR",
+                    message: `Failed to fetch questions. Reason: ${err}`,
+                    component: "CodingHooks",
+                    url: globalThis.location.href,
+                    stack: (err as Error).stack,
+                })
+            } finally {
+                setIsQuestionLoading(false)
+            }
+        }
+        fetchQuestions()
+    }, [questionsInstances])
+
+    // Setting the default active question and question instance
+    useEffect(() => {
+        if (questions.length > 0 && !activeQuestion) {
+            setActiveQuestion(questions[0])
+        }
+        if (questionsInstances.length > 0 && !activeQuestionInstance) {
+            setActiveQuestionInstance(questionsInstances[0])
+        }
+        const loadLanguages = async () => {
+            try {
+                await getAllLanguages(true)
+                    .then((response) => setLanguages(response))
+
+                await getUserPrefs()
+                    .then((response) => setUserPreferences(response))
+            } catch (error) {
+                toast.error("Error when fetching languages.")
+                logFrontend({
+                    level: "ERROR",
+                    message: `Failed to fetch languages. Reason: ${error}`,
+                    component: "CodingHooks",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                })
+            }
+        }
+        if (questions) {
+            loadLanguages()
+        }
+    }, [questions, questionsInstances])
+
+    useEffect(() => {
+        if (!languages) return
+    
+        if (userPreferences) {
+            const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
+    
+            if (lang) {
+                setSelectedLang(lang)
+                prevLangRef.current = lang
+            }
+        } else {
+            setSelectedLang(languages[0])
+        }
+    }, [languages, userPreferences])
+
+
+    // switches current userQuestionInstance and lapse time when the user switches questions
+    useEffect(() => {
+        if (activeQuestionInstance) {
+            // TODO: get or CREATE USER QUESTION INSTANCE
+            // SWITCH TIME LAPSED
+            const getOrCreateUserQuestionInstance = async () => {
+                const user = await getProfile()
+                // let uqi = await put_CreateUserInstance(user.id, activeQuestionInstance.question_instance_id)
+                const uqi = await getUserInstance(user.id, activeQuestionInstance.question_instance_id)
+
+                console.log("uqi", uqi)
+
+                if (uqi) {
+                    console.log("!!!!!!!uqi", uqi)
+                    setUserQuestionInstance(uqi)
+                } else {
+                    console.log("@@@@@@@")
+                    await putUserInstance({
+                            user_question_instance_id: -1,
+                            user_id: user.id,
+                            question_instance_id: activeQuestionInstance.question_instance_id,
+                            points: null,
+                            riddle_complete: null,
+                            lapse_time: null,
+                            attempts: null
+                        } as UserQuestionInstance)
+                        .then(response => {
+                            console.log("new uqi", response)
+                            setUserQuestionInstance(response)
+                        })
+                }
+
+                if (questions.length > 1) {
+                    setStartTime(new Date())
+                    console.log("startTime", startTime)
+                }
+            }
+            getOrCreateUserQuestionInstance()
+        }
+    }, [activeQuestionInstance])
+
+    // switches to a grid with 3 columns when the user already submitted something
+    useEffect(() => {
+        if (mostRecentSub) {
+            setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
+        } else {
+            setMostRecentSubGroupClass("grid grid-cols-2 gap-4")
+        }
+    }, [mostRecentSub])
+
+
+    return {
+        startTime, setStartTime, endTime, setEndTime,
+        logs, setLogs, mostRecentSub, setMostRecentSub,
+        isQuestionLoading, setIsQuestionLoading,
+        isAsyncLoading, setIsAsyncLoading,
+        currentOutputTab, setCurrentOutputTab,
+        activeQuestion, setActiveQuestion,
+        activeQuestionInstance, setActiveQuestionInstance,
+        activeDisplayQuestionName, setActiveDisplayQuestionName,
+        userQuestionInstance, setUserQuestionInstance,
+        questions, setQuestions, lapseTime, setLapseTime,
+        questionsInstances, setQuestionsInstances,
+        languages, setLanguages, prevLangRef,
+        mostRecentSubGroupClass, setMostRecentSubGroupClass,
+        selectedLang, setSelectedLang, event,
+        userPreferences, setUserPreferences,
+        testcases, loadingMsg, setLoadingMsg
+    }
+}
+
+
+export async function submitAttempt(
+    question: Question | undefined,
+    questionInstance: QuestionInstance | undefined,
+    userQuestionInstance: UserQuestionInstance | undefined,
+    event_id: number | undefined,
+    source_code: string,
+    language_id: number | undefined,
+    lapse_time: BigInt | null,
+    testcases: TestCase[],
+): Promise<SubmitAttemptResponse> {
+    try {
+        if (!questionInstance || !userQuestionInstance || !question || !language_id) {
+            throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
+        }
+
+        // 1. Get or create user instance
+
+        // 2.a Submit to judge0 and save most recent submission
+        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases)
+
+        if (event_id) {
+            if (userQuestionInstance.attempts) {
+                userQuestionInstance.attempts += 1
+            } else {
+                userQuestionInstance.attempts = 1
+            }
+
+            // 2.b Competition/Algotime points calculation
+            if (judge0Response.status.description === "Accepted") {
+                // Get event point
+                // userQuestionInstance.points = questionInstance.
+            }
+        }
+
+        userQuestionInstance = await putUserInstance(userQuestionInstance)
+
+        // 3. Save submission's output details
+        const submissionResponse = await saveSubmission({
+            submission_id: -1,
+            user_question_instance_id: 0,
+            status: judge0Response['status']['description'],
+            memory: judge0Response['memory'],
+            runtime: judge0Response['time'],
+            submitted_on: new Date(Date.now()),
+            stdout: judge0Response['stdout'],
+            stderr: judge0Response['stderr'],
+            compile_output: judge0Response['compile_output'],
+            message: judge0Response['message'],
+        } as SubmissionType)
+
+        return {
+            codeRunResponse: {
+                judge0Response: judge0Response,
+                mostRecentSubResponse: mostRecentSubResponse,
+                userPrefs: userPrefs
+            },
+            submissionResponse: submissionResponse,
+            // submissionResponse: submissionResponse,
+        }
+
+    } catch (err) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingHooks",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err;
+    }
+}
