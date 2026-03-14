@@ -18,7 +18,6 @@ from src.endpoints.most_recent_sub_api import most_recent_sub_router
 
 @pytest.fixture
 def mock_db():
-    """Creates a mock database session."""
     return MagicMock()
 
 @pytest.fixture
@@ -59,8 +58,8 @@ def test_get_most_recent_sub_success(client, mock_db):
     assert data["data"]["code"] == "print('hello world')"
     assert data["data"]["lang_judge_id"] == 71
 
-def test_get_most_recent_sub_empty(client, mock_db):
-    """Test fetching most recent submission that doesn't exist."""
+def test_get_most_recent_sub_not_found(client, mock_db):
+    """Test fetching most recent submission that doesn't exist returns null data."""
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     response = client.get("/latest?user_question_instance_id=100")
@@ -78,6 +77,11 @@ def test_get_most_recent_sub_db_error(client, mock_db):
 
     assert response.status_code == 500
     assert "Failed to retrieve most recent submission" in response.json()["detail"]
+
+def test_get_most_recent_sub_missing_param(client):
+    """Test that missing required query param returns 422."""
+    response = client.get("/latest")
+    assert response.status_code == 422
 
 
 # --- PUT /put TESTS ---
@@ -111,8 +115,8 @@ def test_create_new_most_recent_sub(client, mock_db):
     assert response_data['data']['code'] == payload['code']
     
 
-def test_update_existing_most_recent_submission(client, mock_db):
-    """Test updating an existing submission when user_id and question_instance_id is provided."""
+def test_update_existing_most_recent_sub(client, mock_db):
+    """Test updating an existing MostRecentSubmission."""
     payload = {
         "user_question_instance_id": 1,
         "code": "print('goodbye~~~')",
@@ -146,7 +150,7 @@ def test_update_existing_most_recent_submission(client, mock_db):
     assert existing.lang_judge_id == payload['lang_judge_id']
     assert existing.submitted_on == payload['submitted_on']
 
-def test_add_most_recent_sub_db_error(client, mock_db):
+def test_update_most_recent_sub_commit_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
         "user_question_instance_id": 1,
@@ -155,6 +159,7 @@ def test_add_most_recent_sub_db_error(client, mock_db):
         "submitted_on": "2025-01-10T12:00:00"
     }
 
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
     mock_db.commit.side_effect = Exception("Commit Failed")
 
     response = client.put("/put", json=payload)

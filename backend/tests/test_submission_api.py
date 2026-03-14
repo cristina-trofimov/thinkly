@@ -18,7 +18,6 @@ from src.endpoints.submission_api import submission_router
 
 @pytest.fixture
 def mock_db():
-    """Creates a mock database session."""
     return MagicMock()
 
 @pytest.fixture
@@ -39,7 +38,7 @@ def client(mock_db):
 # --- GET /all TESTS ---
 
 def test_get_all_submissions_success(client, mock_db):
-    """Test fetching submissions for a user and question instance."""
+    """Test fetching submissions for a user_question_instance_id."""
     fake_subs = [
         SimpleNamespace(
             submission_id = 1,
@@ -82,7 +81,7 @@ def test_get_all_submissions_success(client, mock_db):
     assert data["data"][0]["message"] is None
 
 def test_get_all_submissions_empty(client, mock_db):
-    """Test when no submissions exist for the given filters."""
+    """Test when no submissions exist for the given user_question_instance_id."""
     mock_db.query.return_value.filter_by.return_value.all.return_value = []
 
     response = client.get("/all?user_question_instance_id=99")

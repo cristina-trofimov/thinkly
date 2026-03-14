@@ -28,7 +28,7 @@ class SubmissionModel(BaseModel):
 )
 def get_all_submissions(
     db: Annotated[Session, Depends(get_db)],
-    user_question_instance_id: Annotated[int, Query()] = None
+    user_question_instance_id: Annotated[int, Query()]
 ):
     try:
         subs = db.query(Submission).filter_by(user_question_instance_id = user_question_instance_id).all()
@@ -60,7 +60,7 @@ def get_all_submissions(
 
 @submission_router.post("/add",
     status_code=201,
-    responses={500: {"description": "Failed to upload most recent submission."}}
+    responses={500: {"description": "Failed to upload submission."}}
 )
 def save_sub(
     db: Annotated[Session, Depends(get_db)],

@@ -18,7 +18,7 @@ class MostRecentSubModel(BaseModel):
     submitted_on: str
 
 
-@most_recent_sub_router.get("/latest", response_model = dict,
+@most_recent_sub_router.get("/latest", response_model=dict,
     responses={500: {"description": "Error retrieving most recent submission."}}
 )
 def get_most_recent_sub(
@@ -44,8 +44,7 @@ def get_most_recent_sub(
     except Exception as e:
         logger.error(f"Error fetching most recent submission: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve most recent submission.")
-        
-    
+
 
 @most_recent_sub_router.put("/put", status_code=201,
     responses={500: {"description": "Failed to update most recent submission."}}

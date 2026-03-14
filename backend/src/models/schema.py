@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database_operations.db import Base
 from typing import List, Optional, Any
 from datetime import datetime, timezone
+from sqlalchemy import BigInteger
 
 # Foreign key reference constants
 FK_USER_ACCOUNT_USER_ID = 'user_account.user_id'
@@ -34,7 +35,10 @@ class UserAccount(Base):
     algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry',
                                                                                         back_populates='user_account',
                                                                                         uselist=True)
-    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance', back_populates='user_account', uselist=True)
+
+    user_question_instances: Mapped[List[UserQuestionInstance]] = relationship('UserQuestionInstance',
+                                                                               back_populates='user_account',
+                                                                               uselist=True)
 
 
 class UserPreferences(Base):
@@ -108,8 +112,8 @@ class CompetitionEmail(Base):
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
 
     # Basic email schedule info
-    subject: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
-    to: Mapped[str] = mapped_column()  # e.g., "Competition Reminder"
+    subject: Mapped[str] = mapped_column()
+    to: Mapped[str] = mapped_column()
     body: Mapped[str] = mapped_column()
 
     # Computed reminder times
@@ -303,7 +307,7 @@ class CompetitionLeaderboardEntry(Base):
 
     competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
-    name: Mapped[str] = mapped_column()  # <= NOT NULL
+    name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
     problems_solved: Mapped[int] = mapped_column(default=0)
@@ -321,7 +325,7 @@ class CompetitionLeaderboardEntry(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.calculated_rank = None  # Initialize runtime attribute
+        self.calculated_rank = None
 
 
 class AlgoTimeLeaderboardEntry(Base):
@@ -339,7 +343,9 @@ class AlgoTimeLeaderboardEntry(Base):
                                                    onupdate=datetime.now(timezone.utc))
     algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries',
                                                            back_populates='algotime_leaderboard_entries', uselist=False)
-    user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount', uselist=False)
+    user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount',
+                                                               back_populates='algotime_leaderboard_entries',
+                                                               uselist=False)
 
     __table_args__ = (
         UniqueConstraint('algotime_series_id', 'user_id', name='uix_algotime_user'),
@@ -347,4 +353,4 @@ class AlgoTimeLeaderboardEntry(Base):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.calculated_rank = None  # Initialize runtime attribute
+        self.calculated_rank = None
