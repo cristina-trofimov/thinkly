@@ -9,7 +9,6 @@ import { getProfile } from '../src/api/AuthAPI'
 import { Account } from '../src/types/account/Account.type'
 import { MostRecentSub } from '../src/types/submissions/MostRecentSub.type'
 import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
-import { getAllSubmissions } from '../src/api/CodeSubmissionAPI'
 import { getAllLanguages } from '../src/api/LanguageAPI'
 import { getRiddleById } from '../src/api/RiddlesAPI'
 import { describe } from 'node:test'
@@ -110,6 +109,8 @@ jest.mock('../src/api/CodeSubmissionAPI', () => ({
 const problem_id = 1
 const user_id = 1
 const question_instance_id = 1
+const user_question_instance_id = 123
+const language_id = 123
 const mockProfile: Account = {
     id: 1,
     firstName: "John",
@@ -119,38 +120,39 @@ const mockProfile: Account = {
 }
 
 const mockMostRecentSubResponse: MostRecentSub = {
-    user_id: user_id,
-    question_instance_id: question_instance_id,
+    row_id: 1,
+    user_question_instance_id: user_question_instance_id,
     code: "source_code",
-    lang_judge_id: 71
+    lang_judge_id: 71,
+    submitted_on: new Date()
 }
 
 const mockSubmissions: SubmissionType[] = [
     {
-        submission_id: 1,
-        user_id: user_id,
-        question_instance_id: question_instance_id,
-        compile_output: null,
-        status: "Accepted",
-        runtime: 123,
-        memory: 456,
-        submitted_on: new Date(2024, 5, 12).toISOString(),
-        stdout: "output",
-        stderr: null,
-        message: null,
+      submission_id: 1,
+      user_question_instance_id: user_question_instance_id,
+      lang_judge_id: language_id,
+      compile_output: null,
+      status: "Accepted",
+      runtime: 123,
+      memory: 456,
+      submitted_on: new Date(2024, 5, 12),
+      stdout: "output",
+      stderr: null,
+      message: null,
     },
     {
       submission_id: 2,
-        user_id: user_id,
-        question_instance_id: question_instance_id,
-        compile_output: "error",
-        status: "Wrong Answer",
-        runtime: 45,
-        memory: 128,
-        submitted_on: new Date(2024, 5, 11).toISOString(),
-        stdout: null,
-        stderr: "error",
-        message: "test failed",
+      user_question_instance_id: user_question_instance_id,
+      lang_judge_id: 51,
+      compile_output: "error",
+      status: "Wrong Answer",
+      runtime: 45,
+      memory: 128,
+      submitted_on: new Date(2024, 5, 11),
+      stdout: null,
+      stderr: "error",
+      message: "test failed",
     }
 ]
 

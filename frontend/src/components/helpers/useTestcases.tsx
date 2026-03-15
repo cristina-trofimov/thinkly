@@ -1,4 +1,4 @@
-import { getTestcases } from "@/api/QuestionsAPI";
+import { getTestcases } from "@/api/TestCasesAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
 import { useEffect, useRef, useState } from "react";
 
