@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -112,10 +112,12 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          await getQuestionInstance(question?.question_id, null)
-            .then((response) => {
-              setQuestionsInstances([response])
-            })
+          const [questionInstance, fullQuestion] = await Promise.all([
+            getQuestionInstance(question.question_id, null),
+            getQuestionByID(question.question_id),
+          ])
+          setQuestionsInstances([questionInstance])
+          setQuestions([fullQuestion])
         } catch (err) {
           toast.error("Error when fetching question instance.")
           logFrontend({
@@ -130,7 +132,6 @@ const CodingView = () => {
         }
       }
       initQuestion()
-      setQuestions([question])
     }
   }, [event, question?.question_id])
 
@@ -268,6 +269,16 @@ const CodingView = () => {
   const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<SupportedLanguagesType>("Java")
+  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
+  const codeBuffersRef = useRef<Map<string, string>>(new Map())
+
+  // Look up the DB-stored properties for the currently selected language
+  const activeLangProps = useMemo(
+    () => activeQuestion?.language_specific_properties.find(
+      (p) => p.language_name === selectedLang
+    ) ?? null,
+    [activeQuestion, selectedLang]
+  )
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
@@ -279,10 +290,20 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
+  // Priority: DB preset_code → DB template_solution → hardcoded fallback
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || templateCode
+
   const [code, setCode] = useState<string>('')
 
-  // Reset editor on language change
-  useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Restore buffer or fall back to presetCode on language/question change
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(saved ?? presetCode)
+  }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(saved ?? presetCode)
+  }, [activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mostRecentSub) {
       setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
@@ -292,10 +313,12 @@ const CodingView = () => {
   }, [mostRecentSub])
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
-    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
+    trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current, lang)
+    // Save current code before switching so user can come back to it
+    codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
     prevLangRef.current = lang
     setSelectedLang(lang)
-    setCode(templateCode)
+    // useEffect on selectedLang will restore buffer or fall back to presetCode
   }
 
   const handleQuestionChange = (q: Question) => {
@@ -309,8 +332,10 @@ const CodingView = () => {
   }
 
   const handleCodeReset = () => {
-    trackCodeReset(activeQuestion?.question_id, selectedLang)
-    setCode(templateCode)
+    trackCodeReset(activeQuestion!.question_id, selectedLang)
+    // Clear buffer so switching away and back also resets
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(presetCode)
   }
 
   const [fullCode, setFullCode] = useState(false)
