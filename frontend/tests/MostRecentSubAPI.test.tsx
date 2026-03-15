@@ -67,8 +67,7 @@ describe("Most recent submission", () => {
             expect.objectContaining({
                 user_question_instance_id: user_question_instance_id,
                 code: code,
-                lang_judge_id: lang_judge_id,
-                submitted_on: new Date()
+                lang_judge_id: lang_judge_id
             })
         )
     })

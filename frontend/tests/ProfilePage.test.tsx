@@ -103,7 +103,7 @@ jest.mock("@/components/ui/input", () => ({
 // ---------------------------------------------------------------------------
 
 const mockUser = {
-  id: "user-123",
+  id: 21,
   firstName: "John",
   lastName: "Doe",
   email: "john.doe@example.com",
@@ -244,7 +244,7 @@ describe("ProfilePage Component", () => {
     if (saveButton) fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(updateAccount).toHaveBeenCalledWith("user-123", { first_name: "Jane" });
+      expect(updateAccount).toHaveBeenCalledWith(21, { first_name: "Jane" });
       expect(toast.success).toHaveBeenCalledWith("First name updated successfully.");
     });
   });
@@ -264,7 +264,7 @@ describe("ProfilePage Component", () => {
     if (saveButton) fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(updateAccount).toHaveBeenCalledWith("user-123", { last_name: "Smith" });
+      expect(updateAccount).toHaveBeenCalledWith(21, { last_name: "Smith" });
     });
   });
 
@@ -283,7 +283,7 @@ describe("ProfilePage Component", () => {
     if (saveButton) fireEvent.click(saveButton);
 
     await waitFor(() => {
-      expect(updateAccount).toHaveBeenCalledWith("user-123", { email: "jane.doe@example.com" });
+      expect(updateAccount).toHaveBeenCalledWith(21, { email: "jane.doe@example.com" });
     });
   });
 
@@ -395,7 +395,7 @@ describe("ProfilePage Component", () => {
     render(<ProfilePage />);
     await screen.findByText("John Doe");
     await waitFor(() => {
-      expect(getUserPrefs).toHaveBeenCalledWith("user-123");
+      expect(getUserPrefs).toHaveBeenCalledWith(21);
     });
   });
 
@@ -560,8 +560,11 @@ describe("ProfilePage Component", () => {
     fireEvent.click(screen.getByText("Save Preferences"));
 
     await waitFor(() => {
-      expect(updateAllPrefs).toHaveBeenCalledWith( "user-123",
-        { user_id: 21, theme: "dark", notifications_enabled: true, last_used_programming_language: 71 }
+      expect(updateAllPrefs).toHaveBeenCalledWith(21,
+        {
+          user_id: 21, theme: "dark", 
+          notifications_enabled: true, last_used_programming_language: 71
+        }
       );
     });
   });
@@ -661,8 +664,12 @@ describe("ProfilePage Component", () => {
     fireEvent.click(screen.getByText("Save Preferences"));
 
     await waitFor(() => {
-      expect(updateAllPrefs).toHaveBeenCalledWith(
-        { user_id: 21, theme: "light", notifications_enabled: false, last_used_programming_language: 71 }
+      expect(updateAllPrefs).toHaveBeenCalledWith(21,
+        {
+          user_id: 21, theme: "light",
+          notifications_enabled: false, 
+          last_used_programming_language: 71
+        }
       );
     });
   });
