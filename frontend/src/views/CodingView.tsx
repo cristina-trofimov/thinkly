@@ -269,6 +269,8 @@ const CodingView = () => {
   const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<SupportedLanguagesType>("Java")
+  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
+  const codeBuffersRef = useRef<Map<string, string>>(new Map())
 
   // Look up the DB-stored properties for the currently selected language
   const activeLangProps = useMemo(
@@ -293,9 +295,15 @@ const CodingView = () => {
 
   const [code, setCode] = useState<string>('')
 
-  // Reset editor on language change or question change
-  useEffect(() => { setCode(presetCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setCode(presetCode) }, [activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Restore buffer or fall back to presetCode on language/question change
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(saved ?? presetCode)
+  }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(saved ?? presetCode)
+  }, [activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mostRecentSub) {
       setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
@@ -306,9 +314,11 @@ const CodingView = () => {
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
     trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
+    // Save current code before switching so user can come back to it
+    codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
     prevLangRef.current = lang
     setSelectedLang(lang)
-    setCode(presetCode)
+    // useEffect on selectedLang will restore buffer or fall back to presetCode
   }
 
   const handleQuestionChange = (q: Question) => {
@@ -323,6 +333,8 @@ const CodingView = () => {
 
   const handleCodeReset = () => {
     trackCodeReset(activeQuestion?.question_id, selectedLang)
+    // Clear buffer so switching away and back also resets
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
     setCode(presetCode)
   }
 
