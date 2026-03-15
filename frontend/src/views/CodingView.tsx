@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -269,6 +269,14 @@ const CodingView = () => {
   const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<SupportedLanguagesType>("Java")
+
+  // Look up the DB-stored properties for the currently selected language
+  const activeLangProps = useMemo(
+    () => activeQuestion?.language_specific_properties.find(
+      (p) => p.language_name === selectedLang
+    ) ?? null,
+    [activeQuestion, selectedLang]
+  )
 
   const { language, judgeID, templateCode } = buildMonacoCode({
     language: selectedLang,
