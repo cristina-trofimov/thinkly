@@ -288,10 +288,13 @@ const CodingView = () => {
     outputType: "number[]",
   });
 
+  // Priority: DB preset_code → DB template_solution → hardcoded fallback
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || templateCode
+
   const [code, setCode] = useState<string>('')
 
   // Reset editor on language change
-  useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setCode(presetCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mostRecentSub) {
       setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
@@ -304,7 +307,7 @@ const CodingView = () => {
     trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
     prevLangRef.current = lang
     setSelectedLang(lang)
-    setCode(templateCode)
+    setCode(presetCode)
   }
 
   const handleQuestionChange = (q: Question) => {
@@ -319,7 +322,7 @@ const CodingView = () => {
 
   const handleCodeReset = () => {
     trackCodeReset(activeQuestion?.question_id, selectedLang)
-    setCode(templateCode)
+    setCode(presetCode)
   }
 
   const [fullCode, setFullCode] = useState(false)
