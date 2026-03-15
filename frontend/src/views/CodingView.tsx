@@ -313,7 +313,7 @@ const CodingView = () => {
   }, [mostRecentSub])
 
   const handleLanguageChange = (lang: SupportedLanguagesType) => {
-    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
+    trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current, lang)
     // Save current code before switching so user can come back to it
     codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
     prevLangRef.current = lang
@@ -332,7 +332,7 @@ const CodingView = () => {
   }
 
   const handleCodeReset = () => {
-    trackCodeReset(activeQuestion?.question_id, selectedLang)
+    trackCodeReset(activeQuestion!.question_id, selectedLang)
     // Clear buffer so switching away and back also resets
     codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
     setCode(presetCode)
