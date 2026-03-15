@@ -560,7 +560,7 @@ describe("ProfilePage Component", () => {
     fireEvent.click(screen.getByText("Save Preferences"));
 
     await waitFor(() => {
-      expect(updateAllPrefs).toHaveBeenCalledWith(
+      expect(updateAllPrefs).toHaveBeenCalledWith( "user-123",
         { user_id: 21, theme: "dark", notifications_enabled: true, last_used_programming_language: 71 }
       );
     });

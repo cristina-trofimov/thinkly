@@ -256,7 +256,7 @@ function ProfilePage() {
     if (!user) return;
     setIsSavingPrefs(true);
     try {
-      const updated = await updateAllPrefs(preferences);
+      const updated = await updateAllPrefs(user.id, preferences);
       setPreferences(updated);
       setSavedPreferences(updated);
       toast.success("Preferences saved.");

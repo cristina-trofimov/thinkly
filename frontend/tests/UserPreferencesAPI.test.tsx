@@ -84,7 +84,7 @@ describe("User preferences", () => {
     it("updateAllPrefs: updates all the user preferences", async () => {
         mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
 
-        await updateAllPrefs(mockUserPrefs)
+        await updateAllPrefs(user_id, mockUserPrefs)
         
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
         expect(mockedAxios.post).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe("User preferences", () => {
     it("handles errors from updateAllPrefs", async () => {
         mockedAxios.post.mockRejectedValueOnce(new Error("Error updating all user preferences"))
 
-        await expect(updateAllPrefs(mockUserPrefs))
+        await expect(updateAllPrefs(user_id, mockUserPrefs))
                     .rejects.toThrow("Error updating all user preferences")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)

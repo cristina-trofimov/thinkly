@@ -3,14 +3,15 @@ import type { UserPreferences } from "@/types/account/UserPreferences.type"
 import { logFrontend } from "./LoggerAPI"
 
 
+
 export async function updateAllPrefs(
-  prefs: UserPreferences,
+  user_id: number, prefs: UserPreferences,
 ): Promise<UserPreferences> {
   try {
     const response = await axiosClient.post(
       "/prefs/add",
       {
-        user_id: prefs.user_id,
+        user_id: user_id,
         theme: prefs.theme,
         notifications_enabled: prefs.notifications_enabled,
         last_used_programming_language: prefs.last_used_programming_language
@@ -82,8 +83,7 @@ export async function updateNotifPref(
     throw err
   }
 }
-export async function updateLastProgLang(
-  user_id: number, last_used_programming_language: number,
+export async function updateLastProgLang(user_id: number, last_used_programming_language: number,
 ): Promise<UserPreferences> {
   try {
     const response = await axiosClient.patch(
@@ -108,9 +108,7 @@ export async function updateLastProgLang(
   }
 }
 
-export async function getUserPrefs(
-  user_id: number,
-): Promise<UserPreferences> {
+export async function getUserPrefs(user_id: number): Promise<UserPreferences> {
   try {
     const response = await axiosClient.get<{
       status_code: number

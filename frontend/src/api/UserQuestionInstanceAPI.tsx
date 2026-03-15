@@ -10,7 +10,7 @@ export async function putUserInstance(
             throw new Error("Need to pass a valid user's question instance");
             
         }
-        console.log("$$$$$$$$$$$$$$")
+
         const resp = await axiosClient.put<{
             status_code: number
             data: UserQuestionInstance
@@ -25,7 +25,7 @@ export async function putUserInstance(
                 attempts: user_question_instance.attempts
             }
         )
-        console.log("response['data']['data']", resp['data']['data'])
+
         return resp['data']['data']
     } catch (error) {
         logFrontend({
@@ -54,7 +54,7 @@ export async function getUserInstance(
                 question_instance_id: question_instance_id
             }}
         )
-        console.log("get response['data']['data']", resp['data']['data'])
+
         return resp['data']['data']
     } catch (error) {
         logFrontend({
