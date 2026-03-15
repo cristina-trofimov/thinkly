@@ -34,10 +34,9 @@ const CodeDescArea = (
     ]
 
     const {
-        logs, setLogs, mostRecentSub, setMostRecentSub,
+        mostRecentSub, setMostRecentSub,
         isQuestionLoading, setIsQuestionLoading,
         isAsyncLoading, setIsAsyncLoading,
-        currentOutputTab, setCurrentOutputTab,
         activeQuestion, setActiveQuestion,
         activeQuestionInstance, setActiveQuestionInstance,
         activeDisplayQuestionName, setActiveDisplayQuestionName,

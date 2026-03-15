@@ -1,8 +1,6 @@
-import { submitToJudge0 } from "../../api/Judge0API"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
 import { logFrontend } from "../../api/LoggerAPI"
-import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Question } from "@/types/questions/QuestionPagination.type"
 import type { Competition } from "@/types/competition/Competition.type"
 import type { BaseEvent } from "@/types/BaseEvent.type"
 import { useEffect, useRef, useState } from "react"
@@ -15,10 +13,7 @@ import { getAllLanguages } from "@/api/LanguageAPI"
 import { getProfile } from "@/api/AuthAPI"
 import { getUserPrefs } from "@/api/UserPreferencesAPI"
 import { getQuestionByID } from "@/api/QuestionsAPI"
-import { saveSubmission } from "@/api/SubmissionAPI"
-import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import { useTestcases } from "./useTestcases"
-import type { Judge0Response } from "@/types/questions/Judge0Response"
 import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -31,7 +26,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     const prevLangRef = useRef<Language | null>(null)
 
     const [ questions, setQuestions ] = useState<Question[]>([])
-    const [ event, setEvent ] = useState<BaseEvent | null>(null)
+    const [ event, setEvent ] = useState<BaseEvent | undefined | null>(null)
     const [ activeQuestion, setActiveQuestion ] = useState<Question>()
     const [ questionsInstances, setQuestionsInstances ] = useState<QuestionInstance[]>([])
     const [ activeQuestionInstance, setActiveQuestionInstance ] = useState<QuestionInstance>()
@@ -41,7 +36,6 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
     const [ lapseTime, setLapseTime ] = useState<Number | null>()
     const [ startTime, setStartTime ] = useState<Date | null>()
-    const [ endTime, setEndTime ] = useState<Date | null>()
 
     const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
 
@@ -49,10 +43,8 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
     const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
-    const [ logs, setLogs ] = useState<Judge0Response[]>([])
     const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
     const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
-    const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
 
     const { testcases } = useTestcases(activeQuestionInstance?.question_id)
 
@@ -176,10 +168,11 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         }
         const loadLanguages = async () => {
             try {
+                const user = await getProfile()
                 await getAllLanguages(true)
                     .then((response) => setLanguages(response))
 
-                await getUserPrefs()
+                await getUserPrefs(user.id)
                     .then((response) => setUserPreferences(response))
             } catch (error) {
                 toast.error("Error when fetching languages.")
@@ -216,20 +209,15 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     // switches current userQuestionInstance and lapse time when the user switches questions
     useEffect(() => {
         if (activeQuestionInstance) {
-            // TODO: get or CREATE USER QUESTION INSTANCE
-            // SWITCH TIME LAPSED
+            // TODO: get or create user question instance
+            // Restart time lapse
             const getOrCreateUserQuestionInstance = async () => {
                 const user = await getProfile()
-                // let uqi = await put_CreateUserInstance(user.id, activeQuestionInstance.question_instance_id)
                 const uqi = await getUserInstance(user.id, activeQuestionInstance.question_instance_id)
 
-                console.log("uqi", uqi)
-
                 if (uqi) {
-                    console.log("!!!!!!!uqi", uqi)
                     setUserQuestionInstance(uqi)
                 } else {
-                    console.log("@@@@@@@")
                     await putUserInstance({
                             user_question_instance_id: -1,
                             user_id: user.id,
@@ -240,14 +228,13 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                             attempts: null
                         } as UserQuestionInstance)
                         .then(response => {
-                            console.log("new uqi", response)
                             setUserQuestionInstance(response)
                         })
                 }
 
                 if (questions.length > 1) {
                     setStartTime(new Date())
-                    console.log("startTime", startTime)
+                    console.log("New startTime", startTime)
                 }
             }
             getOrCreateUserQuestionInstance()
@@ -265,11 +252,9 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
 
     return {
-        startTime, setStartTime, endTime, setEndTime,
-        logs, setLogs, mostRecentSub, setMostRecentSub,
+        startTime, mostRecentSub, setMostRecentSub,
         isQuestionLoading, setIsQuestionLoading,
         isAsyncLoading, setIsAsyncLoading,
-        currentOutputTab, setCurrentOutputTab,
         activeQuestion, setActiveQuestion,
         activeQuestionInstance, setActiveQuestionInstance,
         activeDisplayQuestionName, setActiveDisplayQuestionName,
@@ -281,78 +266,5 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         selectedLang, setSelectedLang, event,
         userPreferences, setUserPreferences,
         testcases, loadingMsg, setLoadingMsg
-    }
-}
-
-
-export async function submitAttempt(
-    question: Question | undefined,
-    questionInstance: QuestionInstance | undefined,
-    userQuestionInstance: UserQuestionInstance | undefined,
-    event_id: number | undefined,
-    source_code: string,
-    language_id: number | undefined,
-    lapse_time: BigInt | null,
-    testcases: TestCase[],
-): Promise<SubmitAttemptResponse> {
-    try {
-        if (!questionInstance || !userQuestionInstance || !question || !language_id) {
-            throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
-        }
-
-        // 1. Get or create user instance
-
-        // 2.a Submit to judge0 and save most recent submission
-        const { judge0Response, mostRecentSubResponse, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases)
-
-        if (event_id) {
-            if (userQuestionInstance.attempts) {
-                userQuestionInstance.attempts += 1
-            } else {
-                userQuestionInstance.attempts = 1
-            }
-
-            // 2.b Competition/Algotime points calculation
-            if (judge0Response.status.description === "Accepted") {
-                // Get event point
-                // userQuestionInstance.points = questionInstance.
-            }
-        }
-
-        userQuestionInstance = await putUserInstance(userQuestionInstance)
-
-        // 3. Save submission's output details
-        const submissionResponse = await saveSubmission({
-            submission_id: -1,
-            user_question_instance_id: 0,
-            status: judge0Response['status']['description'],
-            memory: judge0Response['memory'],
-            runtime: judge0Response['time'],
-            submitted_on: new Date(Date.now()),
-            stdout: judge0Response['stdout'],
-            stderr: judge0Response['stderr'],
-            compile_output: judge0Response['compile_output'],
-            message: judge0Response['message'],
-        } as SubmissionType)
-
-        return {
-            codeRunResponse: {
-                judge0Response: judge0Response,
-                mostRecentSubResponse: mostRecentSubResponse,
-                userPrefs: userPrefs
-            },
-            submissionResponse: submissionResponse,
-            // submissionResponse: submissionResponse,
-        }
-
-    } catch (err) {
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when submitting code. Reason: ${err}`,
-        component: "CodingHooks",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
-      throw err;
     }
 }

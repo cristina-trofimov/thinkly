@@ -22,8 +22,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix
 import type { Competition } from '@/types/competition/Competition.type';
 import { logFrontend } from '@/api/LoggerAPI';
 import type { Language } from '@/types/questions/Language.type';
-import { submitAttempt, useCodingHooks } from '@/components/helpers/CodingHooks';
+import { useCodingHooks } from '@/components/helpers/CodingHooks';
 import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
+import type { Judge0Response } from '@/types/questions/Judge0Response';
+import { submitAttempt } from '@/api/SubmitCodeAPI';
 
 
 const CodingView = () => {
@@ -32,38 +34,21 @@ const CodingView = () => {
   const question: Question = location?.state?.problem
 
   const {
-    startTime, setStartTime, endTime, setEndTime,
-    logs, setLogs, mostRecentSub, setMostRecentSub,
-    isQuestionLoading, setIsQuestionLoading,
+    startTime, mostRecentSub, setMostRecentSub,
+    isQuestionLoading, userQuestionInstance,
     isAsyncLoading, setIsAsyncLoading,
-    currentOutputTab, setCurrentOutputTab,
     activeQuestion, setActiveQuestion,
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
-    userQuestionInstance, setUserQuestionInstance,
-    questions, setQuestions, lapseTime, setLapseTime,
-    questionsInstances, setQuestionsInstances,
-    languages, setLanguages, prevLangRef,
-    mostRecentSubGroupClass, setMostRecentSubGroupClass,
+    questions, questionsInstances, languages, prevLangRef,
+    mostRecentSubGroupClass, userPreferences,
     selectedLang, setSelectedLang, event,
-    userPreferences,
     testcases, loadingMsg, setLoadingMsg
   } = useCodingHooks(question, comp) 
 
-  // const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
-  // const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
-  // const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
-  // const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
-  // const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
-  // const [ logs, setLogs ] = useState<Judge0Response[]>([])
-  // const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
-
-  
-  // const [selectedLang, setSelectedLang] = useState<Language>()
-  // // Keep a ref to the previous language so we can log "from → to" on change
-  // const prevLangRef = useRef<Language | null>(null)
-  // const [userPreferences, setUserPreferences] = useState<UserPreferences>()
+  const [ logs, setLogs ] = useState<Judge0Response[]>([])
+  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
 
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -88,13 +73,28 @@ const CodingView = () => {
         setIsAsyncLoading(true)
         setLoadingMsg("Submitting")
 
+        if (userQuestionInstance) {
+          if (userQuestionInstance.attempts) {
+            userQuestionInstance.attempts += 1
+          } else {
+            userQuestionInstance.attempts = 1
+          }
+
+          if (startTime) {
+            if (userQuestionInstance.lapse_time ) {
+              userQuestionInstance.lapse_time += Date.now() - startTime?.getTime()
+            } else {
+              userQuestionInstance.lapse_time = Date.now() - startTime?.getTime()
+            }
+          }
+        }
+
         const {
-          codeRunResponse, submissionResponse
+          codeRunResponse, submissionResponse, mostRecentSubResponse
         } = await submitAttempt(
-            activeQuestion, activeQuestionInstance, 
-            userQuestionInstance, event?.event_id, 
-            code, selectedLang?.lang_judge_id, null, testcases
-          )
+            activeQuestion, activeQuestionInstance,
+            userQuestionInstance, event,
+            code, selectedLang?.lang_judge_id, testcases)
   
         if (submissionResponse.status === "Accepted") {
           toast.success("Code successfully passed tests")
@@ -103,7 +103,7 @@ const CodingView = () => {
         }
   
         setLogs(prev => [...prev, codeRunResponse.judge0Response])
-        setMostRecentSub(codeRunResponse.mostRecentSubResponse)
+        setMostRecentSub(mostRecentSubResponse)
         setCurrentOutputTab("results")
   
         trackCodeSubmitted(
@@ -136,10 +136,10 @@ const CodingView = () => {
         setLoadingMsg("Running")
 
         console.log('activeQI', activeQuestionInstance)
-        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
-        
+        const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
+                                  code, selectedLang?.lang_judge_id, testcases)
+
         setLogs(prev => [...prev, judge0Response])
-        setMostRecentSub(mostRecentSubResponse)
         setCurrentOutputTab("results")
   
         // Capture run result — status comes directly from Judge0 response
@@ -185,7 +185,6 @@ const CodingView = () => {
     setActiveQuestion(q)
     questionsInstances.find(async (qi, idx) => {
       if (qi.question_id === q.question_id) {
-        setEndTime(new Date())
         if (startTime && userQuestionInstance) {
           userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
         }
@@ -205,12 +204,6 @@ const CodingView = () => {
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
     })
-    // questionsInstances.forEach((qi, idx) => {
-    //   if (qi.question_id === q.question_id) {
-    //     setActiveQuestionInstance(qi)
-    //     setActiveDisplayQuestionName(`Question ${idx + 1}`)
-    //   }
-    // })
   }
 
   const handleCodeReset = () => {

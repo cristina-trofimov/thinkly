@@ -13,6 +13,7 @@ import { getAllLanguages } from '../src/api/LanguageAPI'
 import { getRiddleById } from '../src/api/RiddlesAPI'
 import { describe } from 'node:test'
 import { Language } from '../src/types/questions/Language.type'
+import { getAllSubmissions } from '../src/api/SubmissionAPI'
 
 // -------------------- MOCKS --------------------
 
@@ -120,7 +121,7 @@ const mockProfile: Account = {
 }
 
 const mockMostRecentSubResponse: MostRecentSub = {
-    row_id: 1,
+    row_id: user_id,
     user_question_instance_id: user_question_instance_id,
     code: "source_code",
     lang_judge_id: 71,
@@ -246,7 +247,7 @@ const setup = async (options: {
         mockedGetRiddleById.mockResolvedValue(null);
     }
 
-    const utils = render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} mostRecentSub={mockMostRecentSubResponse} />)
+    const utils = render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />)
     await waitFor(() => {
       expect(mockedGetRiddleById).toHaveBeenCalled();
     });
@@ -268,7 +269,7 @@ describe('CodeDescArea', () => {
   describe('Riddle Logic (Gatekeeper)', () => {
     it("renders loading state initially", async () => {
       mockedGetRiddleById.mockReturnValue(new Promise(() => {}));
-      render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} mostRecentSub={mockMostRecentSubResponse} />);
+      render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />);
 
       expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument();
     });

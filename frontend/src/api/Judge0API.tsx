@@ -1,5 +1,4 @@
 import axiosClient from "@/lib/axiosClient";
-import { updateMostRecentSub } from "./MostRecentSubAPI";
 import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
@@ -45,7 +44,6 @@ export async function submitToJudge0(
             throw new Error("RunCode: Question instance or language cannot be undefined")
         }
 
-        const user = await getProfile()
         const { stdin, expected_output } = parse_input_output(testcases)
 
         console.log("sumbitting")
@@ -60,14 +58,11 @@ export async function submitToJudge0(
             }
         )
 
-        const mostRecentSubResponse = await updateMostRecentSub(user.id, question_instance_id, source_code, language_id)
-
-        const userPref = await updateLastProgLang(language_id)
-        // const userPref = await updateLastProgLang(user.id, language_id)
+        const user = await getProfile()
+        const userPref = await updateLastProgLang(user.id, language_id)
 
         return {
             judge0Response: response['data'],
-            mostRecentSubResponse: mostRecentSubResponse,
             userPrefs: userPref
         }
 
