@@ -293,8 +293,9 @@ const CodingView = () => {
 
   const [code, setCode] = useState<string>('')
 
-  // Reset editor on language change
+  // Reset editor on language change or question change
   useEffect(() => { setCode(presetCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setCode(presetCode) }, [activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (mostRecentSub) {
       setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
