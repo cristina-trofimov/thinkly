@@ -20,6 +20,7 @@ from endpoints.user_preferences_api import user_preferences_router
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from logging_config import setup_logging
+from services.competition_cleanup import cleanup_ended_competitions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
+    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
     scheduler.start()
     print("✓ Email scheduler started (polling every 60s)")
 

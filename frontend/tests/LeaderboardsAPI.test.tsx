@@ -76,7 +76,10 @@ describe("LeaderboardsAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/leaderboards/competitions/current",
-        { params: { current_user_id: 10 } }
+        {
+          params: { current_user_id: 10 },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
       );
       expect(result).toEqual({
         competitionName: "Winter Contest",
@@ -103,7 +106,10 @@ describe("LeaderboardsAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/leaderboards/competitions/current",
-        { params: {} }
+        {
+          params: {},
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
       );
     });
 
@@ -199,6 +205,7 @@ describe("LeaderboardsAPI", () => {
             page: 2,
             page_size: 10,
           },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         }
       );
     });
@@ -214,6 +221,7 @@ describe("LeaderboardsAPI", () => {
         "/leaderboards/competitions",
         {
           params: { sort: "desc", page: 1, page_size: 20 },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         }
       );
     });
@@ -336,7 +344,10 @@ describe("LeaderboardsAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/leaderboards/algotime",
-        { params: { page: 1, page_size: 15 } }
+        {
+          params: { page: 1, page_size: 15 },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
       );
       expect(result).toEqual({
         total: 1,
@@ -378,6 +389,7 @@ describe("LeaderboardsAPI", () => {
             page: 3,
             page_size: 10,
           },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         }
       );
     });

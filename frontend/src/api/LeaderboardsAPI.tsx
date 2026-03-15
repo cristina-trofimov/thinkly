@@ -99,7 +99,10 @@ export async function getCurrentCompetitionLeaderboard(
         const params = currentUserId ? { current_user_id: currentUserId } : {};
         const response = await axiosClient.get<CurrentCompetitionResponse>(
             "/leaderboards/competitions/current",
-            { params }
+            {
+                params,
+                headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+            }
         );
 
         if (!response.data.competition || response.data.entries.length === 0) {
@@ -144,7 +147,10 @@ export async function getCompetitionsDetails(
 
         const response = await axiosClient.get<PaginatedCompetitionsResponse>(
             "/leaderboards/competitions",
-            { params: queryParams }
+            {
+                params: queryParams,
+                headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+            }
         );
 
         return {
@@ -230,7 +236,10 @@ export async function getAlgoTimeEntries(
                 rank: number;
                 lastUpdated: string;
             }>;
-        }>("/leaderboards/algotime", { params: queryParams });
+        }>("/leaderboards/algotime", {
+            params: queryParams,
+            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
 
         return {
             total: response.data.total,
