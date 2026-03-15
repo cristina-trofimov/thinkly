@@ -112,10 +112,12 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          await getQuestionInstance(question?.question_id, null)
-            .then((response) => {
-              setQuestionsInstances([response])
-            })
+          const [questionInstance, fullQuestion] = await Promise.all([
+            getQuestionInstance(question.question_id, null),
+            getQuestionByID(question.question_id),
+          ])
+          setQuestionsInstances([questionInstance])
+          setQuestions([fullQuestion])
         } catch (err) {
           toast.error("Error when fetching question instance.")
           logFrontend({
@@ -130,7 +132,6 @@ const CodingView = () => {
         }
       }
       initQuestion()
-      setQuestions([question])
     }
   }, [event, question?.question_id])
 
