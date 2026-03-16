@@ -4,7 +4,7 @@ import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/SubmissionType.type'
 import { Button } from '../ui/button'
-import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
+import { EventLeaderboard } from '../leaderboards/CodingPageLeaderboard.tsx'
 import type { Question } from '@/types/questions/QuestionPagination.type'
 import { useTestcases } from '../helpers/useTestcases'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -24,18 +24,31 @@ import { getAllLanguages } from '@/api/LanguageAPI'
 import type { Language } from '@/types/questions/Language.type'
 
 const CodeDescArea = (
-    { question, question_instance, mostRecentSub, }:
+    { question, question_instance, mostRecentSub, eventId, eventName, isCompetitionEvent, currentUserId }:
     { question: Question | undefined,
       question_instance: QuestionInstance | undefined | null,
-      mostRecentSub: MostRecentSub | undefined
+      mostRecentSub: MostRecentSub | undefined,
+      /** The ID of the active competition/event, if the question was opened from one. */
+      eventId: number | undefined,
+      /** The display name of the active event. */
+      eventName: string | undefined,
+      /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
+      isCompetitionEvent: boolean,
+      currentUserId?: number,
     }
 ) => {
 
-    const tabs = [
+    const hasEvent = eventId !== undefined
+
+    const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
+
+    // Only expose the Leaderboard tab when the question belongs to an event
+    const tabs = hasEvent
+        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> }]
+        : baseTabs
 
     const { testcases } = useTestcases(question?.question_id)
     const { trackCodingTabSwitched } = useAnalytics()
@@ -52,6 +65,13 @@ const CodeDescArea = (
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
     const [languages, setLanguages] = useState<Language[]>()
+
+    // If the event disappears mid-session (edge case), bounce back to description
+    useEffect(() => {
+        if (!hasEvent && activeTab === "leaderboard") {
+            setActiveTab("description")
+        }
+    }, [hasEvent, activeTab])
 
     useEffect(() => {
         if (!question?.question_id) return
@@ -140,7 +160,7 @@ const CodeDescArea = (
                 </div>
             )
         }
-        
+
         if (riddleObject) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
@@ -212,8 +232,8 @@ const CodeDescArea = (
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1'>
                                 <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {Object.entries(t.input_data).map(([key, val], idx) => {
-                                        const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
+                                    {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
+                                        const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
                                         return `${key} = ${JSON.stringify(val)}${separator}`
                                     })}
                                 </span></p>
@@ -244,7 +264,7 @@ const CodeDescArea = (
                                     {submissions?.map((s, idx) => {
                                         const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                        
+
 
                                         return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
                                         onClick={() => setSelectedSubmission(s)}
@@ -378,12 +398,19 @@ const CodeDescArea = (
                 </div>
             </TabsContent>
 
-            {/* Leaderboard */}
-            <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
-                <div className='h-full p-6'>
-                    <CurrentLeaderboard />
-                </div>
-            </TabsContent>
+            {/* Leaderboard — only mounted when an event is active */}
+            {hasEvent && (
+                <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
+                    <div className='h-full p-6'>
+                        <EventLeaderboard
+                            eventId={eventId!}
+                            eventName={eventName ?? ""}
+                            isCompetitionEvent={isCompetitionEvent}
+                            currentUserId={currentUserId}
+                        />
+                    </div>
+                </TabsContent>
+            )}
         </Tabs>
     )
 }

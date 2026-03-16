@@ -63,6 +63,7 @@ const CodingView = () => {
   // Keep a ref to the previous language so we can log "from → to" on change
   const prevLangRef = useRef<Language | null>(null)
   const [userPreferences, setUserPreferences] = useState<UserPreferences>()
+  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined)
 
   // Getting the competition or algotime event if it exists
   useEffect(() => {
@@ -142,7 +143,7 @@ const CodingView = () => {
     }
   }, [event, question?.question_id])
 
-  // If an event is passed, get all the associated questions' details 
+  // If an event is passed, get all the associated questions' details
   useEffect(() => {
     if (!questionsInstances?.length || questions.length >= questionsInstances.length) {
       setIsQuestionLoading(false)
@@ -185,6 +186,7 @@ const CodingView = () => {
     const loadLanguages = async () => {
       try {
         const user = await getProfile()
+        setCurrentUserId(user.id)
 
         await getAllLanguages(true)
         .then((response) => {
@@ -224,7 +226,7 @@ const CodingView = () => {
     } else {
       setSelectedLang(languages[0])
     }
-    
+
   }, [languages, userPreferences])
 
 
@@ -248,20 +250,20 @@ const CodingView = () => {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Submitting")
-  
+
         const user = await getProfile()
         const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, selectedLang?.lang_judge_id, testcases)
-  
+
         if (submissionResponse.status_code === 200) {
           toast.success(submissionResponse.message)
         } else {
           toast.warning(submissionResponse.message)
         }
-  
+
         setLogs(prev => [...prev, codeRunResponse.judge0Response])
         setMostRecentSub(codeRunResponse.mostRecentSubResponse)
         setCurrentOutputTab("results")
-  
+
         trackCodeSubmitted(
           activeQuestion?.question_id,
           selectedLang,
@@ -290,14 +292,14 @@ const CodingView = () => {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
-  
+
         const user = await getProfile()
         const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
-        
+
         setLogs(prev => [...prev, judge0Response])
         setMostRecentSub(mostRecentSubResponse)
         setCurrentOutputTab("results")
-  
+
         // Capture run result — status comes directly from Judge0 response
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
@@ -448,7 +450,15 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} mostRecentSub={mostRecentSub} />
+          <CodeDescArea
+            question={activeQuestion}
+            question_instance={activeQuestionInstance}
+            mostRecentSub={mostRecentSub}
+            eventId={comp?.id}
+            eventName={comp?.competitionTitle}
+            isCompetitionEvent={!!comp}
+            currentUserId={currentUserId}
+          />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
