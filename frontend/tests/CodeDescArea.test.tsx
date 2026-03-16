@@ -92,9 +92,15 @@ jest.mock("../src/components/ui/table", () => ({
     TableCell: ({ children, className }: any) => <td className={className}>{children}</td>,
 }))
 
-jest.mock('../src/components/leaderboards/CurrentLeaderboard', () => ({
+// Mock CodingPageLeaderboard at both possible import paths —
+// the @/ alias path (our output) and the relative path (in case source hasn't been replaced yet)
+jest.mock('@/components/leaderboards/CodingPageLeaderboard', () => ({
     __esModule: true,
-    CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
+    EventLeaderboard: () => <div data-testid="mock-event-leaderboard">Mock Event Leaderboard</div>
+}));
+jest.mock('../src/components/leaderboards/CodingPageLeaderboard', () => ({
+    __esModule: true,
+    EventLeaderboard: () => <div data-testid="mock-event-leaderboard">Mock Event Leaderboard</div>
 }));
 
 jest.mock('../src/api/AuthAPI', () => ({
@@ -210,8 +216,7 @@ const mockedGetAllLanguages = getAllLanguages as jest.Mock
 
 beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Default mock implementations
+
     mockedUseTestcases.mockReturnValue({
         testcases: [{
             input_data: { a: 10, b: 20 },
@@ -225,15 +230,20 @@ beforeEach(() => {
     mockedGetAllLanguages.mockResolvedValue(languages);
 });
 
-const setup = async (options: { 
-    shouldRiddleFail?: boolean,
-    riddleData?: any,
-    showRiddle?: boolean 
-} = {}) => {
-    const { 
-        shouldRiddleFail = false, 
+interface SetupOptions {
+    shouldRiddleFail?: boolean
+    riddleData?: any
+    showRiddle?: boolean
+    /** Pass a competition event so the Leaderboard tab is visible */
+    withEvent?: boolean
+}
+
+const setup = async (options: SetupOptions = {}) => {
+    const {
+        shouldRiddleFail = false,
         riddleData = mockRiddle,
-        showRiddle = true 
+        showRiddle = true,
+        withEvent = false,
     } = options;
 
     if (shouldRiddleFail) {
@@ -244,7 +254,17 @@ const setup = async (options: {
         mockedGetRiddleById.mockResolvedValue(null);
     }
 
-    const utils = render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} mostRecentSub={mockMostRecentSubResponse} />)
+    const utils = render(
+        <CodeDescArea
+            question={mockProblem}
+            question_instance={mockQuestionInstance}
+            mostRecentSub={mockMostRecentSubResponse}
+            eventId={withEvent ? 42 : undefined}
+            eventName={withEvent ? "Test Competition" : undefined}
+            isCompetitionEvent={withEvent}
+            currentUserId={withEvent ? user_id : undefined}
+        />
+    )
     await waitFor(() => {
       expect(mockedGetRiddleById).toHaveBeenCalled();
     });
@@ -254,19 +274,20 @@ const setup = async (options: {
 // -------------------- TESTS --------------------
 
 describe('CodeDescArea', () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2025-10-28T10:00:00Z'));
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
 
   describe('Riddle Logic (Gatekeeper)', () => {
     it("renders loading state initially", async () => {
       mockedGetRiddleById.mockReturnValue(new Promise(() => {}));
-      render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} mostRecentSub={mockMostRecentSubResponse} />);
+      render(
+        <CodeDescArea
+            question={mockProblem}
+            question_instance={mockQuestionInstance}
+            mostRecentSub={mockMostRecentSubResponse}
+            eventId={undefined}
+            eventName={undefined}
+            isCompetitionEvent={false}
+        />
+      );
 
       expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument();
     });
@@ -279,8 +300,7 @@ describe('CodeDescArea', () => {
       });
 
       expect(screen.getByText(mockRiddle.question)).toBeInTheDocument();
-      
-      // Description should not be visible
+
       expect(screen.queryByTestId("tabs-content-description")).not.toBeInTheDocument();
     });
 
@@ -314,8 +334,17 @@ describe('CodeDescArea', () => {
   });
 
   describe('Tab Functionality', () => {
-    it("renders all tab triggers after riddle is solved", async () => {
-      await setup({ shouldRiddleFail: true });
+    it("renders 2 tab triggers (no Leaderboard) when there is no active event", async () => {
+      await setup({ shouldRiddleFail: true, withEvent: false });
+
+      await waitFor(() => {
+        const triggers = screen.getAllByTestId("tabs-trigger");
+        expect(triggers).toHaveLength(2);
+      });
+    });
+
+    it("renders 3 tab triggers (including Leaderboard) when there is an active event", async () => {
+      await setup({ shouldRiddleFail: true, withEvent: true });
 
       await waitFor(() => {
         const triggers = screen.getAllByTestId("tabs-trigger");
@@ -355,15 +384,24 @@ describe('CodeDescArea', () => {
         expect(screen.getByText("128")).toBeInTheDocument();
       });
 
-      // Check for attempts count in footer
       await waitFor(() => {
         const footerElement = screen.getByText(/2 attempts/);
         expect(footerElement).toBeInTheDocument();
       });
     });
 
-    it("switches to Leaderboard tab when clicked", async () => {
-      await setup({ shouldRiddleFail: true });
+    it("does not render the Leaderboard tab trigger when there is no event", async () => {
+      await setup({ shouldRiddleFail: true, withEvent: false });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: /leaderboard/i })).not.toBeInTheDocument();
+    });
+
+    it("switches to Leaderboard tab and renders CodingPageLeaderboard when there is an active event", async () => {
+      await setup({ shouldRiddleFail: true, withEvent: true });
 
       await waitFor(() => {
         expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
@@ -374,7 +412,7 @@ describe('CodeDescArea', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId("tabs-content-leaderboard")).toBeInTheDocument();
-        expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
+        expect(screen.getByTestId("mock-event-leaderboard")).toBeInTheDocument();
       });
     });
 
@@ -385,7 +423,6 @@ describe('CodeDescArea', () => {
         expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
       });
 
-      // Switch to submissions tab
       const submissionsTrigger = screen.getByRole('button', { name: /submissions/i });
       fireEvent.click(submissionsTrigger);
 
@@ -394,12 +431,10 @@ describe('CodeDescArea', () => {
         expect(screen.getByTestId("table")).toBeInTheDocument();
       });
 
-      // Click on the first submission row (using testid)
       const submissionRows = screen.getAllByTestId(/^submission-\d+$/);
       expect(submissionRows.length).toBeGreaterThan(0);
       fireEvent.click(submissionRows[0]);
 
-      // Check if submission details are shown
       await waitFor(() => {
         expect(screen.queryByText("Submission Details")).toBeInTheDocument();
         expect(screen.getByText("Accepted")).toBeInTheDocument();

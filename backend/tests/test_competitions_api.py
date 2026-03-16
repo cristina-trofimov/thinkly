@@ -338,9 +338,14 @@ def test_create_competition_past_date(client, mock_db):
     assert "future" in response.json()["detail"]
 
 
+@patch('src.endpoints.competitions_api.datetime')
 @patch('src.endpoints.competitions_api.send_competition_emails')
 @patch('src.endpoints.competitions_api._commit_or_rollback')
-def test_create_competition_with_email(mock_commit, mock_send_emails, client, mock_db):
+def test_create_competition_with_email(mock_commit, mock_send_emails, mock_datetime, client, mock_db):
+    mock_datetime.now.return_value = datetime(2026, 1, 1, 9, 0, 0, tzinfo=timezone.utc)
+    mock_datetime.fromisoformat = datetime.fromisoformat
+    mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
     mock_db.query.return_value = create_mock_query([])
 
     def refresh_side_effect(obj):
