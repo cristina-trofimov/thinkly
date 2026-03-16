@@ -4,7 +4,6 @@ import { updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import { logFrontend } from "../src/api/LoggerAPI"
 import { getProfile } from "../src/api/AuthAPI"
 import { TestCase } from "../src/types/questions/QuestionPagination.type";
-import { beforeEach } from "node:test";
 import { Account } from "../src/types/account/Account.type"
 
 jest.mock('../src/lib/axiosClient', () => ({

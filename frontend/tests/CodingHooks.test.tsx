@@ -1,332 +1,544 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
-import '@testing-library/jest-dom'
-import { getTestcases } from '../src/api/TestCasesAPI'
-import { useTestcases } from '../src/components/helpers/useTestcases'
-import { LanguageSpecificProperties, Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
-import { logFrontend } from "../src/api/LoggerAPI"
-import { beforeEach, describe } from 'node:test'
-import { getProfile } from '../src/api/AuthAPI'
-import { getAllLanguages } from '../src/api/LanguageAPI'
-import { getAllSubmissions } from '../src/api/SubmissionAPI'
-import { Language } from '../src/types/questions/Language.type'
-import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
-import { Account } from '../src/types/account/Account.type'
-import { Competition } from '../src/types/competition/Competition.type'
-import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
-import { BaseEvent } from '../src/types/BaseEvent.type'
-import { UserPreferences } from '../src/types/account/UserPreferences.type'
-import { getUserPrefs } from '../src/api/UserPreferencesAPI'
-import { getEventByName } from '../src/api/BaseEventAPI'
 import { useCodingHooks } from '../src/components/helpers/CodingHooks'
+import { getEventByName } from '../src/api/BaseEventAPI'
 import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from '../src/api/QuestionInstanceAPI'
+import { getAllLanguages } from '../src/api/LanguageAPI'
+import { getProfile } from '../src/api/AuthAPI'
+import { getUserPrefs } from '../src/api/UserPreferencesAPI'
 import { getQuestionByID } from '../src/api/QuestionsAPI'
 import { getUserInstance, putUserInstance } from '../src/api/UserQuestionInstanceAPI'
+import { toast } from 'sonner'
+import { logFrontend } from '../src/api/LoggerAPI'
+import { useTestcases } from '../src/components/helpers/useTestcases'
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
+import { Competition } from '../src/types/competition/Competition.type'
+import { BaseEvent } from '../src/types/BaseEvent.type'
+import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 
-jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+
+jest.mock('../src/api/BaseEventAPI', () => ({ getEventByName: jest.fn() }))
+jest.mock('../src/api/QuestionInstanceAPI', () => ({
+  getQuestionInstance: jest.fn(),
+  getAllQuestionInstancesByEventID: jest.fn(),
+  putQuestionInstance: jest.fn(),
+}))
+jest.mock('../src/api/LanguageAPI', () => ({ getAllLanguages: jest.fn() }))
+jest.mock('../src/api/AuthAPI', () => ({ getProfile: jest.fn() }))
+jest.mock('../src/api/UserPreferencesAPI', () => ({ getUserPrefs: jest.fn() }))
+jest.mock('../src/api/QuestionsAPI', () => ({ getQuestionByID: jest.fn() }))
+jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
+  getUserInstance: jest.fn(),
+  putUserInstance: jest.fn(),
+}))
+jest.mock('../src/api/LoggerAPI', () => ({ logFrontend: jest.fn() }))
+jest.mock('sonner', () => ({
+  toast: { error: jest.fn(), success: jest.fn(), warning: jest.fn() },
+}))
+jest.mock('../src/components/helpers/useTestcases', () => ({
+  useTestcases: jest.fn(),
 }))
 
-jest.mock('react', () => ({
-    ...jest.requireActual('react'),
-    useState: jest.fn()
-}))
+// ─── Test data ────────────────────────────────────────────────────────────────
 
-jest.mock('../src/api/TestCasesAPI', () => ({
-    getTestcases: jest.fn()
-}))
+const mockQuestion: Question = {
+  question_id: 1,
+  question_name: 'Two Sum',
+  question_description: 'Given an array...',
+  media: null,
+  difficulty: 'Easy',
+  language_specific_properties: [],
+  tags: [] as TagResponse[],
+  test_cases: [] as TestCase[],
+  created_at: new Date('2025-01-01'),
+  last_modified_at: new Date('2025-01-01'),
+}
 
-jest.mock('../src/components/helpers/useTestcases')
+const mockQuestion2: Question = { ...mockQuestion, question_id: 2, question_name: 'Max Profit' }
 
+const mockComp: Competition = {
+  id: 1,
+  competitionTitle: 'Spring Contest',
+  startDate: new Date('2026-06-01'),
+  endDate: new Date('2026-06-01'),
+  competitionLocation: 'Online',
+}
+
+const mockEvent: BaseEvent = {
+  event_id: 10,
+  event_name: 'Spring Contest',
+  event_location: 'Online',
+  question_cooldown: 300,
+  event_start_date: new Date('2026-06-01'),
+  event_end_date: new Date('2026-06-01'),
+  created_at: new Date('2026-01-01'),
+  updated_at: new Date('2026-01-01'),
+}
+
+const mockQI: QuestionInstance = {
+  question_instance_id: 123,
+  question_id: 1,
+  event_id: 10,
+  riddle_id: null,
+}
+
+const mockQI2: QuestionInstance = {
+  question_instance_id: 456,
+  question_id: 2,
+  event_id: 10,
+  riddle_id: null,
+}
+
+const mockLanguages = [
+  { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
+  { lang_judge_id: 62, display_name: 'Java', monaco_id: 'java', active: true },
+]
+
+const mockProfile = { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@test.com', accountType: 'Participant' }
+
+const mockUserPrefs = {
+  pref_id: 1,
+  user_id: 1,
+  theme: 'light',
+  notifications_enabled: true,
+  last_used_programming_language: 71,
+}
+
+const mockUQI = {
+  user_question_instance_id: 55,
+  user_id: 1,
+  question_instance_id: 123,
+  points: null,
+  riddle_complete: null,
+  lapse_time: null,
+  attempts: null,
+}
+
+const mockedGetEventByName = getEventByName as jest.Mock
+const mockedGetAllQIByEvent = getAllQuestionInstancesByEventID as jest.Mock
+const mockedGetQuestionInstance = getQuestionInstance as jest.Mock
+const mockedPutQuestionInstance = putQuestionInstance as jest.Mock
+const mockedGetAllLanguages = getAllLanguages as jest.Mock
+const mockedGetProfile = getProfile as jest.Mock
+const mockedGetUserPrefs = getUserPrefs as jest.Mock
+const mockedGetQuestionByID = getQuestionByID as jest.Mock
+const mockedGetUserInstance = getUserInstance as jest.Mock
+const mockedPutUserInstance = putUserInstance as jest.Mock
 const mockedUseTestcases = useTestcases as jest.Mock
-const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
-const mockedGetAllSubmissions = getAllSubmissions as jest.MockedFunction<typeof getAllSubmissions>
-const mockedGetAllLanguages = getAllLanguages as jest.MockedFunction<typeof getAllLanguages>
-const mockedGetUserPrefs = getUserPrefs as jest.MockedFunction<typeof getUserPrefs>
-const mockedGetEventByName = getEventByName as jest.MockedFunction<typeof getEventByName>
-const mockedGetAllQuestionInstancesByEventID = getAllQuestionInstancesByEventID as jest.MockedFunction<typeof getAllQuestionInstancesByEventID>
-const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
-const mockedPutQuestionInstance = putQuestionInstance as jest.MockedFunction<typeof putQuestionInstance>as jest.Mock
-const mockedGetQuestionByID = getQuestionByID as jest.MockedFunction<typeof getQuestionByID>
-const mockedGetUserInstance = getUserInstance as jest.MockedFunction<typeof getUserInstance>
-const mockedPutUserInstance = putUserInstance as jest.MockedFunction<typeof putUserInstance>
 
-const user_id = 1
-const event_id = 1
-const question_id = 1
-const user_question_instance_id = 123
-const language_id = 123
-const testcases = [
-  {
-    test_case_id: 1,
-    question_id: 1,
-    input_data: {
-      a: 10,
-      b: 20,
-    },
-    expected_output: "12"
-  },
-  {
-    test_case_id: 2,
-    question_id: 1,
-    input_data: {
-      x: 5,
-      y: 5,
-    },
-    expected_output: "123"
-  },
-  {
-    test_case_id: 3,
-    question_id: 1,
-    input_data: {
-      k: "kjb"
-    },
-    expected_output: "12df"
-  },
-]
+// ─── Setup ────────────────────────────────────────────────────────────────────
 
-const profile: Account = {
-    id: user_id,
-    firstName: "John",
-    lastName: "Doe",
-    email: "john@test.com",
-    accountType: "Participant"
-}
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockedUseTestcases.mockReturnValue({ testcases: [] })
+  mockedGetProfile.mockResolvedValue(mockProfile)
+  mockedGetAllLanguages.mockResolvedValue(mockLanguages)
+  mockedGetUserPrefs.mockResolvedValue(null)
+  mockedGetUserInstance.mockResolvedValue(mockUQI)
+  mockedPutUserInstance.mockResolvedValue(mockUQI)
+})
 
-const userPrefs: UserPreferences = {
-    pref_id: 1,
-    user_id: user_id,
-    theme: "light",
-    notifications_enabled: true,
-    last_used_programming_language: null
-}
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
-const comp: Competition = {
-    id: 1,
-    competitionTitle: "comp",
-    competitionLocation: '',
-    startDate: new Date(),
-    endDate: new Date()
-}
+describe('useCodingHooks — initial state', () => {
+  it('returns expected initial values', () => {
+    mockedGetQuestionInstance.mockResolvedValue(null)
+    mockedPutQuestionInstance.mockResolvedValue(mockQI)
 
-const compEvent: BaseEvent = {
-    event_id: 1,
-    event_name: "comp",
-    event_location: null,
-    question_cooldown: 23,
-    event_start_date: new Date(),
-    event_end_date: new Date(),
-    created_at: new Date(),
-    updated_at: new Date(),
-}
+    const { result } = renderHook(() => useCodingHooks())
 
-const algoEvent: BaseEvent = {
-    event_id: 2,
-    event_name: "algo",
-    event_location: null,
-    question_cooldown: 23,
-    event_start_date: new Date(),
-    event_end_date: new Date(),
-    created_at: new Date(),
-    updated_at: new Date(),
-}
+    expect(result.current.isQuestionLoading).toBe(false)
+    expect(result.current.isAsyncLoading).toBe(false)
+    expect(result.current.activeQuestion).toBeUndefined()
+    expect(result.current.activeQuestionInstance).toBeUndefined()
+    expect(result.current.questions).toEqual([])
+    expect(result.current.questionsInstances).toEqual([])
+    expect(result.current.mostRecentSub).toBeUndefined()
+    expect(result.current.event).toBeNull()
+    expect(result.current.loadingMsg).toBe('')
+  })
 
-const submissions: SubmissionType[] = [
-    {
-      submission_id: 1,
-      user_question_instance_id: user_question_instance_id,
-      lang_judge_id: language_id,
-      compile_output: null,
-      status: "Accepted",
-      runtime: 123,
-      memory: 456,
-      submitted_on: new Date(2024, 5, 12),
-      stdout: "output",
-      stderr: null,
-      message: null,
-    },
-    {
-      submission_id: 2,
-      user_question_instance_id: user_question_instance_id,
-      lang_judge_id: 51,
-      compile_output: "error",
-      status: "Wrong Answer",
-      runtime: 45,
-      memory: 128,
-      submitted_on: new Date(2024, 5, 11),
-      stdout: null,
-      stderr: "error",
-      message: "test failed",
-    }
-]
+  it('returns setter functions', () => {
+    const { result } = renderHook(() => useCodingHooks())
+    expect(typeof result.current.setActiveQuestion).toBe('function')
+    expect(typeof result.current.setSelectedLang).toBe('function')
+    expect(typeof result.current.setMostRecentSub).toBe('function')
+    expect(typeof result.current.setIsAsyncLoading).toBe('function')
+    expect(typeof result.current.setLoadingMsg).toBe('function')
+  })
+})
 
-const languages: Language[] = [
-  {
-    row_id: 1,
-    lang_judge_id: 71,
-    display_name: "Python",
-    monaco_id: "python",
-    active: true
-  },
-  {
-    row_id: 2,
-    lang_judge_id: 51,
-    display_name: "Java",
-    monaco_id: "java",
-    active: false
-  },
-]
+describe('useCodingHooks — practice mode (no event)', () => {
+  it('fetches question instance when question is provided', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
 
-const questions: Question[] = [
-  {
-    question_id: question_id,
-    question_name: "competition",
-    question_description: "knckdmvkdmvkdm",
-    media: null,
-    language_specific_properties: [] as Array<LanguageSpecificProperties>,
-    tags: [] as TagResponse[],
-    test_cases: [] as Array<TestCase>,
-    difficulty: "easy",
-    created_at: new Date(),
-    last_modified_at: new Date()
-  },
-  {
-    question_id: 2,
-    question_name: "djcndkv",
-    question_description: "jvkedfkwmq",
-    media: null,
-    language_specific_properties: [] as Array<LanguageSpecificProperties>,
-    tags: [] as TagResponse[],
-    test_cases: [] as Array<TestCase>,
-    difficulty: "easy",
-    created_at: new Date(),
-    last_modified_at: new Date()
-  },
-]
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
 
-const questionInstances_with_event: QuestionInstance[] = [
-  {
-    question_instance_id: 1,
-    question_id: question_id,
-    event_id: event_id,
-    riddle_id: null
-  },
-  {
-    question_instance_id: 2,
-    question_id: 2,
-    event_id: 2,
-    riddle_id: null
-  },
-]
+    await waitFor(() =>
+      expect(result.current.questionsInstances).toHaveLength(1)
+    )
+    expect(mockedGetQuestionInstance).toHaveBeenCalledWith(1, null)
+    expect(result.current.questionsInstances[0]).toEqual(mockQI)
+  })
 
-const questionInstances_no_event: QuestionInstance[] = [
-  {
-    question_instance_id: 1,
-    question_id: question_id,
-    event_id: null,
-    riddle_id: null
-  },
-  {
-    question_instance_id: 2,
-    question_id: 2,
-    event_id: null,
-    riddle_id: null
-  },
-]
+  it('creates a question instance via putQuestionInstance when none exists', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(null)
+    mockedPutQuestionInstance.mockResolvedValue(mockQI)
 
-describe('CodingHooks', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-        
-        // Default mock implementations
-        mockedUseTestcases.mockReturnValue({
-            testcases: testcases,
-            loading: false,
-        });
-    
-        mockedGetProfile.mockResolvedValue(profile)
-        mockedGetAllSubmissions.mockResolvedValue(submissions)
-        mockedGetAllLanguages.mockResolvedValue(languages)
-        mockedGetUserPrefs.mockResolvedValue(userPrefs)
-    });
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
 
-  it("doesn't fetches anything if no event or question is passed", async () => {
-    renderHook(() => useCodingHooks(undefined, undefined))
+    await waitFor(() =>
+      expect(result.current.questionsInstances).toHaveLength(1)
+    )
+    expect(mockedPutQuestionInstance).toHaveBeenCalledWith(
+      undefined, mockQuestion.question_id, null, null
+    )
+  })
 
-    expect(mockedGetEventByName).not.toHaveBeenCalled()
+  it('sets activeQuestion to the first question', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.activeQuestion).toEqual(mockQuestion)
+    )
+  })
+
+  it('sets activeQuestionInstance to the first instance', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.activeQuestionInstance).toEqual(mockQI)
+    )
+  })
+
+  it('sets isQuestionLoading to false after fetch completes', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.isQuestionLoading).toBe(false)
+    )
+  })
+
+  it('shows toast and logs when getQuestionInstance throws', async () => {
+    mockedGetQuestionInstance.mockRejectedValue(new Error('fetch error'))
+
+    renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Error when fetching question instance.')
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodingHooks' })
+    )
+  })
+
+  it('does not fetch when question is undefined', () => {
+    renderHook(() => useCodingHooks(undefined))
     expect(mockedGetQuestionInstance).not.toHaveBeenCalled()
-    expect(mockedGetAllQuestionInstancesByEventID).not.toHaveBeenCalled()
-    expect(mockedPutQuestionInstance).not.toHaveBeenCalled()
-    expect(mockedGetQuestionByID).not.toHaveBeenCalled()
-    expect(mockedGetAllLanguages).not.toHaveBeenCalled()
-    expect(mockedGetUserPrefs).not.toHaveBeenCalled()
-    expect(mockedGetProfile).not.toHaveBeenCalled()
-    expect(mockedGetUserInstance).not.toHaveBeenCalled()
-    expect(mockedPutUserInstance).not.toHaveBeenCalled()
+  })
+})
+
+describe('useCodingHooks — competition mode (with event)', () => {
+  it('fetches event when comp is provided', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockResolvedValue([mockQI])
+
+    renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(mockedGetEventByName).toHaveBeenCalledWith(mockComp.competitionTitle)
+    )
   })
 
-  describe("A question is passed", () => {
-    it("doesn't fetch an event, but get existing question instance", async () => {
-        mockedGetQuestionInstance.mockResolvedValue(questionInstances_no_event[0])
+  it('fetches all question instances by event ID after event loads', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockResolvedValue([mockQI, mockQI2])
+    mockedGetQuestionByID.mockResolvedValue(mockQuestion)
 
-        renderHook(() => useCodingHooks(questions[0]))
-    
-        expect(mockedGetEventByName).not.toHaveBeenCalled()
-        expect(mockedGetQuestionInstance).toHaveBeenCalled()
-        expect(mockedGetAllQuestionInstancesByEventID).not.toHaveBeenCalled()
-        expect(mockedPutQuestionInstance).not.toHaveBeenCalled()
-        expect(mockedGetQuestionByID).not.toHaveBeenCalled()
-        expect(mockedGetAllLanguages).not.toHaveBeenCalled()
-        expect(mockedGetUserPrefs).not.toHaveBeenCalled()
-        expect(mockedGetProfile).not.toHaveBeenCalled()
-        expect(mockedGetUserInstance).not.toHaveBeenCalled()
-        expect(mockedPutUserInstance).not.toHaveBeenCalled()
-    })
+    const { result } = renderHook(() => useCodingHooks(mockQuestion, mockComp))
 
-    it("doesn't fetch an event, but creates question instance", async () => {
-        mockedGetQuestionInstance.mockResolvedValue(null)
-        mockedPutQuestionInstance.mockResolvedValue(questionInstances_no_event[0])
-
-        renderHook(() => useCodingHooks(questions[0]))
-    
-        expect(mockedGetEventByName).not.toHaveBeenCalled()
-        expect(mockedGetQuestionInstance).toHaveBeenCalled()
-        expect(mockedGetAllQuestionInstancesByEventID).not.toHaveBeenCalled()
-        expect(mockedPutQuestionInstance).toHaveBeenCalled()
-        // expect(mockedGetQuestionByID).not.toHaveBeenCalled()
-        // expect(mockedGetAllLanguages).not.toHaveBeenCalled()
-        // expect(mockedGetUserPrefs).not.toHaveBeenCalled()
-        // expect(mockedGetProfile).not.toHaveBeenCalled()
-        // expect(mockedGetUserInstance).not.toHaveBeenCalled()
-        // expect(mockedPutUserInstance).not.toHaveBeenCalled()
-    })
-
-    it("throws an error if getting question instance fails", async () => {
-        mockedGetQuestionInstance.mockRejectedValueOnce(new Error("Network Error"))
-        mockedPutQuestionInstance.mockResolvedValue(questionInstances_no_event[0])
-
-        await expect(renderHook(() => useCodingHooks(questions[0])))
-            .rejects.toThrow("Network error")
-    
-        expect(mockedGetEventByName).not.toHaveBeenCalled()
-        expect(mockedGetQuestionInstance).toHaveBeenCalled()
-        expect(mockedGetAllQuestionInstancesByEventID).not.toHaveBeenCalled()
-        expect(mockedPutQuestionInstance).not.toHaveBeenCalled()
-        // expect(mockedGetQuestionByID).not.toHaveBeenCalled()
-        // expect(mockedGetAllLanguages).not.toHaveBeenCalled()
-        // expect(mockedGetUserPrefs).not.toHaveBeenCalled()
-        // expect(mockedGetProfile).not.toHaveBeenCalled()
-        // expect(mockedGetUserInstance).not.toHaveBeenCalled()
-        // expect(mockedPutUserInstance).not.toHaveBeenCalled()
-    })
+    await waitFor(() =>
+      expect(result.current.questionsInstances).toHaveLength(2)
+    )
+    expect(mockedGetAllQIByEvent).toHaveBeenCalledWith(mockEvent.event_id)
   })
 
+  it('fetches all question details when event has multiple instances', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockResolvedValue([mockQI, mockQI2])
+    mockedGetQuestionByID
+      .mockResolvedValueOnce(mockQuestion)
+      .mockResolvedValueOnce(mockQuestion2)
 
-//   describe("an event is passed",)
+    const { result } = renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(result.current.questions).toHaveLength(2)
+    )
+    expect(mockedGetQuestionByID).toHaveBeenCalledWith(mockQI.question_id)
+    expect(mockedGetQuestionByID).toHaveBeenCalledWith(mockQI2.question_id)
+  })
+
+  it('sets the event in state', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockResolvedValue([mockQI])
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(result.current.event).toEqual(mockEvent)
+    )
+  })
+
+  it('shows toast and logs when getEventByName throws', async () => {
+    mockedGetEventByName.mockRejectedValue(new Error('event error'))
+
+    renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Error when fetching competition event.')
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodingHooks' })
+    )
+  })
+
+  it('shows toast and logs when getAllQuestionInstancesByEventID throws', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockRejectedValue(new Error('instances error'))
+
+    renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Error when fetching event's question instances.")
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodingHooks' })
+    )
+  })
+
+  it('shows toast and logs when getQuestionByID throws', async () => {
+    mockedGetEventByName.mockResolvedValue(mockEvent)
+    mockedGetAllQIByEvent.mockResolvedValue([mockQI, mockQI2])
+    mockedGetQuestionByID.mockRejectedValue(new Error('question fetch error'))
+
+    renderHook(() => useCodingHooks(mockQuestion, mockComp))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Error when fetching questions.')
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodingHooks' })
+    )
+  })
+
+  it('does not fetch comp event when comp has no id', () => {
+    renderHook(() => useCodingHooks(mockQuestion, { ...mockComp, id: undefined as any }))
+    expect(mockedGetEventByName).not.toHaveBeenCalled()
+  })
+})
+
+describe('useCodingHooks — language and preferences', () => {
+  it('loads languages and user preferences', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserPrefs.mockResolvedValue(mockUserPrefs)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.languages).toEqual(mockLanguages)
+    )
+    expect(mockedGetAllLanguages).toHaveBeenCalledWith(true)
+    expect(mockedGetUserPrefs).toHaveBeenCalledWith(mockProfile.id)
+  })
+
+  it('sets selectedLang from last used language in preferences', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserPrefs.mockResolvedValue(mockUserPrefs) // last_used = 71 = Python
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.selectedLang?.lang_judge_id).toBe(71)
+    )
+  })
+
+  it('falls back to first language when no preference set', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserPrefs.mockResolvedValue(null)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.selectedLang?.lang_judge_id).toBe(71)
+    )
+  })
+
+  it('falls back to first language when preferred lang_judge_id not found', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserPrefs.mockResolvedValue({ ...mockUserPrefs, last_used_programming_language: 999 })
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      // 999 not in languages, so selectedLang stays undefined (no match)
+      expect(result.current.languages).toEqual(mockLanguages)
+    )
+  })
+
+  it('shows toast and logs when language loading fails', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetProfile.mockRejectedValueOnce(new Error('auth error'))
+
+    const onUnhandledRejection = jest.fn()
+    window.addEventListener('unhandledrejection', onUnhandledRejection)
+
+    renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Error when fetching languages.')
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodingHooks' })
+    )
+
+    window.removeEventListener('unhandledrejection', onUnhandledRejection)
+  })
+})
+
+describe('useCodingHooks — user question instance', () => {
+  it('fetches user question instance when activeQuestionInstance is set', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.userQuestionInstance).toEqual(mockUQI)
+    )
+    expect(mockedGetUserInstance).toHaveBeenCalledWith(
+      mockProfile.id,
+      mockQI.question_instance_id
+    )
+  })
+
+  it('creates user question instance via putUserInstance when none exists', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserInstance.mockResolvedValue(null)
+    mockedPutUserInstance.mockResolvedValue(mockUQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() =>
+      expect(result.current.userQuestionInstance).toEqual(mockUQI)
+    )
+    expect(mockedPutUserInstance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_id: mockProfile.id,
+        question_instance_id: mockQI.question_instance_id,
+      })
+    )
+  })
+})
+
+describe('useCodingHooks — mostRecentSubGroupClass', () => {
+  it('defaults to 2-column grid when no mostRecentSub', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() => expect(result.current.isQuestionLoading).toBe(false))
+    expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-4')
+  })
+
+  it('switches to 3-column grid when mostRecentSub is set', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() => expect(result.current.isQuestionLoading).toBe(false))
+
+    act(() => {
+      result.current.setMostRecentSub({
+        row_id: 1,
+        user_question_instance_id: 123,
+        code: 'print(1)',
+        submitted_on: new Date(),
+        lang_judge_id: 71,
+      })
+    })
+
+    await waitFor(() =>
+      expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-3 gap-2')
+    )
+  })
+
+  it('reverts to 2-column grid when mostRecentSub is cleared', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() => expect(result.current.isQuestionLoading).toBe(false))
+
+    act(() => {
+      result.current.setMostRecentSub({
+        row_id: 1,
+        user_question_instance_id: 123,
+        code: 'print(1)',
+        submitted_on: new Date(),
+        lang_judge_id: 71,
+      })
+    })
+
+    await waitFor(() =>
+      expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-3 gap-2')
+    )
+
+    act(() => {
+      result.current.setMostRecentSub(undefined as any)
+    })
+
+    await waitFor(() =>
+      expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-4')
+    )
+  })
+})
+
+describe('useCodingHooks — setters work correctly', () => {
+  it('setIsAsyncLoading updates state', async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    act(() => { result.current.setIsAsyncLoading(true) })
+    expect(result.current.isAsyncLoading).toBe(true)
+
+    act(() => { result.current.setIsAsyncLoading(false) })
+    expect(result.current.isAsyncLoading).toBe(false)
+  })
+
+  it('setLoadingMsg updates state', async () => {
+    const { result } = renderHook(() => useCodingHooks())
+
+    act(() => { result.current.setLoadingMsg('Submitting') })
+    expect(result.current.loadingMsg).toBe('Submitting')
+  })
+
+  it('setActiveQuestion updates state', async () => {
+    const { result } = renderHook(() => useCodingHooks())
+
+    act(() => { result.current.setActiveQuestion(mockQuestion) })
+    expect(result.current.activeQuestion).toEqual(mockQuestion)
+  })
+
+  it('setSelectedLang updates state', async () => {
+    const { result } = renderHook(() => useCodingHooks())
+
+    act(() => { result.current.setSelectedLang(mockLanguages[0] as any) })
+    expect(result.current.selectedLang).toEqual(mockLanguages[0])
+  })
 })

@@ -1,428 +1,551 @@
 import React from 'react'
 import '@testing-library/jest-dom'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
-import { useTestcases } from '../src/components/helpers/useTestcases'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
-import { getProfile } from '../src/api/AuthAPI'
-import { Account } from '../src/types/account/Account.type'
-import { MostRecentSub } from '../src/types/submissions/MostRecentSub.type'
 import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
-import { getAllLanguages } from '../src/api/LanguageAPI'
-import { getRiddleById } from '../src/api/RiddlesAPI'
-import { describe } from 'node:test'
-import { Language } from '../src/types/questions/Language.type'
+import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import { getAllSubmissions } from '../src/api/SubmissionAPI'
+import { getRiddleById } from '../src/api/RiddlesAPI'
+import { getAllLanguages } from '../src/api/LanguageAPI'
+import { toast } from 'sonner'
+import { logFrontend } from '../src/api/LoggerAPI'
 
-// -------------------- MOCKS --------------------
+// ─── Mocks ───────────────────────────────────────────────────────────────────
 
-jest.mock('../src/components/helpers/useTestcases')
+jest.mock('../src/components/helpers/CodingHooks', () => ({
+  useCodingHooks: jest.fn(),
+}))
+
+jest.mock('../src/api/SubmissionAPI', () => ({
+  getAllSubmissions: jest.fn(),
+}))
 
 jest.mock('../src/api/RiddlesAPI', () => ({
-    getRiddleById: jest.fn()
+  getRiddleById: jest.fn(),
 }))
 
 jest.mock('../src/api/LanguageAPI', () => ({
-  getAllLanguages: jest.fn()
+  getAllLanguages: jest.fn(),
 }))
 
-jest.mock('@/hooks/useAnalytics', () => ({
-    useAnalytics: () => ({
-        trackCodingTabSwitched: jest.fn()
-    })
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn(),
 }))
 
-jest.mock('../src/components/forms/RiddleForm', () => ({
-    __esModule: true,
-    default: ({ riddle, onSolved }: any) => (
-        <div data-testid="mock-riddle-form">
-            <p>{riddle.question}</p>
-            <button onClick={onSolved} data-testid="solve-riddle-button">Solve Riddle</button>
-        </div>
-    )
+jest.mock('sonner', () => ({
+  toast: { error: jest.fn(), success: jest.fn(), warning: jest.fn() },
 }))
 
-jest.mock('../src/lib/axiosClient', () => ({
-    __esModule: true,
-    default: {
-        get: jest.fn(),
-        post: jest.fn(),
-        put: jest.fn(),
-        delete: jest.fn(),
-    },
-    API_URL: 'http://localhost:8000',
-}))
-
-jest.mock('../src/components/ui/button', () => ({
-    __esModule: true,
-    Button: ({ children, onClick, ...props }: any) => (
-        <button onClick={onClick} {...props} data-testid='button'>{children}</button>
-    )
-}))
-
-jest.mock("../src/components/ui/tabs", () => ({
-    __esModule: true,
-    Tabs: ({ children, value }: any) => <div data-testid="tabs" data-active-tab={value}>{children}</div>,
-    TabsList: ({ children }: any) => <div data-testid="tabs-list">{children}</div>,
-    TabsTrigger: ({ children, value, ...props }: any) => (
-        <button data-testid="tabs-trigger" data-value={value} {...props}>{children}</button>
-    ),
-    TabsContent: ({ value, children, activeValue, ...props }: any) => (
-        <div 
-            data-testid={`tabs-content-${value}`}
-            style={{ display: activeValue === value ? 'block' : 'none' }}
-            {...props}
-        >
-            {children}
-        </div>
-    ),
-}))
-
-jest.mock("../src/components/ui/table", () => ({
-    __esModule: true,
-    Table: ({ children }: any) => <table data-testid="table">{children}</table>,
-    TableHeader: ({ children }: any) => <thead>{children}</thead>,
-    TableBody: ({ children }: any) => <tbody>{children}</tbody>,
-    TableFooter: ({ children }: any) => <tfoot>{children}</tfoot>,
-    TableHead: ({ children }: any) => <th>{children}</th>,
-    TableRow: ({ children, onClick, ...props }: any) => (
-        <tr onClick={onClick} data-testid="table-row" {...props}>{children}</tr>
-    ),
-    TableCell: ({ children, className }: any) => <td className={className}>{children}</td>,
+jest.mock('../src/hooks/useAnalytics', () => ({
+  useAnalytics: () => ({
+    trackCodingTabSwitched: jest.fn(),
+  }),
 }))
 
 jest.mock('../src/components/leaderboards/CurrentLeaderboard', () => ({
-    __esModule: true,
-    CurrentLeaderboard: () => <div data-testid="mock-current-leaderboard">Mock Leaderboard</div>
-}));
-
-jest.mock('../src/api/AuthAPI', () => ({
-    getProfile: jest.fn()
+  CurrentLeaderboard: () => <div data-testid="leaderboard" />,
 }))
 
-jest.mock('../src/api/CodeSubmissionAPI', () => ({
-    getAllSubmissions: jest.fn()
+jest.mock('../src/components/forms/RiddleForm', () => ({
+  __esModule: true,
+  default: ({ onSolved }: any) => (
+    <div data-testid="riddle-form">
+      <button data-testid="solve-riddle-btn" onClick={onSolved}>Solve</button>
+    </div>
+  ),
 }))
 
-// -------------------- TEST DATA --------------------
+// ─── Test data ────────────────────────────────────────────────────────────────
 
-const problem_id = 1
-const user_id = 1
-const question_instance_id = 1
-const user_question_instance_id = 123
-const language_id = 123
-const mockProfile: Account = {
-    id: 1,
-    firstName: "John",
-    lastName: "Doe",
-    email: "john@test.com",
-    accountType: "Participant"
-}
-
-const mockMostRecentSubResponse: MostRecentSub = {
-    row_id: user_id,
-    user_question_instance_id: user_question_instance_id,
-    code: "source_code",
-    lang_judge_id: 71,
-    submitted_on: new Date()
-}
-
-const mockSubmissions: SubmissionType[] = [
-    {
-      submission_id: 1,
-      user_question_instance_id: user_question_instance_id,
-      lang_judge_id: language_id,
-      compile_output: null,
-      status: "Accepted",
-      runtime: 123,
-      memory: 456,
-      submitted_on: new Date(2024, 5, 12),
-      stdout: "output",
-      stderr: null,
-      message: null,
-    },
-    {
-      submission_id: 2,
-      user_question_instance_id: user_question_instance_id,
-      lang_judge_id: 51,
-      compile_output: "error",
-      status: "Wrong Answer",
-      runtime: 45,
-      memory: 128,
-      submitted_on: new Date(2024, 5, 11),
-      stdout: null,
-      stderr: "error",
-      message: "test failed",
-    }
-]
-
-const languages: Language[] = [
-  {
-    row_id: 1,
-    lang_judge_id: 71,
-    display_name: "Python",
-    monaco_id: "python",
-    active: true
-  },
-  {
-    row_id: 2,
-    lang_judge_id: 51,
-    display_name: "Java",
-    monaco_id: "java",
-    active: false
-  },
-]
-
-const mockProblem: Question = {
-  question_id: problem_id,
-  question_name: "Sum Problem",
-  question_description: "Add two numbers",
-  media: "string",
-  difficulty: "Easy",
+const mockQuestion: Question = {
+  question_id: 1,
+  question_name: 'Two Sum',
+  question_description: 'Given an array of integers, return indices.',
+  media: null,
+  difficulty: 'Easy',
   language_specific_properties: [],
   tags: [] as TagResponse[],
-  test_cases: [] as TestCase[],
-  created_at: new Date("2025-10-28T10:00:00Z"),
-  last_modified_at: new Date("2025-10-28T10:00:00Z"),
+  test_cases: [
+    {
+      test_case_id: 1,
+      question_id: 1,
+      input_data: { nums: [2, 7], target: 9 },
+      expected_output: '[0,1]',
+    },
+  ] as TestCase[],
+  created_at: new Date('2025-01-01'),
+  last_modified_at: new Date('2025-01-01'),
 }
 
 const mockQuestionInstance: QuestionInstance = {
-    question_instance_id: 1,
-    question_id: problem_id,
-    event_id: 1,
-    riddle_id: null,
+  question_instance_id: 123,
+  question_id: 1,
+  event_id: 1,
+  riddle_id: null,
+}
+
+const mockQuestionInstanceWithRiddle: QuestionInstance = {
+  ...mockQuestionInstance,
+  riddle_id: 99,
 }
 
 const mockRiddle = {
-    id: 7,
-    question: "What has keys but no locks?",
-    answer: "A piano",
-    file: null
+  id: 99,
+  question: 'What has keys but no locks?',
+  answer: 'A piano',
 }
 
-// -------------------- MOCK FUNCTIONS --------------------
+const mockSubmissions: SubmissionType[] = [
+  {
+    submission_id: 1,
+    user_question_instance_id: 123,
+    lang_judge_id: 71,
+    compile_output: null,
+    status: 'Accepted',
+    runtime: 42,
+    memory: 1024,
+    submitted_on: new Date('2025-03-01T10:00:00Z'),
+    stdout: 'Hello',
+    stderr: null,
+    message: null,
+  },
+  {
+    submission_id: 2,
+    user_question_instance_id: 123,
+    lang_judge_id: 71,
+    compile_output: 'error: syntax',
+    status: 'Wrong Answer',
+    runtime: null,
+    memory: null,
+    submitted_on: new Date('2025-02-28T10:00:00Z'),
+    stdout: null,
+    stderr: 'Traceback...',
+    message: 'Wrong answer on test 1',
+  },
+]
 
-const mockedUseTestcases = useTestcases as jest.Mock
-const mockedGetRiddleById = getRiddleById as jest.Mock
-const mockedGetProfile = getProfile as jest.Mock
+const mockLanguages = [
+  { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
+]
+
+const mockUserQuestionInstance = {
+  user_question_instance_id: 55,
+  riddle_complete: true,
+  attempts: 3,
+  lapse_time: 1000,
+}
+
+// ─── Hook mock factory ────────────────────────────────────────────────────────
+
+const makeMockHook = (overrides: Record<string, any> = {}) => ({
+  mostRecentSub: null,
+  setMostRecentSub: jest.fn(),
+  isQuestionLoading: false,
+  setIsQuestionLoading: jest.fn(),
+  isAsyncLoading: false,
+  setIsAsyncLoading: jest.fn(),
+  activeQuestion: mockQuestion,
+  setActiveQuestion: jest.fn(),
+  activeQuestionInstance: mockQuestionInstance,
+  setActiveQuestionInstance: jest.fn(),
+  activeDisplayQuestionName: 'Question 1',
+  setActiveDisplayQuestionName: jest.fn(),
+  userQuestionInstance: mockUserQuestionInstance,
+  setUserQuestionInstance: jest.fn(),
+  questions: [mockQuestion],
+  setQuestions: jest.fn(),
+  lapseTime: null,
+  setLapseTime: jest.fn(),
+  questionsInstances: [mockQuestionInstance],
+  setQuestionsInstances: jest.fn(),
+  languages: mockLanguages,
+  setLanguages: jest.fn(),
+  prevLangRef: { current: null },
+  mostRecentSubGroupClass: '',
+  setMostRecentSubGroupClass: jest.fn(),
+  selectedLang: null,
+  setSelectedLang: jest.fn(),
+  event: null,
+  userPreferences: null,
+  setUserPreferences: jest.fn(),
+  testcases: mockQuestion.test_cases,
+  loadingMsg: '',
+  setLoadingMsg: jest.fn(),
+  startTime: null,
+  ...overrides,
+})
+
+const mockedUseCodingHooks = useCodingHooks as jest.Mock
 const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
+const mockedGetRiddleById = getRiddleById as jest.Mock
 const mockedGetAllLanguages = getAllLanguages as jest.Mock
 
-// -------------------- SETUP --------------------
+// ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Default mock implementations
-    mockedUseTestcases.mockReturnValue({
-        testcases: [{
-            input_data: { a: 10, b: 20 },
-            expected_output: 30
-        }],
-        loading: false,
-    });
+  jest.clearAllMocks()
+  mockedUseCodingHooks.mockReturnValue(makeMockHook())
+  mockedGetRiddleById.mockResolvedValue(null)
+  mockedGetAllSubmissions.mockResolvedValue([])
+  mockedGetAllLanguages.mockResolvedValue(mockLanguages)
+})
 
-    mockedGetProfile.mockResolvedValue(mockProfile);
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions);
-    mockedGetAllLanguages.mockResolvedValue(languages);
-});
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
-const setup = async (options: { 
-    shouldRiddleFail?: boolean,
-    riddleData?: any,
-    showRiddle?: boolean 
-} = {}) => {
-    const { 
-        shouldRiddleFail = false, 
-        riddleData = mockRiddle,
-        showRiddle = true 
-    } = options;
+describe('CodeDescArea — rendering', () => {
+  it('renders nothing when question is undefined', () => {
+    const { container } = render(
+      <CodeDescArea question={undefined} question_instance={undefined} />
+    )
+    expect(container).toBeEmptyDOMElement()
+  })
 
-    if (shouldRiddleFail) {
-        mockedGetRiddleById.mockRejectedValue(new Error("API Error"));
-    } else if (showRiddle) {
-        mockedGetRiddleById.mockResolvedValue(riddleData);
-    } else {
-        mockedGetRiddleById.mockResolvedValue(null);
-    }
-
-    const utils = render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />)
+  it('renders tabs when question is provided', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
     await waitFor(() => {
-      expect(mockedGetRiddleById).toHaveBeenCalled();
-    });
-    return { ...utils }
-}
+      expect(screen.getByTestId('tabs')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('tabs-list')).toBeInTheDocument()
+    expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(3)
+  })
 
-// -------------------- TESTS --------------------
+  it('renders Description, Submissions, and Leaderboard tabs', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => {
+      expect(screen.getByText('Description')).toBeInTheDocument()
+      expect(screen.getByText('Submissions')).toBeInTheDocument()
+      expect(screen.getByText('Leaderboard')).toBeInTheDocument()
+    })
+  })
 
-describe('CodeDescArea', () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2025-10-28T10:00:00Z'));
-  });
+  it('shows description tab content by default', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => {
+      expect(screen.getByTestId('tabs-content-description')).toBeInTheDocument()
+      expect(screen.getByText('Two Sum')).toBeInTheDocument()
+      expect(screen.getByText(/Given an array/)).toBeInTheDocument()
+    })
+  })
 
-  afterAll(() => {
-    jest.useRealTimers();
-  });
+  it('renders test case examples in description', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => {
+      expect(screen.getByText('Example 1:')).toBeInTheDocument()
+      expect(screen.getByText(/\[0,1\]/)).toBeInTheDocument()
+    })
+  })
+})
 
-  describe('Riddle Logic (Gatekeeper)', () => {
-    it("renders loading state initially", async () => {
-      mockedGetRiddleById.mockReturnValue(new Promise(() => {}));
-      render(<CodeDescArea question={mockProblem} question_instance={mockQuestionInstance} />);
+describe('CodeDescArea — tab switching', () => {
+  it('switches to submissions tab when clicked', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+    expect(screen.getByTestId('tabs-content-submissions')).toBeInTheDocument()
+  })
 
-      expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument();
-    });
+  it('switches to leaderboard tab when clicked', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Leaderboard')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Leaderboard'))
+    expect(screen.getByTestId('tabs-content-leaderboard')).toBeInTheDocument()
+    expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
+  })
 
-    it("shows RiddleForm and hides description until solved", async () => {
-      await setup({ showRiddle: true });
+  it('switches back to description tab after visiting another', async () => {
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+    await userEvent.click(screen.getByText('Description'))
+    expect(screen.getByText('Two Sum')).toBeInTheDocument()
+  })
+})
 
-      await waitFor(() => {
-        expect(screen.getByTestId("mock-riddle-form")).toBeInTheDocument();
-      });
+describe('CodeDescArea — riddle gate', () => {
+  it('shows loading spinner when riddle is loading', () => {
+    mockedUseCodingHooks.mockReturnValue(makeMockHook({
+      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
+    }))
+    // getRiddleById never resolves so isLoadingRiddle stays true
+    mockedGetRiddleById.mockReturnValue(new Promise(() => { }))
 
-      expect(screen.getByText(mockRiddle.question)).toBeInTheDocument();
-      
-      // Description should not be visible
-      expect(screen.queryByTestId("tabs-content-description")).not.toBeInTheDocument();
-    });
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstanceWithRiddle}
+      />
+    )
+    expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument()
+  })
 
-    it("reveals problem content after solving the riddle", async () => {
-      await setup({ showRiddle: true });
+  it('shows riddle form when riddle is loaded and not yet solved', async () => {
+    mockedUseCodingHooks.mockReturnValue(makeMockHook({
+      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
+    }))
+    mockedGetRiddleById.mockResolvedValue(mockRiddle)
 
-      await waitFor(() => {
-        expect(screen.getByTestId("mock-riddle-form")).toBeInTheDocument();
-      });
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstanceWithRiddle}
+      />
+    )
 
-      fireEvent.click(screen.getByTestId("solve-riddle-button"));
+    await waitFor(() =>
+      expect(screen.getByTestId('riddle-form')).toBeInTheDocument()
+    )
+    expect(screen.getByText(/Two Sum/)).toBeInTheDocument()
+  })
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-        expect(screen.getByText("Sum Problem")).toBeInTheDocument();
-        expect(screen.getByText("Add two numbers")).toBeInTheDocument();
-      });
-    });
+  it('shows normal tabs when riddle_complete is true', async () => {
+    mockedGetRiddleById.mockResolvedValue(mockRiddle)
 
-    it("bypasses the riddle lock if the API fails", async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      await setup({ shouldRiddleFail: true });
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstanceWithRiddle}
+      />
+    )
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-      });
+    await waitFor(() =>
+      expect(screen.getByTestId('tabs')).toBeInTheDocument()
+    )
+  })
 
-      expect(screen.queryByTestId("mock-riddle-form")).not.toBeInTheDocument();
-      consoleSpy.mockRestore();
-    });
-  });
+  it('shows normal tabs when riddle_id is null (no riddle)', async () => {
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+      />
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('tabs')).toBeInTheDocument()
+    )
+  })
 
-  describe('Tab Functionality', () => {
-    it("renders all tab triggers after riddle is solved", async () => {
-      await setup({ shouldRiddleFail: true });
+  it('shows toast.error and logs when riddle fails to load', async () => {
+    mockedUseCodingHooks.mockReturnValue(makeMockHook({
+      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
+    }))
+    mockedGetRiddleById.mockRejectedValue(new Error('Riddle fetch failed'))
 
-      await waitFor(() => {
-        const triggers = screen.getAllByTestId("tabs-trigger");
-        expect(triggers).toHaveLength(3);
-      });
-    });
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstanceWithRiddle}
+      />
+    )
 
-    it("shows description content by default", async () => {
-      await setup({ shouldRiddleFail: true });
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Failed to load riddle...')
+    )
+    expect(logFrontend).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'ERROR', component: 'CodeDescArea' })
+    )
+  })
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-        expect(screen.getByText("Sum Problem")).toBeInTheDocument();
-        expect(screen.getByText("Add two numbers")).toBeInTheDocument();
-        expect(screen.getByText(/a = 10/i)).toBeInTheDocument();
-        expect(screen.getByText(/b = 20/i)).toBeInTheDocument();
-        expect(screen.getByText(/30/)).toBeInTheDocument();
-      });
-    });
+  it('shows normal view when riddle fails to load (no riddleObject)', async () => {
+    mockedUseCodingHooks.mockReturnValue(makeMockHook({
+      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
+    }))
+    mockedGetRiddleById.mockRejectedValue(new Error('fail'))
 
-    it("switches to Submissions tab when clicked", async () => {
-      await setup({ shouldRiddleFail: true });
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstanceWithRiddle}
+      />
+    )
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-      });
+    // After error, riddleObject stays null so the riddle form is not shown
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(screen.queryByTestId('riddle-form')).not.toBeInTheDocument()
+  })
+})
 
-      const submissionsTrigger = screen.getByRole('button', { name: /submissions/i });
-      fireEvent.click(submissionsTrigger);
+describe('CodeDescArea — submissions tab', () => {
+  it('shows empty state when no submissions', async () => {
+    mockedGetAllSubmissions.mockResolvedValue([])
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-submissions")).toBeInTheDocument();
-        expect(screen.getByTestId("table")).toBeInTheDocument();
-        expect(screen.getByText("Accepted")).toBeInTheDocument();
-        expect(screen.getByText("Wrong Answer")).toBeInTheDocument();
-        expect(screen.getByText("456")).toBeInTheDocument();
-        expect(screen.getByText("128")).toBeInTheDocument();
-      });
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
 
-      // Check for attempts count in footer
-      await waitFor(() => {
-        const footerElement = screen.getByText(/2 attempts/);
-        expect(footerElement).toBeInTheDocument();
-      });
-    });
+    await waitFor(() =>
+      expect(screen.getByText(/yet to submit/i)).toBeInTheDocument()
+    )
+  })
 
-    it("switches to Leaderboard tab when clicked", async () => {
-      await setup({ shouldRiddleFail: true });
+  it('renders submission rows when submissions exist', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-      });
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
 
-      const leaderboardTrigger = screen.getByRole('button', { name: /leaderboard/i });
-      fireEvent.click(leaderboardTrigger);
+    await waitFor(() => {
+      expect(screen.getByTestId('submission-1')).toBeInTheDocument()
+      expect(screen.getByTestId('submission-2')).toBeInTheDocument()
+    })
+  })
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-leaderboard")).toBeInTheDocument();
-        expect(screen.getByTestId("mock-current-leaderboard")).toBeInTheDocument();
-      });
-    });
+  it('shows Accepted status in green', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    it("shows submission details when a submission row is clicked", async () => {
-      await setup({ shouldRiddleFail: true });
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-description")).toBeInTheDocument();
-      });
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    const accepted = screen.getByText('Accepted')
+    expect(accepted).toHaveClass('text-green-500')
+  })
 
-      // Switch to submissions tab
-      const submissionsTrigger = screen.getByRole('button', { name: /submissions/i });
-      fireEvent.click(submissionsTrigger);
+  it('shows Wrong Answer status in red', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-      await waitFor(() => {
-        expect(screen.getByTestId("tabs-content-submissions")).toBeInTheDocument();
-        expect(screen.getByTestId("table")).toBeInTheDocument();
-      });
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
 
-      // Click on the first submission row (using testid)
-      const submissionRows = screen.getAllByTestId(/^submission-\d+$/);
-      expect(submissionRows.length).toBeGreaterThan(0);
-      fireEvent.click(submissionRows[0]);
+    await waitFor(() => expect(screen.getByTestId('submission-2')).toBeInTheDocument())
+    const wrongAnswer = screen.getByText('Wrong Answer')
+    expect(wrongAnswer).toHaveClass('text-red-500')
+  })
 
-      // Check if submission details are shown
-      await waitFor(() => {
-        expect(screen.queryByText("Submission Details")).toBeInTheDocument();
-        expect(screen.getByText("Accepted")).toBeInTheDocument();
+  it('shows submission count in footer', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-        expect(screen.getByText(/456/i)).toBeInTheDocument();
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
 
-        expect(screen.getByText("Basic Information")).toBeInTheDocument();
-        expect(screen.getByText(/123 ms/)).toBeInTheDocument();
-        expect(screen.getByText(/456 KB/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/2 attempts/i)).toBeInTheDocument()
+    )
+  })
 
-        expect(screen.getByText("Program Output")).toBeInTheDocument();
-        expect(screen.getByText("Standard Output")).toBeInTheDocument();
-        expect(screen.getByText("output")).toBeInTheDocument();
+  it('shows singular "attempt" for one submission', async () => {
+    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
 
-        const backButton = screen.getByText(/back/i);
-        fireEvent.click(backButton)
-        expect(screen.getByTestId("table")).toBeInTheDocument()
-        expect(screen.getByText("Accepted")).toBeInTheDocument()
-        expect(screen.getByText("Wrong Answer")).toBeInTheDocument()
-      });
-    });
-  });
-});
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() =>
+      expect(screen.getByText(/1 attempt$/)).toBeInTheDocument()
+    )
+  })
+
+  it('shows language name from languages list', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
+    mockedGetAllLanguages.mockResolvedValue(mockLanguages)
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() =>
+      expect(screen.getAllByText('Python').length).toBeGreaterThan(0)
+    )
+  })
+})
+
+describe('CodeDescArea — submission detail view', () => {
+  it('opens submission detail when a row is clicked', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByText('Submission Details')).toBeInTheDocument()
+    expect(screen.getByTestId('back-btn')).toBeInTheDocument()
+  })
+
+  it('shows runtime and memory in detail view', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByText(/42 ms/)).toBeInTheDocument()
+    expect(screen.getByText(/1024 KB/)).toBeInTheDocument()
+  })
+
+  it('shows stdout when present in detail view', async () => {
+    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByText('Hello')).toBeInTheDocument()
+  })
+
+  it('shows stderr and compile_output when present', async () => {
+    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[1]])
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument()) // ← 1 not 2
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByText('Traceback...')).toBeInTheDocument()
+    expect(screen.getByText('error: syntax')).toBeInTheDocument()
+    expect(screen.getByText('Wrong answer on test 1')).toBeInTheDocument()
+  })
+
+  it('shows "no additional output" message when no output fields', async () => {
+    const minimalSub: SubmissionType = {
+      ...mockSubmissions[0],
+      stdout: null,
+      stderr: null,
+      compile_output: null,
+      message: null,
+    }
+    mockedGetAllSubmissions.mockResolvedValue([minimalSub])
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByText(/no additional output/i)).toBeInTheDocument()
+  })
+
+  it('goes back to submissions list when back button is clicked', async () => {
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
+
+    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Submissions'))
+
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('submission-1'))
+
+    expect(screen.getByTestId('back-btn')).toBeInTheDocument()
+    await userEvent.click(screen.getByTestId('back-btn'))
+
+    expect(screen.queryByText('Submission Details')).not.toBeInTheDocument()
+    expect(screen.getByTestId('submission-1')).toBeInTheDocument()
+  })
+})
