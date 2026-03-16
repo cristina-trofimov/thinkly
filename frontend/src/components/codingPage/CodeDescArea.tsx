@@ -33,22 +33,7 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const {
-        mostRecentSub, setMostRecentSub,
-        isQuestionLoading, setIsQuestionLoading,
-        isAsyncLoading, setIsAsyncLoading,
-        activeQuestion, setActiveQuestion,
-        activeQuestionInstance, setActiveQuestionInstance,
-        activeDisplayQuestionName, setActiveDisplayQuestionName,
-        userQuestionInstance, setUserQuestionInstance,
-        questions, setQuestions, lapseTime, setLapseTime,
-        questionsInstances, setQuestionsInstances,
-        languages, setLanguages, prevLangRef,
-        mostRecentSubGroupClass, setMostRecentSubGroupClass,
-        selectedLang, setSelectedLang, event,
-        userPreferences, setUserPreferences,
-        testcases, loadingMsg, setLoadingMsg
-      } = useCodingHooks(question) 
+    const { userQuestionInstance, languages, setLanguages, testcases } = useCodingHooks(question) 
 
     const { trackCodingTabSwitched } = useAnalytics()
 
