@@ -60,21 +60,28 @@ def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Com
 
 def calculate_rank(entries: List) -> List:
     """
-    Calculate rank for each entry based on total_score (highest score = rank 1).
-    Entries with the same score get the same rank.
-    Returns entries sorted by score (highest first) with rank added.
+    Calculate rank for each entry:
+      1. Highest total_score = rank 1
+      2. On equal score, lowest total_time (seconds) wins
+    Entries with identical score AND time share the same rank.
+    Returns entries sorted by (score desc, time asc) with rank added.
     """
     if not entries:
         return []
 
-    # Sort by total_score descending
-    sorted_entries = sorted(entries, key=lambda x: x.total_score, reverse=True)
+    # Sort by total_score descending, then total_time ascending as tiebreaker
+    sorted_entries = sorted(
+        entries,
+        key=lambda x: (-x.total_score, x.total_time)
+    )
 
-    # Assign ranks
+    # Assign ranks — two entries share a rank only if both score and time are equal
     current_rank = 1
     for i, entry in enumerate(sorted_entries):
-        if i > 0 and sorted_entries[i].total_score < sorted_entries[i - 1].total_score:
-            current_rank = i + 1
+        if i > 0:
+            prev = sorted_entries[i - 1]
+            if entry.total_score != prev.total_score or entry.total_time != prev.total_time:
+                current_rank = i + 1
         entry.calculated_rank = current_rank
 
     return sorted_entries
