@@ -158,17 +158,17 @@ function ProfilePage() {
       if (currentTheme === "light" || currentTheme === "dark") {
         setPreferences((prev) => ({
           ...prev,
-          theme: currentTheme as "light" | "dark"
+          theme: currentTheme
         }));
       }
     };
 
-    window.addEventListener("storage", handleThemeSync);      // For other tabs
-    window.addEventListener("storage_sync", handleThemeSync); // For NavUser in this tab
+    globalThis.addEventListener("storage", handleThemeSync);      // For other tabs
+    globalThis.addEventListener("storage_sync", handleThemeSync); // For NavUser in this tab
 
     return () => {
-      window.removeEventListener("storage", handleThemeSync);
-      window.removeEventListener("storage_sync", handleThemeSync);
+      globalThis.removeEventListener("storage", handleThemeSync);
+      globalThis.removeEventListener("storage_sync", handleThemeSync);
     };
   }, []);
 
@@ -242,7 +242,7 @@ function ProfilePage() {
         localStorage.setItem("theme", "light");
       }
 
-      window.dispatchEvent(new Event("storage_sync"));
+      globalThis.dispatchEvent(new Event("storage_sync"));
     }
 
     try {

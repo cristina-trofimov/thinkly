@@ -52,12 +52,12 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       }
     };
 
-    window.addEventListener("storage", syncTheme);
-    window.addEventListener("storage_sync", syncTheme);
+    globalThis.addEventListener("storage", syncTheme);
+    globalThis.addEventListener("storage_sync", syncTheme);
 
     return () => {
-      window.removeEventListener("storage", syncTheme);
-      window.removeEventListener("storage_sync", syncTheme);
+      globalThis.removeEventListener("storage", syncTheme);
+      globalThis.removeEventListener("storage_sync", syncTheme);
     };
   }, []);
 
@@ -72,7 +72,7 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
     }
 
     // Tell other components (like ProfilePage) to update their buttons
-    window.dispatchEvent(new Event("storage_sync"));
+    globalThis.dispatchEvent(new Event("storage_sync"));
 
     if (localUser?.id) {
       try {
