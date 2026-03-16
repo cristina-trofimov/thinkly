@@ -218,3 +218,5 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
     </DropdownMenu>
   );
 }
+
+export default NavUser;

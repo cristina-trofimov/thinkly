@@ -287,7 +287,7 @@ function ProfilePage() {
       setUser({ ...updatedAccount, isGoogleUser: user.isGoogleUser });
       toast.success("Profile updated successfully.");
       setEditingField(null);
-    } catch (error) {
+    } catch {
       trackProfileFieldSaveFailed(editingField, "Error saving field");
       toast.error(`Failed to update ${editingField}.`);
     } finally {
