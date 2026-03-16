@@ -132,16 +132,12 @@ function ProfilePage() {
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  const storedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
+
   const [preferences, setPreferences] = React.useState<UserPreferences>({
-    theme: storedTheme ?? "light",
+    theme: (localStorage.getItem("theme") as "light" | "dark") ?? "light",
     notifications_enabled: true,
   });
-  const [savedPreferences, setSavedPreferences] = React.useState<UserPreferences>({
-    theme: storedTheme ?? "light",
-    notifications_enabled: true,
-  });
-  const [isSavingPrefs, setIsSavingPrefs] = React.useState(false);
+
   const navigate = useNavigate();
   const outlet = useOutlet();
   const {
@@ -152,15 +148,32 @@ function ProfilePage() {
     trackChangePasswordNavigated,
   } = useAnalytics();
 
-  const [editingField, setEditingField] = React.useState<EditableFieldName | null>(
-    null
-  );
+  const [editingField, setEditingField] = React.useState<EditableFieldName | null>(null);
   const [tempValue, setTempValue] = React.useState("");
 
-  // Track profile view once on mount
+  React.useEffect(() => {
+    const handleThemeSync = () => {
+      // Read directly from storage to ensure we have the latest value
+      const currentTheme = localStorage.getItem("theme");
+      if (currentTheme === "light" || currentTheme === "dark") {
+        setPreferences((prev) => ({
+          ...prev,
+          theme: currentTheme as "light" | "dark"
+        }));
+      }
+    };
+
+    window.addEventListener("storage", handleThemeSync);      // For other tabs
+    window.addEventListener("storage_sync", handleThemeSync); // For NavUser in this tab
+
+    return () => {
+      window.removeEventListener("storage", handleThemeSync);
+      window.removeEventListener("storage_sync", handleThemeSync);
+    };
+  }, []);
+
   React.useEffect(() => {
     trackProfileViewed();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   React.useEffect(() => {
@@ -179,19 +192,13 @@ function ProfilePage() {
           isGoogleAccount(),
         ]);
         setUser({
-          id: currentAccount.id,
-          firstName: currentAccount.firstName,
-          lastName: currentAccount.lastName,
-          email: currentAccount.email,
-          accountType: currentAccount.accountType,
+          ...currentAccount,
           isGoogleUser: googleStatus.isGoogleUser,
         });
 
-        // Fetch preferences after we have the user id
         try {
           const prefs = await getUserPreferences(currentAccount.id);
           setPreferences(prefs);
-          setSavedPreferences(prefs);
         } catch {
           logFrontend({
             level: "ERROR",
@@ -216,21 +223,42 @@ function ProfilePage() {
     fetchUser();
   }, []);
 
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (savedPreferences.theme === "dark") {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [savedPreferences.theme]);
+  // Automatic saving handler
+  const handlePreferenceChange = async (updates: Partial<UserPreferences>) => {
+    if (!user) return;
 
-  const startEditing = (
-    field: EditableFieldName,
-    value: string
-  ) => {
+    // Optimistically update local state
+    const updatedPrefs = { ...preferences, ...updates };
+    setPreferences(updatedPrefs);
+
+    // Immediate UI feedback for theme
+    if (updates.theme) {
+      const root = document.documentElement;
+      if (updates.theme === "dark") {
+        root.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        root.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+
+      window.dispatchEvent(new Event("storage_sync"));
+    }
+
+    try {
+      await updateUserPreferences(user.id, updatedPrefs);
+    } catch (error) {
+      toast.error("Failed to sync preferences.");
+      logFrontend({
+        level: "ERROR",
+        message: `Auto-save failed: ${error}`,
+        component: "ProfilePage",
+        url: globalThis.location.href,
+      });
+    }
+  };
+
+  const startEditing = (field: EditableFieldName, value: string) => {
     setEditingField(field);
     setTempValue(value);
     trackProfileFieldEdited(field);
@@ -241,28 +269,8 @@ function ProfilePage() {
     setTempValue("");
   };
 
-  const preferencesChanged =
-    preferences.theme !== savedPreferences.theme ||
-    preferences.notifications_enabled !== savedPreferences.notifications_enabled;
-
-  const savePreferences = async () => {
-    if (!user) return;
-    setIsSavingPrefs(true);
-    try {
-      const updated = await updateUserPreferences(user.id, preferences);
-      setPreferences(updated);
-      setSavedPreferences(updated);
-      toast.success("Preferences saved.");
-    } catch {
-      toast.error("Failed to save preferences.");
-    } finally {
-      setIsSavingPrefs(false);
-    }
-  };
-
   const saveField = async () => {
     if (!user || !editingField) return;
-
     setIsSaving(true);
 
     const fieldMapping: Record<string, string> = {
@@ -271,30 +279,17 @@ function ProfilePage() {
       email: "email",
     };
 
-    const backendKey = fieldMapping[editingField];
-
     try {
       const updatedAccount = await updateAccount(user.id, {
-        [backendKey]: tempValue,
+        [fieldMapping[editingField]]: tempValue,
       });
-
       trackProfileFieldSaved(editingField);
-      setUser(updatedAccount);
-
-      const fieldLabel =
-        editingField.charAt(0).toUpperCase() +
-        editingField.slice(1).replaceAll(/([A-Z])/g, " $1").toLowerCase();
-
-      toast.success(`${fieldLabel} updated successfully.`);
-
+      setUser({ ...updatedAccount, isGoogleUser: user.isGoogleUser });
+      toast.success("Profile updated successfully.");
       setEditingField(null);
-      setTempValue("");
     } catch (error) {
-      trackProfileFieldSaveFailed(
-        editingField,
-        error instanceof Error ? error.message : "Unknown error"
-      );
-      toast.error(`Failed to update ${editingField.toLowerCase()}.`);
+      trackProfileFieldSaveFailed(editingField, "Error saving field");
+      toast.error(`Failed to update ${editingField}.`);
     } finally {
       setIsSaving(false);
     }
@@ -305,9 +300,7 @@ function ProfilePage() {
     navigate("changePassword");
   };
 
-  if (outlet) {
-    return outlet;
-  }
+  if (outlet) return outlet;
 
   if (loading) {
     return (
@@ -320,7 +313,7 @@ function ProfilePage() {
   return (
     <div className="container mx-auto max-w-5xl p-6 md:p-10 space-y-10 animate-in fade-in duration-500">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row items-center md:items-center gap-8">
+      <div className="flex flex-col md:flex-row items-center gap-8">
         <div className="relative group">
           <div className="size-35 rounded-full border-4 border-card overflow-hidden ring-2 ring-primary/50 flex items-center justify-center">
             <AvatarInitials
@@ -345,18 +338,15 @@ function ProfilePage() {
 
       <Separator />
 
-      {/* Content */}
+      {/* Personal Info */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <IdCard className="h-5 w-5 text-primary" />
-            Personal Information
-          </h2>
-        </div>
+        <h2 className="text-lg font-semibold flex items-center gap-2">
+          <IdCard className="h-5 w-5 text-primary" />
+          Personal Information
+        </h2>
 
         <Card className="rounded-3xl overflow-hidden">
           <CardContent className="p-8 space-y-8">
-            {/* First Name Field */}
             <EditableField
               icon={<User className="h-4 w-4 opacity-70 text-primary" />}
               label="First Name"
@@ -370,10 +360,7 @@ function ProfilePage() {
               onCancel={cancelEditing}
               onTempValueChange={setTempValue}
             />
-
             <Separator className="opacity-60" />
-
-            {/* Last Name Field */}
             <EditableField
               icon={<User className="h-4 w-4 opacity-70 text-primary" />}
               label="Last Name"
@@ -387,10 +374,7 @@ function ProfilePage() {
               onCancel={cancelEditing}
               onTempValueChange={setTempValue}
             />
-
             <Separator className="opacity-60" />
-
-            {/* Email Field */}
             <EditableField
               icon={<Mail className="h-4 w-4 opacity-70 text-primary" />}
               label="Email"
@@ -406,10 +390,7 @@ function ProfilePage() {
               onCancel={cancelEditing}
               onTempValueChange={setTempValue}
             />
-
             <Separator className="opacity-50" />
-
-            {/* Password Field */}
             <div className="pt-2">
               {user?.isGoogleUser ? (
                 <div className="space-y-3">
@@ -417,19 +398,15 @@ function ProfilePage() {
                     <KeyRound className="h-4 w-4 opacity-70 text-primary" /> Password
                   </Label>
                   <div className="flex items-center justify-between group min-h-10">
-                    <Label className="text-muted-foreground text-base font-normal tracking-widest">
-                      ••••••••••••
-                    </Label>
-                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
-                      Managed by Google
-                    </span>
+                    <Label className="text-muted-foreground text-base font-normal tracking-widest">••••••••••••</Label>
+                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">Managed by Google</span>
                   </div>
                 </div>
               ) : (
                 <div className="flex justify-end">
                   <Button
                     variant="ghost"
-                    className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 hover:text-primary transition-all"
+                    className="h-9 px-4 text-sm font-medium text-primary hover:bg-primary/10 transition-all"
                     onClick={handleChangePasswordNavigation}
                   >
                     Change Password
@@ -440,59 +417,36 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
-        {user?.isGoogleUser && (
-          <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl">
-            <p className="text-xs text-blue-600/80 leading-relaxed text-center">
-              You signed in with Google. To change your password, please manage
-              your settings through your{" "}
-              <a
-                href="https://myaccount.google.com/security"
-                target="_blank"
-                rel="noreferrer"
-                className="underline font-semibold"
-              >
-                Google Account
-              </a>
-              {" "}.
-            </p>
-          </div>
-        )}
-
         {/* Preferences Section */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-primary" />
-            Preferences
-          </h2>
-        </div>
+        <h2 className="text-lg font-semibold flex items-center gap-2 pt-4">
+          <Settings2 className="h-5 w-5 text-primary" />
+          Preferences
+        </h2>
 
         <Card className="rounded-3xl overflow-hidden">
           <CardContent className="p-8 space-y-8">
-            {/* Theme */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold flex items-center gap-2">
-                {preferences.theme === "dark"
-                  ? <Moon className="h-4 w-4 opacity-70 text-primary" />
-                  : <Sun className="h-4 w-4 opacity-70 text-primary" />}
+                {preferences.theme === "dark" ? <Moon className="h-4 w-4 opacity-70 text-primary" /> : <Sun className="h-4 w-4 opacity-70 text-primary" />}
                 Theme
               </Label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setPreferences((p) => ({ ...p, theme: "light" }))}
+                  onClick={() => handlePreferenceChange({ theme: "light" })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "light"
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
                     }`}
                 >
                   <Sun className="h-4 w-4" /> Light
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPreferences((p) => ({ ...p, theme: "dark" }))}
+                  onClick={() => handlePreferenceChange({ theme: "dark" })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "dark"
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
                     }`}
                 >
                   <Moon className="h-4 w-4" /> Dark
@@ -502,52 +456,24 @@ function ProfilePage() {
 
             <Separator className="opacity-60" />
 
-            {/* Notifications */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold flex items-center gap-2">
                 <Bell className="h-4 w-4 opacity-70 text-primary" /> Notifications
               </Label>
               <div className="flex items-center justify-between min-h-10">
-                <Label className="text-muted-foreground text-base font-normal">
-                  Enable email notifications
-                </Label>
+                <Label className="text-muted-foreground text-base font-normal">Enable email notifications</Label>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={preferences.notifications_enabled}
-                  onClick={() =>
-                    setPreferences((p) => ({
-                      ...p,
-                      notifications_enabled: !p.notifications_enabled,
-                    }))
-                  }
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${preferences.notifications_enabled ? "bg-primary" : "bg-input"
+                  onClick={() => handlePreferenceChange({ notifications_enabled: !preferences.notifications_enabled })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${preferences.notifications_enabled ? "bg-primary" : "bg-input"
                     }`}
                 >
-                  <span
-                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                  />
+                  <span className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
+                    }`} />
                 </button>
               </div>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={savePreferences}
-                disabled={!preferencesChanged || isSavingPrefs}
-                className="h-9 px-6 text-sm font-medium disabled:opacity-40"
-              >
-                {isSavingPrefs ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />{' '}
-                    Saving…
-                  </span>
-                ) : (
-                  "Save Preferences"
-                )}
-              </Button>
             </div>
           </CardContent>
         </Card>
