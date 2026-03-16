@@ -212,7 +212,7 @@ const CodingView = () => {
   }, [questions, questionsInstances])
 
   useEffect(() => {
-    if (!languages) return
+    if (!languages || languages.length < 1) return
 
     if (userPreferences) {
       const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
@@ -339,6 +339,7 @@ const CodingView = () => {
   }, [mostRecentSub])
 
   const handleLanguageChange = (lang: Language) => {
+    if (code !== templateCode)
     trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
     prevLangRef.current = lang
     setSelectedLang(lang)
