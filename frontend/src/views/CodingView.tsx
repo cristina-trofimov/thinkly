@@ -226,8 +226,26 @@ const CodingView = () => {
     } else {
       setSelectedLang(languages[0])
     }
-    
+
   }, [languages, userPreferences])
+
+  // Auto-select the first language that has preset code when the question changes
+  useEffect(() => {
+    if (!activeQuestion || !languages?.length) return
+
+    const langWithPreset = activeQuestion.language_specific_properties.find(
+      (p) => p.preset_code
+    )
+    if (!langWithPreset) return
+
+    const matchedLang = languages.find(
+      (l) => l.display_name === langWithPreset.language_display_name
+    )
+    if (matchedLang) {
+      setSelectedLang(matchedLang)
+      prevLangRef.current = matchedLang
+    }
+  }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
