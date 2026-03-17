@@ -101,10 +101,14 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             const initQuestion = async () => {
                 setIsQuestionLoading(true)
                 try {
-                    const qi = await getQuestionInstance(question?.question_id, null)
+                    const [questionInstance, fullQuestion] = await Promise.all([
+                        getQuestionInstance(question.question_id, null),
+                        getQuestionByID(question.question_id)
+                    ])
+                    setQuestions([fullQuestion])
 
-                    if (qi) {
-                        setQuestionsInstances([qi])
+                    if (questionInstance) {
+                        setQuestionsInstances([questionInstance])
                     } else {
                         await putQuestionInstance(undefined, question?.question_id, null, null)
                             .then((response) => setQuestionsInstances([response]))
@@ -123,7 +127,6 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                 }
             }
             initQuestion()
-            setQuestions([question])
         }
     }, [event, question?.question_id])
 
@@ -159,6 +162,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     }, [questionsInstances])
 
     // Setting the default active question and question instance
+    // Then loads all active languages and user's preferences
     useEffect(() => {
         if (questions.length > 0 && !activeQuestion) {
             setActiveQuestion(questions[0])
@@ -166,14 +170,17 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         if (questionsInstances.length > 0 && !activeQuestionInstance) {
             setActiveQuestionInstance(questionsInstances[0])
         }
-        const loadLanguages = async () => {
+        const loadLanguagesAndPrefs = async () => {
             try {
                 const user = await getProfile()
-                await getAllLanguages(true)
-                    .then((response) => setLanguages(response))
 
-                await getUserPrefs(user.id)
-                    .then((response) => setUserPreferences(response))
+                const [langs, userPrefs] = await Promise.all([
+                    getAllLanguages(true),
+                    getUserPrefs(user.id),
+                ])
+
+                setLanguages(langs)
+                setUserPreferences(userPrefs)
             } catch (error) {
                 toast.error("Error when fetching languages.")
                 logFrontend({
@@ -185,8 +192,8 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                 })
             }
         }
-        if (questions) {
-            loadLanguages()
+        if (questions.length > 1) {
+            loadLanguagesAndPrefs()
         }
     }, [questions, questionsInstances])
 
@@ -209,7 +216,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     // switches current userQuestionInstance and lapse time when the user switches questions
     useEffect(() => {
         if (activeQuestionInstance) {
-            // TODO: get or create user question instance
+            // Get or create user question instance
             // Restart time lapse
             const getOrCreateUserQuestionInstance = async () => {
                 const user = await getProfile()

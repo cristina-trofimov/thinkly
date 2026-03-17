@@ -19,6 +19,7 @@ import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 import { getAllLanguages } from '@/api/LanguageAPI'
 import { useCodingHooks } from '../helpers/CodingHooks'
+import type { Language } from '@/types/questions/Language.type'
 
 const CodeDescArea = (
     { question, question_instance, }:
@@ -33,11 +34,12 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { userQuestionInstance, languages, setLanguages, testcases } = useCodingHooks(question) 
+    const { userQuestionInstance, testcases } = useCodingHooks(question) 
 
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
+    const [allLanguages, setAllLanguages, ] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
@@ -79,14 +81,16 @@ const CodeDescArea = (
     }, [question?.question_id, question_instance?.question_instance_id])
 
     useEffect(() => {
+        console.log("userQuestionInstance", userQuestionInstance)
         if (userQuestionInstance) {
             const FetchSubmissions = async () => {
-                await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
-                    .then((response) => {
-                        setSubmissions(response)
-                    })
-                await getAllLanguages(null)
-                    .then((response) => setLanguages(response))
+                const [subs, langs] = await Promise.all([
+                    getAllSubmissions(userQuestionInstance?.user_question_instance_id),
+                    getAllLanguages(null),
+                ])
+
+                setSubmissions(subs)
+                setAllLanguages(langs)
             }
             FetchSubmissions()
         }
@@ -249,7 +253,7 @@ const CodeDescArea = (
                                                 <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
                                             </TableCell>
                                             <TableCell className="" >
-                                                {languages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                                {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
                                             </TableCell>
                                             <TableCell className="text-right text-card" >{s?.memory}</TableCell>
                                             </TableRow>
