@@ -6,14 +6,19 @@ import { XIcon } from 'lucide-react'
 
 
 const ResetCode = ({ 
-    isOpen, setClose, setConfirmReset
+    isOpen, setClose, setReset, setNoReset
 }: {
-    isOpen: boolean, setClose: any, setConfirmReset: any
+    isOpen: boolean, setClose: () => void, 
+    setReset: () => void, setNoReset: () => void
 } ) => {
 
     const handleClose = (confirm: boolean) => {
-        setClose(false)
-        setConfirmReset(confirm)
+        if (confirm) {
+            setReset()
+        } else {
+            setNoReset()
+        }
+        setClose()
     }
 
     return (
@@ -45,11 +50,11 @@ const ResetCode = ({
                             </div>
                         </div>
                         <DialogFooter className='px-6 pb-6 flex justify-between' >
-                            <Button className='bg-red-700 hover:bg-red-700/75'
+                            <Button className='bg-primary hover:bg-primary/75'
                                 onClick={() => handleClose(false)} >
                                 Cancel
                             </Button>
-                            <Button className='bg-primary hover:bg-primary/75'
+                            <Button className='bg-red-700 hover:bg-red-700/75'
                                 onClick={() => handleClose(true)} >
                                 Continue
                             </Button>

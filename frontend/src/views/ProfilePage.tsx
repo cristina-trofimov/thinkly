@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { UserPreferences } from "@/types/UserPreferences.type";
-import { getUserPrefs, updateAllPrefs } from "@/api/UserPreferencesAPI";
+import { getUserPrefs } from "@/api/UserPreferencesAPI";
 
 // Extending the local Account type to include the Google provider check
 interface ProfileAccount extends Account {

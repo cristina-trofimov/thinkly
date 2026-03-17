@@ -4,7 +4,6 @@ from database_operations.database import get_db
 from models.schema import Language
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

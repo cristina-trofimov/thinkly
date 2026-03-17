@@ -445,7 +445,9 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
-      <ConfirmCodeReset isOpen={clearingCode} setClose={setClearingCode} setConfirmReset={setConfirmClearingCode} />
+      <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
+        setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
+      />
       <div className='flex items-center justify-center mb-2 w-full'>
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit

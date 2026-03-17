@@ -549,7 +549,7 @@ describe('CodingView Component without event', () => {
         render(<CodingView />)
 
         await waitFor(() => {
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue(mockProblemWithPreset.language_specific_properties[0].template_solution)
         })
     })
 
