@@ -355,8 +355,10 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: DB preset_code → DB template_solution → hardcoded fallback
-  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || ''
+  // Priority: DB preset_code → DB template_solution → generic fallback comment
+  const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
+  const fallbackComment = `${commentChar} Write your solution here.`
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || fallbackComment
 
   const [code, setCode] = useState<string>('')
 
