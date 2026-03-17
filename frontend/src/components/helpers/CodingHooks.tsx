@@ -141,9 +141,6 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                 const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
                 const fetchedResponses = await Promise.all(questionPromises)
 
-                console.log("promises", questionPromises)
-                console.log("allQuestionsinstances", fetchedResponses)
-
                 setQuestions(fetchedResponses)
             } catch (err) {
                 toast.error("Error when fetching questions.")
@@ -192,24 +189,18 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                 })
             }
         }
-        if (questions.length > 1) {
+        // if (questions.length > 1) {
             loadLanguagesAndPrefs()
-        }
+        // }
     }, [questions, questionsInstances])
 
     useEffect(() => {
         if (!languages) return
-    
-        if (userPreferences) {
-            const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
-    
-            if (lang) {
-                setSelectedLang(lang)
-                prevLangRef.current = lang
-            }
-        } else {
-            setSelectedLang(languages[0])
-        }
+
+        const savedLang = languages.find(lang => lang.lang_judge_id === userPreferences?.last_used_programming_language)
+
+        setSelectedLang(savedLang || languages[0])
+        prevLangRef.current = savedLang || languages[0]
     }, [languages, userPreferences])
 
 
@@ -239,10 +230,10 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                         })
                 }
 
-                if (questions.length > 1) {
+                // if (questions.length > 1) {
                     setStartTime(new Date())
                     console.log("New startTime", startTime)
-                }
+                // }
             }
             getOrCreateUserQuestionInstance()
         }
@@ -250,11 +241,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
     // switches to a grid with 3 columns when the user already submitted something
     useEffect(() => {
-        if (mostRecentSub) {
-            setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
-        } else {
-            setMostRecentSubGroupClass("grid grid-cols-2 gap-4")
-        }
+        setMostRecentSubGroupClass(`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`)
     }, [mostRecentSub])
 
 

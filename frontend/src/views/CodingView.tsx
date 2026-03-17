@@ -76,23 +76,35 @@ const CodingView = () => {
         setLoadingMsg("Submitting")
 
         if (userQuestionInstance) {
-          if (userQuestionInstance.attempts) {
-            userQuestionInstance.attempts += 1
-          } else {
-            userQuestionInstance.attempts = 1
-          }
+          userQuestionInstance.attempts = userQuestionInstance.attempts
+              ? userQuestionInstance.attempts + 1
+              : 1
+          // if (userQuestionInstance.attempts) {
+          //   userQuestionInstance.attempts += 1
+          // } else {
+          //   userQuestionInstance.attempts = 1
+          // }
 
-          if (startTime) {
-            if (userQuestionInstance.lapse_time ) {
-              userQuestionInstance.lapse_time += Date.now() - startTime?.getTime()
-            } else {
-              userQuestionInstance.lapse_time = Date.now() - startTime?.getTime()
-            }
-          }
+          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+              ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+              : Date.now() - startTime!.getTime()
+
+          // if (startTime) {
+          //   userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+          //     ? userQuestionInstance.attempts + Date.now() - startTime?.getTime()
+          //     : Date.now() - startTime?.getTime()
+          //   // if (userQuestionInstance.lapse_time ) {
+          //   //   userQuestionInstance.lapse_time += Date.now() - startTime?.getTime()
+          //   // } else {
+          //   //   userQuestionInstance.lapse_time = Date.now() - startTime?.getTime()
+          //   // }
+          // }
         }
 
         const {
-          codeRunResponse, submissionResponse, mostRecentSubResponse
+          codeRunResponse,
+          submissionResponse,
+          mostRecentSubResponse
         } = await submitAttempt(
             activeQuestion, activeQuestionInstance,
             userQuestionInstance, event,
@@ -146,12 +158,11 @@ const CodingView = () => {
         setCurrentOutputTab("results")
   
         // Capture run result — status comes directly from Judge0 response
-        const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
           activeQuestionInstance!.question_id,
           selectedLang!.display_name,
           judge0Response.status.description,
-          passed,
+          judge0Response.status.description === "Accepted", //passed
           judge0Response.time ?? undefined
         )
       } catch (err) {

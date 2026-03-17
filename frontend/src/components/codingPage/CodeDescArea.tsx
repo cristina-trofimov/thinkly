@@ -58,9 +58,8 @@ const CodeDescArea = (
 
         const fetchRiddle = async () => {
             try {
-                const data = await getRiddleById(question_instance?.riddle_id)
-
-                setRiddleObject(data)
+                await getRiddleById(question_instance?.riddle_id)
+                    .then((resp) => setRiddleObject(resp))
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -77,7 +76,6 @@ const CodeDescArea = (
         }
 
         fetchRiddle()
-
     }, [question?.question_id, question_instance?.question_instance_id])
 
     useEffect(() => {
