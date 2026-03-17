@@ -189,9 +189,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                 })
             }
         }
-        // if (questions.length > 1) {
-            loadLanguagesAndPrefs()
-        // }
+        loadLanguagesAndPrefs()
     }, [questions, questionsInstances])
 
     useEffect(() => {
@@ -206,10 +204,12 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
     // switches current userQuestionInstance and lapse time when the user switches questions
     useEffect(() => {
-        if (activeQuestionInstance) {
-            // Get or create user question instance
-            // Restart time lapse
-            const getOrCreateUserQuestionInstance = async () => {
+        if (!activeQuestionInstance) return
+
+        // Get or create new user question instance
+        // Restart time lapse
+        const getOrCreateUserQuestionInstance = async () => {
+            try {
                 const user = await getProfile()
                 const uqi = await getUserInstance(user.id, activeQuestionInstance.question_instance_id)
 
@@ -225,19 +225,21 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                             lapse_time: null,
                             attempts: null
                         } as UserQuestionInstance)
-                        .then(response => {
-                            setUserQuestionInstance(response)
-                        })
+                        .then(response => setUserQuestionInstance(response))
                 }
-
-                // if (questions.length > 1) {
-                    setStartTime(new Date())
-                    console.log("New startTime", startTime)
-                // }
+            } catch (error) {
+                logFrontend({
+                    level: "ERROR",
+                    message: `An error occurred when getting/creating a new user question instance. Reason: ${error}`,
+                    component: "CodingHooks",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                })
             }
-            getOrCreateUserQuestionInstance()
         }
-    }, [activeQuestionInstance])
+        setStartTime(new Date())
+        getOrCreateUserQuestionInstance()
+    }, [activeQuestionInstance?.question_instance_id])
 
     // switches to a grid with 3 columns when the user already submitted something
     useEffect(() => {

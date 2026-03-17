@@ -79,26 +79,10 @@ const CodingView = () => {
           userQuestionInstance.attempts = userQuestionInstance.attempts
               ? userQuestionInstance.attempts + 1
               : 1
-          // if (userQuestionInstance.attempts) {
-          //   userQuestionInstance.attempts += 1
-          // } else {
-          //   userQuestionInstance.attempts = 1
-          // }
 
           userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
               ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
               : Date.now() - startTime!.getTime()
-
-          // if (startTime) {
-          //   userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-          //     ? userQuestionInstance.attempts + Date.now() - startTime?.getTime()
-          //     : Date.now() - startTime?.getTime()
-          //   // if (userQuestionInstance.lapse_time ) {
-          //   //   userQuestionInstance.lapse_time += Date.now() - startTime?.getTime()
-          //   // } else {
-          //   //   userQuestionInstance.lapse_time = Date.now() - startTime?.getTime()
-          //   // }
-          // }
         }
 
         const {
@@ -150,7 +134,6 @@ const CodingView = () => {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
 
-        console.log('activeQI', activeQuestionInstance)
         const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
                                   code, selectedLang?.lang_judge_id, testcases)
 
@@ -220,30 +203,33 @@ const CodingView = () => {
     // useEffect on selectedLang will restore buffer or fall back to presetCode
   }
 
-  const handleQuestionChange = (q: Question) => {
+  const handleQuestionChange = async (q: Question) => {
     // TODO: confirm that they want to change if already started coding
     setActiveQuestion(q)
-    questionsInstances.find(async (qi, idx) => {
-      if (qi.question_id === q.question_id) {
-        if (startTime && userQuestionInstance) {
-          userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
-        }
-        console.log('userQuestionInstance', userQuestionInstance)
-        try {
-          await putUserInstance(userQuestionInstance).then((resp) => setUserQuestionInstance(resp))
-        } catch (error) {
-          logFrontend({
-            level: "ERROR",
-            message: `An error occurred when updating user question instance. Reason: ${error}`,
-            component: "CodingView",
-            url: globalThis.location.href,
-            stack: (error as Error).stack,
-          });
-        }
-        setActiveQuestionInstance(qi)
-        setActiveDisplayQuestionName(`Question ${idx + 1}`)
+    const idx = questions.findIndex(qi => qi.question_id === q.question_id )
+
+    if (idx !== -1) {
+      if (startTime && userQuestionInstance) {
+        userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
       }
-    })
+
+      try {
+        await putUserInstance(userQuestionInstance)
+          .then((resp) => setUserQuestionInstance(resp))
+      } catch (error) {
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when updating user question instance. Reason: ${error}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (error as Error).stack,
+        })
+      }
+
+      setActiveQuestionInstance(questionsInstances[idx])
+      setActiveDisplayQuestionName(`Question ${idx + 1}`)
+      // setStartTime(new Date())
+    }
   }
 
   const handleCodeReset = () => {
@@ -320,6 +306,8 @@ const CodingView = () => {
             <DropdownMenuContent className='z-999' asChild>
               <div data-testid='questions-menu'
                 className="z-10 text-sm bg-muted w-26 border rounded-lg"
+                  // data-[state=active]:bg-primary
+                  // data-[state=active]:text-accent"
               >
                 {questions.map((q, idx) => (
                   <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
@@ -342,7 +330,9 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance} />
+          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance}
+            uqi={userQuestionInstance} testcases={testcases}
+          />
         </Panel>
 
         <PanelResizeHandle data-testid="resizable-handle"
@@ -367,24 +357,24 @@ const CodingView = () => {
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
                       onClick={runCode} data-testid="play-btn"
                     >
-                      <Play size={22} color="green" className='hover:fill-green fill-transparent' />
+                      <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
                     </Button>
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
+                    <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={handleCodeReset}
                     >
-                      <RotateCcw size={22} color="black" />
+                      <RotateCcw size={22} strokeWidth={2} />
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                       {fullCode
-                        ? <Minimize2 data-testid='code-area-min-icon' size={22} color="black" />
-                        : <Maximize2 data-testid='code-area-max-icon' size={22} color="black" />}
+                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
+                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                       {closeCode
-                        ? <ChevronDown data-testid='code-area-down-icon' size={22} color="black" />
-                        : <ChevronUp data-testid='code-area-up-icon' size={22} color="black" />}
+                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
+                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
                     </Button>
                   </div>
                 </div>
@@ -392,7 +382,6 @@ const CodingView = () => {
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <div data-testid='language-btn'
-                        // className="bg-background text-foreground text-base font-bold h-7
                         className="bg-background text-muted-foreground text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
@@ -404,7 +393,6 @@ const CodingView = () => {
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
                         className="z-10 text-sm bg-muted-foreground text-foreground w-26 border rounded-lg"
-                        // className="z-10 text-sm bg-muted w-26 border rounded-lg"
                       >
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
@@ -475,12 +463,12 @@ const CodingView = () => {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || "templateCode") }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
-                              className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
-                              <UndoDot size={22} color='black' />
+                              className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                              <UndoDot size={22} />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className='z-99999999999999 p-1.5 text-sm bg-white border rounded-3xl' >
+                            <p className='z-99999999999999 p-1.5 text-sm bg-muted text-accent-foreground border rounded-3xl' >
                               Go back to the most recently ran code
                             </p>
                           </TooltipContent>
@@ -488,16 +476,16 @@ const CodingView = () => {
                       </TooltipProvider>
                     )}
                     <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                       {fullOutput
-                        ? <Minimize2 data-testid='output-area-min-icon' size={22} color="black" />
-                        : <Maximize2 data-testid='output-area-max-icon' size={22} color="black" />}
+                        ? <Minimize2 data-testid='output-area-min-icon' size={22} />
+                        : <Maximize2 data-testid='output-area-max-icon' size={22} />}
                     </Button>
                     <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
-                      className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                       {closeOutput
-                        ? <ChevronUp data-testid='output-area-up-icon' size={22} color="black" />
-                        : <ChevronDown data-testid='output-area-down-icon' size={22} color="black" />}
+                        ? <ChevronUp data-testid='output-area-up-icon' size={22} />
+                        : <ChevronDown data-testid='output-area-down-icon' size={22} />}
                     </Button>
                   </div>
                 </TabsList>

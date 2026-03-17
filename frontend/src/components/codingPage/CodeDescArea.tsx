@@ -5,14 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
 import { Button } from '../ui/button'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
-import type { Question } from '@/types/questions/QuestionPagination.type'
+import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { getAllSubmissions } from '@/api/SubmissionAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
-import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
@@ -20,11 +19,16 @@ import { logFrontend } from '@/api/LoggerAPI'
 import { getAllLanguages } from '@/api/LanguageAPI'
 import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
+import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
+import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
 
 const CodeDescArea = (
-    { question, question_instance, }:
+    { question, question_instance, uqi, testcases }:
     { question: Question | undefined,
-      question_instance: QuestionInstance | undefined | null,
+       question_instance: QuestionInstance | undefined | null,
+       uqi: UserQuestionInstance | undefined | null,
+       testcases: TestCase[] | undefined | null,
     }
 ) => {
 
@@ -34,7 +38,7 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { userQuestionInstance, testcases } = useCodingHooks(question) 
+    const { setUserQuestionInstance } = useCodingHooks(question) 
 
     const { trackCodingTabSwitched } = useAnalytics()
 
@@ -46,20 +50,17 @@ const CodeDescArea = (
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
     const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-    // const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
     useEffect(() => {
-        if (!question?.question_id) return
-        // setHasSolvedRiddle(false)
-        setRiddleObject(null)
-        setIsLoadingRiddle(true)
+        if (!question_instance?.question_instance_id && uqi?.riddle_complete) return
 
         const fetchRiddle = async () => {
+            setIsLoadingRiddle(true)
             try {
                 await getRiddleById(question_instance?.riddle_id)
-                    .then((resp) => setRiddleObject(resp))
+                    .then((resp) => setRiddleObject(resp) )
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -68,23 +69,20 @@ const CodeDescArea = (
                     component: "CodeDescArea",
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
-                  });
-                // setHasSolvedRiddle(true)
+                  })
             } finally {
                 setIsLoadingRiddle(false)
             }
         }
-
         fetchRiddle()
-    }, [question?.question_id, question_instance?.question_instance_id])
+    }, [question_instance])
 
     useEffect(() => {
-        console.log("userQuestionInstance", userQuestionInstance)
-        if (userQuestionInstance) {
+        if (uqi?.user_question_instance_id) {
             const FetchSubmissions = async () => {
                 const [subs, langs] = await Promise.all([
-                    getAllSubmissions(userQuestionInstance?.user_question_instance_id),
-                    getAllLanguages(null),
+                    getAllSubmissions(uqi?.user_question_instance_id),
+                    getAllLanguages(null)
                 ])
 
                 setSubmissions(subs)
@@ -92,7 +90,7 @@ const CodeDescArea = (
             }
             FetchSubmissions()
         }
-    }, [userQuestionInstance])
+    }, [uqi])
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -122,10 +120,9 @@ const CodeDescArea = (
             question.question_id,
             tab as "description" | "submissions" | "leaderboard"
         )
-    }//  Riddle Rendering ------------------------------------
-    // const needsRiddle = !hasSolvedRiddle;
+    }
 
-    if (!userQuestionInstance?.riddle_complete) { // Needs to solve riddle
+    if (!uqi?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -149,11 +146,10 @@ const CodeDescArea = (
                         {/* Pass the entire object to the User Form */}
                         <RiddleUserForm
                             riddle={riddleObject}
-                            onSolved={() => {
-                                // if (userQuestionInstance && userQuestionInstance?.riddle_complete !== null) {
-                                //     userQuestionInstance?.riddle_complete = true
-                                // }
-                                // setHasSolvedRiddle(true)
+                            onSolved={async () => {
+                                uqi!.riddle_complete = true
+                                await putUserInstance(uqi)
+                                    .then((resp) => setUserQuestionInstance(resp))
                             }}
                         />
                     </div>

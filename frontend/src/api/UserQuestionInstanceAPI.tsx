@@ -3,7 +3,7 @@ import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInsta
 import { logFrontend } from "./LoggerAPI";
 
 export async function putUserInstance(
-    user_question_instance: UserQuestionInstance | undefined
+    user_question_instance: UserQuestionInstance | null | undefined
 ) : Promise<UserQuestionInstance> {
     try {
         if (!user_question_instance) {
