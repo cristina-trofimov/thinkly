@@ -168,6 +168,7 @@ jest.mock("react-resizable-panels", () => ({
 
 jest.mock('../src/components/helpers/useTestcases')
 
+const mockedLogger = logFrontend as jest.Mocked<typeof logFrontend>;
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
