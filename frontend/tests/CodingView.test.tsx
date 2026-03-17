@@ -182,7 +182,7 @@ const mockProblemWithPreset: Question = {
         {
             language_id: 1,
             question_id: 1,
-            language_name: "Java",
+            language_display_name: "Java",
             preset_code: "// Java preset",
             template_solution: "// Java solution",
             from_json_function: "",
@@ -191,7 +191,7 @@ const mockProblemWithPreset: Question = {
         {
             language_id: 2,
             question_id: 1,
-            language_name: "Python",
+            language_display_name: "Python",
             preset_code: "# Python preset",
             template_solution: "# Python solution",
             from_json_function: "",
@@ -206,7 +206,7 @@ const mockProblemWithTemplateSolutionOnly: Question = {
         {
             language_id: 1,
             question_id: 1,
-            language_name: "Java",
+            language_display_name: "Java",
             preset_code: "",
             template_solution: "// Java solution fallback",
             from_json_function: "",

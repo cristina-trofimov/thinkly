@@ -1,11 +1,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ProfilePage from "../src/views/ProfilePage";
 import { getProfile, isGoogleAccount } from "../src/api/AuthAPI";
-import { updateAccount } from "../src/api/AccountsAPI";
+import { updateAccount, updateUserPreferences } from "../src/api/AccountsAPI";
 import { getUserPrefs, updateAllPrefs } from "../src/api/UserPreferencesAPI";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -18,6 +19,7 @@ jest.mock("../src/api/AuthAPI", () => ({
 
 jest.mock("../src/api/AccountsAPI", () => ({
   updateAccount: jest.fn(),
+  updateUserPreferences: jest.fn(),
 }));
 
 jest.mock("../src/api/UserPreferencesAPI", () => ({
