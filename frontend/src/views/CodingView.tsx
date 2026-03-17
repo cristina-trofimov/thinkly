@@ -35,6 +35,7 @@ import type { Language } from '@/types/questions/Language.type';
 import { getAllLanguages } from '@/api/LanguageAPI';
 import type { UserPreferences } from '@/types/UserPreferences.type';
 import { getUserPrefs } from '@/api/UserPreferencesAPI';
+import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 
 
 const CodingView = () => {
@@ -228,7 +229,6 @@ const CodingView = () => {
     
   }, [languages, userPreferences])
 
-
   const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
@@ -265,7 +265,7 @@ const CodingView = () => {
   
         trackCodeSubmitted(
           activeQuestion!.question_id,
-          selectedLang!.display_name,
+          selectedLang!,
         )
       } catch (err) {
         toast.error("Error when submitting the code.")
@@ -303,7 +303,7 @@ const CodingView = () => {
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
           activeQuestion?.question_id,
-          selectedLang!.display_name,
+          selectedLang!,
           judge0Response.status.description,
           passed,
           judge0Response.time ?? undefined
@@ -346,12 +346,7 @@ const CodingView = () => {
   useEffect(() => {
     const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
     setCode(saved ?? presetCode)
-  }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
-    setCode(saved ?? presetCode)
-  }, [activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedLang, activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (mostRecentSub) {
@@ -361,33 +356,47 @@ const CodingView = () => {
     }
   }, [mostRecentSub])
 
-  const handleLanguageChange = (lang: Language) => {
-    if (code !== presetCode) {
-      // 
+  const [clearingCode, setClearingCode] = useState<boolean>(false)
+  const [confirmClearingCode, setConfirmClearingCode] = useState<boolean>(false)
+  const [newLang, setNewLang] = useState<Language>()
+
+  useEffect(() => {
+    if (!confirmClearingCode) return
+
+    if (prevLangRef.current) {
+      trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current, newLang!)
     }
-    trackLanguageChanged(activeQuestion!.question_id, prevLangRef!.current!.display_name, lang.display_name)
-    // Save current code before switching so user can come back to it
-    codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
-    prevLangRef.current = lang
-    setSelectedLang(lang)
-    // useEffect on selectedLang will restore buffer or fall back to presetCode
-  }
+    
+    if (newLang) {
+      // Save current code before switching so user can come back to it
+      codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
+      prevLangRef.current = newLang!
+      setSelectedLang(newLang)
+      setConfirmClearingCode(false)
+      // useEffect on selectedLang will restore buffer or fall back to presetCode
+
+      trackCodeReset(activeQuestion!.question_id, newLang)
+      // Clear buffer so switching away and back also resets
+      codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${newLang}`)
+    } else {
+      trackCodeReset(activeQuestion!.question_id, selectedLang!)
+      // Clear buffer so switching away and back also resets
+      codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
+    }
+
+    setConfirmClearingCode(false)
+    setCode(presetCode)
+  }, [confirmClearingCode])
 
   const handleQuestionChange = (q: Question) => {
     setActiveQuestion(q)
     questionsInstances.forEach((qi, idx) => {
       if (qi.question_id === q.question_id) {
+        codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
         setActiveQuestionInstance(qi)
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
     })
-  }
-
-  const handleCodeReset = () => {
-    trackCodeReset(activeQuestion!.question_id, selectedLang!.display_name)
-    // Clear buffer so switching away and back also resets
-    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
-    setCode(presetCode)
   }
 
   const [fullCode, setFullCode] = useState(false)
@@ -436,6 +445,7 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <ConfirmCodeReset isOpen={clearingCode} setClose={setClearingCode} setConfirmReset={setConfirmClearingCode} />
       <div className='flex items-center justify-center mb-2 w-full'>
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
@@ -506,7 +516,13 @@ const CodingView = () => {
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={handleCodeReset}
+                      onClick={() => {
+                        if (code !== presetCode) {
+                          setClearingCode(true)
+                        } else {
+                          setConfirmClearingCode(true)
+                        }
+                      }}
                     >
                       <RotateCcw size={22} color="black" />
                     </Button>
@@ -543,7 +559,14 @@ const CodingView = () => {
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
                             className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                            onSelect={() => handleLanguageChange(lang)}
+                            onSelect={() => {
+                              if (code !== presetCode) {
+                                setClearingCode(true)
+                              } else {
+                                setConfirmClearingCode(true)
+                              }
+                              setNewLang(lang)
+                            }}
                           >
                             {lang.display_name}
                           </DropdownMenuItem>
@@ -558,7 +581,7 @@ const CodingView = () => {
                 language={selectedLang?.monaco_id}
                 value={code}
                 theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
-                onChange={(value) => { setCode(value ?? 'templateCode') }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
+                onChange={(value) => { setCode(value ?? presetCode) }}
                 options={{
                   fontSize: 14,
                   automaticLayout: true,
