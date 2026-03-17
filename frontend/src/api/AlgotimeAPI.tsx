@@ -67,8 +67,6 @@ export const getAlgotimeById = async (sessionId: number) => {
     const response = await axiosClient.get(
       `/algotime/${sessionId}`
     );
-    console.log("session response:", response.data); 
-
     const session = response.data;
 
     return {

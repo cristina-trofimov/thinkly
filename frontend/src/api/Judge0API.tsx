@@ -46,8 +46,6 @@ export async function submitToJudge0(
 
         const { stdin, expected_output } = parse_input_output(testcases)
 
-        console.log("sumbitting")
-
         const response = await axiosClient.post(
             "/judge0",
             {

@@ -79,9 +79,6 @@ const NameCellRenderer = (props: CellContext<Participant, unknown>) => {
 };
 
 export function ScoreboardDataTable({ participants, currentUserId, showSeparator = false }: Props) {
-  console.log("ScoreboardDataTable - Participants:", participants.length, "Current User ID:", currentUserId, "Show Separator:", showSeparator);
-  console.log("Participant user IDs:", participants.map(p => p.user_id));
-
   const columns: ColumnDef<Participant>[] = [
     {
       id: "rank",
