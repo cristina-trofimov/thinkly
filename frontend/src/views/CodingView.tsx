@@ -264,8 +264,8 @@ const CodingView = () => {
         setCurrentOutputTab("results")
   
         trackCodeSubmitted(
-          activeQuestion?.question_id,
-          selectedLang,
+          activeQuestion!.question_id,
+          selectedLang!.display_name,
         )
       } catch (err) {
         toast.error("Error when submitting the code.")
@@ -303,7 +303,7 @@ const CodingView = () => {
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
           activeQuestion?.question_id,
-          selectedLang,
+          selectedLang!.display_name,
           judge0Response.status.description,
           passed,
           judge0Response.time ?? undefined
@@ -325,16 +325,14 @@ const CodingView = () => {
     }
   }
 
-  // const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
-  const prevLangRef = useRef<SupportedLanguagesType | null>(null)
   // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
   const codeBuffersRef = useRef<Map<string, string>>(new Map())
 
   // Look up the DB-stored properties for the currently selected language
   const activeLangProps = useMemo(
     () => activeQuestion?.language_specific_properties.find(
-      (p) => p.language_name === selectedLang
+      (p) => p.language_display_name === selectedLang?.display_name
     ) ?? null,
     [activeQuestion, selectedLang]
   )
@@ -363,11 +361,11 @@ const CodingView = () => {
     }
   }, [mostRecentSub])
 
-  const handleLanguageChange = (lang: SupportedLanguagesType) => {
+  const handleLanguageChange = (lang: Language) => {
     if (code !== presetCode) {
       // 
     }
-    trackLanguageChanged(activeQuestion!.question_id, prevLangRef!.current, lang)
+    trackLanguageChanged(activeQuestion!.question_id, prevLangRef!.current!.display_name, lang.display_name)
     // Save current code before switching so user can come back to it
     codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
     prevLangRef.current = lang
@@ -386,7 +384,7 @@ const CodingView = () => {
   }
 
   const handleCodeReset = () => {
-    trackCodeReset(activeQuestion!.question_id, selectedLang)
+    trackCodeReset(activeQuestion!.question_id, selectedLang!.display_name)
     // Clear buffer so switching away and back also resets
     codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
     setCode(presetCode)
