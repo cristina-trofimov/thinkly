@@ -364,7 +364,7 @@ const CodingView = () => {
 
   // Restore buffer or fall back to presetCode on language/question change
   useEffect(() => {
-    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
     setCode(saved ?? presetCode)
   }, [selectedLang, activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -378,41 +378,21 @@ const CodingView = () => {
 
   const [clearingCode, setClearingCode] = useState<boolean>(false)
   const [confirmClearingCode, setConfirmClearingCode] = useState<boolean>(false)
-  const [newLang, setNewLang] = useState<Language>()
 
   useEffect(() => {
     if (!confirmClearingCode) return
-
-    if (prevLangRef.current) {
-      trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current, newLang!)
-    }
-    
-    if (newLang) {
-      // Save current code before switching so user can come back to it
-      codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
-      prevLangRef.current = newLang!
-      setSelectedLang(newLang)
-      setConfirmClearingCode(false)
-      // useEffect on selectedLang will restore buffer or fall back to presetCode
-
-      trackCodeReset(activeQuestion!.question_id, newLang)
-      // Clear buffer so switching away and back also resets
-      codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${newLang}`)
-    } else {
-      trackCodeReset(activeQuestion!.question_id, selectedLang!)
-      // Clear buffer so switching away and back also resets
-      codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
-    }
-
+    trackCodeReset(activeQuestion!.question_id, selectedLang!)
+    // Clear buffer so the reset sticks if the user switches away and back
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
     setConfirmClearingCode(false)
     setCode(presetCode)
-  }, [confirmClearingCode])
+  }, [confirmClearingCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleQuestionChange = (q: Question) => {
     setActiveQuestion(q)
     questionsInstances.forEach((qi, idx) => {
       if (qi.question_id === q.question_id) {
-        codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
+        codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
         setActiveQuestionInstance(qi)
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
@@ -582,12 +562,14 @@ const CodingView = () => {
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
                             className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
                             onSelect={() => {
-                              if (code !== presetCode) {
-                                setClearingCode(true)
-                              } else {
-                                setConfirmClearingCode(true)
+                              // Save current code to buffer before switching
+                              codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
+                              if (prevLangRef.current) {
+                                trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current, lang)
                               }
-                              setNewLang(lang)
+                              prevLangRef.current = lang
+                              setSelectedLang(lang)
+                              toast.info("Code saved in this session — refreshing the page will lose your changes.")
                             }}
                           >
                             {lang.display_name}
