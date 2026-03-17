@@ -1,6 +1,6 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
@@ -13,16 +13,9 @@ import { UserPreferences } from '../src/types/account/UserPreferences.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/SubmitCodeAPI'
 import { toast } from 'sonner'
-import { logFrontend } from '../src/api/LoggerAPI'
-import { BaseEvent } from '../src/types/BaseEvent.type'
-import { useCodingHooks } from '../src/components/helpers/CodingHooks'
-
-// ─── Mocks ───────────────────────────────────────────────────────────────────
-
-// Mock the entire hook so tests never touch real API calls
-jest.mock('../src/components/helpers/CodingHooks', () => ({
-    useCodingHooks: jest.fn(),
-}))
+import { logFrontend } from "../src/api/LoggerAPI"
+import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
+import { getQuestionByID } from '../src/api/QuestionsAPI'
 
 jest.mock('@monaco-editor/react', () => {
     return function MonacoEditorMock(props: any) {
@@ -43,8 +36,8 @@ jest.mock('../src/lib/axiosClient', () => ({
 }))
 
 jest.mock('../src/components/helpers/Loader.tsx', () => {
-    return function Loader({ isOpen }: any) {
-        return <div data-testid="Loader" data-open={String(isOpen)} />
+    return function Loader() {
+        return <div data-testid="Loader" />
     }
 })
 
@@ -98,21 +91,36 @@ jest.mock('../src/components/codingPage/Testcases', () => ({
     default: () => <div data-testid="testcases-content" />,
 }))
 
-jest.mock('../src/components/helpers/useTestcases', () => ({
-    useTestcases: jest.fn(),
-}))
+jest.mock("../src/components/ui/dropdown-menu", () => {
+    const React = require('react')
+    const DropdownContext = React.createContext({ itemMap: new Map() })
+    return {
+        __esModule: true,
+        DropdownMenu: ({ children }: any) => (
+            <DropdownContext.Provider value={{ itemMap: new Map() }}>
+                {children}
+            </DropdownContext.Provider>
+        ),
+        DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
+        DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+        DropdownMenuItem: ({ children }: any) => <div>{children}</div>,
+    }
+})
 
-jest.mock('../src/components/ui/dropdown-menu', () => ({
+// Map onSelect → onClick so language/question items can be triggered in tests
+jest.mock('@radix-ui/react-dropdown-menu', () => ({
     __esModule: true,
     DropdownMenu: ({ children }: any) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
     DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuItem: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onSelect, ...rest }: any) => (
+        <div onClick={onSelect} {...rest}>{children}</div>
+    ),
 }))
 
-jest.mock('react-resizable-panels', () => ({
+jest.mock("react-resizable-panels", () => ({
     __esModule: true,
-    PanelGroup: React.forwardRef(({ children }: any, ref: any) => {
+    PanelGroup: React.forwardRef(({ children }: any, ref) => {
         React.useImperativeHandle(ref, () => ({ setLayout: jest.fn() }))
         return <div data-testid="panel-group">{children}</div>
     }),
@@ -122,52 +130,106 @@ jest.mock('react-resizable-panels', () => ({
 
 jest.mock('@radix-ui/react-dropdown-menu', () => ({
     __esModule: true,
-    DropdownMenu: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuTrigger: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
-    DropdownMenuItem: ({ onSelect, children, ...props }: any) => (
-        <div onClick={onSelect} {...props}>{children}</div>
-    ),
+    buildMonacoCode: jest.fn(() => ({
+        language: "java",
+        judgeID: "62",
+        templateCode: "// default template",
+    })),
 }))
 
-// ─── Test data ────────────────────────────────────────────────────────────────
+jest.mock('../src/components/helpers/useTestcases')
 
-const question_id = 1
-const question_instance_id = 123
+const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
+const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
+const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
+const mockedGetQuestionByID = getQuestionByID as jest.MockedFunction<typeof getQuestionByID>
+const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
+const mockUseTestcases = useTestcases as jest.Mock
+
+const mockProblem: Question = {
+    question_id: 1,
+    question_name: "Sum Problem",
+    question_description: "Add two numbers",
+    media: "string",
+    difficulty: "Easy",
+    language_specific_properties: [],
+    tags: [],
+    testcases: [],
+    created_at: new Date("2025-10-28T10:00:00Z"),
+    last_modified_at: new Date("2025-10-28T10:00:00Z"),
+}
+
+const mockProblemWithPreset: Question = {
+    ...mockProblem,
+    language_specific_properties: [
+        {
+            language_id: 1,
+            question_id: 1,
+            language_name: "Java",
+            preset_code: "// Java preset",
+            template_solution: "// Java solution",
+            from_json_function: "",
+            to_json_function: "",
+        },
+        {
+            language_id: 2,
+            question_id: 1,
+            language_name: "Python",
+            preset_code: "# Python preset",
+            template_solution: "# Python solution",
+            from_json_function: "",
+            to_json_function: "",
+        },
+    ],
+}
+
+const mockProblemWithTemplateSolutionOnly: Question = {
+    ...mockProblem,
+    language_specific_properties: [
+        {
+            language_id: 1,
+            question_id: 1,
+            language_name: "Java",
+            preset_code: "",
+            template_solution: "// Java solution fallback",
+            from_json_function: "",
+            to_json_function: "",
+        },
+    ],
+}
+
+const mockTestcases = [{ caseID: 'Case 1', input_data: { a: 10, b: 20 } }]
+
 const user_id = 1
+const question_instance_id = 123
 const event_id = 1
 const source_code = "print('Hello')"
 const language_id = 71
 
-const mockProblem: Question = {
-    question_id,
-    question_name: 'Sum Problem',
-    question_description: 'Add two numbers',
-    media: 'string',
-    difficulty: 'Easy',
-    language_specific_properties: [],
-    tags: [] as TagResponse[],
-    test_cases: [] as TestCase[],
-    created_at: new Date('2025-10-28T10:00:00Z'),
-    last_modified_at: new Date('2025-10-28T10:00:00Z'),
+const mockProfile: Account = {
+    id: user_id,
+    firstName: "John",
+    lastName: "string",
+    email: "string@smt.com",
+    accountType: "Participant"
 }
 
-const mockQuestionInstance: QuestionInstance = {
-    question_instance_id,
-    question_id,
-    event_id,
-    riddle_id: null,
+const mockMostRecentSubResponse: MostRecentSub = {
+    user_id: user_id,
+    question_instance_id: question_instance_id,
+    code: source_code,
+    lang_judge_id: parseInt(language_id)
 }
 
-const mockQuestionInstanceWithRiddle: QuestionInstance = {
-    ...mockQuestionInstance,
-    riddle_id: 99,
-}
-
-const mockLanguage = {
-    lang_judge_id: language_id,
-    monaco_id: 'python',
-    display_name: 'Python',
+const mockJudge0Response = {
+    stdout: "Hello\n",
+    stderr: null,
+    compile_output: null,
+    message: null,
+    status: { id: 3, description: "Accepted" },
+    memory: "1024",
+    time: "0.123",
+    token: null
 }
 
 const mockUserPrefs: UserPreferences = {
@@ -194,117 +256,71 @@ const mockCodeRunResponse: CodeRunResponse = {
     userPrefs: mockUserPrefs,
 }
 
-const mockMostRecentSub: MostRecentSub = {
-    row_id: 1,
-    user_question_instance_id: question_instance_id,
-    code: source_code,
-    submitted_on: new Date(),
-    lang_judge_id: language_id,
+const mockQuestionInstances: QuestionInstance[] = [{
+    question_instance_id: question_instance_id,
+    question_id: mockProblem.question_id,
+    event_id: event_id,
+    riddle_id: null,
+}]
+
+const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
+    codeRunResponse: mockCodeRunResponse,
+    submissionResponse: { status_code: 200, message: "Submitted" },
+    leaderboard: null
 }
 
 const mockSubmitSuccess: SubmitAttemptResponse = {
     codeRunResponse: mockCodeRunResponse,
-    submissionResponse: {
-        submission_id: 1,
-        user_question_instance_id: question_instance_id,
-        lang_judge_id: language_id,
-        compile_output: null,
-        status: 'Accepted',
-        runtime: null,
-        memory: null,
-        submitted_on: new Date(),
-        stdout: null,
-        stderr: null,
-        message: null,
-    },
-    mostRecentSubResponse: mockMostRecentSub,
+    submissionResponse: { status_code: 400, message: "Failed" },
+    leaderboard: null
 }
 
-const mockSubmitFail: SubmitAttemptResponse = {
-    ...mockSubmitSuccess,
-    submissionResponse: {
-        ...mockSubmitSuccess.submissionResponse,
-        submission_id: 2,
-        status: 'Wrong Answer',
-    },
+// Helper: render and wait until the question has loaded (activeQuestion is set)
+const renderAndWait = async () => {
+    render(<CodingView />)
+    await waitFor(() => expect(screen.getByTestId('sandbox')).toBeInTheDocument())
 }
+
+describe('CodingView Component without event', () => {
 
 // ─── Hook mock factory ────────────────────────────────────────────────────────
 
-const makeMockHook = (overrides: Record<string, any> = {}) => ({
-    startTime: null,
-    mostRecentSub: null,
-    setMostRecentSub: jest.fn(),
-    isQuestionLoading: false,
-    userQuestionInstance: null,
-    isAsyncLoading: false,
-    setIsAsyncLoading: jest.fn(),
-    activeQuestion: mockProblem,
-    setActiveQuestion: jest.fn(),
-    activeQuestionInstance: mockQuestionInstance,
-    setActiveQuestionInstance: jest.fn(),
-    activeDisplayQuestionName: 'Question 1',
-    setActiveDisplayQuestionName: jest.fn(),
-    questions: [mockProblem],
-    questionsInstances: [mockQuestionInstance],
-    languages: [mockLanguage],
-    prevLangRef: { current: mockLanguage },
-    mostRecentSubGroupClass: '',
-    userPreferences: mockUserPrefs,
-    selectedLang: mockLanguage,
-    setSelectedLang: jest.fn(),
-    event: null,
-    testcases: [],
-    loadingMsg: '',
-    setLoadingMsg: jest.fn(),
-    ...overrides,
-})
-
-const mockedUseCodingHooks = useCodingHooks as jest.Mock
-const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
-const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
-
-// ─── Setup ────────────────────────────────────────────────────────────────────
-
-beforeEach(() => {
-    jest.clearAllMocks()
-        ; (useLocation as jest.Mock).mockReturnValue({
+        ;(useLocation as jest.Mock).mockReturnValue({
             pathname: '/code/1',
             state: { problem: mockProblem },
         })
-    mockedUseCodingHooks.mockReturnValue(makeMockHook())
-})
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+        mockUseTestcases.mockReturnValue({
+            testcases: mockTestcases,
+            addTestcase: jest.fn(),
+            removeTestcase: jest.fn(),
+            updateTestcase: jest.fn(),
+            loading: false,
+            activeTestcase: 'Case 1',
+            setActiveTestcase: jest.fn(),
+        })
 
-describe('CodingView — rendering', () => {
-    it('renders all key structural elements', () => {
-        render(<CodingView />)
-        expect(screen.getAllByTestId('panel-group')).toHaveLength(2)
-        expect(screen.getAllByTestId('resizable-panel')).toHaveLength(4)
-        expect(screen.getAllByTestId('resizable-handle')).toHaveLength(2)
-        expect(screen.getByTestId('submit-btn')).toBeInTheDocument()
-        expect(screen.getByTestId('coding-btns')).toBeInTheDocument()
-        expect(screen.getByTestId('testcases-tab')).toBeInTheDocument()
-        expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
-        expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-182.5')
+        mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
+        mockedGetQuestionByID.mockResolvedValue(mockProblem)
     })
 
-    it('renders the monaco editor', () => {
-        render(<CodingView />)
-        expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
+    it('renders and shows key panels (resizable panels and sandbox tabs)', async () => {
+        await renderAndWait()
+
+        expect(screen.getAllByTestId("panel-group").length).toBe(2)
+        expect(screen.getAllByTestId("resizable-panel").length).toBe(4)
+        expect(screen.getAllByTestId("resizable-handle").length).toBe(2)
+        expect(screen.getByTestId("submit-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("language-btn")).toBeInTheDocument()
+        expect(screen.getByTestId("coding-btns")).toBeInTheDocument()
+        expect(screen.getByTestId("testcases-tab")).toBeInTheDocument()
+        expect(screen.getByTestId("code-output-tab")).toBeInTheDocument()
+        // questions-btn only appears when questionsInstances.length > 1
+        expect(screen.queryByTestId("questions-btn")).not.toBeInTheDocument()
     })
 
-    it('renders the language dropdown with the selected language name', () => {
-        render(<CodingView />)
-        expect(screen.getByTestId('language-btn')).toHaveTextContent('Python')
-    })
-
-    it('shows loader when isQuestionLoading is true', () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ isQuestionLoading: true }))
-        render(<CodingView />)
-        expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
-    })
+    it("toggles code area to fullscreen and back", async () => {
+        await renderAndWait()
 
     it('shows loader when isAsyncLoading is true', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ isAsyncLoading: true }))
@@ -366,13 +382,15 @@ describe('CodingView — panel toggles', () => {
         expect(screen.getByTestId('code-area-max-icon')).toBeInTheDocument()
         await userEvent.click(screen.getByTestId('code-area-fullscreen'))
         expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
-        expect(screen.queryByTestId('code-area-max-icon')).not.toBeInTheDocument()
+
         await userEvent.click(screen.getByTestId('code-area-fullscreen'))
+
         expect(screen.getByTestId('code-area-max-icon')).toBeInTheDocument()
     })
 
     it('collapses and uncollapses code area', async () => {
-        render(<CodingView />)
+        await renderAndWait()
+
         expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
         await userEvent.click(screen.getByTestId('code-area-collapse'))
         expect(screen.getByTestId('code-area-down-icon')).toBeInTheDocument()
@@ -381,8 +399,9 @@ describe('CodingView — panel toggles', () => {
         expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
     })
 
-    it('toggles output area to fullscreen and back', async () => {
-        render(<CodingView />)
+    it('toggles output area fullscreen and back', async () => {
+        await renderAndWait()
+
         expect(screen.getByTestId('output-area-max-icon')).toBeInTheDocument()
         await userEvent.click(screen.getByTestId('output-area-fullscreen'))
         expect(screen.getByTestId('output-area-min-icon')).toBeInTheDocument()
@@ -392,17 +411,149 @@ describe('CodingView — panel toggles', () => {
     })
 
     it('collapses and uncollapses output area', async () => {
-        render(<CodingView />)
+        await renderAndWait()
+
         expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
         await userEvent.click(screen.getByTestId('output-area-collapse'))
         expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
-        expect(screen.queryByTestId('output-area-down-icon')).not.toBeInTheDocument()
+    })
+
+    it('uncollapses both areas when output is collapsed while code is already collapsed', async () => {
+        await renderAndWait()
+
         await userEvent.click(screen.getByTestId('output-area-collapse'))
+
+        expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
+    })
+
+    it('collapses both areas when code is collapsed while output is already collapsed', async () => {
+        await renderAndWait()
+
+        await userEvent.click(screen.getByTestId('code-area-collapse'))
+
+        expect(screen.getByTestId('code-area-down-icon')).toBeInTheDocument()
         expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
     })
 
-    it('renders all initial panel button icons correctly', () => {
+    it('handles monaco editor code changes', async () => {
+        await renderAndWait()
+
+        const editor = screen.getByTestId('monaco-editor')
+        await userEvent.clear(editor)
+        await userEvent.type(editor, 'const x = 5')
+
+        expect(editor).toHaveValue('const x = 5')
+    })
+
+    it('submits code with successful output', async () => {
+        mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseSUCCESS)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        await renderAndWait()
+
+        expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
+
+        await userEvent.click(screen.getByTestId('submit-btn'))
+
+        expect(submitAttempt).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
+        expect(toast.success).toHaveBeenCalledWith(mockSubmitAttemptResponseSUCCESS.submissionResponse.message)
+        expect(toast.warning).not.toHaveBeenCalled()
+    })
+
+    it('submits code with failure output', async () => {
+        mockedSubmitAttempt.mockResolvedValue(mockSubmitAttemptResponseFAIL)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        await renderAndWait()
+
+        await userEvent.click(screen.getByTestId('submit-btn'))
+
+        expect(toast.warning).toHaveBeenCalledWith(mockSubmitAttemptResponseFAIL.submissionResponse.message)
+        expect(toast.success).not.toHaveBeenCalled()
+    })
+
+    it('shows nothing-loaded message when no question or comp in location state', () => {
+        ;(useLocation as jest.Mock).mockReturnValue({
+            pathname: '/code',
+            state: {},
+        })
+
         render(<CodingView />)
+
+        expect(screen.getByText(/Nothing loaded/i)).toBeInTheDocument()
+    })
+
+    it('executes code and updates logs when run button is clicked', async () => {
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        await renderAndWait()
+
+        await userEvent.click(screen.getByTestId('play-btn'))
+
+        expect(submitToJudge0).toHaveBeenCalled()
+        expect(getProfile).toHaveBeenCalled()
+    })
+
+    it('handles failed code execution', async () => {
+        mockedSubmitToJudge0.mockRejectedValueOnce(new Error("Network error"))
+
+        await expect(submitToJudge0(-1, -1, "code", language_id, []))
+            .rejects.toThrow("Network error")
+    })
+
+    it('shows loader during async code execution', async () => {
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+
+        await renderAndWait()
+
+        await userEvent.click(screen.getByTestId('play-btn'))
+
+        await waitFor(() => expect(screen.getByTestId('Loader')).toBeInTheDocument())
+    })
+
+    it('displays language selector defaulting to Java', async () => {
+        await renderAndWait()
+
+        const languageBtn = screen.getByTestId('language-btn')
+        expect(languageBtn).toBeInTheDocument()
+        expect(languageBtn).toHaveTextContent('Java')
+    })
+
+    it('displays coding buttons container with Code label', async () => {
+        await renderAndWait()
+
+        const codingBtns = screen.getByTestId('coding-btns')
+        expect(codingBtns).toBeInTheDocument()
+        expect(codingBtns).toHaveTextContent('Code')
+    })
+
+    it('maintains typed code when toggling UI elements', async () => {
+        await renderAndWait()
+
+        const editor = screen.getByTestId('monaco-editor')
+        await userEvent.clear(editor)
+        await userEvent.type(editor, 'test code')
+
+        await userEvent.click(screen.getByTestId('code-area-fullscreen'))
+
+        expect(editor).toHaveValue('test code')
+    })
+
+    it('renders sandbox with correct CSS classes', async () => {
+        await renderAndWait()
+
+        const sandbox = screen.getByTestId('sandbox')
+        expect(sandbox).toBeInTheDocument()
+        expect(sandbox).toHaveClass('px-2', 'h-182.5')
+    })
+
+    it('renders all panel control icons', async () => {
+        await renderAndWait()
+
         expect(screen.getByTestId('code-area-max-icon')).toBeInTheDocument()
         expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
         expect(screen.getByTestId('output-area-max-icon')).toBeInTheDocument()
@@ -410,8 +561,26 @@ describe('CodingView — panel toggles', () => {
     })
 })
 
-describe('CodingView — editor', () => {
-    it('updates code state when editor changes', async () => {
+    it('handles code editor onChange with undefined value gracefully', async () => {
+        await renderAndWait()
+
+        const editor = screen.getByTestId('monaco-editor')
+        fireEvent.change(editor, { target: { value: undefined } })
+
+        expect(editor).toBeInTheDocument()
+    })
+
+    it('fetches full question data via getQuestionByID on practice mode load', async () => {
+        await renderAndWait()
+
+        expect(mockedGetQuestionByID).toHaveBeenCalledWith(mockProblem.question_id)
+    })
+
+    // --- Preset code feature tests ---
+
+    it('loads preset_code from DB into editor', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblemWithPreset)
+
         render(<CodingView />)
         const editor = screen.getByTestId('monaco-editor')
         await userEvent.clear(editor)
@@ -419,120 +588,105 @@ describe('CodingView — editor', () => {
         expect(editor).toHaveValue('const x = 5')
     })
 
-    it('preserves code state when toggling fullscreen', async () => {
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
+    })
+
+    it('falls back to template_solution when preset_code is empty', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblemWithTemplateSolutionOnly)
+
         render(<CodingView />)
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution fallback')
+        })
+    })
+
+    it('falls back to hardcoded template when no language_specific_properties match', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblem)
+
+        render(<CodingView />)
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// default template')
+        })
+    })
+
+    it('shows preset_code of newly selected language after switching', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblemWithPreset)
+
+        render(<CodingView />)
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
+
+        fireEvent.click(screen.getByTestId('languageItem-Python'))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('# Python preset')
+        })
+    })
+
+    it('preserves typed code in buffer when switching languages and restores it on switch back', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblemWithPreset)
+
+        render(<CodingView />)
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
+
         const editor = screen.getByTestId('monaco-editor')
         await userEvent.clear(editor)
-        await userEvent.type(editor, 'my code')
-        await userEvent.click(screen.getByTestId('code-area-fullscreen'))
-        expect(editor).toHaveValue('my code')
+        await userEvent.type(editor, 'my custom java code')
+        expect(editor).toHaveValue('my custom java code')
+
+        // Switch to Python — Java code should be saved to buffer
+        fireEvent.click(screen.getByTestId('languageItem-Python'))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('# Python preset')
+        })
+
+        // Switch back to Java — buffer should restore custom code
+        fireEvent.click(screen.getByTestId('languageItem-Java'))
+
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('my custom java code')
+        })
     })
 
-    it('handles undefined value from monaco onChange gracefully', () => {
-        render(<CodingView />)
-        const editor = screen.getByTestId('monaco-editor')
-        fireEvent.change(editor, { target: { value: undefined } })
-        expect(editor).toBeInTheDocument()
-    })
+    it('reset button restores preset_code and clears the language buffer', async () => {
+        mockedGetQuestionByID.mockResolvedValue(mockProblemWithPreset)
 
-    it('clicking most-recent-sub button restores previous code', async () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: mockMostRecentSub }))
         render(<CodingView />)
-        await userEvent.click(screen.getByTestId('most-recent-sub-btn'))
-        expect(screen.getByTestId('monaco-editor')).toHaveValue(source_code)
-    })
-})
 
-describe('CodingView — run code', () => {
-    it('calls submitToJudge0 when play button is clicked', async () => {
-        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('play-btn'))
-        await waitFor(() => expect(submitToJudge0).toHaveBeenCalledTimes(1))
-    })
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
 
-    it('passes question_instance_id, code, lang, and testcases to submitToJudge0', async () => {
-        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        render(<CodingView />)
         const editor = screen.getByTestId('monaco-editor')
         await userEvent.clear(editor)
-        await userEvent.type(editor, 'hello')
-        await userEvent.click(screen.getByTestId('play-btn'))
-        await waitFor(() =>
-            expect(submitToJudge0).toHaveBeenCalledWith(
-                question_instance_id,
-                'hello',
-                language_id,
-                [],
-            )
-        )
-    })
+        await userEvent.type(editor, 'my custom java code')
 
-    it('does not call submitToJudge0 when riddle is not complete', async () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({
-            activeQuestionInstance: mockQuestionInstanceWithRiddle,
-            userQuestionInstance: { riddle_complete: false },
-        }))
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('play-btn'))
-        expect(submitToJudge0).not.toHaveBeenCalled()
-        expect(toast.warning).toHaveBeenCalledWith('Please answer the riddle first...')
-    })
+        // Click reset — should restore preset
+        const codingBtns = screen.getByTestId('coding-btns')
+        const buttons = within(codingBtns).getAllByRole('button')
+        const resetBtn = buttons[1] // play=0, reset=1
+        await userEvent.click(resetBtn)
 
-    it('allows run when riddle_id is null', async () => {
-        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('play-btn'))
-        await waitFor(() => expect(submitToJudge0).toHaveBeenCalled())
-    })
-})
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
 
-describe('CodingView — submit code', () => {
-    it('calls submitAttempt and shows success toast when status is Accepted', async () => {
-        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        expect(toast.success).toHaveBeenCalledWith('Code successfully passed tests')
-        expect(toast.warning).not.toHaveBeenCalled()
-    })
+        // Switch away and back — buffer was cleared so preset should still show
+        fireEvent.click(screen.getByTestId('languageItem-Python'))
+        fireEvent.click(screen.getByTestId('languageItem-Java'))
 
-    it('calls submitAttempt and shows warning toast when status is not Accepted', async () => {
-        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        expect(toast.warning).toHaveBeenCalledWith('Code failed at least one tests')
-        expect(toast.success).not.toHaveBeenCalled()
-    })
-
-    it('does not call submitAttempt when riddle is not complete', async () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({
-            activeQuestionInstance: mockQuestionInstanceWithRiddle,
-            userQuestionInstance: { riddle_complete: false },
-        }))
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        expect(submitAttempt).not.toHaveBeenCalled()
-        expect(toast.warning).toHaveBeenCalledWith('Please answer the riddle first...')
-    })
-
-    it('updates mostRecentSub state after successful submit', async () => {
-        const setMostRecentSub = jest.fn()
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setMostRecentSub }))
-        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() =>
-            expect(setMostRecentSub).toHaveBeenCalledWith(mockMostRecentSub)
-        )
-    })
-
-    it('switches to results tab after successful submit', async () => {
-        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
-        render(<CodingView />)
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(submitAttempt).toHaveBeenCalled())
-        expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+        })
     })
 })

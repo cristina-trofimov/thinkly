@@ -22,6 +22,7 @@ interface CompetitionFormProps {
     onSubmit: (payload: CompetitionFormPayload) => Promise<void>;
     onCancel: () => void;
     submitLabel: string;
+    isReadOnly?: boolean;
 }
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
@@ -71,7 +72,7 @@ const calculateNewList = <T,>(
     return currentOrdered;
 };
 
-export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }: Readonly<CompetitionFormProps>) {
+export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, isReadOnly = false }: Readonly<CompetitionFormProps>) {
     const [formData, setFormData] = useState({
         name: initialData?.competitionTitle || initialData?.name || "",
         date: initialData?.date || "",
@@ -266,22 +267,28 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-primary">
-                        {initialData ? "Edit Competition" : "Create New Competition"}
+                        {isReadOnly ? "View Competition" : initialData ? "Edit Competition" : "Create New Competition"}
                     </h2>
-                    <p className="text-muted-foreground text-sm">Configure logic, timeline, and content.</p>
+                    <p className="text-muted-foreground text-sm">
+                        {isReadOnly ? "This competition is read-only." : "Configure logic, timeline, and content."}
+                    </p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
-                    <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-35">
-                        {isSubmitting ? "Processing..." : submitLabel}
+                    <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                        {isReadOnly ? "Close" : "Cancel"}
                     </Button>
+                    {!isReadOnly && (
+                        <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-[140px]">
+                            {isSubmitting ? "Processing..." : submitLabel}
+                        </Button>
+                    )}
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
                 <div className="lg:col-span-1 space-y-8">
-                    <GeneralInfoCard data={formData} errors={errors} showName nameRequired onChange={(u) => setFormData(p => ({ ...p, ...u }))} />
-                    <GameplayLogicCard questionCooldown={formData.questionCooldownTime} riddleCooldown={formData.riddleCooldownTime} onChange={(u) => setFormData(p => ({ ...p, ...u }))} />
+                    <GeneralInfoCard data={formData} errors={errors} showName nameRequired onChange={(u) => setFormData(p => ({ ...p, ...u }))} isReadOnly={isReadOnly} />
+                    <GameplayLogicCard questionCooldown={formData.questionCooldownTime} riddleCooldown={formData.riddleCooldownTime} onChange={(u) => setFormData(p => ({ ...p, ...u }))} isReadOnly={isReadOnly} />
                     <NotificationsCard
                         emailEnabled={emailEnabled}
                         setEmailEnabled={setEmailEnabled}
@@ -290,6 +297,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                         emailData={emailData}
                         onEmailDataChange={(u) => setEmailData(p => ({ ...p, ...u }))}
                         onManualEdit={() => setEmailManuallyEdited(true)}
+                        isReadOnly={isReadOnly}
                     />
                 </div>
 
@@ -316,6 +324,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                         onClearAll={() => setOrderedQuestions([])}
                         onSelectAll={() => setOrderedQuestions(prev => [...prev, ...availableQuestions])}
                         isInvalid={errors.questions}
+                        isReadOnly={isReadOnly}
                     />
 
                     <SelectionCard<Riddle>
@@ -335,6 +344,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel }
                         onClearAll={() => setOrderedRiddles([])}
                         onSelectAll={() => setOrderedRiddles(prev => [...prev, ...availableRiddles])}
                         isInvalid={errors.riddles}
+                        isReadOnly={isReadOnly}
                     />
                 </div>
             </div>

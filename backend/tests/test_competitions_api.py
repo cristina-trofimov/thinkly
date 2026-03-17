@@ -342,7 +342,7 @@ def test_create_competition_past_date(client, mock_db):
 @patch('src.endpoints.competitions_api.send_competition_emails')
 @patch('src.endpoints.competitions_api._commit_or_rollback')
 def test_create_competition_with_email(mock_commit, mock_send_emails, mock_datetime, client, mock_db):
-    mock_datetime.now.return_value = datetime(2026, 2, 15, 9, 0, 0, tzinfo=timezone.utc)
+    mock_datetime.now.return_value = datetime(2026, 3, 15, 9, 0, 0, tzinfo=timezone.utc)
     mock_datetime.fromisoformat = datetime.fromisoformat
     mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
 

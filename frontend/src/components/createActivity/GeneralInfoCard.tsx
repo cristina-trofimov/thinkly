@@ -35,12 +35,13 @@ interface GeneralInfoCardProps {
   }) => void;
 
   onCooldownChange?: (value: string) => void;
-  disableStartTime?: boolean; 
+  disableStartTime?: boolean;
+  isReadOnly?: boolean;
 }
 
 const Required = () => <span className="text-destructive ml-1">*</span>;
 
-export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, cooldown, onRepeatChange, onCooldownChange,showName,nameRequired,disableStartTime  }: Readonly<GeneralInfoCardProps>) {
+export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, cooldown, onRepeatChange, onCooldownChange, showName, nameRequired, disableStartTime, isReadOnly = false }: Readonly<GeneralInfoCardProps>) {
   const getLabelClass = (isInvalid: boolean) => isInvalid ? "text-destructive" : "";
   const getInputClass = (isInvalid: boolean) => isInvalid ? "border-destructive focus-visible:ring-destructive" : "";
 
@@ -52,7 +53,7 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-      {showName && (
+        {showName && (
           <div className="space-y-2">
             <Label
               htmlFor="name"
@@ -65,103 +66,109 @@ export function GeneralInfoCard({ data, errors = {}, onChange, repeatData, coold
             <Input
               id="name"
               className={getInputClass(errors.name)}
-              aria-invalid={errors.name || undefined} 
+              aria-invalid={errors.name || undefined}
               value={data.name || ""}
               onChange={e =>
                 onChange({ name: e.target.value })
               }
+              disabled={isReadOnly}
             />
           </div>
-      )}
+        )}
         <div className="space-y-2">
           <Label htmlFor="date" className={getLabelClass(errors.date)}>Date<Required /></Label>
           <div className={errors.date ? "rounded-md ring-1 ring-destructive" : ""}>
-            <DatePicker
-              id="date"
-              value={data.date}
-              onChange={(v: string) => onChange({ date: v })}
-              min={new Date().toISOString().split('T')[0]}
-            />
-            </div>
-          {repeatData && onRepeatChange && (
-           <>
-           <div className="space-y-2 mt-4">
-          <div className="space-y-2 gap-4">
-            <Label>Repeat</Label>
-
-            <Select
-              value={repeatData.repeatType}
-              onValueChange={(value) =>
-                onRepeatChange({ repeatType: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Does not repeat" />
-              </SelectTrigger>
-
-              <SelectContent>
-                <SelectItem value="none">Does not repeat</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="biweekly">Every 2 weeks</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          </div>
-
-          {repeatData.repeatType !== "none" && (
-            <div className="space-y-2 mt-4">
-            <div className="space-y-2">
-              <Label>Repeat End Date</Label>
-
+            <div className={isReadOnly ? "opacity-60 pointer-events-none" : ""}>
               <DatePicker
-                value={repeatData.repeatEndDate}
-                onChange={(v) =>
-                  onRepeatChange({ repeatEndDate: v })
-                }
+                id="date"
+                value={data.date}
+                onChange={(v: string) => onChange({ date: v })}
                 min={new Date().toISOString().split('T')[0]}
               />
             </div>
-            </div>
+          </div>
+          {repeatData && onRepeatChange && (
+            <>
+              <div className="space-y-2 mt-4">
+                <div className="space-y-2 gap-4">
+                  <Label>Repeat</Label>
+
+                  <Select
+                    value={repeatData.repeatType}
+                    onValueChange={(value) =>
+                      onRepeatChange({ repeatType: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Does not repeat" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="none">Does not repeat</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="biweekly">Every 2 weeks</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {repeatData.repeatType !== "none" && (
+                <div className="space-y-2 mt-4">
+                  <div className="space-y-2">
+                    <Label>Repeat End Date</Label>
+
+                    <DatePicker
+                      value={repeatData.repeatEndDate}
+                      onChange={(v) =>
+                        onRepeatChange({ repeatEndDate: v })
+                      }
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
           {/* </div> */}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="startTime" className={getLabelClass(errors.startTime)}>Start Time (EST)<Required /></Label>
-            <div className={disableStartTime ? "opacity-50 pointer-events-none" : ""}> 
+            <div className={disableStartTime || isReadOnly ? "opacity-50 pointer-events-none" : ""}>
               <div className={errors.startTime ? "rounded-md ring-1 ring-destructive" : ""}>
-                <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} aria-invalid={errors.startTime || undefined} />
+                <TimeInput id="startTime" value={data.startTime} onChange={v => onChange({ startTime: v })} />
               </div>
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="endTime" className={getLabelClass(errors.endTime)}>End Time (EST)<Required /></Label>
-            <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
-              <TimeInput id="endTime" value={data.endTime} onChange={v => onChange({ endTime: v })} aria-invalid={errors.startTime || undefined}/>
+            <div className={isReadOnly ? "opacity-60 pointer-events-none" : ""}>
+              <div className={errors.endTime ? "rounded-md ring-1 ring-destructive" : ""}>
+                <TimeInput id="endTime" value={data.endTime} onChange={v => onChange({ endTime: v })} />
+              </div>
             </div>
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="location" className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Location</Label>
-          <Input id="location" value={data.location} onChange={e => onChange({ location: e.target.value })} placeholder="Online or Physical Address" aria-invalid={errors.location || undefined} />
+          <Input id="location" value={data.location} onChange={e => onChange({ location: e.target.value })} placeholder="Online or Physical Address" aria-invalid={errors.location || undefined} disabled={isReadOnly}/>
         </div>
-        
-      {cooldown !== undefined && onCooldownChange && (
-        <div className="space-y-2">
-          <Label>Question Cooldown (seconds)</Label>
 
-          <Input
-            type="number"
-            value={cooldown}
-            onChange={(e) => onCooldownChange(e.target.value)}
-            placeholder="Optional"
-          />
-        </div>
-      )}
+        {cooldown !== undefined && onCooldownChange && (
+          <div className="space-y-2">
+            <Label>Question Cooldown (seconds)</Label>
+
+            <Input
+              type="number"
+              value={cooldown}
+              onChange={(e) => onCooldownChange(e.target.value)}
+              placeholder="Optional"
+              disabled={isReadOnly}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

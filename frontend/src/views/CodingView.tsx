@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -35,7 +35,7 @@ const CodingView = () => {
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
-    isQuestionLoading, userQuestionInstance,
+    isQuestionLoading, userQuestionInstance, setUserQuestionInstance,
     isAsyncLoading, setIsAsyncLoading,
     activeQuestion, setActiveQuestion,
     activeQuestionInstance, setActiveQuestionInstance,
@@ -63,10 +63,12 @@ const CodingView = () => {
   } = useAnalytics()
 
   const submitCode = async () => {
+    if (!startTime) {
+      // TODO: location.
+    }
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
-    // } else if (!activeQuestionInstance) {
-    } else if (mostRecentSub && event && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
+    } else if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
       toast.warning(`You're submitting too fast.\nTry again after ${(mostRecentSub.submitted_on.getTime() + event.question_cooldown)}`)
     } else {
       try {
@@ -107,8 +109,8 @@ const CodingView = () => {
         setCurrentOutputTab("results")
   
         trackCodeSubmitted(
-          activeQuestion?.question_id,
-          selectedLang,
+          activeQuestion!.question_id,
+          selectedLang!.display_name,
         )
       } catch (err) {
         toast.error("Error when submitting the code.")
@@ -131,6 +133,7 @@ const CodingView = () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
     } else {
+      // TODO: SOMETHING TO AVOID SPAM REQUESTS
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
@@ -145,8 +148,8 @@ const CodingView = () => {
         // Capture run result — status comes directly from Judge0 response
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
-          activeQuestionInstance?.question_id,
-          selectedLang,
+          activeQuestionInstance!.question_id,
+          selectedLang!.display_name,
           judge0Response.status.description,
           passed,
           judge0Response.time ?? undefined
@@ -168,20 +171,46 @@ const CodingView = () => {
     }
   }
 
-  const [code, setCode] = useState<string>('')
-
   // Reset editor to language's default code on language change
   // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
   // ^^ Will be needed later
 
+  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
+  const codeBuffersRef = useRef<Map<string, string>>(new Map())
+
+  // Look up the DB-stored properties for the currently selected language
+  const activeLangProps = useMemo(
+    () => activeQuestion?.language_specific_properties.find(
+      (p) => p.language_display_name === selectedLang!.display_name
+    ) ?? null,
+    [activeQuestion, selectedLang]
+  )
+
+  // Priority: DB preset_code → DB template_solution → hardcoded fallback
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || ""
+
+  const [code, setCode] = useState<string>('')
+
+  // Restore buffer or fall back to presetCode on language/question change
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(saved ?? presetCode)
+  }, [selectedLang, activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleLanguageChange = (lang: Language) => {
-    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
+    if (prevLangRef.current) {
+      trackLanguageChanged(activeQuestion!.question_id, prevLangRef.current.display_name, lang!.display_name)
+    }
+    
+    // Save current code before switching so user can come back to it
+    codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang}`, code)
     prevLangRef.current = lang
     setSelectedLang(lang)
-    setCode('templateCode')
+    // useEffect on selectedLang will restore buffer or fall back to presetCode
   }
 
   const handleQuestionChange = (q: Question) => {
+    // TODO: confirm that they want to change if already started coding
     setActiveQuestion(q)
     questionsInstances.find(async (qi, idx) => {
       if (qi.question_id === q.question_id) {
@@ -190,7 +219,7 @@ const CodingView = () => {
         }
         console.log('userQuestionInstance', userQuestionInstance)
         try {
-          await putUserInstance(userQuestionInstance)
+          await putUserInstance(userQuestionInstance).then((resp) => setUserQuestionInstance(resp))
         } catch (error) {
           logFrontend({
             level: "ERROR",
@@ -207,8 +236,11 @@ const CodingView = () => {
   }
 
   const handleCodeReset = () => {
-    trackCodeReset(activeQuestion?.question_id, selectedLang)
-    setCode('templateCode')
+    // TODO: confirm that they want to change if already started coding
+    trackCodeReset(activeQuestion!.question_id, selectedLang!.display_name)
+    // Clear buffer so switching away and back also resets
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang}`)
+    setCode(presetCode)
   }
 
   const [fullCode, setFullCode] = useState(false)
