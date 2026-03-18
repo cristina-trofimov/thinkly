@@ -23,7 +23,7 @@ const ResetCode = ({
 
     return (
         <Dialog open={isOpen} >
-            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogTitle></DialogTitle>
             <DialogDescription></DialogDescription>
             <DialogOverlay className='fixed inset-0 z-9998 bg-black/40 backdrop-blur-sm' data-testid="confirm-code-reset" >
                 <DialogContent onEscapeKeyDown={() => handleClose(false)}

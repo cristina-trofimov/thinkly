@@ -19,6 +19,10 @@ import { getQuestionByID } from '../src/api/QuestionsAPI'
 import { getAllLanguages } from '../src/api/LanguageAPI'
 import { getUserPrefs } from '../src/api/UserPreferencesAPI'
 import type { Language } from '../src/types/questions/Language.type'
+import type { SubmissionType } from '../src/types/submissions/SubmissionType.type'
+import { Account } from '../src/types/account/Account.type'
+import { getProfile } from '../src/api/AuthAPI'
+import { useTestcases } from '../src/components/helpers/useTestcases'
 
 jest.mock('@monaco-editor/react', () => {
     return function MonacoEditorMock(props: any) {
@@ -188,7 +192,7 @@ const mockProblem: Question = {
     difficulty: "Easy",
     language_specific_properties: [],
     tags: [],
-    testcases: [],
+    test_cases: [] as TestCase[],
     created_at: new Date("2025-10-28T10:00:00Z"),
     last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }
@@ -235,7 +239,7 @@ const mockProblemWithTemplateSolutionOnly: Question = {
 const mockTestcases = [{ caseID: 'Case 1', input_data: { a: 10, b: 20 } }]
 
 const user_id = 1
-const question_instance_id = 123
+const user_question_instance_id = 123
 const event_id = 1
 const source_code = "print('Hello')"
 const language_id = 71
@@ -249,10 +253,11 @@ const mockProfile: Account = {
 }
 
 const mockMostRecentSubResponse: MostRecentSub = {
-    user_id: user_id,
-    question_instance_id: question_instance_id,
+    row_id: user_id,
+    user_question_instance_id: user_question_instance_id,
     code: source_code,
-    lang_judge_id: parseInt(language_id)
+    lang_judge_id: language_id,
+    submitted_on: new Date()
 }
 
 const mockJudge0Response = {
@@ -274,39 +279,44 @@ const mockUserPrefs: UserPreferences = {
     last_used_programming_language: null,
 }
 
-const mockJudge0Response = {
-    stdout: 'Hello\n',
-    stderr: null,
-    compile_output: null,
-    message: null,
-    status: { id: 3, description: 'Accepted' },
-    memory: '1024',
-    time: '0.123',
-    token: null,
-}
-
 const mockCodeRunResponse: CodeRunResponse = {
     judge0Response: mockJudge0Response,
     userPrefs: mockUserPrefs,
 }
 
 const mockQuestionInstances: QuestionInstance[] = [{
-    question_instance_id: question_instance_id,
+    question_instance_id: 1,
     question_id: mockProblem.question_id,
     event_id: event_id,
     riddle_id: null,
 }]
 
-const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
-    codeRunResponse: mockCodeRunResponse,
-    submissionResponse: { status_code: 200, message: "Submitted" },
-    leaderboard: null
+const submission: SubmissionType = {
+    submission_id: 1,
+    user_question_instance_id: user_question_instance_id,
+    lang_judge_id: 71,
+    compile_output: null,
+    status: "Accepted",
+    runtime: null,
+    memory: null,
+    submitted_on: new Date(),
+    stdout: null,
+    stderr: null,
+    message: null,
 }
 
-const mockSubmitSuccess: SubmitAttemptResponse = {
+const mostRecentSub: MostRecentSub = {
+    row_id: 1,
+    user_question_instance_id: user_question_instance_id,
+    code: "print('hellooo')",
+    submitted_on: new Date(),
+    lang_judge_id: 71
+}
+
+const mockSubmitAttemptResponseSUCCESS: SubmitAttemptResponse = {
     codeRunResponse: mockCodeRunResponse,
-    submissionResponse: { status_code: 400, message: "Failed" },
-    leaderboard: null
+    submissionResponse: submission,
+    mostRecentSubResponse: mostRecentSub
 }
 
 // Helper: render and wait until the question has loaded (activeQuestion is set)

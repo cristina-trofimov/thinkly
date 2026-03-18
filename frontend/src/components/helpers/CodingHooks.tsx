@@ -34,7 +34,6 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     const [ userPreferences, setUserPreferences ] = useState<UserPreferences>()
     const [ userQuestionInstance, setUserQuestionInstance ] = useState<UserQuestionInstance | undefined>()
 
-    const [ lapseTime, setLapseTime ] = useState<number | null>()
     const [ startTime, setStartTime ] = useState<Date | null>()
 
     const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
@@ -255,12 +254,11 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         activeQuestionInstance, setActiveQuestionInstance,
         activeDisplayQuestionName, setActiveDisplayQuestionName,
         userQuestionInstance, setUserQuestionInstance,
-        questions, setQuestions, lapseTime, setLapseTime,
-        questionsInstances, setQuestionsInstances,
-        languages, setLanguages, prevLangRef,
-        mostRecentSubGroupClass, setMostRecentSubGroupClass,
-        selectedLang, setSelectedLang, event,
-        userPreferences, setUserPreferences,
-        testcases, loadingMsg, setLoadingMsg
+        questions, questionsInstances,
+        languages, prevLangRef, event,
+        mostRecentSubGroupClass,
+        selectedLang, setSelectedLang,
+        userPreferences, testcases,
+        loadingMsg, setLoadingMsg
     }
 }
