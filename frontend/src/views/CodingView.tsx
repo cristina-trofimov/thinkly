@@ -367,9 +367,9 @@ const CodingView = () => {
                     >
                       <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
                     </Button>
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
+                    <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={() => {
-                        if (code !== presetCode) {
+                        if (code.trim() !== presetCode.trim()) {
                           setClearingCode(true)
                         } else {
                           setConfirmClearingCode(true)
