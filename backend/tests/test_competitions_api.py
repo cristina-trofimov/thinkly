@@ -358,7 +358,7 @@ def test_create_competition_with_email(mock_commit, mock_send_emails, mock_datet
 
     payload = {
         "name": "Email Competition",
-        "date": "2026-02-15",
+        "date": "2026-03-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
