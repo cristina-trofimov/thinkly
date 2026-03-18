@@ -53,12 +53,30 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
+  const [ theme, setTheme ] = useState<string>('vs')
+  const themeRef = useRef(theme)
+
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
   ]
+
+  useEffect(() => {
+    console.log(userPreferences)
+    // const current = (localStorage.getItem("theme") as "light" | "dark") ?? "light";
+    // setTheme(current === "dark" ? "vs-dark" : 'vs')
+
+    setTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : 'vs')
+
+    // if (themeRef.current !== theme) {
+    //   setTheme(theme)
+    // }
+
+    // setTheme(userPreferences?.theme === "dark" ? "vs-dark" : 'vs')
+    console.log("theme", localStorage.getItem("theme"))
+}, [localStorage.getItem("theme")])
 
   // Auto-select the first language that has preset code when the question changes
   useEffect(() => {
@@ -188,7 +206,7 @@ const CodingView = () => {
   // Look up the DB-stored properties for the currently selected language
   const activeLangProps = useMemo(
     () => activeQuestion?.language_specific_properties.find(
-      (p) => p.language_display_name === selectedLang!.display_name
+      (p) => p.language_display_name === selectedLang?.display_name
     ) ?? null,
     [activeQuestion, selectedLang]
   )
@@ -318,8 +336,6 @@ const CodingView = () => {
                 {questions.map((q, idx) => (
                   <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
                     className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                          // data-[state=active]:bg-primary
-                          // data-[state=active]:text-accent"
                     onSelect={() => handleQuestionChange(q)}
                   >
                   {`Question ${idx+1}`}
@@ -406,7 +422,7 @@ const CodingView = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
-                        className="z-10 text-sm bg-muted-foreground text-foreground w-26 border rounded-lg"
+                        className="z-10 text-sm bg-muted text-foreground w-26 border rounded-lg"
                       >
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
@@ -434,7 +450,7 @@ const CodingView = () => {
                 key={selectedLang?.monaco_id}
                 language={selectedLang?.monaco_id}
                 value={code}
-                theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
+                theme={theme}
                 onChange={(value) => { setCode(value ?? presetCode) }}
                 options={{
                   fontSize: 14,
