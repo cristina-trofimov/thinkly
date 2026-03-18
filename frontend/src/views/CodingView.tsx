@@ -44,7 +44,7 @@ const CodingView = () => {
     mostRecentSubGroupClass, userPreferences,
     selectedLang, setSelectedLang, event,
     testcases, loadingMsg, setLoadingMsg
-  } = useCodingHooks(question, comp) 
+  } = useCodingHooks(question, comp)
 
   const {
     trackLanguageChanged,
@@ -53,30 +53,31 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  const [ theme, setTheme ] = useState<string>('vs')
+  const [theme, setTheme] = useState<string>(
+    localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
+  )
   const themeRef = useRef(theme)
 
-  const [ logs, setLogs ] = useState<Judge0Response[]>([])
-  const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
+  const [logs, setLogs] = useState<Judge0Response[]>([])
+  const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
   ]
 
   useEffect(() => {
-    console.log(userPreferences)
-    // const current = (localStorage.getItem("theme") as "light" | "dark") ?? "light";
-    // setTheme(current === "dark" ? "vs-dark" : 'vs')
+    const handleThemeSync = () => {
+      setTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs")
+    }
 
-    setTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : 'vs')
+    window.addEventListener("storage", handleThemeSync)      // other tabs
+    window.addEventListener("storage_sync", handleThemeSync) // same tab (NavUser)
 
-    // if (themeRef.current !== theme) {
-    //   setTheme(theme)
-    // }
-
-    // setTheme(userPreferences?.theme === "dark" ? "vs-dark" : 'vs')
-    console.log("theme", localStorage.getItem("theme"))
-}, [localStorage.getItem("theme")])
+    return () => {
+      window.removeEventListener("storage", handleThemeSync)
+      window.removeEventListener("storage_sync", handleThemeSync)
+    }
+  }, [])
 
   // Auto-select the first language that has preset code when the question changes
   useEffect(() => {
@@ -111,12 +112,12 @@ const CodingView = () => {
 
         if (userQuestionInstance) {
           userQuestionInstance.attempts = userQuestionInstance.attempts
-              ? userQuestionInstance.attempts + 1
-              : 1
+            ? userQuestionInstance.attempts + 1
+            : 1
 
           userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-              ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-              : Date.now() - startTime!.getTime()
+            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+            : Date.now() - startTime!.getTime()
         }
 
         const {
@@ -124,20 +125,20 @@ const CodingView = () => {
           submissionResponse,
           mostRecentSubResponse
         } = await submitAttempt(
-            activeQuestion, activeQuestionInstance,
-            userQuestionInstance, event,
-            code, selectedLang?.lang_judge_id, testcases)
-  
+          activeQuestion, activeQuestionInstance,
+          userQuestionInstance, event,
+          code, selectedLang?.lang_judge_id, testcases)
+
         if (submissionResponse.status === "Accepted") {
           toast.success("Code successfully passed tests")
         } else {
           toast.warning("Code failed at least one tests")
         }
-  
+
         setLogs(prev => [...prev, codeRunResponse.judge0Response])
         setMostRecentSub(mostRecentSubResponse)
         setCurrentOutputTab("results")
-  
+
         trackCodeSubmitted(
           activeQuestion!.question_id,
           selectedLang!,
@@ -169,7 +170,7 @@ const CodingView = () => {
         setLoadingMsg("Running")
 
         const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-                                  code, selectedLang?.lang_judge_id, testcases)
+          code, selectedLang?.lang_judge_id, testcases)
 
         setLogs(prev => [...prev, judge0Response])
         setCurrentOutputTab("results")
@@ -238,7 +239,7 @@ const CodingView = () => {
 
   const handleQuestionChange = async (q: Question) => {
     setActiveQuestion(q)
-    const idx = questions.findIndex(qi => qi.question_id === q.question_id )
+    const idx = questions.findIndex(qi => qi.question_id === q.question_id)
 
     if (idx !== -1) {
       if (startTime && userQuestionInstance) {
@@ -338,7 +339,7 @@ const CodingView = () => {
                     className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
                     onSelect={() => handleQuestionChange(q)}
                   >
-                  {`Question ${idx+1}`}
+                    {`Question ${idx + 1}`}
                   </DropdownMenuItem>
                 ))}
               </div>
