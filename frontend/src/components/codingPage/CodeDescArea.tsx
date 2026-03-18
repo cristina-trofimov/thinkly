@@ -31,6 +31,7 @@ const CodeDescArea = (
        testcases: TestCase[] | undefined | null,
     }
 ) => {
+    if (!question || !question_instance || !uqi) return
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -104,8 +105,6 @@ const CodeDescArea = (
         observer.observe(containerRef.current)
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
-
-    if (!question) return
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
@@ -224,45 +223,50 @@ const CodeDescArea = (
             {/* Submissions */}
             <TabsContent value='submissions' data-testid="tabs-content-submissions">
                 <div className='h-full p-6'>
-                    {selectedSubmission === null ?
-                        (submissions && submissions?.length > 0 ? (
-                            <Table data-testid="table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Language</TableHead>
-                                        <TableHead className="text-right">Memory</TableHead>
-                                        <TableHead className="text-right">Runtime</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {submissions?.map((s, idx) => {
-                                        const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+                    {selectedSubmission && (
+                        <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
+                    )}
 
-                                        return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                        onClick={() => setSelectedSubmission(s)}
-                                        >
-                                            <TableCell className='grid grid-rows-2' >
-                                                <span className={`${status_color}`} >{s.status}</span>
-                                                <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
-                                            </TableCell>
-                                            <TableCell className="" >
-                                                {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
-                                            </TableCell>
-                                            <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                            </TableRow>
-                                    })}
-                                </TableBody>
-                                <TableFooter className='mt-3' >
-                                    <TableRow>
-                                        <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </Table>
-                        )
-                        : ( <div>You've yet to submit anything</div> ))
-                        : ( <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} /> )
-                    }
+                    {!selectedSubmission && !submissions && (
+                        <div className='flex items-center justify-center h-full text-muted-foreground'>
+                            You've yet to submit anything
+                        </div> )}
+
+                    {!selectedSubmission && submissions && submissions?.length > 0 && (
+                        <Table data-testid="table">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Language</TableHead>
+                                    <TableHead className="text-right">Memory</TableHead>
+                                    <TableHead className="text-right">Runtime</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {submissions?.map((s, idx) => {
+                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+
+                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
+                                    onClick={() => setSelectedSubmission(s)}
+                                    >
+                                        <TableCell className='grid grid-rows-2' >
+                                            <span className={`${status_color}`} >{s.status}</span>
+                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
+                                        </TableCell>
+                                        <TableCell className="" >
+                                            {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                        </TableCell>
+                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
+                                        </TableRow>
+                                })}
+                            </TableBody>
+                            <TableFooter className='mt-3' >
+                                <TableRow>
+                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    )}
                 </div>
             </TabsContent>
 

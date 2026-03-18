@@ -99,99 +99,104 @@ const CodingView = () => {
   const submitCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
-    } else if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
+      return
+    }
+
+    if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
       toast.warning(`You're submitting too fast.\nTry again after ${(mostRecentSub.submitted_on.getTime() + event.question_cooldown)}`)
-    } else {
-      try {
-        setIsAsyncLoading(true)
-        setLoadingMsg("Submitting")
+      return
+    }
 
-        if (userQuestionInstance) {
-          userQuestionInstance.attempts = userQuestionInstance.attempts
-            ? userQuestionInstance.attempts + 1
-            : 1
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Submitting")
 
-          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-            : Date.now() - startTime!.getTime()
-        }
+      if (userQuestionInstance) {
+        userQuestionInstance.attempts = userQuestionInstance.attempts
+          ? userQuestionInstance.attempts + 1
+          : 1
 
-        const {
-          codeRunResponse,
-          submissionResponse,
-          mostRecentSubResponse
-        } = await submitAttempt(
-          activeQuestion, activeQuestionInstance,
-          userQuestionInstance, event,
-          code, selectedLang?.lang_judge_id, testcases)
-
-        if (submissionResponse.status === "Accepted") {
-          toast.success("Code successfully passed tests")
-        } else {
-          toast.warning("Code failed at least one tests")
-        }
-
-        setLogs(prev => [...prev, codeRunResponse.judge0Response])
-        setMostRecentSub(mostRecentSubResponse)
-        setCurrentOutputTab("results")
-
-        trackCodeSubmitted(
-          activeQuestion!.question_id,
-          selectedLang!,
-        )
-      } catch (err) {
-        toast.error("Error when submitting the code.")
-        logFrontend({
-          level: "ERROR",
-          message: `An error occurred when submitting code. Reason: ${err}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (err as Error).stack,
-        });
-        throw err
-      } finally {
-        setIsAsyncLoading(false)
-        setLoadingMsg("")
+        userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+          ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+          : Date.now() - startTime!.getTime()
       }
+
+      const {
+        codeRunResponse,
+        submissionResponse,
+        mostRecentSubResponse
+      } = await submitAttempt(
+        activeQuestion, activeQuestionInstance,
+        userQuestionInstance, event,
+        code, selectedLang?.lang_judge_id, testcases)
+
+      if (submissionResponse.status === "Accepted") {
+        toast.success("Code successfully passed tests")
+      } else {
+        toast.warning("Code failed at least one tests")
+      }
+
+      setLogs(prev => [...prev, codeRunResponse.judge0Response])
+      setMostRecentSub(mostRecentSubResponse)
+      setCurrentOutputTab("results")
+
+      trackCodeSubmitted(
+        activeQuestion!.question_id,
+        selectedLang!,
+      )
+    } catch (err) {
+      toast.error("Error when submitting the code.")
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when submitting code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
     }
   }
 
   const runCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
-    } else {
-      try {
-        setIsAsyncLoading(true)
-        setLoadingMsg("Running")
+      return
+    }
 
-        const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-          code, selectedLang?.lang_judge_id, testcases)
+    try {
+      setIsAsyncLoading(true)
+      setLoadingMsg("Running")
 
-        setLogs(prev => [...prev, judge0Response])
-        setCurrentOutputTab("results")
+      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
+        code, selectedLang?.lang_judge_id, testcases)
 
-        // Capture run result — status comes directly from Judge0 response
-        trackCodeRun(
-          activeQuestion?.question_id,
-          selectedLang!,
-          judge0Response.status.description,
-          judge0Response.status.description === "Accepted", //passed
-          judge0Response.time ?? undefined
-        )
-      } catch (err) {
-        toast.error("Error when running the code.")
-        logFrontend({
-          level: "ERROR",
-          message: `An error occurred when running code. Reason: ${err}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (err as Error).stack,
-        });
-        throw err
-      } finally {
-        setIsAsyncLoading(false)
-        setLoadingMsg("")
-      }
+      setLogs(prev => [...prev, judge0Response])
+      setCurrentOutputTab("results")
+
+      // Capture run result — status comes directly from Judge0 response
+      trackCodeRun(
+        activeQuestion?.question_id,
+        selectedLang!,
+        judge0Response.status.description,
+        judge0Response.status.description === "Accepted", //passed
+        judge0Response.time ?? undefined
+      )
+    } catch (err) {
+      toast.error("Error when running the code.")
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when running code. Reason: ${err}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (err as Error).stack,
+      });
+      throw err
+    } finally {
+      setIsAsyncLoading(false)
+      setLoadingMsg("")
     }
   }
 
@@ -236,27 +241,27 @@ const CodingView = () => {
     setActiveQuestion(q)
     const idx = questions.findIndex(qi => qi.question_id === q.question_id)
 
-    if (idx !== -1) {
-      if (startTime && userQuestionInstance) {
-        userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
-      }
+    if (idx === -1) return
 
-      try {
-        await putUserInstance(userQuestionInstance)
-          .then((resp) => setUserQuestionInstance(resp))
-      } catch (error) {
-        logFrontend({
-          level: "ERROR",
-          message: `An error occurred when updating user question instance. Reason: ${error}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (error as Error).stack,
-        })
-      }
-
-      setActiveQuestionInstance(questionsInstances[idx])
-      setActiveDisplayQuestionName(`Question ${idx + 1}`)
+    if (startTime && userQuestionInstance) {
+      userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
     }
+
+    try {
+      await putUserInstance(userQuestionInstance)
+        .then((resp) => setUserQuestionInstance(resp))
+    } catch (error) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when updating user question instance. Reason: ${error}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (error as Error).stack,
+      })
+    }
+
+    setActiveQuestionInstance(questionsInstances[idx])
+    setActiveDisplayQuestionName(`Question ${idx + 1}`)
   }
 
   const [fullCode, setFullCode] = useState(false)
@@ -497,7 +502,7 @@ const CodingView = () => {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || "templateCode") }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
+                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
                               className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                               <UndoDot size={22} />
                             </Button>

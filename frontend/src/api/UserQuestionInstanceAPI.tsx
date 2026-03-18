@@ -8,7 +8,6 @@ export async function putUserInstance(
     try {
         if (!user_question_instance) {
             throw new Error("Need to pass a valid user's question instance");
-            
         }
 
         const resp = await axiosClient.put<{
