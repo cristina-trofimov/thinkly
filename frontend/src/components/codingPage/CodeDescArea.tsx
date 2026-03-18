@@ -31,7 +31,6 @@ const CodeDescArea = (
        testcases: TestCase[] | undefined | null,
     }
 ) => {
-    if (!question || !question_instance || !uqi) return
 
     const tabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
@@ -105,6 +104,8 @@ const CodeDescArea = (
         observer.observe(containerRef.current)
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
+
+    if (!question || !question_instance || !uqi) return
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
@@ -227,7 +228,7 @@ const CodeDescArea = (
                         <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
                     )}
 
-                    {!selectedSubmission && !submissions && (
+                    {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
                         </div> )}
