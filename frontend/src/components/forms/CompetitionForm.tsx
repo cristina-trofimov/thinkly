@@ -278,7 +278,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, 
                         {isReadOnly ? "Close" : "Cancel"}
                     </Button>
                     {!isReadOnly && (
-                        <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-[140px]">
+                        <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-35">
                             {isSubmitting ? "Processing..." : submitLabel}
                         </Button>
                     )}
