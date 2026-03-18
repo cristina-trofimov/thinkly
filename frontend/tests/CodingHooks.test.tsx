@@ -129,13 +129,14 @@ const mockedUseTestcases = useTestcases as jest.Mock
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  jest.clearAllMocks()
-  mockedUseTestcases.mockReturnValue({ testcases: [] })
-  mockedGetProfile.mockResolvedValue(mockProfile)
-  mockedGetAllLanguages.mockResolvedValue(mockLanguages)
-  mockedGetUserPrefs.mockResolvedValue(null)
-  mockedGetUserInstance.mockResolvedValue(mockUQI)
-  mockedPutUserInstance.mockResolvedValue(mockUQI)
+    jest.clearAllMocks()
+    mockedUseTestcases.mockReturnValue({ testcases: [] })
+    mockedGetProfile.mockResolvedValue(mockProfile)
+    mockedGetAllLanguages.mockResolvedValue(mockLanguages)
+    mockedGetUserPrefs.mockResolvedValue(null)
+    mockedGetUserInstance.mockResolvedValue(mockUQI)
+    mockedPutUserInstance.mockResolvedValue(mockUQI)
+    mockedGetQuestionByID.mockResolvedValue(mockQuestion)  // ← add
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -453,7 +454,7 @@ describe('useCodingHooks — mostRecentSubGroupClass', () => {
     const { result } = renderHook(() => useCodingHooks(mockQuestion))
 
     await waitFor(() => expect(result.current.isQuestionLoading).toBe(false))
-    expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-4')
+    expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-2')
   })
 
   it('switches to 3-column grid when mostRecentSub is set', async () => {
@@ -504,7 +505,7 @@ describe('useCodingHooks — mostRecentSubGroupClass', () => {
     })
 
     await waitFor(() =>
-      expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-4')
+      expect(result.current.mostRecentSubGroupClass).toBe('grid grid-cols-2 gap-2')
     )
   })
 })

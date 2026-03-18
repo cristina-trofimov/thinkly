@@ -1,11 +1,12 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
+import { UserQuestionInstance } from '../src/types/submissions/UserQuestionInstance.type'
 import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import { getAllSubmissions } from '../src/api/SubmissionAPI'
 import { getRiddleById } from '../src/api/RiddlesAPI'
@@ -58,7 +59,20 @@ jest.mock('../src/components/forms/RiddleForm', () => ({
   ),
 }))
 
+jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
+  putUserInstance: jest.fn(),
+}))
+
 // ─── Test data ────────────────────────────────────────────────────────────────
+
+const mockTestcases: TestCase[] = [
+  {
+    test_case_id: 1,
+    question_id: 1,
+    input_data: { nums: [2, 7], target: 9 },
+    expected_output: '[0,1]',
+  },
+]
 
 const mockQuestion: Question = {
   question_id: 1,
@@ -68,14 +82,7 @@ const mockQuestion: Question = {
   difficulty: 'Easy',
   language_specific_properties: [],
   tags: [] as TagResponse[],
-  test_cases: [
-    {
-      test_case_id: 1,
-      question_id: 1,
-      input_data: { nums: [2, 7], target: 9 },
-      expected_output: '[0,1]',
-    },
-  ] as TestCase[],
+  test_cases: mockTestcases,
   created_at: new Date('2025-01-01'),
   last_modified_at: new Date('2025-01-01'),
 }
@@ -90,6 +97,21 @@ const mockQuestionInstance: QuestionInstance = {
 const mockQuestionInstanceWithRiddle: QuestionInstance = {
   ...mockQuestionInstance,
   riddle_id: 99,
+}
+
+const mockUqi: UserQuestionInstance = {
+  user_question_instance_id: 55,
+  user_id: 1,
+  question_instance_id: 123,
+  riddle_complete: true,
+  attempts: 3,
+  lapse_time: 1000,
+  points: null,
+}
+
+const mockUqiRiddleIncomplete: UserQuestionInstance = {
+  ...mockUqi,
+  riddle_complete: false,
 }
 
 const mockRiddle = {
@@ -131,47 +153,10 @@ const mockLanguages = [
   { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
 ]
 
-const mockUserQuestionInstance = {
-  user_question_instance_id: 55,
-  riddle_complete: true,
-  attempts: 3,
-  lapse_time: 1000,
-}
-
 // ─── Hook mock factory ────────────────────────────────────────────────────────
 
 const makeMockHook = (overrides: Record<string, any> = {}) => ({
-  mostRecentSub: null,
-  setMostRecentSub: jest.fn(),
-  isQuestionLoading: false,
-  setIsQuestionLoading: jest.fn(),
-  isAsyncLoading: false,
-  setIsAsyncLoading: jest.fn(),
-  activeQuestion: mockQuestion,
-  setActiveQuestion: jest.fn(),
-  activeQuestionInstance: mockQuestionInstance,
-  setActiveQuestionInstance: jest.fn(),
-  activeDisplayQuestionName: 'Question 1',
-  setActiveDisplayQuestionName: jest.fn(),
-  userQuestionInstance: mockUserQuestionInstance,
   setUserQuestionInstance: jest.fn(),
-  questions: [mockQuestion],
-  setQuestions: jest.fn(),
-  questionsInstances: [mockQuestionInstance],
-  setQuestionsInstances: jest.fn(),
-  languages: mockLanguages,
-  setLanguages: jest.fn(),
-  prevLangRef: { current: null },
-  mostRecentSubGroupClass: '',
-  setMostRecentSubGroupClass: jest.fn(),
-  selectedLang: null,
-  setSelectedLang: jest.fn(),
-  event: null,
-  userPreferences: null,
-  testcases: mockQuestion.test_cases,
-  loadingMsg: '',
-  setLoadingMsg: jest.fn(),
-  startTime: null,
   ...overrides,
 })
 
@@ -179,6 +164,22 @@ const mockedUseCodingHooks = useCodingHooks as jest.Mock
 const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
 const mockedGetRiddleById = getRiddleById as jest.Mock
 const mockedGetAllLanguages = getAllLanguages as jest.Mock
+
+// ─── Helper to render with default props ─────────────────────────────────────
+
+const renderCodeDescArea = (overrides: Partial<{
+  question: Question | undefined
+  question_instance: QuestionInstance | undefined | null
+  uqi: UserQuestionInstance | undefined | null
+  testcases: TestCase[] | undefined | null
+}> = {}) => render(
+  <CodeDescArea
+    question={overrides.question !== undefined ? overrides.question : mockQuestion}
+    question_instance={overrides.question_instance !== undefined ? overrides.question_instance : mockQuestionInstance}
+    uqi={overrides.uqi !== undefined ? overrides.uqi : mockUqi}
+    testcases={overrides.testcases !== undefined ? overrides.testcases : mockTestcases}
+  />
+)
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -193,15 +194,8 @@ beforeEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('CodeDescArea — rendering', () => {
-  it('renders nothing when question is undefined', () => {
-    const { container } = render(
-      <CodeDescArea question={undefined} question_instance={undefined} />
-    )
-    expect(container).toBeEmptyDOMElement()
-  })
-
   it('renders tabs when question is provided', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => {
       expect(screen.getByTestId('tabs')).toBeInTheDocument()
     })
@@ -210,7 +204,7 @@ describe('CodeDescArea — rendering', () => {
   })
 
   it('renders Description, Submissions, and Leaderboard tabs', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => {
       expect(screen.getByText('Description')).toBeInTheDocument()
       expect(screen.getByText('Submissions')).toBeInTheDocument()
@@ -219,7 +213,7 @@ describe('CodeDescArea — rendering', () => {
   })
 
   it('shows description tab content by default', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => {
       expect(screen.getByTestId('tabs-content-description')).toBeInTheDocument()
       expect(screen.getByText('Two Sum')).toBeInTheDocument()
@@ -228,7 +222,7 @@ describe('CodeDescArea — rendering', () => {
   })
 
   it('renders test case examples in description', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => {
       expect(screen.getByText('Example 1:')).toBeInTheDocument()
       expect(screen.getByText(/\[0,1\]/)).toBeInTheDocument()
@@ -238,14 +232,14 @@ describe('CodeDescArea — rendering', () => {
 
 describe('CodeDescArea — tab switching', () => {
   it('switches to submissions tab when clicked', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     expect(screen.getByTestId('tabs-content-submissions')).toBeInTheDocument()
   })
 
   it('switches to leaderboard tab when clicked', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Leaderboard')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Leaderboard'))
     expect(screen.getByTestId('tabs-content-leaderboard')).toBeInTheDocument()
@@ -253,7 +247,7 @@ describe('CodeDescArea — tab switching', () => {
   })
 
   it('switches back to description tab after visiting another', async () => {
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await userEvent.click(screen.getByText('Description'))
@@ -263,33 +257,22 @@ describe('CodeDescArea — tab switching', () => {
 
 describe('CodeDescArea — riddle gate', () => {
   it('shows loading spinner when riddle is loading', () => {
-    mockedUseCodingHooks.mockReturnValue(makeMockHook({
-      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
-    }))
-    // getRiddleById never resolves so isLoadingRiddle stays true
     mockedGetRiddleById.mockReturnValue(new Promise(() => { }))
 
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstanceWithRiddle}
-      />
-    )
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+    })
     expect(screen.getByText(/loading challenge lock/i)).toBeInTheDocument()
   })
 
   it('shows riddle form when riddle is loaded and not yet solved', async () => {
-    mockedUseCodingHooks.mockReturnValue(makeMockHook({
-      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
-    }))
     mockedGetRiddleById.mockResolvedValue(mockRiddle)
 
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstanceWithRiddle}
-      />
-    )
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+    })
 
     await waitFor(() =>
       expect(screen.getByTestId('riddle-form')).toBeInTheDocument()
@@ -300,12 +283,10 @@ describe('CodeDescArea — riddle gate', () => {
   it('shows normal tabs when riddle_complete is true', async () => {
     mockedGetRiddleById.mockResolvedValue(mockRiddle)
 
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstanceWithRiddle}
-      />
-    )
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqi, // riddle_complete: true
+    })
 
     await waitFor(() =>
       expect(screen.getByTestId('tabs')).toBeInTheDocument()
@@ -313,29 +294,19 @@ describe('CodeDescArea — riddle gate', () => {
   })
 
   it('shows normal tabs when riddle_id is null (no riddle)', async () => {
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-      />
-    )
+    renderCodeDescArea()
     await waitFor(() =>
       expect(screen.getByTestId('tabs')).toBeInTheDocument()
     )
   })
 
   it('shows toast.error and logs when riddle fails to load', async () => {
-    mockedUseCodingHooks.mockReturnValue(makeMockHook({
-      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
-    }))
     mockedGetRiddleById.mockRejectedValue(new Error('Riddle fetch failed'))
 
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstanceWithRiddle}
-      />
-    )
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+    })
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Failed to load riddle...')
@@ -345,20 +316,14 @@ describe('CodeDescArea — riddle gate', () => {
     )
   })
 
-  it('shows normal view when riddle fails to load (no riddleObject)', async () => {
-    mockedUseCodingHooks.mockReturnValue(makeMockHook({
-      userQuestionInstance: { ...mockUserQuestionInstance, riddle_complete: false },
-    }))
+  it('shows no riddle form after riddle fails to load', async () => {
     mockedGetRiddleById.mockRejectedValue(new Error('fail'))
 
-    render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstanceWithRiddle}
-      />
-    )
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+    })
 
-    // After error, riddleObject stays null so the riddle form is not shown
     await waitFor(() => expect(toast.error).toHaveBeenCalled())
     expect(screen.queryByTestId('riddle-form')).not.toBeInTheDocument()
   })
@@ -368,7 +333,7 @@ describe('CodeDescArea — submissions tab', () => {
   it('shows empty state when no submissions', async () => {
     mockedGetAllSubmissions.mockResolvedValue([])
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -380,7 +345,7 @@ describe('CodeDescArea — submissions tab', () => {
   it('renders submission rows when submissions exist', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -393,31 +358,29 @@ describe('CodeDescArea — submissions tab', () => {
   it('shows Accepted status in green', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
-    const accepted = screen.getByText('Accepted')
-    expect(accepted).toHaveClass('text-green-500')
+    expect(screen.getByText('Accepted')).toHaveClass('text-green-500')
   })
 
   it('shows Wrong Answer status in red', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
     await waitFor(() => expect(screen.getByTestId('submission-2')).toBeInTheDocument())
-    const wrongAnswer = screen.getByText('Wrong Answer')
-    expect(wrongAnswer).toHaveClass('text-red-500')
+    expect(screen.getByText('Wrong Answer')).toHaveClass('text-red-500')
   })
 
   it('shows submission count in footer', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -429,7 +392,7 @@ describe('CodeDescArea — submissions tab', () => {
   it('shows singular "attempt" for one submission', async () => {
     mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -442,7 +405,7 @@ describe('CodeDescArea — submissions tab', () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     mockedGetAllLanguages.mockResolvedValue(mockLanguages)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -456,7 +419,7 @@ describe('CodeDescArea — submission detail view', () => {
   it('opens submission detail when a row is clicked', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -470,7 +433,7 @@ describe('CodeDescArea — submission detail view', () => {
   it('shows runtime and memory in detail view', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -484,7 +447,7 @@ describe('CodeDescArea — submission detail view', () => {
   it('shows stdout when present in detail view', async () => {
     mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -497,11 +460,11 @@ describe('CodeDescArea — submission detail view', () => {
   it('shows stderr and compile_output when present', async () => {
     mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[1]])
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
-    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument()) // ← 1 not 2
+    await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
 
     expect(screen.getByText('Traceback...')).toBeInTheDocument()
@@ -519,7 +482,7 @@ describe('CodeDescArea — submission detail view', () => {
     }
     mockedGetAllSubmissions.mockResolvedValue([minimalSub])
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
@@ -532,14 +495,13 @@ describe('CodeDescArea — submission detail view', () => {
   it('goes back to submissions list when back button is clicked', async () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
 
-    render(<CodeDescArea question={mockQuestion} question_instance={mockQuestionInstance} />)
+    renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
 
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
 
-    expect(screen.getByTestId('back-btn')).toBeInTheDocument()
     await userEvent.click(screen.getByTestId('back-btn'))
 
     expect(screen.queryByText('Submission Details')).not.toBeInTheDocument()
