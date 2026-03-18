@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from database_operations.db import Base
 from typing import List, Optional, Any
 from datetime import datetime, timezone
-from sqlalchemy import BigInteger
 
 # Foreign key reference constants
 FK_USER_ACCOUNT_USER_ID = 'user_account.user_id'
