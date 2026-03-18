@@ -193,7 +193,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     }, [questions, questionsInstances])
 
     useEffect(() => {
-        if (!languages) return
+        if (!languages || languages.length < 1) return
 
         const savedLang = languages.find(lang => lang.lang_judge_id === userPreferences?.last_used_programming_language)
 
