@@ -1,6 +1,7 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { UserPreferences } from "../src/types/UserPreferences.type"
 import { getUserPrefs, updateAllPrefs, updateThemePref, updateNotifPref, updateLastProgLang } from "../src/api/UserPreferencesAPI"
+import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
     Object.defineProperty(global, 'import', {
@@ -25,7 +26,12 @@ jest.mock('../src/lib/axiosClient', () => ({
     API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn()
+}))
+
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
+const mockedLogger = logFrontend as jest.Mock
 
 const user_id = 1
 
@@ -66,6 +72,12 @@ describe("User preferences", () => {
                     .rejects.toThrow("Error fetching user preferences")
 
         expect(mockedAxios.get).toHaveBeenCalled()
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "UserPreferencesAPI",
+            })
+        )
     })
 
     it("updateAllPrefs: updates all the user preferences", async () => {
@@ -92,6 +104,12 @@ describe("User preferences", () => {
                     .rejects.toThrow("Error updating all user preferences")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "UserPreferencesAPI",
+            })
+        )
     })
 
     it("updateThemePref: updates user's theme", async () => {
@@ -116,6 +134,12 @@ describe("User preferences", () => {
                     .rejects.toThrow("Error updating user's theme")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "UserPreferencesAPI",
+            })
+        )
     })
 
     it("updateNotifPref: updates user's notification setting", async () => {
@@ -140,6 +164,12 @@ describe("User preferences", () => {
                     .rejects.toThrow("Error updating user's notification setting")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "UserPreferencesAPI",
+            })
+        )
     })
 
     it("updateLastProgLang: updates user's last used programming language", async () => {
@@ -164,5 +194,11 @@ describe("User preferences", () => {
                     .rejects.toThrow("Error updating user's last programming language")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "UserPreferencesAPI",
+            })
+        )
     })
 })

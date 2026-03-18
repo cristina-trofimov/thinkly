@@ -1,6 +1,7 @@
 import axiosClient from "@/lib/axiosClient";
 import type { Competition, CompetitionFormPayload } from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
+import { logFrontend } from "./LoggerAPI";
 
 // ============= Existing Functions =============
 export async function getCompetitions(): Promise<Competition[]> {
@@ -23,7 +24,13 @@ export async function getCompetitions(): Promise<Competition[]> {
     
     return formatted;
   } catch (err) {
-    console.error("Error fetching competitions:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching competitions. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -46,7 +53,13 @@ export async function getCompetitionsDetails(): Promise<CompetitionWithParticipa
 
     return formatted;
   } catch (err) {
-    console.error("Error fetching competitions:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching competitions details. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -67,7 +80,13 @@ export async function createCompetition(
     );
     return response.data;
   } catch (err) {
-    console.error("Error creating competition:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when creating competition. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -84,7 +103,13 @@ export async function listCompetitions(): Promise<CompetitionFormPayload[]> {
     );
     return response.data;
   } catch (err) {
-    console.error("Error listing competitions:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when listing competitions. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -101,7 +126,13 @@ export const getCompetitionById = async (competitionId: number) => {
     );
     return response.data;
   } catch (err) {
-    console.error('Error fetching competition by ID:', err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching a competition by ID. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 };
@@ -115,7 +146,13 @@ export async function deleteCompetition(competitionId: number): Promise<void> {
   try {
     await axiosClient.delete(`/competitions/${competitionId}`);
   } catch (err) {
-    console.error(`Error deleting competition ${competitionId}:`, err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when deleting competition. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -132,7 +169,13 @@ export const updateCompetition = async (payload: CompetitionFormPayload) => {
     );
     return response.data;
   } catch (err) {
-    console.error('Error updating competition:', err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating competition. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 };

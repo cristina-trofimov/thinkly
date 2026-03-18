@@ -4,6 +4,7 @@ import QuestionJSONEditor from "../src/components/manageQuestions/QuestionJSONEd
 import { getQuestionByID, updateQuestion } from "../src/api/QuestionsAPI";
 import { parseAxiosErrorMessage } from "../src/lib/axiosClient";
 import { toast } from "sonner";
+import { TagResponse } from "../src/types/questions/QuestionPagination.type";
 
 jest.mock("../src/lib/axiosClient", () => ({
   __esModule: true,
@@ -21,11 +22,12 @@ const mockNavigate = jest.fn();
 let mockedQuestionId = "9";
 
 jest.mock("@monaco-editor/react", () => ({
-  Editor: ({ value, onChange }: any) => (
+  Editor: ({ value, onChange, theme }: any) => (
     <textarea
       data-testid="json-editor"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      data-theme={theme}
     />
   ),
 }));
@@ -61,8 +63,8 @@ const baseQuestion = {
   question_description: "Desc",
   media: null,
   language_specific_properties: [],
-  tags: [],
-  testcases: [],
+  tags: [] as TagResponse[],
+  test_cases: [],
   difficulty: "Easy" as const,
   created_at: new Date("2025-01-01"),
   last_modified_at: new Date("2025-01-01"),
@@ -74,8 +76,8 @@ const baseEditablePayload = {
   media: null,
   difficulty: "easy",
   language_specific_properties: [],
-  tags: [],
-  testcases: [{ input_data: "in", expected_output: "out" }],
+  tags: [] as TagResponse[],
+  testcases: [{ input_data: "in", expected_output: "out" }], // Note: testcases (not test_cases)
 };
 
 describe("QuestionJSONEditor", () => {
@@ -91,8 +93,8 @@ describe("QuestionJSONEditor", () => {
       question_description: "Desc",
       media: null,
       language_specific_properties: [],
-      tags: ["tag"],
-      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
+      tags: [{ tag_id: 1, tag_name: "tag" }] as TagResponse[],
+      test_cases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
       created_at: new Date("2025-01-01"),
       last_modified_at: new Date("2025-01-01"),
@@ -112,7 +114,7 @@ describe("QuestionJSONEditor", () => {
         media: null,
         difficulty: "easy",
         language_specific_properties: [],
-        tags: ["tag"],
+        tags: [{ tag_id: 1, tag_name: "tag" }] as TagResponse[],
         testcases: [{ input_data: "in", expected_output: "out" }],
       },
       null,
@@ -123,8 +125,11 @@ describe("QuestionJSONEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
     await waitFor(() => {
-      expect(mockedUpdateQuestion).toHaveBeenCalledWith(9, expect.objectContaining({ question_name: "Q2" }));
-      expect(mockedToast.success).toHaveBeenCalled();
+      expect(mockedUpdateQuestion).toHaveBeenCalledWith(9, expect.objectContaining({ 
+        question_name: "Q2",
+        testcases: expect.arrayContaining([{ input_data: "in", expected_output: "out" }])
+      }));
+      expect(mockedToast.success).toHaveBeenCalledWith("Question 9 updated successfully!");
     });
   });
 
@@ -135,8 +140,8 @@ describe("QuestionJSONEditor", () => {
       question_description: "Desc",
       media: null,
       language_specific_properties: [],
-      tags: [],
-      testcases: [],
+      tags: [] as TagResponse[],
+      test_cases: [],
       difficulty: "Easy",
       created_at: new Date("2025-01-01"),
       last_modified_at: new Date("2025-01-01"),
@@ -264,7 +269,7 @@ describe("QuestionJSONEditor", () => {
       media: null,
       language_specific_properties: [],
       tags: [],
-      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
+      test_cases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
       created_at: new Date("2025-01-01"),
       last_modified_at: new Date("2025-01-01"),
@@ -306,7 +311,7 @@ describe("QuestionJSONEditor", () => {
       media: null,
       language_specific_properties: [],
       tags: [],
-      testcases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
+      test_cases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
       difficulty: "Easy",
       created_at: new Date("2025-01-01"),
       last_modified_at: new Date("2025-01-01"),
@@ -324,7 +329,7 @@ describe("QuestionJSONEditor", () => {
             media: null,
             difficulty: "easy",
             language_specific_properties: [],
-            tags: [],
+            tags: [] as TagResponse[],
             testcases: [{ input_data: "in", expected_output: "out" }],
           },
           null,
@@ -430,5 +435,108 @@ describe("QuestionJSONEditor", () => {
     await waitFor(() => {
       expect(mockedToast.error).toHaveBeenCalledWith("Media must be a string or null");
     });
+  });
+
+  it("shows validation error when tags is not an array", async () => {
+    mockedGetQuestionByID.mockResolvedValueOnce(baseQuestion);
+    render(<QuestionJSONEditor />);
+    await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByTestId("json-editor"), {
+      target: {
+        value: JSON.stringify({
+          ...baseEditablePayload,
+          tags: "not-an-array",
+        }),
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalledWith("Tags must be an array");
+    });
+  });
+
+  it("shows validation error when language_specific_properties is not an array", async () => {
+    mockedGetQuestionByID.mockResolvedValueOnce(baseQuestion);
+    render(<QuestionJSONEditor />);
+    await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByTestId("json-editor"), {
+      target: {
+        value: JSON.stringify({
+          ...baseEditablePayload,
+          language_specific_properties: "not-an-array",
+        }),
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalledWith("Language_specific_properties must be an array");
+    });
+  });
+
+  it("shows validation error when testcases is not an array", async () => {
+    mockedGetQuestionByID.mockResolvedValueOnce(baseQuestion);
+    render(<QuestionJSONEditor />);
+    await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByTestId("json-editor"), {
+      target: {
+        value: JSON.stringify({
+          ...baseEditablePayload,
+          testcases: "not-an-array",
+        }),
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await waitFor(() => {
+      expect(mockedToast.error).toHaveBeenCalledWith("Testcases must be an array");
+    });
+  });
+
+  it("stays on current page when cancel is clicked in discard dialog", async () => {
+    mockedGetQuestionByID.mockResolvedValueOnce({
+      question_id: 9,
+      question_name: "Q",
+      question_description: "Desc",
+      media: null,
+      language_specific_properties: [],
+      tags: [],
+      test_cases: [{ test_case_id: 0, question_id: 9, input_data: "in", expected_output: "out" }],
+      difficulty: "Easy",
+      created_at: new Date("2025-01-01"),
+      last_modified_at: new Date("2025-01-01"),
+    });
+
+    render(<QuestionJSONEditor />);
+    await waitFor(() => expect(mockedGetQuestionByID).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByTestId("json-editor"), {
+      target: {
+        value: JSON.stringify(
+          {
+            question_name: "Q2",
+            question_description: "Desc2",
+            media: null,
+            difficulty: "easy",
+            language_specific_properties: [],
+            tags: [],
+            testcases: [{ input_data: "in", expected_output: "out" }],
+          },
+          null,
+          2
+        ),
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(await screen.findByText("Discard unsaved changes?")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /stay/i }));
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByText("Discard unsaved changes?")).not.toBeInTheDocument();
   });
 });

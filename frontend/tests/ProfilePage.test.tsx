@@ -1,10 +1,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ProfilePage from "../src/views/ProfilePage";
 import { getProfile, isGoogleAccount } from "../src/api/AuthAPI";
-import { updateAccount, getUserPreferences, updateUserPreferences } from "../src/api/AccountsAPI";
+import { updateAccount, updateUserPreferences } from "../src/api/AccountsAPI";
+import { getUserPrefs, updateAllPrefs } from "../src/api/UserPreferencesAPI";
 import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
+import React from "react";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -17,8 +19,12 @@ jest.mock("../src/api/AuthAPI", () => ({
 
 jest.mock("../src/api/AccountsAPI", () => ({
   updateAccount: jest.fn(),
-  getUserPreferences: jest.fn(),
   updateUserPreferences: jest.fn(),
+}));
+
+jest.mock("../src/api/UserPreferencesAPI", () => ({
+  getUserPrefs: jest.fn(),
+  updateAllPrefs: jest.fn(),
 }));
 
 jest.mock("../src/api/LoggerAPI", () => ({ logFrontend: jest.fn() }));
@@ -78,8 +84,10 @@ const mockUser = {
 };
 
 const mockPreferences = {
+  user_id: 21,
   theme: "light" as const,
   notifications_enabled: true,
+  last_used_programming_language: 71,
 };
 
 describe("ProfilePage Component", () => {
@@ -94,8 +102,8 @@ describe("ProfilePage Component", () => {
 
     (getProfile as jest.Mock).mockResolvedValue(mockUser);
     (isGoogleAccount as jest.Mock).mockResolvedValue({ isGoogleUser: false });
-    (getUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
-    (updateUserPreferences as jest.Mock).mockResolvedValue(mockPreferences);
+    (getUserPrefs as jest.Mock).mockResolvedValue(mockPreferences);
+    (updateAllPrefs as jest.Mock).mockResolvedValue(mockPreferences);
   });
 
   // -------------------------------------------------------------------------

@@ -3,7 +3,7 @@ import { EditAlgoTimeSessionDialog } from '../src/components/algotime/EditAlgoti
 import { getAlgotimeById } from '../src/api/AlgotimeAPI';
 import { getQuestions } from '../src/api/QuestionsAPI';
 import { toast } from 'sonner';
-import { Question } from '../src/types/questions/Question.type';
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type';
 import React from 'react';
 
 jest.mock('../src/lib/axiosClient', () => ({
@@ -51,8 +51,8 @@ const mockQuestions: Question[] = [
     question_description: '',
     media: '',
     language_specific_properties: [],
-    tags: [],
-    testcases: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date(),
     last_modified_at: new Date(),
   },
@@ -63,8 +63,8 @@ const mockQuestions: Question[] = [
     question_description: '',
     media: '',
     language_specific_properties: [],
-    tags: [],
-    testcases: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date(),
     last_modified_at: new Date(),
   },

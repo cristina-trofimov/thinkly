@@ -81,7 +81,7 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
   // No competitions case
   if (!competitionData) {
     return (
-      <div className="flex flex-col justify-center min-h-[232px] bg-linear-to-b from-primary to-purple-700 p-7 rounded-lg">
+      <div className="flex flex-col justify-center min-h-58 bg-linear-to-b from-primary to-purple-700 p-7 rounded-lg">
         <h1 className="text-5xl font-bold text-white mb-2">
           Welcome to Thinkly Competitions!
         </h1>
@@ -128,7 +128,7 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
 
   // Upcoming competition
   return (
-    <div className="min-h-[232px] bg-linear-to-b from-primary to-purple-700 p-7 rounded-lg">
+    <div className="min-h-58 bg-linear-to-b from-primary to-purple-700 p-7 rounded-lg">
       <div className="inline-flex items-center px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium mb-4">
         <Hourglass className="mr-2 h-4 w-4 text-yellow-300" />
         {timeRemaining && (

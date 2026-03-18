@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
 import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
-import { type Question } from "@/types/questions/Question.type";
+import { type Question } from "@/types/questions/QuestionPagination.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
 
 // UI Components
@@ -276,7 +276,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, 
                         {isReadOnly ? "Close" : "Cancel"}
                     </Button>
                     {!isReadOnly && (
-                        <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-[140px]">
+                        <Button onClick={handleInternalSubmit} disabled={isSubmitting} className="min-w-35">
                             {isSubmitting ? "Processing..." : submitLabel}
                         </Button>
                     )}

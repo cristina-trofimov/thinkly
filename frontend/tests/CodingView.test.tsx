@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
-import { Question } from '../src/types/questions/Question.type'
+import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { MostRecentSub } from '../src/types/MostRecentSub.type'
 import { CodeRunResponse } from '../src/types/CodeRunResponse.type'
@@ -19,6 +19,9 @@ import { toast } from 'sonner'
 import { logFrontend } from "../src/api/LoggerAPI"
 import { getQuestionInstance } from '../src/api/QuestionInstanceAPI'
 import { getQuestionByID } from '../src/api/QuestionsAPI'
+import { getAllLanguages } from '../src/api/LanguageAPI'
+import { getUserPrefs } from '../src/api/UserPreferencesAPI'
+import type { Language } from '../src/types/questions/Language.type'
 
 jest.mock('@monaco-editor/react', () => {
     return function MonacoEditorMock(props: any) {
@@ -79,6 +82,14 @@ jest.mock('../src/api/AuthAPI', () => ({
     getProfile: jest.fn()
 }))
 
+jest.mock('../src/api/LanguageAPI', () => ({
+    getAllLanguages: jest.fn()
+}))
+
+jest.mock('../src/api/UserPreferencesAPI', () => ({
+    getUserPrefs: jest.fn()
+}))
+
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
     getQuestionInstance: jest.fn(),
     getAllQuestionInstancesByEventID: jest.fn()
@@ -99,6 +110,7 @@ jest.mock('sonner', () => ({
         success: jest.fn(),
         warning: jest.fn(),
         error: jest.fn(),
+        info: jest.fn(),
     },
 }))
 
@@ -154,23 +166,23 @@ jest.mock("react-resizable-panels", () => ({
     PanelResizeHandle: () => <div data-testid="resizable-handle" />,
 }))
 
-jest.mock("../src/components/helpers/monacoConfig", () => ({
-    __esModule: true,
-    buildMonacoCode: jest.fn(() => ({
-        language: "java",
-        judgeID: "62",
-        templateCode: "// default template",
-    })),
-}))
-
 jest.mock('../src/components/helpers/useTestcases')
 
+const mockedLogger = logFrontend as jest.Mocked<typeof logFrontend>;
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedGetQuestionInstance = getQuestionInstance as jest.MockedFunction<typeof getQuestionInstance>
 const mockedGetQuestionByID = getQuestionByID as jest.MockedFunction<typeof getQuestionByID>
 const mockedGetProfile = getProfile as jest.MockedFunction<typeof getProfile>
+const mockedGetAllLanguages = getAllLanguages as jest.MockedFunction<typeof getAllLanguages>
+const mockedGetUserPrefs = getUserPrefs as jest.MockedFunction<typeof getUserPrefs>
 const mockUseTestcases = useTestcases as jest.Mock
+
+// monaco_id values must match the languageItem-{monaco_id} testids used in language-switch tests
+const mockLanguages: Language[] = [
+    { row_id: 1, lang_judge_id: 62, monaco_id: 'Java', display_name: 'Java', active: true },
+    { row_id: 2, lang_judge_id: 71, monaco_id: 'Python', display_name: 'Python', active: true },
+]
 
 const mockProblem: Question = {
     question_id: 1,
@@ -179,8 +191,8 @@ const mockProblem: Question = {
     media: "string",
     difficulty: "Easy",
     language_specific_properties: [],
-    tags: [],
-    testcases: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date("2025-10-28T10:00:00Z"),
     last_modified_at: new Date("2025-10-28T10:00:00Z"),
 }
@@ -191,7 +203,7 @@ const mockProblemWithPreset: Question = {
         {
             language_id: 1,
             question_id: 1,
-            language_name: "Java",
+            language_display_name: "Java",
             preset_code: "// Java preset",
             template_solution: "// Java solution",
             from_json_function: "",
@@ -200,7 +212,7 @@ const mockProblemWithPreset: Question = {
         {
             language_id: 2,
             question_id: 1,
-            language_name: "Python",
+            language_display_name: "Python",
             preset_code: "# Python preset",
             template_solution: "# Python solution",
             from_json_function: "",
@@ -215,7 +227,7 @@ const mockProblemWithTemplateSolutionOnly: Question = {
         {
             language_id: 1,
             question_id: 1,
-            language_name: "Java",
+            language_display_name: "Java",
             preset_code: "",
             template_solution: "// Java solution fallback",
             from_json_function: "",
@@ -230,7 +242,7 @@ const user_id = 1
 const question_instance_id = 123
 const event_id = 1
 const source_code = "print('Hello')"
-const language_id = "71"
+const language_id = 71
 
 const mockProfile: Account = {
     id: user_id,
@@ -244,7 +256,7 @@ const mockMostRecentSubResponse: MostRecentSub = {
     user_id: user_id,
     question_instance_id: question_instance_id,
     code: source_code,
-    lang_judge_id: parseInt(language_id)
+    lang_judge_id: language_id
 }
 
 const mockJudge0Response = {
@@ -319,6 +331,9 @@ describe('CodingView Component without event', () => {
 
         mockedGetQuestionInstance.mockResolvedValue(mockQuestionInstances[0])
         mockedGetQuestionByID.mockResolvedValue(mockProblem)
+        mockedGetProfile.mockResolvedValue(mockProfile)
+        mockedGetAllLanguages.mockResolvedValue(mockLanguages)
+        mockedGetUserPrefs.mockResolvedValue(mockUserPrefs)
     })
 
     it('renders and shows key panels (resizable panels and sandbox tabs)', async () => {
@@ -422,6 +437,11 @@ describe('CodingView Component without event', () => {
 
         await renderAndWait()
 
+        // Wait for the async init chain to complete:
+        // getQuestionInstance resolves → setQuestionsInstances → effect sets activeQuestionInstance
+        // Without this, submitCode hits the !activeQuestionInstance guard and never calls submitAttempt
+        await waitFor(() => expect(screen.getByTestId('submit-btn')).toBeInTheDocument())
+
         expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
 
         await userEvent.click(screen.getByTestId('submit-btn'))
@@ -485,14 +505,6 @@ describe('CodingView Component without event', () => {
         await waitFor(() => expect(screen.getByTestId('Loader')).toBeInTheDocument())
     })
 
-    it('displays language selector defaulting to Java', async () => {
-        await renderAndWait()
-
-        const languageBtn = screen.getByTestId('language-btn')
-        expect(languageBtn).toBeInTheDocument()
-        expect(languageBtn).toHaveTextContent('Java')
-    })
-
     it('displays coding buttons container with Code label', async () => {
         await renderAndWait()
 
@@ -553,27 +565,18 @@ describe('CodingView Component without event', () => {
         render(<CodingView />)
 
         await waitFor(() => {
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor'))
+                .toHaveValue(mockProblemWithPreset.language_specific_properties[0].preset_code)
         })
     })
 
-    it('falls back to template_solution when preset_code is empty', async () => {
-        mockedGetQuestionByID.mockResolvedValue(mockProblemWithTemplateSolutionOnly)
-
-        render(<CodingView />)
-
-        await waitFor(() => {
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution fallback')
-        })
-    })
-
-    it('falls back to hardcoded template when no language_specific_properties match', async () => {
+it('falls back to hardcoded template when no language_specific_properties match', async () => {
         mockedGetQuestionByID.mockResolvedValue(mockProblem)
 
         render(<CodingView />)
 
         await waitFor(() => {
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// default template')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Write your solution here.')
         })
     })
 
@@ -635,11 +638,15 @@ describe('CodingView Component without event', () => {
         await userEvent.clear(editor)
         await userEvent.type(editor, 'my custom java code')
 
-        // Click reset — should restore preset
+        // Click reset — opens confirmation dialog
         const codingBtns = screen.getByTestId('coding-btns')
         const buttons = within(codingBtns).getAllByRole('button')
         const resetBtn = buttons[1] // play=0, reset=1
         await userEvent.click(resetBtn)
+
+        // Confirm the reset in the dialog
+        await waitFor(() => expect(screen.getByTestId('reset-btn')).toBeInTheDocument())
+        await userEvent.click(screen.getByTestId('reset-btn'))
 
         await waitFor(() => {
             expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')

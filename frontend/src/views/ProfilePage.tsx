@@ -1,7 +1,6 @@
 import React from "react";
 import { getProfile, isGoogleAccount } from "@/api/AuthAPI";
-import { updateAccount, getUserPreferences, updateUserPreferences } from "@/api/AccountsAPI";
-import type { UserPreferences } from "@/api/AccountsAPI";
+import { updateAccount, updateUserPreferences } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -27,6 +26,8 @@ import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import type { UserPreferences } from "@/types/UserPreferences.type";
+import { getUserPrefs } from "@/api/UserPreferencesAPI";
 
 // Extending the local Account type to include the Google provider check
 interface ProfileAccount extends Account {
@@ -136,8 +137,10 @@ function ProfilePage() {
   const [preferences, setPreferences] = React.useState<UserPreferences>({
     theme: (localStorage.getItem("theme") as "light" | "dark") ?? "light",
     notifications_enabled: true,
+    last_used_programming_language: null,
+    pref_id: -1,
+    user_id: -1
   });
-
   const navigate = useNavigate();
   const outlet = useOutlet();
   const {
@@ -197,7 +200,7 @@ function ProfilePage() {
         });
 
         try {
-          const prefs = await getUserPreferences(currentAccount.id);
+          const prefs = await getUserPrefs(currentAccount.id);
           setPreferences(prefs);
         } catch {
           logFrontend({
