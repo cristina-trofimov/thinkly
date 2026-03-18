@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+ 
 import axiosClient from "@/lib/axiosClient";
 import type { Language } from "@/types/questions/Language.type";
 import { logFrontend } from "./LoggerAPI";
