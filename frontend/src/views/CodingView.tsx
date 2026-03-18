@@ -213,22 +213,6 @@ const CodingView = () => {
     }
   }, [questions, questionsInstances])
 
-  useEffect(() => {
-    if (!languages || languages.length < 1) return
-
-    if (userPreferences) {
-      const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
-
-      if (lang) {
-        setSelectedLang(lang)
-        prevLangRef.current = lang
-      }
-    } else {
-      setSelectedLang(languages[0])
-    }
-
-  }, [languages, userPreferences])
-
   // Auto-select the first language that has preset code when the question changes
   useEffect(() => {
     if (!activeQuestion || !languages?.length) return
