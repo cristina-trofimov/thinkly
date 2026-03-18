@@ -41,7 +41,7 @@ const CodingView = () => {
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
-    mostRecentSubGroupClass, userPreferences,
+    mostRecentSubGroupClass,
     selectedLang, setSelectedLang, event,
     testcases, loadingMsg, setLoadingMsg
   } = useCodingHooks(question, comp)
@@ -56,7 +56,6 @@ const CodingView = () => {
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
   )
-  const themeRef = useRef(theme)
 
   const [logs, setLogs] = useState<Judge0Response[]>([])
   const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
@@ -98,9 +97,6 @@ const CodingView = () => {
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitCode = async () => {
-    if (!startTime) {
-      // TODO: location.
-    }
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
     } else if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
@@ -164,7 +160,6 @@ const CodingView = () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
     } else {
-      // TODO: SOMETHING TO AVOID SPAM REQUESTS
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
