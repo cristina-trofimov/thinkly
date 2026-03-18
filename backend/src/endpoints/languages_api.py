@@ -4,6 +4,7 @@ from database_operations.database import get_db
 from models.schema import Language
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class LanguageModel(BaseModel):
 @languages_router.get("/all",
     responses={500: {"description": "Error retrieving languages."}}
 )
-def get_all_languages(db: Annotated[str, Depends(get_db)], active: Annotated[bool, Query()] = None):
+def get_all_languages(db: Annotated[Session, Depends(get_db)], active: Annotated[bool, Query()] = None):
     try:
         langs = db.query(Language)
 
@@ -48,7 +49,7 @@ def get_all_languages(db: Annotated[str, Depends(get_db)], active: Annotated[boo
     responses={500: {"description": "Error retrieving languages."}}
 )
 def get_language_by_id(
-    db: Annotated[str, Depends(get_db)],
+    db: Annotated[Session, Depends(get_db)],
     lang_judge_id: int
 ):
     try:
