@@ -2,7 +2,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { SubmissionType } from '../../types/SubmissionType.type'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -19,6 +18,10 @@ import { getAllLanguages } from '@/api/LanguageAPI'
 import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
 import SubmissionDetail from './SubmissionDetail'
+import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
+import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
+import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
 
 const CodeDescArea = (
     { question, question_instance, uqi, testcases }:
