@@ -1,6 +1,6 @@
 import { Button } from '../ui/button'
-import type { SubmissionType } from '@/types/SubmissionType.type'
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
+import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 
 const SubmissionDetail = (
     { selectedSubmission, goBack } 
