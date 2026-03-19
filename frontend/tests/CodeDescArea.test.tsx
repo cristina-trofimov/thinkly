@@ -183,12 +183,20 @@ const renderCodeDescArea = (overrides: Partial<{
   question_instance: QuestionInstance | undefined | null
   uqi: UserQuestionInstance | undefined | null
   testcases: TestCase[] | undefined | null
+  eventId: number | undefined
+  eventName: string | undefined
+  isCompetitionEvent: boolean
+  currentUserId: number | undefined
 }> = {}) => render(
   <CodeDescArea
     question={overrides.question !== undefined ? overrides.question : mockQuestion}
     question_instance={overrides.question_instance !== undefined ? overrides.question_instance : mockQuestionInstance}
     uqi={overrides.uqi !== undefined ? overrides.uqi : mockUqi}
     testcases={overrides.testcases !== undefined ? overrides.testcases : mockTestcases}
+    eventId={overrides.eventId !== undefined ? overrides.eventId : 1}
+    eventName={overrides.eventName !== undefined ? overrides.eventName : 'Test Event'}
+    isCompetitionEvent={overrides.isCompetitionEvent !== undefined ? overrides.isCompetitionEvent : true}
+    currentUserId={overrides.currentUserId}
   />
 )
 
@@ -254,7 +262,7 @@ describe('CodeDescArea — tab switching', () => {
     await waitFor(() => expect(screen.getByText('Leaderboard')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Leaderboard'))
     expect(screen.getByTestId('tabs-content-leaderboard')).toBeInTheDocument()
-    expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
+    expect(screen.getByTestId('mock-event-leaderboard')).toBeInTheDocument()
   })
 
   it('switches back to description tab after visiting another', async () => {
