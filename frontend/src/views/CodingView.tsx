@@ -20,8 +20,6 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
-import type { BaseEvent } from '@/types/BaseEvent.type';
-import { getEventByName } from '@/api/BaseEventAPI';
 import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
@@ -35,7 +33,6 @@ const CodingView = () => {
   const location = useLocation()
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
-  const [ event, setEvent ] = useState<BaseEvent | null>(null)
   const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined)
 
   const {
@@ -57,6 +54,12 @@ const CodingView = () => {
     trackCodeRun,
     trackCodeSubmitted,
   } = useAnalytics()
+
+  useEffect(() => {
+    getProfile()
+      .then((user) => setCurrentUserId(user.id))
+      .catch(() => setCurrentUserId(undefined))
+  }, [])
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
