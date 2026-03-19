@@ -32,33 +32,51 @@ export function NavUser() {
   const navigate = useNavigate();
 
   const { user } = useUser();
-  // const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
 
-  // React.useEffect(() => {
-  //   // If a user prop is not provided, fetch profile ourselves.
-  //   if (user) return
-  //   let mounted = true
-  //   const fetch = async () => {
-  //     try {
-  //       const profile = await getProfile()
-  //       if (mounted) setLocalUser(profile)
-  //     } catch (err) {
-  //       logFrontend({
-  //         level: 'ERROR',
-  //         message: `Error finding user profile: ${(err as Error).message}`,
-  //         component: 'NavUser',
-  //         url: globalThis.location.href,
-  //         stack: (err as Error).stack,
-  //       });
-  //     }
-  //   }
-  //   fetch()
-  //   return () => { mounted = false }
-  // }, [user])
-  // Initialize theme state from localStorage
+
   const [theme, setTheme] = React.useState<"light" | "dark">(() => {
     return (localStorage.getItem("theme") as "light" | "dark") ?? "light";
   });
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const fetchPrefs = async () => {
+      try {
+        if (user) {
+          const prefs = await getUserPreferences(user.id);
+
+          // Check if the component is still mounted before updating state
+          if (!mounted) return;
+
+          if (prefs.theme) {
+            setTheme(prefs.theme);
+            localStorage.setItem("theme", prefs.theme);
+
+            if (prefs.theme === "dark") {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
+          }
+        }
+      } catch (err) {
+        if (!mounted) return; // Don't log if component unmounted
+        logFrontend({
+          level: 'ERROR',
+          message: `Error finding user profile: ${(err as Error).message}`,
+          component: 'NavUser',
+          url: globalThis.location.href,
+        });
+      }
+    }
+
+    fetchPrefs();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   React.useEffect(() => {
     const syncTheme = () => {
@@ -74,6 +92,8 @@ export function NavUser() {
 
     globalThis.addEventListener("storage", syncTheme);
     globalThis.addEventListener("storage_sync", syncTheme);
+
+
 
     return () => {
       globalThis.removeEventListener("storage", syncTheme);
@@ -110,6 +130,9 @@ export function NavUser() {
       }
     }
   };
+
+
+
 
   const handleLogout = async () => {
     try {
