@@ -3,7 +3,8 @@ import { type DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
-import { getQuestions, getRiddles } from "@/api/QuestionsAPI";
+import { getQuestions } from "@/api/QuestionsAPI";
+import { getRiddles } from "@/api/RiddlesAPI";
 import buildCompetitionEmail from "@/components/manageCompetitions/BuildEmail";
 import { type Question } from "@/types/questions/QuestionPagination.type";
 import { type Riddle } from "@/types/riddle/Riddle.type";
@@ -14,6 +15,7 @@ import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
 import type { CompetitionFormPayload } from "@/types/competition/Competition.type";
+
 
 interface CompetitionFormProps {
     initialData?: CompetitionFormPayload;

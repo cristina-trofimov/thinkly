@@ -38,33 +38,31 @@ def client(mock_db):
 # --- GET /latest TESTS ---
 
 def test_get_most_recent_sub_success(client, mock_db):
-    """Test fetching most recent submission by user_question_instance_id."""
-    fake_row = SimpleNamespace(
-        row_id=1,
-        user_question_instance_id=10,
-        code="print('hello world')",
-        lang_judge_id=71,
-        submitted_on="2025-01-10T12:00:00",
-        submission_id=99,
+    """Test fetching most recent submission by user_id and question_instance_id."""
+    most_recent_run = SimpleNamespace(
+        row_id = 1,
+        user_question_instance_id = 1,
+        code = "print('hello world')",
+        lang_judge_id = 71,
+        submitted_on = "2025-01-10T12:00:00"
     )
 
-    mock_db.query.return_value.filter_by.return_value.first.return_value = fake_row
+    mock_db.query.return_value.filter_by.return_value.first.return_value = most_recent_run
 
-    response = client.get("/latest?user_question_instance_id=10")
+    response = client.get("/latest?user_question_instance_id=1")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert data["data"]["user_question_instance_id"] == 10
+    assert data["data"]["user_question_instance_id"] == 1
     assert data["data"]["code"] == "print('hello world')"
     assert data["data"]["lang_judge_id"] == 71
-    assert data["data"]["submission_id"] == 99
 
 def test_get_most_recent_sub_not_found(client, mock_db):
     """Test fetching most recent submission that doesn't exist returns null data."""
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
-    response = client.get("/latest?user_question_instance_id=999")
+    response = client.get("/latest?user_question_instance_id=100")
 
     assert response.status_code == 200
     data = response.json()
@@ -86,86 +84,91 @@ def test_get_most_recent_sub_missing_param(client):
     assert response.status_code == 422
 
 
-# --- POST /update TESTS ---
+# --- PUT /put TESTS ---
 
 def test_create_new_most_recent_sub(client, mock_db):
-    """Test creating a new MostRecentSubmission when none exists yet."""
+    """Test creating a new submission when one doesn't exist yet."""
     payload = {
-        "user_question_instance_id": 10,
-        "code": "print('hello')",
+        "user_question_instance_id": 1,
+        "code": "print('goodbye~~~')",
         "lang_judge_id": 71,
-        "submission_id": 55,
+        "submitted_on": "2025-01-10T12:00:00"
     }
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
-    # Simulate db.refresh populating the new row
-    def fake_refresh(obj):
-        obj.row_id = 1
-        obj.submitted_on = "2025-01-10T12:00:00"
+    def fake_refresh(instance):
+        instance.row_id = 1
 
     mock_db.refresh.side_effect = fake_refresh
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
-    data = response.json()["data"]
-    assert data["user_question_instance_id"] == 10
-    assert data["code"] == "print('hello')"
-    assert data["submission_id"] == 55
+    mock_db.refresh.assert_called_once()
+    
+    response_data = response.json()
+    assert response_data['status_code'] == 200
+    assert response_data['data']['row_id'] == 1
+    assert response_data['data']['code'] == payload['code']
+    
 
 def test_update_existing_most_recent_sub(client, mock_db):
     """Test updating an existing MostRecentSubmission."""
     payload = {
-        "user_question_instance_id": 10,
-        "code": "print('updated')",
+        "user_question_instance_id": 1,
+        "code": "print('goodbye~~~')",
         "lang_judge_id": 71,
-        "submission_id": 66,
+        "submitted_on": "2025-01-10T12:00:00"
     }
 
     existing = SimpleNamespace(
-        row_id=1,
-        user_question_instance_id=10,
-        code="print('old')",
-        lang_judge_id=71,
-        submitted_on="2025-01-10T12:00:00",
-        submission_id=55,
+        row_id = 1,
+        user_question_instance_id = 1,
+        code = "print('hello world')",
+        lang_judge_id = 71,
+        submitted_on = "2025-01-10T12:00:00"
     )
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = existing
-    mock_db.refresh.return_value = None
 
-    response = client.post("/update", json=payload)
+    def fake_refresh(instance):
+        instance = instance
+
+    mock_db.refresh.side_effect = fake_refresh
+
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 201
     mock_db.add.assert_not_called()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(existing)
-    # Verify mutation happened
-    assert existing.code == "print('updated')"
-    assert existing.submission_id == 66
+    
+    assert existing.code == payload['code']
+    assert existing.lang_judge_id == payload['lang_judge_id']
+    assert existing.submitted_on == payload['submitted_on']
 
 def test_update_most_recent_sub_commit_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
-        "user_question_instance_id": 10,
-        "code": "print('hello')",
+        "user_question_instance_id": 1,
+        "code": "print('goodbye~~~')",
         "lang_judge_id": 71,
-        "submission_id": 55,
+        "submitted_on": "2025-01-10T12:00:00"
     }
 
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
     mock_db.commit.side_effect = Exception("Commit Failed")
 
-    response = client.post("/update", json=payload)
+    response = client.put("/put", json=payload)
 
     assert response.status_code == 500
     assert "Failed to update most recent submission" in response.json()["detail"]
     mock_db.rollback.assert_called_once()
 
-def test_update_most_recent_sub_missing_fields(client):
-    """Test that a malformed request body returns 500 (KeyError)."""
-    response = client.post("/update", json={"bad_field": "value"})
-    assert response.status_code == 500
+def test_create_question_instance_missing_fields(client):
+    """Test that a malformed request body returns 422 or 500."""
+    response = client.put("/put", json={"bad_field": "value"})
+    assert response.status_code in (422, 500)

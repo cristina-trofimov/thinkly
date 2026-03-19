@@ -135,7 +135,7 @@ def create_algotime(
         db: Annotated[Session, Depends(get_db)],
         current_user: Annotated[dict, Depends(role_required("admin"))]
 ):
-    logger.info(f"Creating AlgoTime series '{request.seriesName}'")
+    logger.info("Creating AlgoTime series")
 
     try:
         # Create AlgoTime series

@@ -2,32 +2,33 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { SubmissionType } from '../../types/SubmissionType.type'
 import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
-import type { Question } from '@/types/questions/QuestionPagination.type'
-import { useTestcases } from '../helpers/useTestcases'
+import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import type { MostRecentSub } from '@/types/MostRecentSub.type'
-import { getAllSubmissions } from '@/api/CodeSubmissionAPI'
-import { getProfile } from '@/api/AuthAPI'
+import { getAllSubmissions } from '@/api/SubmissionAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
 import type { Riddle } from '@/types/riddle/Riddle.type'
-import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 import { getAllLanguages } from '@/api/LanguageAPI'
+import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
 import SubmissionDetail from './SubmissionDetail'
+import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
+import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
+import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
 
 const CodeDescArea = (
-    { question, question_instance, mostRecentSub, }:
+    { question, question_instance, uqi, testcases }:
     { question: Question | undefined,
-      question_instance: QuestionInstance | undefined | null,
-      mostRecentSub: MostRecentSub | undefined
+       question_instance: QuestionInstance | undefined | null,
+       uqi: UserQuestionInstance | undefined | null,
+       testcases: TestCase[] | undefined | null,
     }
 ) => {
 
@@ -37,33 +38,29 @@ const CodeDescArea = (
         { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { testcases } = useTestcases(question?.question_id)
+    const { setUserQuestionInstance } = useCodingHooks(question) 
+
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
+    const [allLanguages, setAllLanguages, ] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
     const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-    const [hasSolvedRiddle, setHasSolvedRiddle] = useState(false)
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
-    const [languages, setLanguages] = useState<Language[]>()
-
     useEffect(() => {
-        if (!question?.question_id) return
-        setHasSolvedRiddle(false)
-        setRiddleObject(null)
-        setIsLoadingRiddle(true)
+        if (!question_instance?.question_instance_id && uqi?.riddle_complete) return
 
         const fetchRiddle = async () => {
+            setIsLoadingRiddle(true)
             try {
-                const data = await getRiddleById(question_instance?.riddle_id)
-
-                setRiddleObject(data)
+                await getRiddleById(question_instance?.riddle_id)
+                    .then((resp) => setRiddleObject(resp) )
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -72,33 +69,28 @@ const CodeDescArea = (
                     component: "CodeDescArea",
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
-                  });
-                setHasSolvedRiddle(true)
+                  })
             } finally {
                 setIsLoadingRiddle(false)
             }
         }
-
         fetchRiddle()
-
-    }, [question?.question_id, question_instance?.question_instance_id])
+    }, [question_instance])
 
     useEffect(() => {
-        if (hasSolvedRiddle) {
+        if (uqi?.user_question_instance_id) {
             const FetchSubmissions = async () => {
-                const user = await getProfile()
-                await getAllSubmissions(user.id, question_instance?.question_instance_id)
-                    .then((response) => {
-                        setSubmissions(response)
-                    })
-                await getAllLanguages(null)
-                    .then((response) => {
-                        setLanguages(response)
-                    })
+                const [subs, langs] = await Promise.all([
+                    getAllSubmissions(uqi?.user_question_instance_id),
+                    getAllLanguages(null)
+                ])
+
+                setSubmissions(subs)
+                setAllLanguages(langs)
             }
             FetchSubmissions()
         }
-    }, [hasSolvedRiddle, mostRecentSub])
+    }, [uqi])
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -113,7 +105,7 @@ const CodeDescArea = (
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
 
-    if (!question) return
+    if (!question || !question_instance || !uqi) return
 
     const fullSize = containerRef.current?.offsetWidth
     let halfSize = 0, quarterSize = 0
@@ -128,10 +120,9 @@ const CodeDescArea = (
             question.question_id,
             tab as "description" | "submissions" | "leaderboard"
         )
-    }//  Riddle Rendering ------------------------------------
-    const needsRiddle = !hasSolvedRiddle;
+    }
 
-    if (needsRiddle) {
+    if (!uqi?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -155,7 +146,11 @@ const CodeDescArea = (
                         {/* Pass the entire object to the User Form */}
                         <RiddleUserForm
                             riddle={riddleObject}
-                            onSolved={() => setHasSolvedRiddle(true)}
+                            onSolved={async () => {
+                                uqi.riddle_complete = true
+                                await putUserInstance(uqi)
+                                    .then((resp) => setUserQuestionInstance(resp))
+                            }}
                         />
                     </div>
                 </div>
@@ -229,47 +224,50 @@ const CodeDescArea = (
             {/* Submissions */}
             <TabsContent value='submissions' data-testid="tabs-content-submissions">
                 <div className='h-full p-6'>
-                    {selectedSubmission === null ?
-                        (submissions ? (
-                            <Table data-testid="table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Language</TableHead>
-                                        <TableHead className="text-right">Memory</TableHead>
-                                        <TableHead className="text-right">Runtime</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {submissions?.map((s, idx) => {
-                                        const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+                    {selectedSubmission && (
+                        <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
+                    )}
 
-                                        
+                    {!selectedSubmission && (!submissions || submissions?.length < 1) && (
+                        <div className='flex items-center justify-center h-full text-muted-foreground'>
+                            You've yet to submit anything
+                        </div> )}
 
-                                        return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                        onClick={() => setSelectedSubmission(s)}
-                                        >
-                                            <TableCell className='grid grid-rows-2' >
-                                                <span className={`${status_color}`} >{s.status}</span>
-                                                <span className='text-card' >{TimeAgoFormat(s.submitted_on)}</span>
-                                            </TableCell>
-                                            <TableCell className="" >
-                                                {languages?.find(lang => lang.lang_judge_id === s.question_instance_id)?.display_name}
-                                            </TableCell>
-                                            <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                            </TableRow>
-                                    })}
-                                </TableBody>
-                                <TableFooter className='mt-3' >
-                                    <TableRow>
-                                        <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
-                                    </TableRow>
-                                </TableFooter>
-                            </Table>
-                        )
-                        : ( <div>You've yet to submit anything</div> ))
-                        : ( <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} /> )
-                    }
+                    {!selectedSubmission && submissions && submissions?.length > 0 && (
+                        <Table data-testid="table">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Language</TableHead>
+                                    <TableHead className="text-right">Memory</TableHead>
+                                    <TableHead className="text-right">Runtime</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {submissions?.map((s, idx) => {
+                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+
+                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
+                                    onClick={() => setSelectedSubmission(s)}
+                                    >
+                                        <TableCell className='grid grid-rows-2' >
+                                            <span className={`${status_color}`} >{s.status}</span>
+                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
+                                        </TableCell>
+                                        <TableCell className="" >
+                                            {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                        </TableCell>
+                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
+                                        </TableRow>
+                                })}
+                            </TableBody>
+                            <TableFooter className='mt-3' >
+                                <TableRow>
+                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    )}
                 </div>
             </TabsContent>
 

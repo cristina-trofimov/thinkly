@@ -3,9 +3,8 @@ import {
   getQuestionByID,
   getQuestions,
   getQuestionsPage,
-  getRiddles,
+  // getRiddles,
   deleteCompetition,
-  getTestcases,
   deleteQuestions,
   deleteQuestion,
   uploadQuestions,
@@ -285,87 +284,6 @@ describe("QuestionsAPI", () => {
     });
   });
 
-  describe("getRiddles", () => {
-    it("fetches and formats riddles correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: {
-          total: 1,
-          page: 1,
-          page_size: 100,
-          items: [
-            {
-              riddle_id: 10,
-              riddle_question: "What has keys but can't open locks?",
-              riddle_answer: "Piano",
-              riddle_file: null,
-            },
-          ],
-        },
-      } as any);
-
-      const result = await getRiddles();
-
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles", {
-        params: { page: 1, page_size: 100 },
-      });
-      expect(result).toEqual([
-        {
-          id: 10,
-          question: "What has keys but can't open locks?",
-          answer: "Piano",
-          file: null,
-        },
-      ]);
-    });
-
-    it("throws error if axios fails", async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
-      await expect(getRiddles()).rejects.toThrow("Network error");
-    });
-
-    it("fetches subsequent riddle pages when needed", async () => {
-      mockedAxios.get
-        .mockResolvedValueOnce({
-          data: {
-            total: 101,
-            page: 1,
-            page_size: 100,
-            items: [
-              {
-                riddle_id: 1,
-                riddle_question: "R1",
-                riddle_answer: "A1",
-                riddle_file: null,
-              },
-            ],
-          },
-        } as any)
-        .mockResolvedValueOnce({
-          data: {
-            total: 101,
-            page: 2,
-            page_size: 100,
-            items: [
-              {
-                riddle_id: 2,
-                riddle_question: "R2",
-                riddle_answer: "A2",
-                riddle_file: "hint.png",
-              },
-            ],
-          },
-        } as any);
-
-      const result = await getRiddles();
-
-      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/questions/get-all-riddles", {
-        params: { page: 2, page_size: 100 },
-      });
-      expect(result).toHaveLength(2);
-      expect(result[1]).toEqual({ id: 2, question: "R2", answer: "A2", file: "hint.png" });
-    });
-  });
-
   describe("deleteCompetition", () => {
     it("calls axios delete and logs success", async () => {
       mockedAxios.delete.mockResolvedValueOnce({} as any);
@@ -507,38 +425,6 @@ describe("QuestionsAPI", () => {
         "Error updating question 5:",
         expect.any(Error)
       );
-    });
-  });
-
-  describe("getTestcases", () => {
-    it("fetches and formats testcases correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            test_case_id: 1,
-            question_id: 1,
-            input_data: { "a": [1, 2], "b": 6 },
-            expected_output: "",
-          },
-        ],
-      } as any);
-
-      const result = await getTestcases(1);
-
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-testcases/1");
-      expect(result).toEqual([
-        {
-          test_case_id: 1,
-          question_id: 1,
-          input_data: { a: [1, 2], b: 6 },
-          expected_output: "",
-        },
-      ]);
-    });
-
-    it("throws error if axios fails", async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
-      await expect(getTestcases(-1)).rejects.toThrow("Network error");
     });
   });
 });

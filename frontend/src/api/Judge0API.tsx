@@ -1,9 +1,9 @@
 import axiosClient from "@/lib/axiosClient";
-import { updateMostRecentSub } from "./MostRecentSubAPI";
-import type { CodeRunResponse } from "@/types/CodeRunResponse.type";
+import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
+import { getProfile } from "./AuthAPI";
 
 
 export function parse_input_output(testcases: TestCase[]) {
@@ -34,7 +34,6 @@ export function parse_input_output(testcases: TestCase[]) {
 }
 
 export async function submitToJudge0(
-    user_id: number,
     question_instance_id: number | undefined,
     source_code: string,
     language_id: number | undefined,
@@ -44,9 +43,8 @@ export async function submitToJudge0(
         if (!question_instance_id || !language_id) {
             throw new Error("RunCode: Question instance or language cannot be undefined")
         }
-        const { stdin, expected_output } = parse_input_output(testcases)
 
-        console.log("sumbitting")
+        const { stdin, expected_output } = parse_input_output(testcases)
 
         const response = await axiosClient.post(
             "/judge0",
@@ -58,13 +56,11 @@ export async function submitToJudge0(
             }
         )
 
-        const mostRecentSubResponse = await updateMostRecentSub(user_id, question_instance_id, source_code, language_id)
-
-        const userPref = await updateLastProgLang(user_id, language_id)
+        const user = await getProfile()
+        const userPref = await updateLastProgLang(user.id, language_id)
 
         return {
             judge0Response: response['data'],
-            mostRecentSubResponse: mostRecentSubResponse,
             userPrefs: userPref
         }
 

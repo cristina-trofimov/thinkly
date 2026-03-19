@@ -1,11 +1,21 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { getTestcases } from '../src/api/QuestionsAPI'
+import { getTestcases } from '../src/api/TestCasesAPI'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import { TestCase } from '../src/types/questions/QuestionPagination.type'
 
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 
-jest.mock('../src/api/QuestionsAPI', () => ({
+jest.mock('../src/api/TestCasesAPI', () => ({
     getTestcases: jest.fn()
 }))
 

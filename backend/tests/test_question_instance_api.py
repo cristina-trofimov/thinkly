@@ -38,8 +38,8 @@ def client(mock_db):
 
 # --- GET /find TESTS ---
 
-def test_get_question_instance_success(client, mock_db):
-    """Test fetching a question instance by question_id."""
+def test_get_question_instance_with_event_success(client, mock_db):
+    """Test fetching a question instance by question_id and event_id."""
     fake_instances = [
         SimpleNamespace(
             question_instance_id=1,
@@ -55,60 +55,35 @@ def test_get_question_instance_success(client, mock_db):
         )
     ]
 
-    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.all.return_value = fake_instances
-    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_instances
+    mock_db.query.return_value.filter_by.return_value.first.return_value = fake_instances[0]
 
-    response = client.get("/find?question_id=5")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status_code"] == 200
-    assert len(data["data"]) == 2
-    assert data["data"][0]["question_id"] == 5
-    assert data["data"][0]["event_id"] == 10
-
-def test_get_question_instance_with_event_id(client, mock_db):
-    """Test fetching a question instance filtered by both question_id and event_id."""
-    fake_instances = [
-        SimpleNamespace(
-            question_instance_id=2,
-            event_id=10,
-            question_id=5,
-            riddle_id=3,
-        )
-    ]
-
-    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.all.return_value = fake_instances
-    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_instances
-
-    response = client.get("/find?question_id=5&event_id=10")
+    response = client.get("/find?event_id=10&question_id=5")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert len(data["data"]) == 1
-    assert data["data"][0]["event_id"] == 10
+    assert data["data"]["question_instance_id"] == 1
+    assert data["data"]["riddle_id"] is None
 
 def test_get_question_instance_empty(client, mock_db):
     """Test fetching a question instance that doesn't exist."""
-    mock_db.query.return_value.filter_by.return_value.all.return_value = []
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
-    response = client.get("/find?question_id=999")
+    response = client.get("/find?event_id=10&question_id=5")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert data["data"] == []
+    assert data["data"] == None
 
 def test_get_question_instance_db_error(client, mock_db):
     """Test that a database error returns 500."""
     mock_db.query.return_value.filter_by.side_effect = Exception("DB Connection Lost")
 
-    response = client.get("/find?question_id=5")
+    response = client.get("/find?event_id=10&question_id=5")
 
     assert response.status_code == 500
     assert "Failed to retrieve question instance" in response.json()["detail"]
-
 
 
 # --- GET /by-event TESTS ---
@@ -130,17 +105,27 @@ def test_get_all_question_instances_success(client, mock_db):
         )
     ]
 
-    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.all.return_value = fake_instances
-    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_instances
+    mock_db.query.return_value.filter_by.return_value.all.return_value = [fake_instances[0]]
 
     response = client.get("/by-event?event_id=5")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert len(data["data"]) == 2
+    assert len(data["data"]) == 1
     assert data["data"][0]["question_id"] == 5
-    assert data["data"][0]["event_id"] == 10
+    assert data["data"][0]["riddle_id"] is None
+
+def test_get_all_question_instances_empty(client, mock_db):
+    """Test fetching all question instances for event_id that doesn't exist."""
+    mock_db.query.return_value.filter_by.return_value.first.return_value = []
+
+    response = client.get("/by-event?event_id=5")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status_code"] == 200
+    assert data["data"] == []
 
 def test_get_all_question_instances_db_error(client, mock_db):
     """Test that a database error returns 500."""
@@ -154,13 +139,15 @@ def test_get_all_question_instances_db_error(client, mock_db):
 
 # --- PUT /put TESTS ---
 
-def test_push_question_instance_no_event_id(client, mock_db):
+def test_push_new_question_instance_no_event_id(client, mock_db):
     """Test creating a practice instance (event_id is None) — always inserts."""
     payload = {
         "question_id": 5,
         "event_id": None,
         "riddle_id": None,
     }
+    
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     # Simulate the refreshed instance having an ID
     def fake_refresh(instance):
@@ -173,25 +160,24 @@ def test_push_question_instance_no_event_id(client, mock_db):
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
     data = response.json()
     assert data["status_code"] == 200
     assert data["data"]["question_id"] == 5
     assert data["data"]["event_id"] is None
 
-def test_put_question_instance_new_with_event_id(client, mock_db):
-    """Test creating a new instance when one doesn't exist yet for the event."""
+def test_push_new_question_instance_with_event_id(client, mock_db):
+    """Test creating an instance for an event."""
     payload = {
         "question_id": 5,
         "event_id": 10,
         "riddle_id": None,
     }
 
-    # first() returns None -> no existing instance -> should INSERT
-    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = None
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
-
+    
     def fake_refresh(instance):
-        instance.question_instance_id = 2
+        instance.question_instance_id = 1
 
     mock_db.refresh.side_effect = fake_refresh
 
@@ -200,8 +186,36 @@ def test_put_question_instance_new_with_event_id(client, mock_db):
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+    data = response.json()
+    assert data["data"]["question_id"] == 5
+    assert data["data"]["event_id"] == 10
 
-def test_update_existing_question_instance(client, mock_db):
+def test_update_existing_question_instance_without_event(client, mock_db):
+    """Test updating an existing instance when event_id is not provided."""
+    payload = {
+        "question_id": 5,
+        "event_id": None,
+        "riddle_id": 3,
+    }
+
+    existing = SimpleNamespace(
+        question_instance_id=2,
+        event_id=None,
+        question_id=5,
+        riddle_id=None,
+    )
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = existing
+
+    response = client.put("/put", json=payload)
+
+    assert response.status_code == 201
+    mock_db.add.assert_not_called()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(existing)
+
+def test_update_existing_question_instance_with_event(client, mock_db):
     """Test updating an existing instance when event_id is provided."""
     payload = {
         "question_id": 5,
@@ -216,19 +230,14 @@ def test_update_existing_question_instance(client, mock_db):
         riddle_id=None,
     )
 
-    mock_db.query.return_value.filter_by.return_value.filter_by.return_value.first.return_value = existing
-
-    def fake_refresh(instance):
-        instance = instance
-
-    mock_db.refresh.side_effect = fake_refresh
+    mock_db.query.return_value.filter_by.return_value.first.return_value = existing
 
     response = client.put("/put", json=payload)
 
     assert response.status_code == 201
-    # add should NOT be called since the instance already exists
     mock_db.add.assert_not_called()
     mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(existing)
 
 def test_put_question_instance_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""

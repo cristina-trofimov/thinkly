@@ -1,6 +1,6 @@
 import { Button } from '../ui/button'
-import type { SubmissionType } from '@/types/SubmissionType.type'
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
+import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 
 const SubmissionDetail = (
     { selectedSubmission, goBack } 
@@ -44,7 +44,7 @@ const SubmissionDetail = (
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Submitted</span>
-                                <span className="font-mono text-sm">{TimeAgoFormat(selectedSubmission.submitted_on)}</span>
+                                <span className="font-mono text-sm">{TimeAgoFormat(selectedSubmission.submitted_on.toISOString())}</span>
                             </div>
                         </div>
                     </div>

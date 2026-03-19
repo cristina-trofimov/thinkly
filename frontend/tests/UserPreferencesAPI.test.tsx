@@ -1,5 +1,5 @@
 import axiosClient from "../src/lib/axiosClient"
-import type { UserPreferences } from "../src/types/UserPreferences.type"
+import type { UserPreferences } from "../src/types/account/UserPreferences.type"
 import { getUserPrefs, updateAllPrefs, updateThemePref, updateNotifPref, updateLastProgLang } from "../src/api/UserPreferencesAPI"
 import { logFrontend } from "../src/api/LoggerAPI"
 
@@ -21,6 +21,7 @@ jest.mock('../src/lib/axiosClient', () => ({
         get: jest.fn(),
         post: jest.fn(),
         put: jest.fn(),
+        patch: jest.fn(),
         delete: jest.fn(),
     },
     API_URL: 'http://localhost:8000',
@@ -83,11 +84,11 @@ describe("User preferences", () => {
     it("updateAllPrefs: updates all the user preferences", async () => {
         mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
 
-        await updateAllPrefs(mockUserPrefs)
+        await updateAllPrefs(user_id, mockUserPrefs)
         
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
         expect(mockedAxios.post).toHaveBeenCalledWith(
-            "/prefs/update",
+            "/prefs/add",
             expect.objectContaining({
                 user_id: mockUserPrefs.user_id,
                 theme: mockUserPrefs.theme,
@@ -100,7 +101,7 @@ describe("User preferences", () => {
     it("handles errors from updateAllPrefs", async () => {
         mockedAxios.post.mockRejectedValueOnce(new Error("Error updating all user preferences"))
 
-        await expect(updateAllPrefs(mockUserPrefs))
+        await expect(updateAllPrefs(user_id, mockUserPrefs))
                     .rejects.toThrow("Error updating all user preferences")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
@@ -113,12 +114,12 @@ describe("User preferences", () => {
     })
 
     it("updateThemePref: updates user's theme", async () => {
-        mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
+        mockedAxios.patch.mockImplementation(async () => ({ data: mockResponse }))
 
         await updateThemePref(user_id, "dark")
         
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-        expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledWith(
             "/prefs/theme",
             expect.objectContaining({
                 user_id: mockUserPrefs.user_id,
@@ -128,12 +129,12 @@ describe("User preferences", () => {
     })
 
     it("handles errors from updateThemePref", async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating user's theme"))
+        mockedAxios.patch.mockRejectedValueOnce(new Error("Error updating user's theme"))
 
         await expect(updateThemePref(user_id, 'dark'))
                     .rejects.toThrow("Error updating user's theme")
 
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
         expect(mockedLogger).toHaveBeenCalledWith(
             expect.objectContaining({
               level: "ERROR",
@@ -143,12 +144,12 @@ describe("User preferences", () => {
     })
 
     it("updateNotifPref: updates user's notification setting", async () => {
-        mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
+        mockedAxios.patch.mockImplementation(async () => ({ data: mockResponse }))
 
         await updateNotifPref(user_id, false)
         
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-        expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledWith(
             "/prefs/notif",
             expect.objectContaining({
                 user_id: mockUserPrefs.user_id,
@@ -158,12 +159,12 @@ describe("User preferences", () => {
     })
 
     it("handles errors from updateNotifPref", async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating user's notification setting"))
+        mockedAxios.patch.mockRejectedValueOnce(new Error("Error updating user's notification setting"))
 
         await expect(updateNotifPref(user_id, false))
                     .rejects.toThrow("Error updating user's notification setting")
 
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
         expect(mockedLogger).toHaveBeenCalledWith(
             expect.objectContaining({
               level: "ERROR",
@@ -173,12 +174,12 @@ describe("User preferences", () => {
     })
 
     it("updateLastProgLang: updates user's last used programming language", async () => {
-        mockedAxios.post.mockImplementation(async () => ({ data: mockResponse }))
+        mockedAxios.patch.mockImplementation(async () => ({ data: mockResponse }))
 
         await updateLastProgLang(user_id, 51)
         
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-        expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledWith(
             "/prefs/prog",
             expect.objectContaining({
                 user_id: mockUserPrefs.user_id,
@@ -188,12 +189,12 @@ describe("User preferences", () => {
     })
 
     it("handles errors from updateLastProgLang", async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating user's last programming language"))
+        mockedAxios.patch.mockRejectedValueOnce(new Error("Error updating user's last programming language"))
 
         await expect(updateLastProgLang(user_id, 51))
                     .rejects.toThrow("Error updating user's last programming language")
 
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.patch).toHaveBeenCalledTimes(1)
         expect(mockedLogger).toHaveBeenCalledWith(
             expect.objectContaining({
               level: "ERROR",

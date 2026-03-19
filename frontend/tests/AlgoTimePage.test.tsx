@@ -1,12 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import AlgoTimePage from "../src/views/AlgoTimePage";
-import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
+import { getAllAlgotimeSessions } from "../src/api/AlgotimeAPI";
 
 jest.mock("@/lib/axiosClient", () => ({
   default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
 }));
 
-jest.mock("@/api/AlgotimeAPI");
+jest.mock("../src/api/AlgotimeAPI");
 
 const mockSessions = [
   {

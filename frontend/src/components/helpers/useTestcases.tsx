@@ -1,4 +1,4 @@
-import { getTestcases } from "@/api/QuestionsAPI";
+import { getTestcases } from "@/api/TestCasesAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
 import { useEffect, useRef, useState } from "react";
 
@@ -13,7 +13,7 @@ export function useTestcases(question_id?: number) {
             setLoading(false)
             return
         }
-        
+
         setLoading(true)
         getTestcases(question_id)
             .then(setTestcases)

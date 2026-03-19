@@ -1,4 +1,4 @@
-import { Dialog, DialogClose, DialogContent, DialogOverlay, DialogTitle } from '@radix-ui/react-dialog'
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogOverlay, DialogTitle } from '@radix-ui/react-dialog'
 import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { IconExclamationMark } from '@tabler/icons-react'
@@ -23,7 +23,8 @@ const ResetCode = ({
 
     return (
         <Dialog open={isOpen} >
-            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogTitle></DialogTitle>
+            <DialogDescription></DialogDescription>
             <DialogOverlay className='fixed inset-0 z-9998 bg-black/40 backdrop-blur-sm' data-testid="confirm-code-reset" >
                 <DialogContent onEscapeKeyDown={() => handleClose(false)}
                     className='bg-transparent z-9999 border-none
@@ -50,7 +51,7 @@ const ResetCode = ({
                         </div>
                         <DialogFooter className='px-6 pb-6 flex justify-between' >
                             <Button className='bg-primary hover:bg-primary/75'
-                                data-testid="no-reset-btn"
+                                data-testid="cancel-reset-btn"
                                 onClick={() => handleClose(false)} >
                                 Cancel
                             </Button>
