@@ -294,11 +294,11 @@ const CodeDescArea = (
             </TabsContent>
 
             {/* Leaderboard — only mounted when an event is active */}
-            {hasEvent && (
+            {eventId !== undefined && (
                 <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
                     <div className='h-full p-6'>
                         <EventLeaderboard
-                            eventId={eventId!}
+                            eventId={eventId}
                             eventName={eventName ?? ""}
                             isCompetitionEvent={isCompetitionEvent}
                             currentUserId={currentUserId}
