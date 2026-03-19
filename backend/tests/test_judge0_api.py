@@ -113,15 +113,15 @@ def test_judge0_route_success(mock_submit):
         "stdout": "OK"
     }
 
-    response = judge0_run_code({
+    response = client.post("/judge0", json={
         "source_code": "print('Hello')",
         "language_id": "71",
         "stdin": "",
         "expected_output": None
     })
 
-    assert response['status_code'] == 200
-    assert response["ok"] is True
+    assert response.status_code == 200
+    assert response.json()["ok"] is True
 
 
 @patch("src.endpoints.judge0_api.submit_to_judge0")
