@@ -321,6 +321,7 @@ class Submission(Base):
     message: Mapped[Optional[str]] = mapped_column(nullable=True)
     stdout: Mapped[Optional[str]] = mapped_column(nullable=True)
     stderr: Mapped[Optional[str]] = mapped_column(nullable=True)
+    lang_judge_id: Mapped[int] = mapped_column(ForeignKey(FK_LANGUAGE_LANG_JUDGE_ID, ondelete='CASCADE'))
 
     user_question_instance: Mapped[UserQuestionInstance] = relationship('UserQuestionInstance',
                                                                         back_populates='submissions',
