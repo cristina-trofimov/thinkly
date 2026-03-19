@@ -1,10 +1,14 @@
 import os
 import time
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from dotenv import load_dotenv
 import logging
 from services.posthog_analytics import track_custom_event
+
+limiter = Limiter(key_func=get_remote_address)
 
 logger = logging.getLogger(__name__)
 
@@ -139,16 +143,17 @@ def submit_to_judge0(
 @judge0_router.post("",
                     responses={400: {"description": "Error sending problem to Judge0."}}
                     )
-def judge0_run_code(request: dict):
+@limiter.limit("10/minute")
+def judge0_run_code(request: Request, body: dict = None):
     # Extract user_id from request if available (set by frontend or auth middleware)
-    user_id = request.get("user_id", "anonymous")
+    user_id = body.get("user_id", "anonymous") if body else "anonymous"
 
     try:
         response = submit_to_judge0(
-            source_code=request["source_code"],
-            language_id=request['language_id'],
-            stdin=request['stdin'],
-            expected_output=request.get("expected_output"),
+            source_code=body["source_code"],
+            language_id=body['language_id'],
+            stdin=body['stdin'],
+            expected_output=body.get("expected_output"),
             user_id=str(user_id),
         )
         return {"ok": True, "status_code": 200, **response}

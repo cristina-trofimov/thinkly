@@ -26,6 +26,8 @@ from services.posthog_analytics import init_posthog, track_api_call, shutdown_po
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 from dotenv import load_dotenv
 import logging
@@ -37,7 +39,6 @@ JUDGE0_URL = os.getenv("JUDGE0_URL")
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
 
 # Modern lifespan event handler (replaces deprecated on_event)
 @asynccontextmanager
@@ -88,7 +89,7 @@ app.add_middleware(
     max_age=3600,  # Allow browser to cache preflight for 1 hour
     expose_headers=["*"],
 )
-
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- PostHog Analytics Middleware ---
 @app.middleware("http")
