@@ -20,6 +20,10 @@ from endpoints.user_preferences_api import user_preferences_router
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from endpoints.user_question_instance_api import user_question_instance_router
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from logging_config import setup_logging
 from services.competition_cleanup import cleanup_ended_competitions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
@@ -37,7 +41,6 @@ JUDGE0_URL = os.getenv("JUDGE0_URL")
 
 setup_logging()
 logger = logging.getLogger(__name__)
-
 
 # Modern lifespan event handler (replaces deprecated on_event)
 @asynccontextmanager
@@ -64,6 +67,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+# --- Rate Limiting ---
+limiter = Limiter(key_func=get_remote_address, default_limits=["25/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 # --- Allow frontend requests (CORS setup) ---

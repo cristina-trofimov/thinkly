@@ -1,14 +1,17 @@
 import os
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, field_validator
 from typing import List
 from email_validator import validate_email, EmailNotValidError
 from dotenv import load_dotenv
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import logging
 from services.posthog_analytics import track_custom_event
 
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 # Load environment variables
 load_dotenv()
@@ -135,14 +138,15 @@ def send_email_via_brevo(to: list[str], subject: str, text: str,
         503: {"description": "Email service is not configured."}
     }
 )
-async def send_email(request: SendEmailRequest):
+@limiter.limit("3/minute")
+async def send_email(request: Request, body: SendEmailRequest):
     if not BREVO_API_KEY or not DEFAULT_SENDER_EMAIL:
         raise HTTPException(status_code=503, detail="Email service is not configured.")
     try:
         result = send_email_via_brevo(
-            to=request.to,
-            subject=request.subject,
-            text=request.text
+            to=body.to,
+            subject=body.subject,
+            text=body.text
         )
 
         # Track email sent
@@ -150,8 +154,8 @@ async def send_email(request: SendEmailRequest):
             user_id="system",
             event_name="email_sent",
             properties={
-                "recipient_count": len(request.to),
-                "subject": request.subject[:50],
+                "recipient_count": len(body.to),
+                "subject": body.subject[:50],
             }
         )
 
