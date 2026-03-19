@@ -46,10 +46,6 @@ jest.mock('../src/hooks/useAnalytics', () => ({
   }),
 }))
 
-jest.mock('../src/components/leaderboards/CurrentLeaderboard', () => ({
-  CurrentLeaderboard: () => <div data-testid="leaderboard" />,
-}))
-
 jest.mock('../src/components/forms/RiddleForm', () => ({
   __esModule: true,
   default: ({ onSolved }: any) => (
