@@ -76,7 +76,7 @@ jest.mock("@/components/ui/button", () => ({
 // ---------------------------------------------------------------------------
 
 const mockUser = {
-  id: "user-123",
+  id: 21,
   firstName: "John",
   lastName: "Doe",
   email: "john.doe@example.com",
@@ -119,7 +119,7 @@ describe("ProfilePage Component", () => {
   });
 
   test("renders loading spinner while fetching profile", () => {
-    (getProfile as jest.Mock).mockReturnValue(new Promise(() => {})); // Never resolves
+    (getProfile as jest.Mock).mockReturnValue(new Promise(() => { })); // Never resolves
     render(<ProfilePage />);
     expect(document.querySelector(".animate-spin")).toBeTruthy();
   });
@@ -151,17 +151,17 @@ describe("ProfilePage Component", () => {
     await screen.findByText("John Doe");
 
     const editButtons = screen.getAllByRole("button").filter(b => b.textContent?.includes("Pencil"));
-    fireEvent.click(editButtons[0]); // First name
+    fireEvent.click(editButtons[0]);
 
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "Jane" } });
     fireEvent.click(screen.getByText("Check"));
 
     await waitFor(() => {
-      expect(updateAccount).toHaveBeenCalledWith("user-123", { first_name: "Jane" });
+      expect(updateAccount).toHaveBeenCalledWith(mockUser.id, { first_name: "Jane" });
       expect(toast.success).toHaveBeenCalledWith("Profile updated successfully.");
       expect(screen.queryByRole("textbox")).toBeNull();
     });
-  });
+  })
 
   test("displays error toast when field update fails", async () => {
     (updateAccount as jest.Mock).mockRejectedValue(new Error("Update failed"));
@@ -203,8 +203,8 @@ describe("ProfilePage Component", () => {
 
     expect(document.documentElement.classList.contains("dark")).toBe(true);
     expect(localStorage.getItem("theme")).toBe("dark");
-    expect(updateUserPreferences).toHaveBeenCalledWith("user-123", expect.objectContaining({ theme: "dark" }));
-  });
+    expect(updateUserPreferences).toHaveBeenCalledWith(mockUser.id, expect.objectContaining({ theme: "dark" }));
+  })
 
   test("syncs theme when storage_sync event is dispatched", async () => {
     render(<ProfilePage />);
@@ -215,8 +215,8 @@ describe("ProfilePage Component", () => {
 
     // Check if the UI buttons would reflect the change (this depends on your CSS classes)
     await waitFor(() => {
-        const darkBtn = screen.getByText("Dark").closest('button');
-        expect(darkBtn).toHaveClass('bg-primary');
+      const darkBtn = screen.getByText("Dark").closest('button');
+      expect(darkBtn).toHaveClass('bg-primary');
     });
   });
 
@@ -227,18 +227,18 @@ describe("ProfilePage Component", () => {
   test("toggling notifications triggers auto-save", async () => {
     render(<ProfilePage />);
     const toggle = await screen.findByRole("switch");
-    
+
     fireEvent.click(toggle);
 
-    expect(updateUserPreferences).toHaveBeenCalledWith("user-123", expect.objectContaining({ 
-        notifications_enabled: false 
+    expect(updateUserPreferences).toHaveBeenCalledWith(mockUser.id, expect.objectContaining({
+      notifications_enabled: false
     }));
-  });
+  })
 
   test("logs error and shows toast when auto-save fails", async () => {
     (updateUserPreferences as jest.Mock).mockRejectedValue(new Error("Sync error"));
     render(<ProfilePage />);
-    
+
     const darkBtn = await screen.findByText("Dark");
     fireEvent.click(darkBtn);
 

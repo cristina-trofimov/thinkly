@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
-import type { UserPreferences } from "@/types/UserPreferences.type";
+import type { UserPreferences } from "@/types/account/UserPreferences.type";
 import type { Account, AccountsApiItem, AccountsApiResponse, UserType } from "@/types/account/Account.type";
 
 export type AccountsSort =

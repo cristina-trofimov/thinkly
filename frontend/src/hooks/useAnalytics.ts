@@ -233,13 +233,13 @@ export function useAnalytics() {
   }
 
   function trackCodeRun(
-    questionId: number,
+    questionId: number | undefined,
     language: Language | undefined,
     status: string,
     passed: boolean,
     executionTimeSeconds?: string
   ) {
-    if (!language) return
+    if (!language || !questionId) return
     posthog.capture("coding_code_run", {
       question_id: questionId,
       language,

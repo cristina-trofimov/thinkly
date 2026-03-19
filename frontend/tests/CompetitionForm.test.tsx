@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { CompetitionForm } from "../src/components/forms/CompetitionForm";
-import { getQuestions, getRiddles } from "../src/api/QuestionsAPI";
+import { getQuestions } from "../src/api/QuestionsAPI";
+import { getRiddles } from "../src/api/RiddlesAPI";
 import { logFrontend } from "../src/api/LoggerAPI";
 import buildCompetitionEmail from "../src/components/manageCompetitions/BuildEmail";
 import type { CompetitionFormPayload } from "../src/types/competition/Competition.type";
@@ -26,6 +27,7 @@ jest.mock('../src/lib/axiosClient', () => ({
 
 // Mock dependencies
 jest.mock("../src/api/QuestionsAPI");
+jest.mock("../src/api/RiddlesAPI");
 jest.mock("../src/api/LoggerAPI");
 jest.mock("../src/components/manageCompetitions/BuildEmail", () => ({
   __esModule: true,

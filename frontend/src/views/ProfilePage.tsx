@@ -26,7 +26,7 @@ import { useNavigate, useOutlet } from "react-router-dom";
 import { toast } from "sonner";
 import { logFrontend } from "@/api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import type { UserPreferences } from "@/types/UserPreferences.type";
+import type { UserPreferences } from "@/types/account/UserPreferences.type";
 import { getUserPrefs } from "@/api/UserPreferencesAPI";
 
 // Extending the local Account type to include the Google provider check
