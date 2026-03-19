@@ -143,7 +143,7 @@ def submit_to_judge0(
 @judge0_router.post("",
                     responses={400: {"description": "Error sending problem to Judge0."}}
                     )
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")
 def judge0_run_code(request: Request, body: dict = None):
     # Extract user_id from request if available (set by frontend or auth middleware)
     user_id = body.get("user_id", "anonymous") if body else "anonymous"
