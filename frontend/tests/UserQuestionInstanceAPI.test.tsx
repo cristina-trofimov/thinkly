@@ -38,7 +38,8 @@ const user_id = 1
 const question_instance_id = 1
 
 const userQuestionInstance: UserQuestionInstance = {
-    user_id:user_id,
+    user_question_instance_id: 123,
+    user_id: user_id,
     question_instance_id: question_instance_id,
     points: 100,
     riddle_complete: null,
