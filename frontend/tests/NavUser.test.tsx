@@ -1,424 +1,314 @@
-/// <reference types="jest" />
+import React from 'react'
+import '@testing-library/jest-dom'
+import { render, screen, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { NavUser } from '../src/components/layout/NavUser'
+import { logout, getProfile } from '../src/api/AuthAPI'
+import { getUserPreferences, updateUserPreferences } from '../src/api/AccountsAPI'
+import { logFrontend } from '../src/api/LoggerAPI'
+import { useNavigate } from 'react-router-dom'
+import { Account } from '../src/types/account/Account.type'
 
-import { render, screen, within, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { NavUser } from "../src/components/layout/NavUser";
+// ─── Mocks ───────────────────────────────────────────────────────────────────
 
-const { TextEncoder, TextDecoder } = require('util');
+jest.mock('../src/api/AuthAPI', () => ({
+    logout: jest.fn(),
+    getProfile: jest.fn(),
+}))
 
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+jest.mock('../src/api/AccountsAPI', () => ({
+    getUserPreferences: jest.fn(),
+    updateUserPreferences: jest.fn(),
+}))
 
-// Mock the sidebar hook
-const mockUseSidebar = jest.fn();
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn(),
+}))
 
-// Mock react-router-dom
-const mockNavigate = jest.fn();
-jest.mock("react-router-dom", () => ({
-  useNavigate: () => mockNavigate,
-}));
+jest.mock('react-router-dom', () => ({
+    ...jest.requireActual('react-router-dom'),
+    useNavigate: jest.fn(),
+}))
 
-// Mock the auth API — covers both logout and getProfile (used when no user prop)
-jest.mock("../src/api/AuthAPI", () => ({
-  logout: jest.fn(),
-  getProfile: jest.fn(() =>
-    Promise.resolve({
-      id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      accountType: "user",
+jest.mock('../src/components/helpers/AvatarInitials', () => ({
+    AvatarInitials: ({ firstName, lastName }: any) => (
+        <div data-testid="avatar">{firstName[0]}{lastName[0]}</div>
+    ),
+}))
+
+// ─── Test data ────────────────────────────────────────────────────────────────
+
+const mockUser: Account = {
+    id: 1,
+    firstName: 'Julia',
+    lastName: 'Doe',
+    email: 'julia@test.com',
+    accountType: 'Participant',
+}
+
+const mockNavigate = jest.fn()
+const mockedLogout = logout as jest.Mock
+const mockedGetProfile = getProfile as jest.Mock
+const mockedGetUserPreferences = getUserPreferences as jest.Mock
+const mockedUpdateUserPreferences = updateUserPreferences as jest.Mock
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Opens the main dropdown
+const openDropdown = async () => {
+    await userEvent.click(screen.getByRole('button'))
+}
+
+// Opens the main dropdown then hovers Theme to reveal the submenu
+const openThemeSubmenu = async () => {
+    await openDropdown()
+    await userEvent.hover(screen.getByText('Theme'))
+    // Wait for the submenu items to appear
+    await waitFor(() => screen.getByText('Dark'))
+}
+
+// ─── Setup ────────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    ;(useNavigate as jest.Mock).mockReturnValue(mockNavigate)
+    localStorage.clear()
+    document.documentElement.classList.remove('dark')
+    mockedGetProfile.mockResolvedValue(mockUser)
+    mockedGetUserPreferences.mockResolvedValue({ theme: 'light', notifications_enabled: true })
+    mockedUpdateUserPreferences.mockResolvedValue({})
+    mockedLogout.mockResolvedValue(undefined)
+})
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+describe('NavUser — rendering', () => {
+    it('renders user name when user prop is provided', () => {
+        render(<NavUser user={mockUser} />)
+        expect(screen.getByText('Julia Doe')).toBeInTheDocument()
     })
-  ),
-}));
 
-// Mock the logger API
-jest.mock("../src/api/LoggerAPI", () => ({
-  logFrontend: jest.fn(),
-}));
+    it('renders avatar with initials', () => {
+        render(<NavUser user={mockUser} />)
+        expect(screen.getAllByTestId('avatar').length).toBeGreaterThan(0)
+    })
 
-// Mock AvatarInitials helper
-jest.mock("../src/components/helpers/AvatarInitials", () => ({
-  AvatarInitials: ({ firstName, lastName }: any) => {
-    const initials = `${firstName?.charAt(0) ?? ""}${lastName?.charAt(0) ?? ""}`.toUpperCase();
-    return <div data-testid="avatar-fallback">{initials}</div>;
-  },
-}));
+    it('renders with no user prop (null)', async () => {
+        render(<NavUser user={null} />)
+        await waitFor(() => expect(mockedGetProfile).toHaveBeenCalled())
+    })
 
-// NavUser no longer wraps itself in SidebarMenu — only the useSidebar hook is used
-jest.mock("@/components/ui/sidebar", () => ({
-  useSidebar: () => mockUseSidebar(),
-}));
+    it('fetches and displays profile when no user prop is given', async () => {
+        render(<NavUser />)
+        await waitFor(() =>
+            expect(screen.getByText('Julia Doe')).toBeInTheDocument()
+        )
+    })
 
-jest.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: any) => (
-    <div data-testid="dropdown-menu">{children}</div>
-  ),
-  DropdownMenuTrigger: ({ children }: any) => (
-    <div data-testid="dropdown-menu-trigger">{children}</div>
-  ),
-  DropdownMenuContent: ({ children, side, align, sideOffset, className }: any) => (
-    <div
-      data-testid="dropdown-menu-content"
-      data-side={side}
-      data-align={align}
-      data-side-offset={sideOffset}
-      className={className}
-    >
-      {children}
-    </div>
-  ),
-  DropdownMenuLabel: ({ children, className }: any) => (
-    <div data-testid="dropdown-menu-label" className={className}>
-      {children}
-    </div>
-  ),
-  DropdownMenuGroup: ({ children }: any) => (
-    <div data-testid="dropdown-menu-group">{children}</div>
-  ),
-  DropdownMenuItem: ({ children, onClick }: any) => (
-    <div role="menuitem" data-testid="dropdown-menu-item" onClick={onClick}>
-      {children}
-    </div>
-  ),
-  DropdownMenuSeparator: () => <hr data-testid="dropdown-menu-separator" />,
-}));
+    it('renders user email in dropdown after opening', async () => {
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        expect(screen.getByText('julia@test.com')).toBeInTheDocument()
+    })
 
-jest.mock("lucide-react", () => ({
-  BadgeCheck: () => <svg data-testid="badge-check-icon" />,
-  ChevronsUpDown: () => <svg data-testid="chevrons-up-down-icon" />,
-  LogOut: () => <svg data-testid="log-out-icon" />,
-}));
+    it('renders Profile and Log out menu items after opening', async () => {
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        expect(screen.getByText('Profile')).toBeInTheDocument()
+        expect(screen.getByText('Log out')).toBeInTheDocument()
+    })
 
-describe("NavUser", () => {
-  const mockUser = {
-    id: "1",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    accountType: "user",
-  };
+    it('renders Theme submenu trigger after opening', async () => {
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        expect(screen.getByText('Theme')).toBeInTheDocument()
+    })
+})
 
-  beforeEach(() => {
-    mockUseSidebar.mockReturnValue({ isMobile: false });
-    mockNavigate.mockClear();
-    jest.clearAllMocks();
-    // Restore sidebar mock after clearAllMocks
-    mockUseSidebar.mockReturnValue({ isMobile: false });
-  });
+describe('NavUser — profile fetch', () => {
+    it('calls getProfile when user prop is not provided', async () => {
+        render(<NavUser />)
+        await waitFor(() => expect(mockedGetProfile).toHaveBeenCalledTimes(1))
+    })
 
-  describe("Trigger Button", () => {
-    test("renders a plain button as the dropdown trigger (not SidebarMenuButton)", () => {
-      render(<NavUser user={mockUser as any} />);
-      // The trigger should be a regular button inside the dropdown trigger wrapper
-      const trigger = screen.getByTestId("dropdown-menu-trigger");
-      const button = trigger.querySelector("button");
-      expect(button).toBeInTheDocument();
-    });
+    it('does not call getProfile when user prop is provided', async () => {
+        render(<NavUser user={mockUser} />)
+        await new Promise(r => setTimeout(r, 50))
+        expect(mockedGetProfile).not.toHaveBeenCalled()
+    })
 
-    test("trigger button shows user name", () => {
-      render(<NavUser user={mockUser as any} />);
-      const trigger = screen.getByTestId("dropdown-menu-trigger");
-      expect(within(trigger).getByText("John Doe")).toBeInTheDocument();
-    });
+    it('syncs dark theme from DB preferences on mount', async () => {
+        mockedGetUserPreferences.mockResolvedValue({ theme: 'dark', notifications_enabled: true })
+        render(<NavUser />)
+        await waitFor(() =>
+            expect(document.documentElement.classList.contains('dark')).toBe(true)
+        )
+        expect(localStorage.getItem('theme')).toBe('dark')
+    })
 
-    test("trigger button renders avatar initials", () => {
-      render(<NavUser user={mockUser as any} />);
-      const trigger = screen.getByTestId("dropdown-menu-trigger");
-      expect(within(trigger).getByTestId("avatar-fallback")).toBeInTheDocument();
-    });
-  });
+    it('does not apply theme if prefs.theme is falsy', async () => {
+        mockedGetUserPreferences.mockResolvedValue({ theme: null, notifications_enabled: true })
+        render(<NavUser />)
+        await waitFor(() => expect(mockedGetProfile).toHaveBeenCalled())
+        expect(document.documentElement.classList.contains('dark')).toBe(false)
+    })
 
-  describe("Profile self-fetch (no user prop)", () => {
-    test("fetches and displays profile when no user prop is provided", async () => {
-      const { getProfile } = require("../src/api/AuthAPI");
-      render(<NavUser />);
-      expect(getProfile).toHaveBeenCalled();
-      // After fetch, name should appear (rendered in both trigger and dropdown label)
-      const names = await screen.findAllByText("John Doe");
-      expect(names.length).toBeGreaterThanOrEqual(1);
-    });
+    it('logs error when getProfile fails', async () => {
+        mockedGetProfile.mockRejectedValueOnce(new Error('auth failure'))
+        render(<NavUser />)
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'NavUser' })
+            )
+        )
+    })
+})
 
-    test("does not call getProfile when user prop is provided", () => {
-      const { getProfile } = require("../src/api/AuthAPI");
-      render(<NavUser user={mockUser as any} />);
-      expect(getProfile).not.toHaveBeenCalled();
-    });
+describe('NavUser — theme switching', () => {
+    it('shows Light and Dark options in theme submenu', async () => {
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        expect(screen.getByText('Light')).toBeInTheDocument()
+        expect(screen.getByText('Dark')).toBeInTheDocument()
+    })
 
-    // Covers line 40: logFrontend call inside the getProfile catch block
-    test("logs error to console when getProfile fails", async () => {
-      const { getProfile } = require("../src/api/AuthAPI");
-      const { logFrontend } = require("../src/api/LoggerAPI");
-      const fetchError = new Error("Network error");
-      (getProfile as jest.Mock).mockRejectedValueOnce(fetchError);
+    it('applies dark class when dark theme selected', async () => {
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Dark'))
+        expect(document.documentElement.classList.contains('dark')).toBe(true)
+        expect(localStorage.getItem('theme')).toBe('dark')
+    })
 
-      render(<NavUser />);
+    it('removes dark class when light theme selected', async () => {
+        document.documentElement.classList.add('dark')
+        localStorage.setItem('theme', 'dark')
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Light'))
+        expect(document.documentElement.classList.contains('dark')).toBe(false)
+        expect(localStorage.getItem('theme')).toBe('light')
+    })
 
-      await waitFor(() => {
-        expect(logFrontend).toHaveBeenCalledWith(
-          expect.objectContaining({
-            level: "ERROR",
-            message: expect.stringContaining("Network error"),
-            component: "NavUser",
-          })
-        );
-      });
+    it('calls updateUserPreferences when theme changes', async () => {
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Dark'))
+        await waitFor(() =>
+            expect(mockedUpdateUserPreferences).toHaveBeenCalledWith(
+                mockUser.id,
+                expect.objectContaining({ theme: 'dark' })
+            )
+        )
+    })
 
-      // localUser should remain null — no name rendered in trigger
-      const trigger = screen.getByTestId("dropdown-menu-trigger");
-      expect(within(trigger).queryByText(/\S/)).toBeNull();
-    });
-  });
+    it('does not call updateUserPreferences when user has no id', async () => {
+        render(<NavUser user={{ ...mockUser, id: undefined as any }} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Dark'))
+        await new Promise(r => setTimeout(r, 50))
+        expect(mockedUpdateUserPreferences).not.toHaveBeenCalled()
+    })
 
-  describe("Avatar Fallback", () => {
-    test("handles missing firstName gracefully", () => {
-      const userWithoutFirstName = { ...mockUser, firstName: "" } as any;
-      render(<NavUser user={userWithoutFirstName} />);
-      const fallbacks = screen.getAllByTestId("avatar-fallback");
-      fallbacks.forEach((fallback) => {
-        expect(fallback).toHaveTextContent("D");
-      });
-    });
+    it('logs error when updateUserPreferences fails', async () => {
+        mockedUpdateUserPreferences.mockRejectedValueOnce(new Error('pref error'))
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Dark'))
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'NavUser' })
+            )
+        )
+    })
 
-    test("handles missing lastName gracefully", () => {
-      const userWithoutLastName = { ...mockUser, lastName: "" } as any;
-      render(<NavUser user={userWithoutLastName} />);
-      const fallbacks = screen.getAllByTestId("avatar-fallback");
-      fallbacks.forEach((fallback) => {
-        expect(fallback).toHaveTextContent("J");
-      });
-    });
+    it('dispatches storage_sync event when theme changes', async () => {
+        const listener = jest.fn()
+        window.addEventListener('storage_sync', listener)
+        render(<NavUser user={mockUser} />)
+        await openThemeSubmenu()
+        await userEvent.click(screen.getByText('Dark'))
+        expect(listener).toHaveBeenCalled()
+        window.removeEventListener('storage_sync', listener)
+    })
 
-    test("handles both names missing gracefully", () => {
-      const userWithoutNames = { ...mockUser, firstName: "", lastName: "" } as any;
-      render(<NavUser user={userWithoutNames} />);
-      const fallbacks = screen.getAllByTestId("avatar-fallback");
-      fallbacks.forEach((fallback) => {
-        expect(fallback).toHaveTextContent("");
-      });
-    });
+    it('syncs theme when storage event fires', async () => {
+        render(<NavUser user={mockUser} />)
+        act(() => {
+            localStorage.setItem('theme', 'dark')
+            window.dispatchEvent(new Event('storage'))
+        })
+        await waitFor(() =>
+            expect(document.documentElement.classList.contains('dark')).toBe(true)
+        )
+    })
 
-    test("converts initials to uppercase", () => {
-      const userLowercase = { ...mockUser, firstName: "jane", lastName: "smith" } as any;
-      render(<NavUser user={userLowercase} />);
-      const fallbacks = screen.getAllByTestId("avatar-fallback");
-      fallbacks.forEach((fallback) => {
-        expect(fallback).toHaveTextContent("JS");
-      });
-    });
-  });
+    it('syncs theme when storage_sync event fires', async () => {
+        render(<NavUser user={mockUser} />)
+        act(() => {
+            localStorage.setItem('theme', 'dark')
+            window.dispatchEvent(new Event('storage_sync'))
+        })
+        await waitFor(() =>
+            expect(document.documentElement.classList.contains('dark')).toBe(true)
+        )
+    })
+})
 
-  describe("Dropdown Menu", () => {
-    test("renders dropdown menu structure", () => {
-      render(<NavUser user={mockUser as any} />);
-      expect(screen.getByTestId("dropdown-menu")).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-menu-trigger")).toBeInTheDocument();
-      expect(screen.getByTestId("dropdown-menu-content")).toBeInTheDocument();
-    });
+describe('NavUser — logout', () => {
+    it('calls logout and navigates to / on log out click', async () => {
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Log out'))
+        await waitFor(() => expect(mockedLogout).toHaveBeenCalledTimes(1))
+        expect(mockNavigate).toHaveBeenCalledWith('/')
+    })
 
-    test("renders dropdown menu label with user info", () => {
-      render(<NavUser user={mockUser as any} />);
-      const label = screen.getByTestId("dropdown-menu-label");
-      // expect(within(label).getByText("John Doe")).toBeInTheDocument();
-      expect(within(label).getByText("john.doe@example.com")).toBeInTheDocument();
-    });
+    it('removes theme from localStorage on logout', async () => {
+        localStorage.setItem('theme', 'dark')
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Log out'))
+        await waitFor(() => expect(mockedLogout).toHaveBeenCalled())
+        expect(localStorage.getItem('theme')).toBeNull()
+    })
 
-    test("renders Profile menu item with icon", () => {
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      expect(within(menuItems[0]).getByTestId("badge-check-icon")).toBeInTheDocument();
-      expect(within(menuItems[0]).getByText("Profile")).toBeInTheDocument();
-    });
+    it('removes dark class from documentElement on logout', async () => {
+        document.documentElement.classList.add('dark')
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Log out'))
+        await waitFor(() => expect(mockedLogout).toHaveBeenCalled())
+        expect(document.documentElement.classList.contains('dark')).toBe(false)
+    })
 
-    test("renders Log out menu item with icon", () => {
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      expect(within(menuItems[1]).getByTestId("log-out-icon")).toBeInTheDocument();
-      expect(within(menuItems[1]).getByText("Log out")).toBeInTheDocument();
-    });
+    it('logs error when logout fails', async () => {
+        mockedLogout.mockRejectedValueOnce(new Error('logout error'))
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Log out'))
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'NavUser' })
+            )
+        )
+    })
 
-    test("renders two separators in dropdown menu", () => {
-      render(<NavUser user={mockUser as any} />);
-      const separators = screen.getAllByTestId("dropdown-menu-separator");
-      expect(separators).toHaveLength(2);
-    });
+    it('does not navigate when logout throws', async () => {
+        mockedLogout.mockRejectedValueOnce(new Error('logout error'))
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Log out'))
+        await waitFor(() => expect(logFrontend).toHaveBeenCalled())
+        expect(mockNavigate).not.toHaveBeenCalled()
+    })
+})
 
-    test("renders dropdown menu group for profile actions", () => {
-      render(<NavUser user={mockUser as any} />);
-      expect(screen.getByTestId("dropdown-menu-group")).toBeInTheDocument();
-    });
-  });
-
-  describe("Mobile vs Desktop", () => {
-    test("renders dropdown on right side when not mobile", () => {
-      mockUseSidebar.mockReturnValue({ isMobile: false });
-      render(<NavUser user={mockUser as any} />);
-      const content = screen.getByTestId("dropdown-menu-content");
-      expect(content).toHaveAttribute("data-side", "bottom");
-    });
-
-    test("renders dropdown on bottom when mobile", () => {
-      mockUseSidebar.mockReturnValue({ isMobile: true });
-      render(<NavUser user={mockUser as any} />);
-      const content = screen.getByTestId("dropdown-menu-content");
-      expect(content).toHaveAttribute("data-side", "bottom");
-    });
-  });
-
-  describe("Dropdown Menu Positioning", () => {
-    test("dropdown menu aligns to end", () => {
-      render(<NavUser user={mockUser as any} />);
-      const content = screen.getByTestId("dropdown-menu-content");
-      expect(content).toHaveAttribute("data-align", "end");
-    });
-
-    test("dropdown menu has correct side offset", () => {
-      render(<NavUser user={mockUser as any} />);
-      const content = screen.getByTestId("dropdown-menu-content");
-      expect(content).toHaveAttribute("data-side-offset", "4");
-    });
-
-    test("dropdown menu content has correct className", () => {
-      render(<NavUser user={mockUser as any} />);
-      const content = screen.getByTestId("dropdown-menu-content");
-      expect(content).toHaveClass(
-        "w-(--radix-dropdown-menu-trigger-width)",
-        "min-w-56",
-        "rounded-lg"
-      );
-    });
-  });
-
-  describe("Text Truncation", () => {
-    test("user name has truncate class", () => {
-      render(<NavUser user={mockUser as any} />);
-      const names = screen.getAllByText("John Doe");
-      names.forEach((name) => {
-        expect(name).toHaveClass("truncate");
-      });
-    });
-
-    test("user email has truncate class", () => {
-      render(<NavUser user={mockUser as any} />);
-      const emails = screen.getAllByText("john.doe@example.com");
-      emails.forEach((email) => {
-        expect(email).toHaveClass("truncate");
-      });
-    });
-  });
-
-  describe("Navigation actions", () => {
-    test("navigates to /app/profile when Profile is clicked", async () => {
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[0]);
-      expect(mockNavigate).toHaveBeenCalledWith("/app/profile");
-    });
-
-    test("calls logout and navigates to '/' when Log out is clicked", async () => {
-      const { logout } = require("../src/api/AuthAPI");
-      (logout as jest.Mock).mockResolvedValue(undefined);
-      window.alert = jest.fn();
-
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[1]);
-
-      expect(logout).toHaveBeenCalled();
-      await screen.findByTestId("dropdown-menu"); // wait for async
-      expect(mockNavigate).toHaveBeenCalledWith("/");
-    });
-  });
-
-  // ─── New tests covering lines 53–67: handleLogout error branches ─────────────
-  describe("Logout error handling", () => {
-    beforeEach(() => {
-      window.alert = jest.fn();
-    });
-
-    // Covers lines 53–58: logFrontend call + instanceof Error branch (line 60–62)
-    test("alerts the error message and calls logFrontend when logout throws an Error", async () => {
-      const { logout } = require("../src/api/AuthAPI");
-      const { logFrontend } = require("../src/api/LoggerAPI");
-      const logoutError = new Error("Session expired");
-      (logout as jest.Mock).mockRejectedValueOnce(logoutError);
-
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[1]);
-
-      await waitFor(() => {
-        // logFrontend must be called with ERROR level (line 53–58)
-        expect(logFrontend).toHaveBeenCalledWith(
-          expect.objectContaining({
-            level: "ERROR",
-            message: expect.stringContaining("Session expired"),
-            component: "NavUser",
-          })
-        );
-        // instanceof Error branch: alert with err.message (line 61)
-        expect(window.alert).toHaveBeenCalledWith("Session expired");
-      });
-
-      // navigate should NOT have been called
-      expect(mockNavigate).not.toHaveBeenCalled();
-    });
-
-    // Covers lines 62–65: axios-style error branch (object with response.data.error)
-    test("alerts the server error message when logout throws an axios-style error", async () => {
-      const { logout } = require("../src/api/AuthAPI");
-      const { logFrontend } = require("../src/api/LoggerAPI");
-      const axiosError = {
-        response: { data: { error: "Unauthorized" } },
-      };
-      (logout as jest.Mock).mockRejectedValueOnce(axiosError);
-
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[1]);
-
-      await waitFor(() => {
-        // logFrontend is still called (lines 53–58); non-Error, so message uses String(err)
-        expect(logFrontend).toHaveBeenCalledWith(
-          expect.objectContaining({
-            level: "ERROR",
-            component: "NavUser",
-          })
-        );
-        // axios branch: alert with response.data.error (line 64)
-        expect(window.alert).toHaveBeenCalledWith("Unauthorized");
-      });
-    });
-
-    // Covers the axios branch fallback when response.data.error is absent
-    test("alerts generic message when axios-style error has no error string", async () => {
-      const { logout } = require("../src/api/AuthAPI");
-      const axiosError = { response: { data: {} } };
-      (logout as jest.Mock).mockRejectedValueOnce(axiosError);
-
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[1]);
-
-      await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          "An unknown error occurred during logout"
-        );
-      });
-    });
-
-    // Covers line 66–67: plain string / other primitive error
-    test("alerts stringified error when logout throws a non-Error, non-object value", async () => {
-      const { logout } = require("../src/api/AuthAPI");
-      (logout as jest.Mock).mockRejectedValueOnce("plain string error");
-
-      render(<NavUser user={mockUser as any} />);
-      const menuItems = screen.getAllByTestId("dropdown-menu-item");
-      await userEvent.click(menuItems[1]);
-
-      await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith("plain string error");
-      });
-    });
-  });
-});
+describe('NavUser — profile navigation', () => {
+    it('navigates to /app/profile when Profile is clicked', async () => {
+        render(<NavUser user={mockUser} />)
+        await openDropdown()
+        await userEvent.click(screen.getByText('Profile'))
+        expect(mockNavigate).toHaveBeenCalledWith('/app/profile')
+    })
+})

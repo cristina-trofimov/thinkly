@@ -1,6 +1,6 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { QuestionInstance } from "../src/types/questions/QuestionInstance.type"
-import { getQuestionInstance, getAllQuestionInstancesByEventID, updateQuestionInstance } from "../src/api/QuestionInstanceAPI"
+import { getQuestionInstance, getAllQuestionInstancesByEventID, putQuestionInstance } from "../src/api/QuestionInstanceAPI"
 import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
@@ -84,15 +84,21 @@ describe("Question Instance", () => {
         jest.clearAllMocks()
     })
 
-    it("updateQuestionInstance: updates the values of the given (defined) question instance", async () => {
-        mockedAxios.post.mockImplementation(async () => ({ data: mockGetResponse }))
+    it("putQuestionInstance: updates the values of the given (defined) question instance", async () => {
+        mockedAxios.put.mockImplementation(async () => ({ data: mockGetResponse }))
 
-        const result = await updateQuestionInstance(mockQuestionInstances[0])
+        await putQuestionInstance(
+            mockQuestionInstances[0].question_instance_id,
+            mockQuestionInstances[0].question_id,
+            mockQuestionInstances[0].event_id,
+            mockQuestionInstances[0].riddle_id
+        )
         
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
-        expect(mockedAxios.post).toHaveBeenCalledWith(
-            "/instances/update",
+        expect(mockedAxios.put).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.put).toHaveBeenCalledWith(
+            "/instances/put",
             expect.objectContaining({
+                question_instance_id: mockQuestionInstances[0].question_instance_id,
                 question_id: mockQuestionInstances[0].question_id,
                 event_id: mockQuestionInstances[0].event_id,
                 riddle_id: mockQuestionInstances[0].riddle_id
@@ -100,19 +106,27 @@ describe("Question Instance", () => {
         )
     })
 
-    it("updateQuestionInstance: throws an error if the given question instance is undefined", async () => {
-        await expect(updateQuestionInstance(undefined))
-                    .rejects.toThrow("Question instance cannot be undefined")
-        expect(mockedAxios.post).toHaveBeenCalledTimes(0)
+    it("putQuestionInstance: throws an error if the given question is undefined", async () => {
+        await expect(putQuestionInstance(
+            mockQuestionInstances[0].question_instance_id,
+            undefined,
+            mockQuestionInstances[0].event_id,
+            mockQuestionInstances[0].riddle_id
+        )).rejects.toThrow("Question cannot be undefined")
+        expect(mockedAxios.put).toHaveBeenCalledTimes(0)
     })
 
-    it("handles errors from updateQuestionInstance", async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error("Error updating question instance"))
+    it("handles errors from putQuestionInstance", async () => {
+        mockedAxios.put.mockRejectedValueOnce(new Error("Error updating question instance"))
 
-        await expect(updateQuestionInstance(mockQuestionInstances[0]))
-                    .rejects.toThrow("Error updating question instance")
+        await expect(putQuestionInstance(
+            mockQuestionInstances[0].question_instance_id,
+            mockQuestionInstances[0].question_id,
+            mockQuestionInstances[0].event_id,
+            mockQuestionInstances[0].riddle_id
+        )).rejects.toThrow("Error updating question instance")
 
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedAxios.put).toHaveBeenCalledTimes(1)
         expect(mockedLogger).toHaveBeenCalledTimes(1)
     })
 

@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import type { Question } from "../../types/questions/Question.type"
+import type { Question } from "../../types/questions/QuestionPagination.type"
    
   export const columns: ColumnDef<Question>[] = [
     {

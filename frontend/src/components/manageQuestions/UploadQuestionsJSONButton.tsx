@@ -12,7 +12,7 @@ interface UploadQuestionsJSONButtonProps extends Omit<ComponentProps<typeof Butt
 const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONButtonProps>> = (props) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const { children, textWhileUploading, onSuccess, onFailure } = props;
+    const { children, textWhileUploading, onSuccess, onFailure, ...standardProps } = props;
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -46,7 +46,7 @@ const UploadQuestionsJSONButton: React.FC<PropsWithChildren<UploadQuestionsJSONB
             className="hidden"
         />
         <Button
-            {...props}
+            {...standardProps}
             onClick={() => {
                 fileInputRef.current?.click()
             }}

@@ -18,8 +18,11 @@ from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
 from endpoints import authentification_api
+from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
+from endpoints.user_question_instance_api import user_question_instance_router
 from logging_config import setup_logging
+from services.competition_cleanup import cleanup_ended_competitions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
@@ -47,6 +50,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
+    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
     scheduler.start()
     logger.info("✓ Email scheduler started (polling every 60s)")
 
@@ -183,7 +187,9 @@ try:
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
     app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
+    app.include_router(languages_router, prefix="/lang")
     app.include_router(base_event_router, prefix="/events")
+    app.include_router(user_question_instance_router, prefix="/user-instances")
 except Exception:
     logger.warning("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 

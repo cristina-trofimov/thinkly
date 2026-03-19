@@ -2,7 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ManageQuestionsDataTable } from "../src/components/manageQuestions/ManageQuestionsDataTable";
 import { columns } from "../src/components/manageQuestions/ManageQuestionsColumns";
-import type { Question } from "../src/types/questions/Question.type";
+import type { Question, TagResponse, TestCase } from "../src/types/questions/QuestionPagination.type";
 import { deleteQuestion, deleteQuestions } from "../src/api/QuestionsAPI";
 import { toast } from "sonner";
 import { MemoryRouter } from "react-router-dom";
@@ -70,12 +70,9 @@ const data: Question[] = [
     question_name: "Two Sum",
     question_description: "Add two nums",
     media: null,
-    preset_code: "",
-    template_solution: "",
-    from_string_function: "",
-    to_string_function: "",
-    tags: [],
-    testcases: [],
+    language_specific_properties: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     difficulty: "Easy",
     created_at: new Date("2025-01-01"),
     last_modified_at: new Date("2025-01-01"),
@@ -85,12 +82,9 @@ const data: Question[] = [
     question_name: "Reverse List",
     question_description: "Reverse",
     media: null,
-    preset_code: "",
-    template_solution: "",
-    from_string_function: "",
-    to_string_function: "",
-    tags: [],
-    testcases: [],
+    language_specific_properties: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     difficulty: "Hard",
     created_at: new Date("2025-01-02"),
     last_modified_at: new Date("2025-01-02"),

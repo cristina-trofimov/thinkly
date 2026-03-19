@@ -3,15 +3,15 @@ import {
   getQuestionByID,
   getQuestions,
   getQuestionsPage,
-  getRiddles,
+  // getRiddles,
   deleteCompetition,
-  getTestcases,
   deleteQuestions,
   deleteQuestion,
   uploadQuestions,
   updateQuestion,
 } from "../src/api/QuestionsAPI";
 import { logFrontend } from "../src/api/LoggerAPI";
+import { TagResponse, TestCase } from "../src/types/questions/QuestionPagination.type";
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -71,11 +71,10 @@ describe("QuestionsAPI", () => {
           question_name: "What is 2+2?",
           question_description: "Add two numbers",
           media: null,
-          preset_code: "",
-          template_solution: "def solve(): pass",
           difficulty: "Easy",
-          from_string_function: "",
-          to_string_function: "",
+          language_specific_properties: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           created_at: new Date("2025-01-01T00:00:00Z"),
           last_modified_at: new Date("2025-01-01T00:00:00Z"),
         },
@@ -174,11 +173,10 @@ describe("QuestionsAPI", () => {
             question_name: "Sorted Question",
             question_description: "Page item",
             media: null,
-            preset_code: "",
-            template_solution: "",
             difficulty: "Medium",
-            from_string_function: "",
-            to_string_function: "",
+            language_specific_properties: [],
+            tags: [] as TagResponse[],
+            test_cases: [] as TestCase[],
             created_at: new Date("2025-01-11T00:00:00Z"),
             last_modified_at: new Date("2025-01-11T00:00:00Z"),
           },
@@ -200,14 +198,18 @@ describe("QuestionsAPI", () => {
           question_name: "Single",
           question_description: "One question",
           media: null,
-          preset_code: "",
-          template_solution: "def solve(): pass",
           difficulty: "hard",
           last_modified_at: "2025-02-02T00:00:00Z",
-          tags: ["graph"],
-          from_string_function: "",
-          to_string_function: "",
-          testcases: [["1", "2"]],
+          language_specific_properties: [],
+          tags: [{ tag_id: 1, tag_name: "graph" }],
+          test_cases: [
+            {
+              test_case_id: 1,
+              question_id: 7,
+              input_data: "1",
+              expected_output: "2",
+            },
+          ],
         },
       } as any);
 
@@ -219,15 +221,19 @@ describe("QuestionsAPI", () => {
         question_name: "Single",
         question_description: "One question",
         media: null,
-        preset_code: "",
-        template_solution: "def solve(): pass",
         difficulty: "Hard",
         created_at: new Date("2025-02-02T00:00:00Z"),
         last_modified_at: new Date("2025-02-02T00:00:00Z"),
-        from_string_function: "",
-        to_string_function: "",
-        tags: ["graph"],
-        testcases: [["1", "2"]],
+        language_specific_properties: [],
+        tags: [{ tag_id: 1, tag_name: "graph"}],
+        test_cases: [
+          {
+            test_case_id: 1,
+            question_id: 7,
+            input_data: "1",
+            expected_output: "2",
+          },
+        ],
       });
     });
 
@@ -236,86 +242,45 @@ describe("QuestionsAPI", () => {
       await expect(getQuestionByID(-1)).rejects.toThrow("Network error");
       expect(mockedAxios.get).toHaveBeenCalled();
     });
-  });
 
-  describe("getRiddles", () => {
-    it("fetches and formats riddles correctly", async () => {
+    it("maps language specific properties when present", async () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
-          total: 1,
-          page: 1,
-          page_size: 100,
-          items: [
+          question_id: 8,
+          question_name: "With language props",
+          question_description: "Has per-language fields",
+          media: null,
+          difficulty: "easy",
+          last_modified_at: "2025-02-03T00:00:00Z",
+          language_specific_properties: [
             {
-              riddle_id: 10,
-              riddle_question: "What has keys but can't open locks?",
-              riddle_answer: "Piano",
-              riddle_file: null,
+              language_id: 1,
+              question_id: 8,
+              language_display_name: "Python",
+              preset_code: "def solve():\n    pass",
+              template_solution: "def solve():\n    return 1",
+              from_json_function: "def from_json(v): return v",
+              to_json_function: "def to_json(v): return v",
             },
           ],
+          tags: [],
+          test_cases: [],
         },
       } as any);
 
-      const result = await getRiddles();
+      const result = await getQuestionByID(8);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-riddles", {
-        params: { page: 1, page_size: 100 },
-      });
-      expect(result).toEqual([
+      expect(result.language_specific_properties).toEqual([
         {
-          id: 10,
-          question: "What has keys but can't open locks?",
-          answer: "Piano",
-          file: null,
+          language_id: 1,
+          question_id: 8,
+          language_display_name: "Python",
+          preset_code: "def solve():\n    pass",
+          template_solution: "def solve():\n    return 1",
+          from_json_function: "def from_json(v): return v",
+          to_json_function: "def to_json(v): return v",
         },
       ]);
-    });
-
-    it("throws error if axios fails", async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
-      await expect(getRiddles()).rejects.toThrow("Network error");
-    });
-
-    it("fetches subsequent riddle pages when needed", async () => {
-      mockedAxios.get
-        .mockResolvedValueOnce({
-          data: {
-            total: 101,
-            page: 1,
-            page_size: 100,
-            items: [
-              {
-                riddle_id: 1,
-                riddle_question: "R1",
-                riddle_answer: "A1",
-                riddle_file: null,
-              },
-            ],
-          },
-        } as any)
-        .mockResolvedValueOnce({
-          data: {
-            total: 101,
-            page: 2,
-            page_size: 100,
-            items: [
-              {
-                riddle_id: 2,
-                riddle_question: "R2",
-                riddle_answer: "A2",
-                riddle_file: "hint.png",
-              },
-            ],
-          },
-        } as any);
-
-      const result = await getRiddles();
-
-      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/questions/get-all-riddles", {
-        params: { page: 2, page_size: 100 },
-      });
-      expect(result).toHaveLength(2);
-      expect(result[1]).toEqual({ id: 2, question: "R2", answer: "A2", file: "hint.png" });
     });
   });
 
@@ -392,20 +357,18 @@ describe("QuestionsAPI", () => {
       mockedAxios.post.mockResolvedValueOnce({} as any);
       await uploadQuestions([
         {
-          id: 1,
-          title: "Q1",
-          description: "D",
+          question_id: 1,
+          question_name: "Q1",
+          question_description: "D",
           media: null,
-          preset_code: "",
-          template_solution: "",
-          from_string_function: "",
-          to_string_function: "",
-          tags: [],
-          testcases: [],
+          language_specific_properties: [],
+          tags: [] as TagResponse[],
+          test_cases: [] as TestCase[],
           difficulty: "Easy",
-          date: new Date(),
+          created_at: new Date(),
+          last_modified_at: new Date(),
         },
-      ] as any);
+      ]);
 
       expect(mockedAxios.post).toHaveBeenCalledWith("/questions/upload-question-batch", expect.any(Array));
     });
@@ -427,12 +390,9 @@ describe("QuestionsAPI", () => {
         question_description: "Updated desc",
         media: null,
         difficulty: "medium",
-        preset_code: "",
-        from_string_function: "",
-        to_string_function: "",
-        template_solution: "def solve(): pass",
-        tags: ["tag"],
-        testcases: [["in", "out"]],
+        language_specific_properties: [],
+        tags: [] as TagResponse[],
+        testcases: [] as TestCase[],
       });
 
       expect(mockedAxios.put).toHaveBeenCalledWith("/questions/update-question/5", {
@@ -440,12 +400,9 @@ describe("QuestionsAPI", () => {
         question_description: "Updated desc",
         media: null,
         difficulty: "medium",
-        preset_code: "",
-        from_string_function: "",
-        to_string_function: "",
-        template_solution: "def solve(): pass",
-        tags: ["tag"],
-        testcases: [["in", "out"]],
+        language_specific_properties: [],
+        tags: [] as TagResponse[],
+        testcases: [] as TestCase[],
       });
     });
 
@@ -458,10 +415,7 @@ describe("QuestionsAPI", () => {
           question_description: "Updated desc",
           media: null,
           difficulty: "medium",
-          preset_code: "",
-          from_string_function: "",
-          to_string_function: "",
-          template_solution: "def solve(): pass",
+          language_specific_properties: [],
           tags: [],
           testcases: [],
         })
@@ -471,39 +425,6 @@ describe("QuestionsAPI", () => {
         "Error updating question 5:",
         expect.any(Error)
       );
-    });
-  });
-
-  describe("getTestcases", () => {
-    it("fetches and formats testcases correctly", async () => {
-      mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            test_case_id: 1,
-            question_id: 1,
-            input_data: '{ "a": [1, 2], "b": 6 }',
-            expected_output: "",
-          },
-        ],
-      } as any);
-
-      const result = await getTestcases(1);
-
-      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-testcases/1");
-      expect(result).toEqual([
-        {
-          test_case_id: 1,
-          question_id: 1,
-          input_data: { a: [1, 2], b: 6 },
-          expected_output: "",
-          caseID: "Case 1",
-        },
-      ]);
-    });
-
-    it("throws error if axios fails", async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
-      await expect(getTestcases(-1)).rejects.toThrow("Network error");
     });
   });
 });
