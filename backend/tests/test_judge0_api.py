@@ -2,7 +2,6 @@ import pytest, sys
 from unittest.mock import Mock, patch
 from pathlib import Path
 from fastapi.testclient import TestClient
-from main import app
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -12,7 +11,12 @@ from src.endpoints.judge0_api import (
     judge0_run_code,
 )
 
-client = TestClient(app)
+# Import app after sys.path is set — raise_server_exceptions=False lets the
+# TestClient handle 429s from SlowAPIMiddleware gracefully instead of crashing.
+from main import app
+
+client = TestClient(app, raise_server_exceptions=False)
+
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
@@ -26,10 +30,11 @@ def test_judge0_get_output_success(mock_get):
         },
         raise_for_status=lambda: None,
     )
-    
+
     result = judge0_get_output("abc123")
-    
+
     assert result["status"]["description"] == "Accepted"
+
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
@@ -59,6 +64,7 @@ def test_judge0_submit_success(mock_post, mock_get):
     assert result["status"]["description"] == "Accepted"
     assert result["stdout"] == "Hello\n"
 
+
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch("src.endpoints.judge0_api.time.sleep", return_value=None)
 @patch("src.endpoints.judge0_api.requests.get")
@@ -86,6 +92,7 @@ def test_judge0_polling_timeout(mock_post, mock_get, mock_sleep):
             stdin="",
         )
 
+
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch("src.endpoints.judge0_api.requests.post")
 def test_judge0_network_error(mock_post):
@@ -97,6 +104,7 @@ def test_judge0_network_error(mock_post):
             language_id="71",
             stdin="",
         )
+
 
 @patch("src.endpoints.judge0_api.submit_to_judge0")
 def test_judge0_route_success(mock_submit):
@@ -114,3 +122,17 @@ def test_judge0_route_success(mock_submit):
 
     assert response['status_code'] == 200
     assert response["ok"] is True
+
+
+@patch("src.endpoints.judge0_api.submit_to_judge0")
+def test_judge0_rate_limit(mock_submit):
+    """Hitting the endpoint 61 times should trigger a 429 on the last request."""
+    mock_submit.return_value = {"status": {"description": "Accepted"}, "stdout": "OK"}
+
+    payload = {"source_code": "print('Hi')", "language_id": "71", "stdin": ""}
+
+    for _ in range(60):
+        client.post("/judge0", json=payload)
+
+    response = client.post("/judge0", json=payload)
+    assert response.status_code == 429
