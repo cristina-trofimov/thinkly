@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 user_preferences_router = APIRouter(tags=["Preferences"])
 
+USER_NOT_FOUND = "User preferences not found"
+
 class UserPref(BaseModel):
     pref_id: int
     user_id: int
@@ -35,7 +37,7 @@ def query_get_prefs(
 @user_preferences_router.get("/all", response_model = dict,
     responses={
         500: {"description": "Error retrieving user preferences."},
-        404: {"description": "User preferences not found"}
+        404: {"description": USER_NOT_FOUND}
     }
 )
 def get_all_prefs(
@@ -46,7 +48,7 @@ def get_all_prefs(
         pref = query_get_prefs(db, user_id)
         
         if not pref:
-            return {"status_code": 404, "error": "User preferences not found"}
+            return {"status_code": 404, "error": USER_NOT_FOUND}
 
         return {"status_code": 200, 'data': UserPref(
             pref_id= pref.pref_id,
@@ -63,7 +65,7 @@ def get_all_prefs(
 @user_preferences_router.post("/theme", status_code=201,
     responses={
         500: {"description": "Failed to update user themes."},
-        404: {"description": "User preferences not found"}
+        404: {"description": USER_NOT_FOUND}
     }
 )
 def update_user_theme(
@@ -74,7 +76,7 @@ def update_user_theme(
         pref = query_get_prefs(db, request['user_id'])
         
         if not pref:
-            return {"status_code": 404, "error": "User preferences not found"}
+            return {"status_code": 404, "error": USER_NOT_FOUND}
 
         pref.theme = request['theme']
 
@@ -100,7 +102,7 @@ def update_user_theme(
 @user_preferences_router.post("/notif", status_code=201,
     responses={
         500: {"description": "Failed to update user notifications_enabled."},
-        404: {"description": "User preferences not found"}
+        404: {"description": USER_NOT_FOUND}
     }
 )
 def update_notifications(
@@ -111,7 +113,7 @@ def update_notifications(
         pref = query_get_prefs(db, request['user_id'])
         
         if not pref:
-            return {"status_code": 404, "error": "User preferences not found"}
+            return {"status_code": 404, "error": USER_NOT_FOUND}
 
         pref.notifications_enabled = request['notifications_enabled']
 
@@ -137,7 +139,7 @@ def update_notifications(
 @user_preferences_router.post("/prog", status_code=201,
     responses={
         500: {"description": "Failed to update user last_used_programming_language."},
-        404: {"description": "User preferences not found"}
+        404: {"description": USER_NOT_FOUND}
     }
 )
 def update_last_prog(
@@ -148,7 +150,7 @@ def update_last_prog(
         pref = query_get_prefs(db, request['user_id'])
         
         if not pref:
-            return {"status_code": 404, "error": "User preferences not found"}
+            return {"status_code": 404, "error": USER_NOT_FOUND}
 
         pref.last_used_programming_language = request['last_used_programming_language']
 
@@ -174,7 +176,7 @@ def update_last_prog(
 @user_preferences_router.post("/update", status_code=201,
     responses={
         500: {"description": "Failed to add/update all user preferences."},
-        404: {"description": "User preferences not found"}
+        404: {"description": USER_NOT_FOUND}
     }
 )
 def update_all_prefs(
@@ -185,7 +187,7 @@ def update_all_prefs(
         pref = query_get_prefs(db, request['user_id'])
 
         if not pref:
-            return {"status_code": 404, "error": "User preferences not found"}
+            return {"status_code": 404, "error": USER_NOT_FOUND}
         
         pref.theme = request['theme']
         pref.notifications_enabled = request['notifications_enabled']

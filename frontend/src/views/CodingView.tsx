@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -35,6 +35,7 @@ import type { Language } from '@/types/questions/Language.type';
 import { getAllLanguages } from '@/api/LanguageAPI';
 import type { UserPreferences } from '@/types/UserPreferences.type';
 import { getUserPrefs } from '@/api/UserPreferencesAPI';
+import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 
 
 const CodingView = () => {
@@ -121,10 +122,12 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          await getQuestionInstance(question?.question_id, null)
-            .then((response) => {
-              setQuestionsInstances([response])
-            })
+          const [questionInstance, fullQuestion] = await Promise.all([
+            getQuestionInstance(question.question_id, null),
+            getQuestionByID(question.question_id),
+          ])
+          setQuestionsInstances([questionInstance])
+          setQuestions([fullQuestion])
         } catch (err) {
           toast.error("Error when fetching question instance.")
           logFrontend({
@@ -139,11 +142,10 @@ const CodingView = () => {
         }
       }
       initQuestion()
-      setQuestions([question])
     }
   }, [event, question?.question_id])
 
-  // If an event is passed, get all the associated questions' details
+  // If an event is passed, get all the associated questions' details 
   useEffect(() => {
     if (!questionsInstances?.length || questions.length >= questionsInstances.length) {
       setIsQuestionLoading(false)
@@ -213,22 +215,23 @@ const CodingView = () => {
     }
   }, [questions, questionsInstances])
 
+  // Auto-select the first language that has preset code when the question changes
   useEffect(() => {
-    if (!languages) return
+    if (!activeQuestion || !languages?.length) return
 
-    if (userPreferences) {
-      const lang = languages.find(lang => lang.lang_judge_id === userPreferences.last_used_programming_language)
+    const langWithPreset = activeQuestion.language_specific_properties.find(
+      (p) => p.preset_code
+    )
+    if (!langWithPreset) return
 
-      if (lang) {
-        setSelectedLang(lang)
-        prevLangRef.current = lang
-      }
-    } else {
-      setSelectedLang(languages[0])
+    const matchedLang = languages.find(
+      (l) => l.display_name === langWithPreset.language_display_name
+    )
+    if (matchedLang) {
+      setSelectedLang(matchedLang)
+      prevLangRef.current = matchedLang
     }
-
-  }, [languages, userPreferences])
-
+  }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
@@ -250,23 +253,23 @@ const CodingView = () => {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Submitting")
-
+  
         const user = await getProfile()
         const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, selectedLang?.lang_judge_id, testcases)
-
+  
         if (submissionResponse.status_code === 200) {
           toast.success(submissionResponse.message)
         } else {
           toast.warning(submissionResponse.message)
         }
-
+  
         setLogs(prev => [...prev, codeRunResponse.judge0Response])
         setMostRecentSub(codeRunResponse.mostRecentSubResponse)
         setCurrentOutputTab("results")
-
+  
         trackCodeSubmitted(
-          activeQuestion?.question_id,
-          selectedLang,
+          activeQuestion!.question_id,
+          selectedLang!,
         )
       } catch (err) {
         toast.error("Error when submitting the code.")
@@ -292,19 +295,19 @@ const CodingView = () => {
       try {
         setIsAsyncLoading(true)
         setLoadingMsg("Running")
-
+  
         const user = await getProfile()
         const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
-
+        
         setLogs(prev => [...prev, judge0Response])
         setMostRecentSub(mostRecentSubResponse)
         setCurrentOutputTab("results")
-
+  
         // Capture run result — status comes directly from Judge0 response
         const passed = judge0Response.status.description === "Accepted"
         trackCodeRun(
           activeQuestion?.question_id,
-          selectedLang,
+          selectedLang!,
           judge0Response.status.description,
           passed,
           judge0Response.time ?? undefined
@@ -326,11 +329,30 @@ const CodingView = () => {
     }
   }
 
+  // Keep a ref to the previous language so we can log "from → to" on change
+  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
+  const codeBuffersRef = useRef<Map<string, string>>(new Map())
+
+  // Look up the DB-stored properties for the currently selected language
+  const activeLangProps = useMemo(
+    () => activeQuestion?.language_specific_properties.find(
+      (p) => p.language_display_name === selectedLang?.display_name
+    ) ?? null,
+    [activeQuestion, selectedLang]
+  )
+
+  // Priority: DB preset_code → DB template_solution → generic fallback comment
+  const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
+  const fallbackComment = `${commentChar} Write your solution here.`
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || fallbackComment
+
   const [code, setCode] = useState<string>('')
 
-  // Reset editor to language's default code on language change
-  // useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
-  // ^^ Will be needed later
+  // Restore buffer or fall back to presetCode on language/question change
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
+    setCode(saved ?? presetCode)
+  }, [selectedLang, activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (mostRecentSub) {
@@ -340,26 +362,27 @@ const CodingView = () => {
     }
   }, [mostRecentSub])
 
-  const handleLanguageChange = (lang: Language) => {
-    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
-    prevLangRef.current = lang
-    setSelectedLang(lang)
-    setCode('templateCode')
-  }
+  const [clearingCode, setClearingCode] = useState<boolean>(false)
+  const [confirmClearingCode, setConfirmClearingCode] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (!confirmClearingCode) return
+    trackCodeReset(activeQuestion!.question_id, selectedLang!)
+    // Clear buffer so the reset sticks if the user switches away and back
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
+    setConfirmClearingCode(false)
+    setCode(presetCode)
+  }, [confirmClearingCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleQuestionChange = (q: Question) => {
     setActiveQuestion(q)
     questionsInstances.forEach((qi, idx) => {
       if (qi.question_id === q.question_id) {
+        codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
         setActiveQuestionInstance(qi)
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
     })
-  }
-
-  const handleCodeReset = () => {
-    trackCodeReset(activeQuestion?.question_id, selectedLang)
-    setCode('templateCode')
   }
 
   const [fullCode, setFullCode] = useState(false)
@@ -408,6 +431,9 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
+        setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
+      />
       <div className='flex items-center justify-center mb-2 w-full'>
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
@@ -486,7 +512,13 @@ const CodingView = () => {
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={handleCodeReset}
+                      onClick={() => {
+                        if (code !== presetCode) {
+                          setClearingCode(true)
+                        } else {
+                          setConfirmClearingCode(true)
+                        }
+                      }}
                     >
                       <RotateCcw size={22} color="black" />
                     </Button>
@@ -523,7 +555,16 @@ const CodingView = () => {
                         {languages?.map((lang) => (
                           <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
                             className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                            onSelect={() => handleLanguageChange(lang)}
+                            onSelect={() => {
+                              // Save current code to buffer before switching
+                              codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
+                              if (prevLangRef.current) {
+                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+                              }
+                              prevLangRef.current = lang
+                              setSelectedLang(lang)
+                              toast.info("Code saved in this session — refreshing the page will lose your changes.")
+                            }}
                           >
                             {lang.display_name}
                           </DropdownMenuItem>
@@ -538,7 +579,7 @@ const CodingView = () => {
                 language={selectedLang?.monaco_id}
                 value={code}
                 theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
-                onChange={(value) => { setCode(value ?? 'templateCode') }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
+                onChange={(value) => { setCode(value ?? presetCode) }}
                 options={{
                   fontSize: 14,
                   automaticLayout: true,

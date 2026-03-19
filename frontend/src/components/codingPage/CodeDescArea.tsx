@@ -22,6 +22,7 @@ import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 import { getAllLanguages } from '@/api/LanguageAPI'
 import type { Language } from '@/types/questions/Language.type'
+import SubmissionDetail from './SubmissionDetail'
 
 const CodeDescArea = (
     { question, question_instance, mostRecentSub, eventId, eventName, isCompetitionEvent, currentUserId }:
