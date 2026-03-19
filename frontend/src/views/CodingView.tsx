@@ -386,10 +386,10 @@ const CodingView = () => {
                     </Button>
                     <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={() => {
-                        if (code.trim() !== presetCode.trim()) {
-                          setClearingCode(true)
-                        } else {
+                        if (code.trim() === presetCode.trim()) {
                           setConfirmClearingCode(true)
+                        } else {
+                          setClearingCode(true)
                         }
                       }}
                     >

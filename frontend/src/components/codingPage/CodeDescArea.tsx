@@ -147,7 +147,7 @@ const CodeDescArea = (
                         <RiddleUserForm
                             riddle={riddleObject}
                             onSolved={async () => {
-                                uqi!.riddle_complete = true
+                                uqi.riddle_complete = true
                                 await putUserInstance(uqi)
                                     .then((resp) => setUserQuestionInstance(resp))
                             }}
