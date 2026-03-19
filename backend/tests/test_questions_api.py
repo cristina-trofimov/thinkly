@@ -20,7 +20,12 @@ from database_operations.database import get_db
 
 # 2. Import the router you want to test
 # (Replace 'src.endpoints.questions_api' with the actual path to your file)
-from src.endpoints.questions_api import Tag, questions_router 
+from src.endpoints.questions_api import (
+    Tag,
+    questions_router,
+    CreateTestCaseRequest,
+    QuestionLanguageSpecificPropertiesResponse,
+)
 
 # --- FIXTURES ---
 
@@ -419,8 +424,15 @@ def test_get_question_by_id_success(client, mock_db):
     assert response.status_code == 200
     payload = response.json()
     assert payload["question_id"] == 42
-    assert payload["tags"] == ["array"]
-    assert payload["testcases"] == [["1 2", "3"]]
+    assert payload["tags"] == [{"tag_id": 0, "tag_name": "array"}]
+    assert payload["test_cases"] == [
+        {
+            "test_case_id": 0,
+            "question_id": 0,
+            "input_data": "1 2",
+            "expected_output": "3",
+        }
+    ]
 
 
 def test_get_question_by_id_not_found(client, mock_db):
@@ -760,3 +772,43 @@ def test_update_question_success_replaces_fields_tags_and_testcases(client, mock
     mock_db.delete.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(existing_question)
+
+
+def test_get_all_questions_uses_now_when_last_modified_missing(client, mock_db):
+    query = build_query_mock(mock_db)
+    query.scalar.return_value = None
+    query.count.return_value = 0
+    query.all.return_value = []
+
+    response = client.get("/get-all-questions")
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+    assert "last-modified" in response.headers
+
+
+def test_create_testcase_request_accepts_object_payload():
+    payload = {"input_data": {"a": 1}, "expected_output": [1, 2, 3]}
+
+    model = CreateTestCaseRequest.model_validate(payload)
+
+    assert model.input_data == {"a": 1}
+    assert model.expected_output == [1, 2, 3]
+
+
+def test_question_language_specific_properties_response_handles_missing_language():
+    qlsp = SimpleNamespace(
+        question_id=1,
+        language_id=2,
+        language=None,
+        from_json_function="from_json",
+        to_json_function="to_json",
+        preset_code="pass",
+        template_solution="return 1",
+    )
+
+    response = QuestionLanguageSpecificPropertiesResponse.from_question_language_specific_properties(qlsp)
+
+    assert response.question_id == 1
+    assert response.language_id == 2
+    assert response.language_display_name == ""

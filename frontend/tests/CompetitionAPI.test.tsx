@@ -8,6 +8,7 @@ import {
   deleteCompetition,
   updateCompetition,
 } from "../src/api/CompetitionAPI";
+import { logFrontend } from "../src/api/LoggerAPI"
 
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
@@ -20,6 +21,11 @@ jest.mock('../src/lib/axiosClient', () => ({
   API_URL: 'http://localhost:8000',
 }))
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>;
+const mockedLogger = logFrontend as jest.Mocked<typeof logFrontend>;
+
+jest.mock('../src/api/LoggerAPI', () => ({
+  logFrontend: jest.fn()
+}))
 
 describe("CompetitionAPI", () => {
   afterEach(() => {
@@ -57,6 +63,10 @@ describe("CompetitionAPI", () => {
     it("throws on error", async () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getCompetitions()).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
     });
   });
 
@@ -84,6 +94,15 @@ describe("CompetitionAPI", () => {
         },
       ]);
     });
+
+    it("throws on error", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getCompetitionsDetails()).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
+    });
   });
 
   describe("createCompetition", () => {
@@ -107,6 +126,15 @@ describe("CompetitionAPI", () => {
       );
       expect(result).toEqual({ id: 10, ...payload });
     });
+
+    it("throws on error", async () => {
+      mockedAxios.post.mockRejectedValueOnce(new Error("Network error"));
+      await expect(createCompetition(undefined)).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
+    });
   });
 
   describe("listCompetitions", () => {
@@ -119,6 +147,15 @@ describe("CompetitionAPI", () => {
 
       expect(mockedAxios.get).toHaveBeenCalledWith("/competitions/list");
       expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+
+    it("throws on error", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(listCompetitions()).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
     });
   });
 
@@ -133,6 +170,15 @@ describe("CompetitionAPI", () => {
       expect(mockedAxios.get).toHaveBeenCalledWith("/competitions/5");
       expect(result).toEqual({ id: 5, competition_title: "Test" });
     });
+
+    it("throws on error", async () => {
+      mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
+      await expect(getCompetitionById(-1)).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
+    });
   });
 
   describe("deleteCompetition", () => {
@@ -142,6 +188,15 @@ describe("CompetitionAPI", () => {
       await deleteCompetition(3);
 
       expect(mockedAxios.delete).toHaveBeenCalledWith("/competitions/3");
+    });
+
+    it("throws on error", async () => {
+      mockedAxios.delete.mockRejectedValueOnce(new Error("Network error"));
+      await expect(deleteCompetition(-1)).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
     });
   });
 
@@ -163,6 +218,17 @@ describe("CompetitionAPI", () => {
         payload
       );
       expect(result).toEqual(payload);
+    });
+
+    it("throws on error", async () => {
+      mockedAxios.put.mockRejectedValueOnce(new Error("Network error"));
+      await expect(updateCompetition({
+        id: -1, competition_title: "something random"
+      } as any)).rejects.toThrow("Network error");
+      await expect(mockedLogger).toHaveBeenCalledWith(expect.objectContaining({
+        level: "ERROR",
+        component: "CompetitionAPI",
+      }))
     });
   });
 });

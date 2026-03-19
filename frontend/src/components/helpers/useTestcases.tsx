@@ -1,19 +1,19 @@
-import { getTestcases } from "@/api/QuestionsAPI";
-import type { TestcaseType } from "@/types/questions/Testcases.type";
+import { getTestcases } from "@/api/TestCasesAPI";
+import type { TestCase } from "@/types/questions/QuestionPagination.type";
 import { useEffect, useRef, useState } from "react";
 
 export function useTestcases(question_id?: number) {
-    const [ testcases, setTestcases ] = useState<TestcaseType[]>([])
+    const [ testcases, setTestcases ] = useState<TestCase[]>([])
     const [ loading, setLoading ] = useState(true)
     const initRef = useRef(false)
-    const [activeTestcase, setActiveTestcase] = useState<string>("");
+    const [activeTestcase, setActiveTestcase] = useState<TestCase | undefined>(undefined);
 
     useEffect(() => {
         if (!question_id) {
             setLoading(false)
             return
         }
-        
+
         setLoading(true)
         getTestcases(question_id)
             .then(setTestcases)
@@ -23,54 +23,49 @@ export function useTestcases(question_id?: number) {
     useEffect(() => {
         // To load default test case
         if (!initRef.current && testcases.length > 0) {
-            setActiveTestcase(testcases[0]?.caseID)
+            setActiveTestcase(testcases[0])
             initRef.current = true
         }
     }, [testcases]);
 
     const addTestcase = () => {
-        const newCase: TestcaseType = {
+        const newCase: TestCase = {
             test_case_id: -1,
             question_id: -1,
-            caseID: `Case ${testcases.length + 1}`,
             input_data: {},
             expected_output: "",
         }
         setTestcases((prev) => [...prev, newCase])
-        setActiveTestcase(newCase.caseID)
+        setActiveTestcase(newCase)
     }
 
-    const removeTestcase = (caseID: string) => {
+    const removeTestcase = (tcr: TestCase) => {
         if (testcases.length === 1) return
-    
-        const filtered = testcases.filter((c) => c.caseID !== caseID)
-        let idx = -1
-    
-        testcases.forEach((c) => {
-            if (c.caseID === caseID) {
-                idx = testcases.indexOf(c)
-            }
-        })
-    
-        for (let i = idx; i < filtered.length; i++) {
-            filtered[i].caseID = `Case ${i + 1}`
-        }
-    
+
+        const idxToRemove = testcases.findIndex((tc) => tc.test_case_id === tcr.test_case_id)
+
+        const filtered = testcases.filter((tc) => tc.test_case_id !== tcr.test_case_id)
+
         setTestcases(filtered)
-    
-        const newID = (activeTestcase === caseID && idx !== 0) ? idx : idx - 1
-        setActiveTestcase(filtered[newID]?.caseID ?? filtered[0].caseID)
+
+        const newID = (activeTestcase?.test_case_id === tcr.test_case_id) // is the active case being removed
+                    ? (idxToRemove === 0) // is it the first in the list
+                        ? (idxToRemove - 1) // not first in the list -> get index before
+                        : (idxToRemove + 1) // first in the list -> get next one
+                    : testcases.findIndex(tc => tc.test_case_id === activeTestcase?.test_case_id) // case being deleted is not active -> keep active
+
+        setActiveTestcase(filtered[newID] ?? filtered[0])
     }
 
     const updateTestcase = (
-        caseID: string,
+        tc: TestCase | undefined,
         field: "input_data" | "expected_output",
         value: string
     ) => {
+        if (!tc) return
         setTestcases((prev) =>
             prev.map((c) =>
-                // if (c.caseID === caseID) { [field]: value }
-                c.caseID === caseID ? { ...c, [field]: value } : c
+                c.test_case_id === tc.test_case_id ? { ...c, [field]: value } : c
             )
         )
     }

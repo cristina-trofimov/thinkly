@@ -1,32 +1,35 @@
-# # nao's DB - cd backend/src ->   python -m DB_Methods.populateDB2
+# nao's DB - cd backend/src ->   python -m database_operations.populate_db2
 # from sqlalchemy.orm import Session
 # from sqlalchemy import text
 # from datetime import datetime, timedelta, timezone
 # import random
-
-# from db import engine, Base, SessionLocal
-
+#
+# from .db import engine, Base, SessionLocal
+#
 # from models.schema import (
 #     UserAccount,
 #     BaseEvent,
 #     Competition,
 #     CompetitionEmail,
 #     Question,
+#     QuestionLanguageSpecificProperties,
 #     TestCase,
 #     Tag,
 #     Language,
 #     QuestionInstance,
+#     UserQuestionInstance,
 #     Riddle,
 #     Submission,
+#     MostRecentSubmission,
 #     CompetitionLeaderboardEntry,
 #     AlgoTimeSeries,
 #     AlgoTimeSession,
 #     AlgoTimeLeaderboardEntry,
 # )
-
+#
 # DIFFICULTIES = ["easy", "medium", "hard"]
-
-
+#
+#
 # def main():
 #     print("Dropping and recreating schema...")
 #     with engine.connect() as conn:
@@ -34,58 +37,58 @@
 #         conn.execute(text("CREATE SCHEMA public"))
 #         conn.commit()
 #     Base.metadata.create_all(bind=engine)
-
+#
 #     db: Session = SessionLocal()
-
+#
 #     try:
 #         # ---------------- LANGUAGES ----------------
-#         # Required by UserPreferences.last_used_programming_language and MostRecentSubmission.lang_judge_id
 #         languages_data = [
-#             (63,  "JavaScript (Node.js 12.14.0)"),
-#             (71,  "Python (3.8.1)"),
-#             (74,  "TypeScript (3.7.4)"),
-#             (62,  "Java (OpenJDK 13.0.1)"),
-#             (54,  "C++ (GCC 9.2.0)"),
-#             (51,  "C# (Mono 6.6.0.161)"),
+#             (63, "javascript", "JavaScript (Node.js 12.14.0)"),
+#             (71, "python",     "Python (3.8.1)"),
+#             (74, "typescript", "TypeScript (3.7.4)"),
+#             (62, "java",       "Java (OpenJDK 13.0.1)"),
+#             (54, "cpp",        "C++ (GCC 9.2.0)"),
+#             (51, "csharp",     "C# (Mono 6.6.0.161)"),
 #         ]
 #         languages = []
-#         for judge_id, display_name in languages_data:
+#         for judge_id, monaco_id, display_name in languages_data:
 #             lang = Language(
 #                 lang_judge_id=judge_id,
+#                 monaco_id=monaco_id,
 #                 display_name=display_name,
 #                 active=True,
 #             )
 #             languages.append(lang)
-
+#
 #         db.add_all(languages)
 #         db.commit()
 #         print(f"✅ {len(languages)} Languages created")
-
+#
 #         # ---------------- USERS ----------------
 #         users = []
 #         for i in range(1, 21):
 #             user = UserAccount(
 #                 email=f"user{i}@gmail.com",
-#                 hashed_password="hashed_pw",          # was: password_hash
+#                 hashed_password="hashed_pw",
 #                 first_name=f"First{i}",
 #                 last_name=f"Last{i}",
-#                 user_type="participant",               # was: type
+#                 user_type="participant",
 #             )
 #             db.add(user)
 #             users.append(user)
-
+#
 #         db.commit()
 #         print(f"✅ {len(users)} Users created")
-
+#
 #         # ---------------- EVENTS + COMPETITIONS ----------------
 #         competitions = []
 #         base_events = []
 #         now = datetime.now(timezone.utc)
-
+#
 #         for i in range(1, 6):
 #             event_start_date = now - timedelta(days=i * 7)
 #             event_end_date = event_start_date + timedelta(hours=2)
-
+#
 #             base_event = BaseEvent(
 #                 event_name=f"Competition {i}",
 #                 event_location="Online",
@@ -97,19 +100,18 @@
 #             )
 #             db.add(base_event)
 #             db.flush()
-
+#
 #             competition = Competition(
 #                 event_id=base_event.event_id,
 #                 riddle_cooldown=30,
 #             )
 #             db.add(competition)
 #             db.flush()
-
-#             # CompetitionEmail — one reminder per competition
+#
 #             email = CompetitionEmail(
 #                 competition_id=competition.event_id,
 #                 subject=f"Reminder: Competition {i} is coming up!",
-#                 to="participants@example.com",
+#                 to="participants@gmail.com",
 #                 body=f"Don't forget that Competition {i} starts soon. Good luck!",
 #                 time_24h_before=event_start_date - timedelta(hours=24),
 #                 time_5min_before=event_start_date - timedelta(minutes=5),
@@ -121,7 +123,7 @@
 #
 #         db.commit()
 #         print("✅ BaseEvents + Competitions + CompetitionEmails created")
-
+#
 #         # ---------------- TAGS ----------------
 #         tag_names = ["arrays", "strings", "dynamic-programming", "graphs", "sorting", "recursion"]
 #         tags = []
@@ -129,43 +131,49 @@
 #             tag = Tag(tag_name=name)
 #             db.add(tag)
 #             tags.append(tag)
-
+#
 #         db.commit()
 #         print(f"✅ {len(tags)} Tags created")
-
-#         # ---------------- QUESTIONS + TESTCASES ----------------
+#
+#         # ---------------- QUESTIONS + TESTCASES + LANGUAGE PROPERTIES ----------------
 #         questions = []
 #         for i in range(6):
 #             q = Question(
 #                 question_name=f"Problem {i + 1}",
 #                 question_description="Solve the problem efficiently.",
-#                 media=None,                            # new optional field
+#                 media=None,
 #                 difficulty=random.choice(DIFFICULTIES),
-#                 preset_code=f"# Starter code for problem {i + 1}",   # new optional field
-#                 from_string_function="def from_string(s): return s",
-#                 to_string_function="def to_string(v): return str(v)",
-#                 template_solution="Reference solution",
 #                 created_at=now,
 #                 last_modified_at=now,
-#                 tags=random.sample(tags, k=random.randint(1, 3)),     # many-to-many via question_tag
+#                 tags=random.sample(tags, k=random.randint(1, 3)),
 #             )
 #             db.add(q)
 #             db.flush()
-
-#             # TestCase — now its own model, not a simple field
+#
 #             for j in range(3):
 #                 tc = TestCase(
 #                     question_id=q.question_id,
-#                     input_data=f"input_{i}_{j}",
-#                     expected_output=f"output_{i}_{j}",
+#                     input_data={"value": f"input_{i}_{j}"},
+#                     expected_output={"value": f"output_{i}_{j}"},
 #                 )
 #                 db.add(tc)
-
+#
+#             for lang in languages:
+#                 qlsp = QuestionLanguageSpecificProperties(
+#                     question_id=q.question_id,
+#                     language_id=lang.lang_judge_id,
+#                     preset_code=f"# Starter code for problem {i + 1} in {lang.display_name}",
+#                     from_json_function="def from_json(s): return s",
+#                     to_json_function="def to_json(v): return str(v)",
+#                     template_solution="Reference solution",
+#                 )
+#                 db.add(qlsp)
+#
 #             questions.append(q)
-
+#
 #         db.commit()
-#         print("✅ Questions + TestCases + Tags created")
-
+#         print("✅ Questions + TestCases + Tags + QuestionLanguageSpecificProperties created")
+#
 #         # ---------------- RIDDLES ----------------
 #         riddles_data = [
 #             ("I speak without a mouth and hear without ears. What am I?", "An echo"),
@@ -175,23 +183,22 @@
 #             ("What can travel around the world while staying in one spot?", "A stamp"),
 #             ("What has a heart that doesn't beat?", "An artichoke"),
 #         ]
-
+#
 #         riddles = []
 #         for question, answer in riddles_data:
 #             riddle = Riddle(
 #                 riddle_question=question,
 #                 riddle_answer=answer,
-#                 riddle_file=None
+#                 riddle_file=None,
 #             )
 #             riddles.append(riddle)
-
+#
 #         db.add_all(riddles)
 #         db.commit()
 #         print(f"✅ {len(riddles)} Riddles created")
-
+#
 #         # ---------------- QUESTION INSTANCES ----------------
-#         # Track QIs per event so we can create submissions against them later
-#         question_instances_by_event: dict[int, list] = {}
+#         question_instances_by_event: dict[int, tuple] = {}
 #
 #         for comp, base_event in zip(competitions, base_events):
 #             selected_questions = random.sample(questions, k=min(3, len(questions)))
@@ -211,7 +218,6 @@
 #         print("✅ QuestionInstances created")
 #
 #         # ---------------- COMPETITION LEADERBOARD ----------------
-#         # Track participants per competition so we can create submissions for them
 #         competition_participants: dict[int, list] = {}
 #
 #         for comp in competitions[:4]:
@@ -230,15 +236,12 @@
 #                         total_time=random.randint(15, 120),
 #                     )
 #                 )
-
+#
 #         db.commit()
 #         print("✅ Competition leaderboard entries created")
 #
-#         # ---------------- SUBMISSIONS ----------------
-#         # Creates realistic submission history so the admin dashboard charts have data:
-#         #   - Questions solved (by difficulty)      → Accepted submissions per QI
-#         #   - Avg question solve time               → submitted_on relative to event_start_date
-#         #   - Participation over time               → submissions spread across the last ~35 days
+#         # ---------------- SUBMISSIONS (competition) ----------------
+#         # Flow per (user, question_instance): UserQuestionInstance → Submission(s) → MostRecentSubmission
 #         STATUSES = ["Wrong Answer", "Runtime Error", "Time Limit Exceeded", "Accepted"]
 #
 #         submission_count = 0
@@ -246,28 +249,35 @@
 #             participants = competition_participants.get(event_id, random.sample(users, 10))
 #
 #             for user in participants:
-#                 # Each user attempts a random subset of the event's questions
 #                 attempted_qis = random.sample(qis, k=random.randint(1, len(qis)))
 #
 #                 for qi in attempted_qis:
-#                     # 1-3 failed attempts then a final submission
+#                     uqi = UserQuestionInstance(
+#                         question_instance_id=qi.question_instance_id,
+#                         user_id=user.user_id,
+#                         points=None,
+#                         riddle_complete=None,
+#                         lapse_time=None,
+#                         attempts=None,
+#                     )
+#                     db.add(uqi)
+#                     db.flush()
+#
 #                     num_attempts = random.randint(1, 3)
-#                     solved = random.random() < 0.65  # 65% chance of eventually solving
+#                     solved = random.random() < 0.65
+#                     last_submission = None
 #
 #                     for attempt in range(num_attempts):
-#                         # Each attempt is a few minutes after the previous one
 #                         offset_minutes = random.randint(5, 80) + (attempt * random.randint(2, 10))
 #                         submitted_on = event_start + timedelta(minutes=offset_minutes)
 #
-#                         # Only the last attempt can be Accepted
 #                         if attempt == num_attempts - 1 and solved:
 #                             sub_status = "Accepted"
 #                         else:
-#                             sub_status = random.choice(STATUSES[:3])  # non-Accepted only
+#                             sub_status = random.choice(STATUSES[:3])
 #
-#                         db.add(Submission(
-#                             user_id=user.user_id,
-#                             question_instance_id=qi.question_instance_id,
+#                         sub = Submission(
+#                             user_question_instance_id=uqi.user_question_instance_id,
 #                             compile_output="",
 #                             submitted_on=submitted_on,
 #                             status=sub_status,
@@ -276,8 +286,25 @@
 #                             message=None,
 #                             stdout=None,
 #                             stderr=None if sub_status == "Accepted" else "Error occurred",
-#                         ))
+#                         )
+#                         db.add(sub)
+#                         db.flush()
+#                         last_submission = sub
 #                         submission_count += 1
+#
+#                     # Update UQI aggregate fields
+#                     uqi.attempts = num_attempts
+#                     uqi.points = random.randint(50, 300) if solved else 0
+#                     uqi.riddle_complete = random.random() > 0.5 if qi.riddle_id else None
+#                     uqi.lapse_time = random.randint(300, 4800)
+#
+#                     db.add(MostRecentSubmission(
+#                         user_question_instance_id=uqi.user_question_instance_id,
+#                         submission_id=last_submission.submission_id,
+#                         code=f"# Solution for qi {qi.question_instance_id}",
+#                         lang_judge_id=random.choice(languages).lang_judge_id,
+#                         submitted_on=last_submission.submitted_on,
+#                     ))
 #
 #         db.commit()
 #         print(f"✅ {submission_count} Submissions created (competition)")
@@ -293,21 +320,21 @@
 #         # ---------------- ALGOTIME SESSIONS ----------------
 #         algotime_participants_per_event: dict[int, list] = {}
 #
-#         for event_id in range(1, 6):
+#         for base_event in base_events:
 #             session = AlgoTimeSession(
-#                 event_id=event_id,
-#                 algotime_series_id=series.algotime_series_id
+#                 event_id=base_event.event_id,
+#                 algotime_series_id=series.algotime_series_id,
 #             )
 #             db.add(session)
 #             db.flush()
-
+#
 #             participants = random.sample(users, random.randint(6, 10))
-#             algotime_participants_per_event[event_id] = participants
+#             algotime_participants_per_event[base_event.event_id] = participants
 #
 #         db.commit()
 #         print("✅ AlgoTime sessions created")
 #
-#         # ---------------- ALGOTIME SUBMISSIONS ----------------
+#         # ---------------- SUBMISSIONS (algotime) ----------------
 #         algotime_submission_count = 0
 #         for event_id, participants in algotime_participants_per_event.items():
 #             if event_id not in question_instances_by_event:
@@ -316,24 +343,61 @@
 #
 #             for user in participants:
 #                 attempted_qis = random.sample(qis, k=random.randint(1, len(qis)))
+#
 #                 for qi in attempted_qis:
+#                     # Reuse existing UQI if this (user, qi) pair was already seeded above
+#                     existing_uqi = next(
+#                         (u for u in qi.user_question_instances if u.user_id == user.user_id),
+#                         None,
+#                     )
+#                     if existing_uqi:
+#                         uqi = existing_uqi
+#                     else:
+#                         uqi = UserQuestionInstance(
+#                             question_instance_id=qi.question_instance_id,
+#                             user_id=user.user_id,
+#                             points=None,
+#                             riddle_complete=None,
+#                             lapse_time=None,
+#                             attempts=None,
+#                         )
+#                         db.add(uqi)
+#                         db.flush()
+#
 #                     offset_minutes = random.randint(5, 90)
 #                     submitted_on = event_start + timedelta(minutes=offset_minutes)
 #                     solved = random.random() < 0.6
+#                     sub_status = "Accepted" if solved else random.choice(STATUSES[:3])
 #
-#                     db.add(Submission(
-#                         user_id=user.user_id,
-#                         question_instance_id=qi.question_instance_id,
+#                     sub = Submission(
+#                         user_question_instance_id=uqi.user_question_instance_id,
 #                         compile_output="",
 #                         submitted_on=submitted_on,
-#                         status="Accepted" if solved else random.choice(STATUSES[:3]),
+#                         status=sub_status,
 #                         runtime=random.randint(50, 500) if solved else None,
 #                         memory=random.randint(10, 256) if solved else None,
 #                         message=None,
 #                         stdout=None,
 #                         stderr=None if solved else "Error occurred",
-#                     ))
+#                     )
+#                     db.add(sub)
+#                     db.flush()
 #                     algotime_submission_count += 1
+#
+#                     # Only create MostRecentSubmission for new UQIs (existing ones already have one)
+#                     if not existing_uqi:
+#                         uqi.attempts = 1
+#                         uqi.points = random.randint(50, 300) if solved else 0
+#                         uqi.riddle_complete = random.random() > 0.5 if qi.riddle_id else None
+#                         uqi.lapse_time = random.randint(300, 4800)
+#
+#                         db.add(MostRecentSubmission(
+#                             user_question_instance_id=uqi.user_question_instance_id,
+#                             submission_id=sub.submission_id,
+#                             code=f"# AlgoTime solution for qi {qi.question_instance_id}",
+#                             lang_judge_id=random.choice(languages).lang_judge_id,
+#                             submitted_on=submitted_on,
+#                         ))
 #
 #         db.commit()
 #         print(f"✅ {algotime_submission_count} Submissions created (algotime)")
@@ -356,7 +420,7 @@
 #         for user_id in all_algotime_participant_ids:
 #             user = user_map[user_id]
 #             score = random.randint(500, 2500)
-
+#
 #             db.add(
 #                 AlgoTimeLeaderboardEntry(
 #                     algotime_series_id=series.algotime_series_id,
@@ -368,18 +432,208 @@
 #                     last_updated=now,
 #                 )
 #             )
-
+#
 #         db.commit()
 #         print(f"✅ AlgoTime leaderboard created with {len(all_algotime_participant_ids)} participants")
 #         print("🎉 Seeding completed successfully")
-
+#
 #     except Exception as e:
 #         db.rollback()
 #         print(f"❌ Error: {e}")
 #         raise
 #     finally:
 #         db.close()
-
-
+#
+#
 # if __name__ == "__main__":
 #     main()
+#
+# # ─────────────────────────────────────────────────────────────────────────────
+# # CLEANUP TEST SEED
+# # Adds a single competition ending at 15:45 UTC today (March 13 2026) with
+# # QuestionInstances, UserQuestionInstances, Submissions, MostRecentSubmissions,
+# # and a CompetitionLeaderboardEntry per participant.
+# #
+# # SAFE: does NOT drop or recreate any tables. Reuses existing users, questions,
+# # riddles, and languages already in the DB.
+# #
+# # Run:  cd backend/src && python -m database_operations.populate_db2
+# # ─────────────────────────────────────────────────────────────────────────────
+
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+import random
+
+from db import SessionLocal
+
+from models.schema import (
+    UserAccount,
+    BaseEvent,
+    Competition,
+    Question,
+    Riddle,
+    Language,
+    QuestionInstance,
+    UserQuestionInstance,
+    Submission,
+    MostRecentSubmission,
+    CompetitionLeaderboardEntry,
+)
+
+STATUSES = ["Wrong Answer", "Runtime Error", "Time Limit Exceeded", "Accepted"]
+
+
+def seed_cleanup_test() -> None:
+    """
+    Inserts one competition that ends at 15:45 UTC today so the cleanup job
+    can be triggered and verified. Reuses whatever rows already exist in the DB.
+    Does NOT wipe anything.
+    """
+    db: Session = SessionLocal()
+
+    try:
+        now = datetime.now(timezone.utc)
+
+        # ── Guard: skip if a test competition already exists ──────────────────
+        existing = db.query(BaseEvent).filter_by(event_name="[TEST] Cleanup Competition").first()
+        if existing:
+            print("ℹ️  [TEST] Cleanup Competition already exists — skipping seed.")
+            return
+
+        # ── Pull existing rows we need ────────────────────────────────────────
+        users = db.query(UserAccount).limit(5).all()
+        questions = db.query(Question).limit(3).all()
+        riddles = db.query(Riddle).all()
+        languages = db.query(Language).all()
+
+        if not users:
+            print("❌  No users found — run the main seed first.")
+            return
+        if not questions:
+            print("❌  No questions found — run the main seed first.")
+            return
+        if not languages:
+            print("❌  No languages found — run the main seed first.")
+            return
+
+        # ── BaseEvent ending at 15:45 UTC today ───────────────────────────────
+        end_time = now.replace(hour=15, minute=55, second=0, microsecond=0)
+        start_time = end_time.replace(hour=13, minute=0)   # 2-hr-45-min window
+
+        base_event = BaseEvent(
+            event_name="[TEST] Cleanup Competition",
+            event_location="Test Location",
+            question_cooldown=5,
+            event_start_date=start_time,
+            event_end_date=end_time,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(base_event)
+        db.flush()
+
+        competition = Competition(event_id=base_event.event_id, riddle_cooldown=30)
+        db.add(competition)
+        db.flush()
+
+        print(f"✅  BaseEvent #{base_event.event_id} + Competition created  "
+              f"(ends {end_time.strftime('%Y-%m-%d %H:%M UTC')})")
+
+        # ── QuestionInstances ─────────────────────────────────────────────────
+        qis = []
+        for q in questions:
+            riddle_id = random.choice(riddles).riddle_id if riddles else None
+            qi = QuestionInstance(
+                question_id=q.question_id,
+                event_id=competition.event_id,
+                riddle_id=riddle_id,
+            )
+            db.add(qi)
+            db.flush()
+            qis.append(qi)
+
+        print(f"✅  {len(qis)} QuestionInstances created")
+
+        # ── UserQuestionInstances + Submissions + MostRecentSubmissions ────────
+        sub_count = 0
+        for user in users:
+            # Each user attempts all questions for this small test event
+            for qi in qis:
+                uqi = UserQuestionInstance(
+                    question_instance_id=qi.question_instance_id,
+                    user_id=user.user_id,
+                    points=None,
+                    riddle_complete=None,
+                    lapse_time=None,
+                    attempts=None,
+                )
+                db.add(uqi)
+                db.flush()
+
+                # 1–2 submissions per question
+                num_attempts = random.randint(1, 2)
+                solved = random.random() < 0.6
+                last_sub = None
+
+                for attempt in range(num_attempts):
+                    status = "Accepted" if (attempt == num_attempts - 1 and solved) \
+                              else random.choice(STATUSES[:3])
+                    sub = Submission(
+                        user_question_instance_id=uqi.user_question_instance_id,
+                        compile_output="",
+                        submitted_on=start_time,
+                        status=status,
+                        runtime=random.randint(50, 400) if status == "Accepted" else None,
+                        memory=random.randint(10, 128) if status == "Accepted" else None,
+                        message=None,
+                        stdout=None,
+                        stderr=None if status == "Accepted" else "Test error",
+                    )
+                    db.add(sub)
+                    db.flush()
+                    last_sub = sub
+                    sub_count += 1
+
+                uqi.attempts = num_attempts
+                uqi.points = random.randint(50, 300) if solved else 0
+                uqi.riddle_complete = None
+                uqi.lapse_time = random.randint(300, 3600)
+
+                db.add(MostRecentSubmission(
+                    user_question_instance_id=uqi.user_question_instance_id,
+                    submission_id=last_sub.submission_id,
+                    code=f"# test solution for qi {qi.question_instance_id}",
+                    lang_judge_id=random.choice(languages).lang_judge_id,
+                    submitted_on=start_time,
+                ))
+
+        db.commit()
+        print(f"✅  {sub_count} Submissions + MostRecentSubmissions created "
+              f"across {len(users)} users")
+
+        # ── CompetitionLeaderboardEntries ─────────────────────────────────────
+        for user in users:
+            db.add(CompetitionLeaderboardEntry(
+                competition_id=competition.event_id,
+                user_id=user.user_id,
+                name=f"{user.first_name} {user.last_name}",
+                total_score=random.randint(100, 1000),
+                problems_solved=random.randint(1, len(qis)),
+                total_time=random.randint(10, 90),
+            ))
+
+        db.commit()
+        print(f"✅  {len(users)} CompetitionLeaderboardEntries created")
+        print("🎉  Cleanup test seed complete — competition ends at "
+              f"{end_time.strftime('%H:%M UTC')} today")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌  seed_cleanup_test error: {e}")
+        raise
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    seed_cleanup_test()

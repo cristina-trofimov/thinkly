@@ -1,17 +1,21 @@
 import axiosClient from "@/lib/axiosClient";
 import type {
   EditableQuestionFields,
-  Question,
-} from "@/types/questions/Question.type";
-import type { QuestionListItemResponse, QuestionsPageParams, QuestionsPageResult, QuestionsResponse, RiddlesResponse } from "@/types/questions/QuestionPagination.type";
-import type { TestcaseType } from "@/types/questions/Testcases.type";
-import type { Riddle } from "@/types/riddle/Riddle.type";
+  Question, TagResponse,
+  QuestionsPageParams,
+  QuestionsPageResult,
+  QuestionsResponse,
+  RiddlesResponse,
+  TestCase,
+  LanguageSpecificProperties
+} from "@/types/questions/QuestionPagination.type";
 import { logFrontend } from "./LoggerAPI";
+import type { Riddle } from "@/types/riddle/Riddle.type";
 
 const DEFAULT_PAGE_SIZE = 100;
 
 function normalizeDifficulty(
-  difficulty: QuestionListItemResponse["difficulty"],
+  difficulty: Question["difficulty"],
 ): Question["difficulty"] {
   const lowered = difficulty.toLowerCase();
   if (lowered === "easy") return "Easy";
@@ -20,28 +24,45 @@ function normalizeDifficulty(
 }
 
 function mapQuestion(
-  question: QuestionListItemResponse,
+  question: Question,
   options: { includeCollections?: boolean } = {},
 ): Question {
   const createdAt = question.created_at ?? question.last_modified_at;
-
   const baseQuestion: Question = {
     question_id: question.question_id,
     question_name: question.question_name,
     question_description: question.question_description,
-    media: question.media,
-    preset_code: question.preset_code,
-    template_solution: question.template_solution,
+    media: question.media ?? null,
     difficulty: normalizeDifficulty(question.difficulty),
-    from_string_function: question.from_string_function ?? "",
-    to_string_function: question.to_string_function ?? "",
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    tags: [] as TagResponse[],
+    test_cases: [] as Array<TestCase>,
+    language_specific_properties: [] as Array<LanguageSpecificProperties>,
   };
 
   if (options.includeCollections) {
-    baseQuestion.tags = question.tags ?? [];
-    baseQuestion.testcases = question.testcases ?? [];
+    baseQuestion.tags = (question.tags ?? [] as TagResponse[]).map((tag) => ({
+      tag_id: tag.tag_id,
+      tag_name: tag.tag_name
+    }));
+    baseQuestion.test_cases = (question.test_cases ?? [] as Array<TestCase>).map((testcase) => ({
+      test_case_id: testcase.test_case_id,
+      question_id: testcase.question_id,
+      input_data: testcase.input_data,
+      expected_output: testcase.expected_output,
+    }));
+
+    baseQuestion.language_specific_properties = (question.language_specific_properties ?? [] as Array<LanguageSpecificProperties>)
+      .map((prop) => ({
+      language_id: prop.language_id,
+      question_id: prop.question_id,
+      language_display_name: prop.language_display_name,
+      preset_code: prop.preset_code,
+      template_solution: prop.template_solution,
+      from_json_function: prop.from_json_function,
+      to_json_function: prop.to_json_function,
+    }));
   }
 
   return baseQuestion;
@@ -66,7 +87,7 @@ export async function getQuestionsPage({
       },
     },
   );
-
+  
   return {
     total: response.data.total,
     page: response.data.page,
@@ -104,13 +125,18 @@ export async function getQuestions(): Promise<Question[]> {
 
 export async function getQuestionByID(questionId: number): Promise<Question> {
   try {
-    const response = await axiosClient.get<QuestionListItemResponse>(
+    const response = await axiosClient.get<Question>(
       `/questions/get-question-by-id/${questionId}`,
     );
-
     return mapQuestion(response.data, { includeCollections: true });
   } catch (err) {
-    console.error("Error fetching question:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching questions. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -162,30 +188,35 @@ export async function getRiddles(): Promise<Riddle[]> {
       file: riddle.riddle_file || null,
     }));
   } catch (err) {
-    console.error("Error fetching riddles:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching riddles. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
 
 export async function getTestcases(
   question_id: number,
-): Promise<TestcaseType[]> {
+): Promise<TestCase[]> {
   try {
     const response = await axiosClient.get<
       {
         test_case_id: number;
         question_id: number;
-        input_data: string;
-        expected_output: string;
+        input_data: unknown;
+        expected_output: unknown;
       }[]
     >(`/questions/get-all-testcases/${question_id}`);
 
-    return response.data.map((testcase, index) => ({
+    return response.data.map((testcase) => ({
       test_case_id: testcase.test_case_id,
       question_id: testcase.question_id,
-      input_data: JSON.parse(testcase.input_data),
+      input_data: testcase.input_data,
       expected_output: testcase.expected_output,
-      caseID: `Case ${index + 1}`,
     }));
   } catch (err) {
     console.error("Error fetching testcases:", err);

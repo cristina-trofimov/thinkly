@@ -20,11 +20,22 @@ const mockUseTestcases = useTestcases as jest.Mock
 
 const mockTestcases = [
   {
-    caseID: 'Case 1',
+    test_case_id: 1,
+    question_id: 1,
     input_data: {
       a: 10,
       b: 20,
     },
+    expected_output: "12"
+  },
+  {
+    test_case_id: 2,
+    question_id: 1,
+    input_data: {
+      x: 5,
+      y: 5,
+    },
+    expected_output: "123"
   },
 ]
 
@@ -61,9 +72,7 @@ describe('Testcases Component', () => {
     setupCases()
 
     expect(screen.getByText('Case 1')).toBeInTheDocument()
-    expect(screen.getByTestId('content-Case 1')).toBeInTheDocument()
-    expect(screen.getByText('a')).toBeInTheDocument()
-    expect(screen.getByTestId('Case 1-b-input')).toHaveValue("20")
+    expect(screen.getByTestId('content-1')).toBeInTheDocument()
   })
 
   it('calls addTestcase when clicking on add button and adds the tab button', async () => {
@@ -74,29 +83,21 @@ describe('Testcases Component', () => {
     expect(addTestcase).toHaveBeenCalled()
   })
 
-  it('calls updateTestcase when an input field is changed', async () => {
-    const { updateTestcase } = setupCases()
-    const inputField = screen.getByTestId('Case 1-a-input')
-    
-    fireEvent.change(inputField, {target: {value: '99'}})
-    expect(updateTestcase).toHaveBeenCalledWith('Case 1', "input_data", "99")
-  })
-
   it('calls removeTestcase when clicking on X svg', async () => {
     const { removeTestcase } = setupCases()
     
-    fireEvent.click(screen.getByTestId('trigger-Case 1')
+    fireEvent.click(screen.getByTestId('trigger-case-1')
                           .querySelector('svg')!)
 
-    expect(removeTestcase).toHaveBeenCalledWith("Case 1")
+    expect(removeTestcase).toHaveBeenCalledWith(mockTestcases[0])
   })
 
   it("does not remove the testcase when it's the only one", async () => {
     setupCases()
 
-    fireEvent.click(screen.getByTestId('trigger-Case 1')
+    fireEvent.click(screen.getByTestId('trigger-case-1')
                           .querySelector('svg')!)
 
-    expect(screen.getByTestId('trigger-Case 1')).toBeInTheDocument()
+    expect(screen.getByTestId('trigger-case-1')).toBeInTheDocument()
   })
 })

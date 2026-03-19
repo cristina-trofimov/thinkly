@@ -4,7 +4,7 @@ import { DataTable } from "../src/components/questionsTable/questionDataTable"
 import type { ColumnDef } from "@tanstack/react-table"
 import { waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import type { Question } from "../src/types/questions/Question.type"
+import type { Question, TagResponse, TestCase } from "../src/types/questions/QuestionPagination.type"
 
 const mockTrackQuestionClicked = jest.fn()
 const mockTrackQuestionSearched = jest.fn()
@@ -97,10 +97,9 @@ const data: Question[] = [
     difficulty: "Easy",
     question_description: "Test description",
     media: "",
-    preset_code: "",
-    template_solution: "",
-    to_string_function: "",
-    from_string_function: "",
+    language_specific_properties: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date("2024-01-01"),
     last_modified_at: new Date("2024-01-01"),
   },
@@ -110,10 +109,9 @@ const data: Question[] = [
     difficulty: "Medium",
     question_description: "Test description",
     media: "",
-    preset_code: "",
-    template_solution: "",
-    to_string_function: "",
-    from_string_function: "",
+    language_specific_properties: [],
+    tags: [] as TagResponse[],
+    test_cases: [] as TestCase[],
     created_at: new Date("2024-01-02"),
     last_modified_at: new Date("2024-01-01"),
   },

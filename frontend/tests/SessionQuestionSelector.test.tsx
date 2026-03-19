@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { SessionQuestionSelector } from "../src/components/algotime/SessionQuestionSelector";
-import type { Question } from "../src/types/questions/Question.type";
+import type { Question } from "../src/types/questions/QuestionPagination.type";
 import axiosClient from "../src/lib/axiosClient";
 import { logFrontend } from "../src/api/LoggerAPI";
 

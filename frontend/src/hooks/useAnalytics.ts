@@ -1,3 +1,4 @@
+import type { Language } from "@/types/questions/Language.type";
 import { usePostHog } from "@posthog/react";
 
 /**
@@ -211,10 +212,11 @@ export function useAnalytics() {
   }
 
   function trackLanguageChanged(
-    questionId: number,
-    fromLanguage: string,
-    toLanguage: string
+    questionId: number | undefined,
+    fromLanguage: Language | null,
+    toLanguage: Language | undefined
   ) {
+    if (!questionId || !fromLanguage || !toLanguage) return
     posthog.capture("coding_language_changed", {
       question_id: questionId,
       from_language: fromLanguage,
@@ -222,7 +224,8 @@ export function useAnalytics() {
     });
   }
 
-  function trackCodeReset(questionId: number, language: string) {
+  function trackCodeReset(questionId: number | undefined, language: Language | undefined) {
+    if (!questionId || !language) return
     posthog.capture("coding_code_reset", {
       question_id: questionId,
       language,
@@ -230,12 +233,13 @@ export function useAnalytics() {
   }
 
   function trackCodeRun(
-    questionId: number,
-    language: string,
+    questionId: number | undefined,
+    language: Language | undefined,
     status: string,
     passed: boolean,
     executionTimeSeconds?: string
   ) {
+    if (!language || !questionId) return
     posthog.capture("coding_code_run", {
       question_id: questionId,
       language,
@@ -245,7 +249,8 @@ export function useAnalytics() {
     });
   }
 
-  function trackCodeSubmitted(questionId: number, language: string) {
+  function trackCodeSubmitted(questionId: number | undefined, language: Language | undefined) {
+    if (!questionId || !language) return
     posthog.capture("coding_code_submitted", {
       question_id: questionId,
       language,

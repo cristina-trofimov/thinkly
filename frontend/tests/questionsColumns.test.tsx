@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { columns } from "../src/components/questionsTable/questionsColumns"
-import { type Question } from "../src/types/questions/Question.type"
+import { TagResponse, type Question, TestCase } from "../src/types/questions/QuestionPagination.type"
 import { flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
+import React from "react"
 
 // Helper component to test columns
 function TestTable({ data }: { data: Question[] }) {
@@ -46,10 +47,9 @@ describe("Questions Columns", () => {
       difficulty: "Easy",
       question_description: "string",
       media: "string",
-      preset_code: "string",
-      template_solution: "string",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-01-15"),
     },
     {
@@ -59,10 +59,9 @@ describe("Questions Columns", () => {
       difficulty: "Medium",
       question_description: "string",
       media: "string",
-      preset_code: "string",
-      template_solution: "string",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-02-20"),
     },
     {
@@ -72,10 +71,9 @@ describe("Questions Columns", () => {
       difficulty: "Hard",
       question_description: "string",
       media: "string",
-      preset_code: "string",
-      template_solution: "string",
-      from_string_function: "",
-      to_string_function: "",
+      language_specific_properties: [],
+      tags: [] as TagResponse[],
+      test_cases: [] as TestCase[],
       last_modified_at: new Date("2024-03-10"),
     },
   ]

@@ -128,6 +128,13 @@ export function Leaderboards() {
     loadCompetitions();
   }, [loadCompetitions]);
 
+  // Refresh the current competition leaderboard every minute while the tab is active
+  useEffect(() => {
+    if (leaderboardType !== "competition") return;
+    const id = setInterval(loadCompetitions, 60_000);
+    return () => clearInterval(id);
+  }, [leaderboardType, loadCompetitions]);
+
   // ─── Event handlers ────────────────────────────────────────────────────────
 
   const handleSearchChange = (value: string) => {

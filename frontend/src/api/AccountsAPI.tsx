@@ -1,4 +1,5 @@
 import axiosClient from "@/lib/axiosClient";
+import type { UserPreferences } from "@/types/account/UserPreferences.type";
 import type { Account, AccountsApiItem, AccountsApiResponse, UserType } from "@/types/account/Account.type";
 
 export type AccountsSort =
@@ -117,11 +118,6 @@ export async function updateAccount(
     console.error("Error updating user:", err);
     throw err;
   }
-}
-
-export interface UserPreferences {
-  theme: "light" | "dark";
-  notifications_enabled: boolean;
 }
 
 export async function getUserPreferences(userId: number): Promise<UserPreferences> {

@@ -2,20 +2,24 @@ import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
 import { logFrontend } from "./LoggerAPI";
 
-export async function updateQuestionInstance(
-  question_instance: QuestionInstance | undefined,
+export async function putQuestionInstance(
+  question_instance_id: number | undefined,
+  question_id: number | undefined,
+  event_id: number | null | undefined,
+  riddle_id: number | null | undefined,
 ): Promise<QuestionInstance> {
-  if (!question_instance) {
-    throw new Error("Question instance cannot be undefined")
+  if (!question_id) {
+    throw new Error("Question cannot be undefined")
   }
 
   try {
-    const response = await axiosClient.post(
-      "/instances/update",
+    const response = await axiosClient.put(
+      "/instances/put",
       {
-        question_id: question_instance.question_id,
-        event_id: question_instance.event_id,
-        riddle_id: question_instance.riddle_id
+        question_instance_id: question_instance_id,
+        question_id: question_id,
+        event_id: event_id,
+        riddle_id: riddle_id
       }
     )
 
@@ -24,7 +28,7 @@ export async function updateQuestionInstance(
   } catch (err) {
     logFrontend({
       level: "ERROR",
-      message: `Failed to update question instance. Reason: ${err}`,
+      message: `An error occurred when putting a question instance. Reason: ${err}`,
       component: "QuestionInstanceAPI",
       url: globalThis.location.href,
       stack: (err as Error).stack,
@@ -52,7 +56,7 @@ export async function getQuestionInstance(
   } catch (err) {
     logFrontend({
       level: "ERROR",
-      message: `Failed to fetching question instance. Reason: ${err}`,
+      message: `An error occurred when fetching question instance. Reason: ${err}`,
       component: "QuestionInstanceAPI",
       url: globalThis.location.href,
       stack: (err as Error).stack,

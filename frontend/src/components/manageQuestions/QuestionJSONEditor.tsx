@@ -2,7 +2,7 @@ import { Editor } from "@monaco-editor/react";
 import { getQuestionByID, updateQuestion } from "@/api/QuestionsAPI";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/Question.type";
+import { getQuestionFields, type EditableQuestionFields, type TagResponse } from "@/types/questions/QuestionPagination.type";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -26,9 +26,18 @@ interface QuestionJSONEditorState {
   isBackWarningOpen: boolean;
 }
 
+class QuestionPayloadValidationError extends Error {}
+
 const QuestionJSONEditor: FC = () => {
   const { questionId } = useParams();
   const navigate = useNavigate();
+
+  const getMonacoThemeFromDocument = () => {
+    const root = document.documentElement;
+    const dataTheme = root.dataset.theme;
+    const isDark = root.classList.contains("dark") || dataTheme === "dark";
+    return isDark ? "vs-dark" : "light";
+  };
 
   const [state, setState] = useState<QuestionJSONEditorState>({
     value: "{}",
@@ -37,6 +46,7 @@ const QuestionJSONEditor: FC = () => {
     isSubmitting: false,
     isBackWarningOpen: false,
   });
+  const [editorTheme, setEditorTheme] = useState<string>(getMonacoThemeFromDocument());
 
   const { value, initialValue, isLoading, isSubmitting, isBackWarningOpen } = state;
   const parsedQuestionId = Number(questionId);
@@ -107,20 +117,18 @@ const QuestionJSONEditor: FC = () => {
     }
 
     try {
-      const parsedPayload = JSON.parse(value) as unknown;
-
-      if (!validateEditableQuestionFields(parsedPayload)) {
-        toast.error("Invalid question JSON shape");
-        return;
-      }
+      const parsedPayload = JSON.parse(value);
+      const normalizedPayload = normalizeEditableQuestionFields(parsedPayload);
 
       setState((prev) => ({ ...prev, isSubmitting: true }));
-      await updateQuestion(parsedQuestionId, parsedPayload);
+      await updateQuestion(parsedQuestionId, normalizedPayload);
       setState((prev) => ({ ...prev, initialValue: prev.value }));
       toast.success(`Question ${parsedQuestionId} updated successfully!`);
     } catch (error) {
       if (error instanceof SyntaxError) {
         toast.error("Invalid JSON format");
+      } else if (error instanceof QuestionPayloadValidationError) {
+        toast.error(error.message);
       } else {
         const message = parseAxiosErrorMessage(error);
         toast.error(`Failed to update question ${parsedQuestionId}: ${message}`);
@@ -154,6 +162,21 @@ const QuestionJSONEditor: FC = () => {
     return () => globalThis.removeEventListener("keydown", handleKeyDown);
   }, [canSubmit, handleSubmit]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncTheme = () => setEditorTheme(getMonacoThemeFromDocument());
+
+    syncTheme();
+
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const handleBackClick = () => {
     if (canSubmit) {
       setState((prev) => ({ ...prev, isBackWarningOpen: true }));
@@ -179,6 +202,7 @@ const QuestionJSONEditor: FC = () => {
         height="90vh"
         language="json"
         value={value}
+        theme={editorTheme}
         onChange={(nextValue) =>
           setState((prev) => ({
             ...prev,
@@ -210,37 +234,118 @@ const QuestionJSONEditor: FC = () => {
   );
 };
 
-function validateEditableQuestionFields(payload: unknown): payload is EditableQuestionFields {
+function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFields {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return false;
+    throw new QuestionPayloadValidationError("Question payload must be a JSON object");
   }
 
   const data = payload as Record<string, unknown>;
-  const hasValidDifficulty =
-    data.difficulty === "easy" ||
-    data.difficulty === "medium" ||
-    data.difficulty === "hard";
 
-  return (
-    typeof data.question_name === "string" &&
-    typeof data.question_description === "string" &&
-    (typeof data.media === "string" || data.media === null) &&
-    hasValidDifficulty &&
-    typeof data.preset_code === "string" &&
-    typeof data.from_string_function === "string" &&
-    typeof data.to_string_function === "string" &&
-    typeof data.template_solution === "string" &&
-    Array.isArray(data.tags) &&
-    data.tags.every((tag) => typeof tag === "string") &&
-    Array.isArray(data.testcases) &&
-    data.testcases.every(
-      (testcase) =>
-        Array.isArray(testcase) &&
-        testcase.length === 2 &&
-        typeof testcase[0] === "string" &&
-        typeof testcase[1] === "string"
-    )
-  );
+  if (typeof data.question_name !== "string") {
+    throw new QuestionPayloadValidationError("Question_name must be a string");
+  }
+  const question_name: string = data.question_name;
+
+  if (typeof data.question_description !== "string") {
+    throw new QuestionPayloadValidationError("Question_description must be a string");
+  }
+  const question_description: string = data.question_description;
+
+  let media: string | null = null;
+  if (typeof data.media === "string") {
+    media = data.media; 
+  } else if (data.media !== null) {
+    throw new QuestionPayloadValidationError("Media must be a string or null");
+  }
+
+  let difficulty: "easy" | "medium" | "hard";
+  if (data.difficulty === "easy" || data.difficulty === "medium" || data.difficulty === "hard") {
+    difficulty = data.difficulty;
+  } else {
+    throw new QuestionPayloadValidationError("Difficulty must be one of: easy, medium, hard");
+  }
+
+  if (!Array.isArray(data.tags)) {
+    throw new QuestionPayloadValidationError("Tags must be an array");
+  }
+
+  const tags = data.tags as TagResponse[];
+
+  if (!Array.isArray(data.language_specific_properties)) {
+    throw new QuestionPayloadValidationError("Language_specific_properties must be an array");
+  }
+
+  if (!Array.isArray(data.testcases)) {
+    throw new QuestionPayloadValidationError("Testcases must be an array");
+  }
+
+  const languageSpecificProperties: Array<EditableQuestionFields["language_specific_properties"][number] | null> =
+    data.language_specific_properties.map((prop: unknown) => {
+    if (!prop || typeof prop !== "object" || Array.isArray(prop)) {
+      return null;
+    }
+
+    const record = prop as Record<string, unknown>;
+    if (
+      typeof record.language_name !== "string" ||
+      typeof record.preset_code !== "string" ||
+      typeof record.template_solution !== "string" ||
+      typeof record.from_json_function !== "string" ||
+      typeof record.to_json_function !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      language_name: record.language_name,
+      preset_code: record.preset_code,
+      template_solution: record.template_solution,
+      from_json_function: record.from_json_function,
+      to_json_function: record.to_json_function,
+    };
+  });
+
+  if (languageSpecificProperties.includes(null)) {
+    throw new QuestionPayloadValidationError(
+      "Each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
+    );
+  }
+
+  const testcases: Array<EditableQuestionFields["testcases"][number] | null> = data.testcases.map((testcase: unknown) => {
+    if (!testcase || typeof testcase !== "object") {
+      return null;
+    }
+
+    const record = testcase as Record<string, unknown>;
+
+    if (
+      !Object.hasOwn(record, "input_data") ||
+      !Object.hasOwn(record, "expected_output")
+    ) {
+      return null;
+    }
+
+    return {
+      input_data: record.input_data,
+      expected_output: record.expected_output,
+    };
+  });
+
+  if (testcases.includes(null)) {
+    throw new QuestionPayloadValidationError(
+      "Each testcase must include input_data and expected_output"
+    );
+  }
+
+  return {
+    question_name,
+    question_description,
+    media,
+    difficulty,
+    language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
+    tags,
+    testcases: testcases as EditableQuestionFields["testcases"],
+  };
 }
 
 export default QuestionJSONEditor;
