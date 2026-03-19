@@ -20,14 +20,16 @@ from endpoints.user_preferences_api import user_preferences_router
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from endpoints.user_question_instance_api import user_question_instance_router
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from logging_config import setup_logging
 from services.competition_cleanup import cleanup_ended_competitions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 import os
 from dotenv import load_dotenv
 import logging
@@ -66,6 +68,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
 
+# --- Rate Limiting ---
+limiter = Limiter(key_func=get_remote_address, default_limits=["45/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 
 # --- Allow frontend requests (CORS setup) ---
 # ✅ CORS must be registered FIRST so it wraps all other middleware.
@@ -89,7 +97,7 @@ app.add_middleware(
     max_age=3600,  # Allow browser to cache preflight for 1 hour
     expose_headers=["*"],
 )
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 # --- PostHog Analytics Middleware ---
 @app.middleware("http")
