@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react"
-import type { Question } from "../../types/questions/Question.type";
+import type { Question } from "../../types/questions/QuestionPagination.type";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns"
@@ -153,7 +153,7 @@ export const SessionQuestionSelector = ({
                             {sessionFilteredQuestions.map((q) => (
                                 <div
                                     key={q.question_id}
-                                    className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${sessionQuestions[sessionNumber]?.includes(Number(q.question_id)) ? 'bg-primary/10' : ''
+                                    className={`p-4 border-b border-border hover:bg-muted transition-colors ${sessionQuestions[sessionNumber]?.includes(Number(q.question_id)) ? 'bg-accent' : ''
                                         }`}
                                 >
                                     <div className="flex items-center justify-between">
@@ -167,7 +167,7 @@ export const SessionQuestionSelector = ({
                                                 }}
                                                 className="w-4 h-4 accent-primary pointer-events-auto"
                                             />
-                                            <span className="font-medium text-gray-900">{q.question_name}</span>
+                                            <span className="font-medium text-foreground">{q.question_name}</span>
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyColor(q.difficulty || "unknown")}`}>
                                             {q.difficulty || "unknown"}

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
@@ -9,13 +9,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/r
 import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
-import { buildMonacoCode } from '../components/helpers/monacoConfig';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
-import { type SupportedLanguagesType, supportedLanguages } from '@/types/questions/SupportedLanguages';
 import { submitToJudge0 } from '@/api/Judge0API';
 import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
-import type { Question } from '@/types/questions/Question.type';
+import type { Question } from '@/types/questions/QuestionPagination.type';
 import { useTestcases } from '../components/helpers/useTestcases';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import Loader from '../components/helpers/Loader';
@@ -33,13 +31,15 @@ import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
 import { getQuestionByID } from '@/api/QuestionsAPI';
 import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
+import type { Language } from '@/types/questions/Language.type';
+import { getAllLanguages } from '@/api/LanguageAPI';
+import type { UserPreferences } from '@/types/UserPreferences.type';
+import { getUserPrefs } from '@/api/UserPreferencesAPI';
+import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 
 
 const CodingView = () => {
   const location = useLocation()
-  // const algo: AlgoTimeSeries = location?.state?.algo
-  // AlgoTimeSession
-
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
   const [ questions, setQuestions ] = useState<Question[]>([])
@@ -59,6 +59,12 @@ const CodingView = () => {
   const [ logs, setLogs ] = useState<Judge0Response[]>([])
   const [ currentOutputTab, setCurrentOutputTab ] = useState<string>('testcases')
 
+  const [languages, setLanguages] = useState<Language[]>()
+  const [selectedLang, setSelectedLang] = useState<Language>()
+  // Keep a ref to the previous language so we can log "from → to" on change
+  const prevLangRef = useRef<Language | null>(null)
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>()
+
   // Getting the competition or algotime event if it exists
   useEffect(() => {
     if(comp?.id) {
@@ -70,10 +76,13 @@ const CodingView = () => {
               setEvent(response)
             })
         } catch (err) {
-          console.error("Failed to fetch event: ", err)
-          toast.error("Error when fetching event.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching event.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch event. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
@@ -95,10 +104,13 @@ const CodingView = () => {
                 setQuestionsInstances(response)
             })
         } catch (err) {
-          console.error("Failed to fetch question instances: ", err)
-          toast.error("Error when fetching question instances.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching question instances.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instances. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
@@ -109,22 +121,26 @@ const CodingView = () => {
       const initQuestion = async () => {
         setIsQuestionLoading(true)
         try {
-          await getQuestionInstance(question?.question_id, null)
-            .then((response) => {
-              setQuestionsInstances([response])
-            })
+          const [questionInstance, fullQuestion] = await Promise.all([
+            getQuestionInstance(question.question_id, null),
+            getQuestionByID(question.question_id),
+          ])
+          setQuestionsInstances([questionInstance])
+          setQuestions([fullQuestion])
         } catch (err) {
-          console.error("Failed to fetch question instance: ", err)
-          toast.error("Error when fetching question instance.", {
-            position: 'top-right',
-            style: { backgroundColor: '#E9DADA' }
+          toast.error("Error when fetching question instance.")
+          logFrontend({
+            level: "ERROR",
+            message: `Failed to fetch question instance. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
           })
         } finally {
           setIsQuestionLoading(false)
         }
       }
       initQuestion()
-      setQuestions([question])
     }
   }, [event, question?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,10 +160,13 @@ const CodingView = () => {
 
         setQuestions(fetchedResponses)
       } catch (err) {
-        console.error("Failed to fetch questions: ", err)
-        toast.error("Error when fetching questions.", {
-          position: 'top-right',
-          style: { backgroundColor: '#E9DADA' }
+        toast.error("Error when fetching questions.")
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to fetch questions. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
         })
       } finally {
         setIsQuestionLoading(false)
@@ -165,8 +184,52 @@ const CodingView = () => {
     if (questionsInstances.length > 0 && !activeQuestionInstance) {
       setActiveQuestionInstance(questionsInstances[0])
     }
-  }, [questions, questionsInstances]) // eslint-disable-line react-hooks/exhaustive-deps
+    const loadLanguages = async () => {
+      try {
+        const user = await getProfile()
 
+        await getAllLanguages(true)
+        .then((response) => {
+          setLanguages(response)
+        })
+
+        await getUserPrefs(user.id)
+          .then((response) => {
+            setUserPreferences(response)
+          })
+      } catch (error) {
+        toast.error("Error when fetching languages.")
+        logFrontend({
+          level: "ERROR",
+          message: `Failed to fetch languages. Reason: ${error}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (error as Error).stack,
+        })
+      }
+    }
+    if (questions) {
+      loadLanguages()
+    }
+  }, [questions, questionsInstances])
+
+  // Auto-select the first language that has preset code when the question changes
+  useEffect(() => {
+    if (!activeQuestion || !languages?.length) return
+
+    const langWithPreset = activeQuestion.language_specific_properties.find(
+      (p) => p.preset_code
+    )
+    if (!langWithPreset) return
+
+    const matchedLang = languages.find(
+      (l) => l.display_name === langWithPreset.language_display_name
+    )
+    if (matchedLang) {
+      setSelectedLang(matchedLang)
+      prevLangRef.current = matchedLang
+    }
+  }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { testcases } = useTestcases(activeQuestionInstance?.question_id)
   const outputTabs = [
@@ -182,110 +245,113 @@ const CodingView = () => {
   } = useAnalytics()
 
   const submitCode = async () => {
-    try {
-      setIsAsyncLoading(true)
-      setLoadingMsg("Submitting")
-
-      const user = await getProfile()
-      const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, judgeID, testcases)
-
-      if (submissionResponse.status_code === 200) {
-        toast.success(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#DAE9DA' }
-        })
-      } else {
-        toast.warning(submissionResponse.message, {
-          position: 'top-right',
-          style: { backgroundColor: '#E9E2DA' }
-        })
+    if (!activeQuestionInstance) {
+      toast.warning('Please answer the riddle first...')
+    } else {
+      try {
+        setIsAsyncLoading(true)
+        setLoadingMsg("Submitting")
+  
+        const user = await getProfile()
+        const { codeRunResponse, submissionResponse, } = await submitAttempt(activeQuestionInstance, user.id, event?.event_id, code, selectedLang?.lang_judge_id, testcases)
+  
+        if (submissionResponse.status_code === 200) {
+          toast.success(submissionResponse.message)
+        } else {
+          toast.warning(submissionResponse.message)
+        }
+  
+        setLogs(prev => [...prev, codeRunResponse.judge0Response])
+        setMostRecentSub(codeRunResponse.mostRecentSubResponse)
+        setCurrentOutputTab("results")
+  
+        trackCodeSubmitted(
+          activeQuestion!.question_id,
+          selectedLang!,
+        )
+      } catch (err) {
+        toast.error("Error when submitting the code.")
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when submitting code. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
+        throw err
+      } finally {
+        setIsAsyncLoading(false)
+        setLoadingMsg("")
       }
-
-      setLogs(prev => [...prev, codeRunResponse.judge0Response])
-      setMostRecentSub(codeRunResponse.mostRecentSubResponse)
-      setCurrentOutputTab("results")
-
-      trackCodeSubmitted(
-        activeQuestion?.question_id,
-        selectedLang,
-      )
-    } catch (err) {
-      toast.error("Error when submitting the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when submitting code. Reason: ${err}`,
-        component: "CodingView",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
-      throw err
-    } finally {
-      setIsAsyncLoading(false)
-      setLoadingMsg("")
     }
   }
 
   const runCode = async () => {
-    try {
-      setIsAsyncLoading(true)
-      setLoadingMsg("Running")
-
-      const user = await getProfile()
-      const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, judgeID, testcases)
-      
-      setLogs(prev => [...prev, judge0Response])
-      setMostRecentSub(mostRecentSubResponse)
-      setCurrentOutputTab("results")
-
-      // Capture run result — status comes directly from Judge0 response
-      const passed = judge0Response.status.description === "Accepted"
-      trackCodeRun(
-        activeQuestion?.question_id,
-        selectedLang,
-        judge0Response.status.description,
-        passed,
-        judge0Response.time ?? undefined
-      )
-    } catch (err) {
-      toast.error("Error when running the code.", {
-        position: 'top-right',
-        style: { backgroundColor: '#E9DADA' }
-      })
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when running code. Reason: ${err}`,
-        component: "CodingView",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
-      throw err
-    } finally {
-      setIsAsyncLoading(false)
-      setLoadingMsg("")
+    if (!activeQuestion) {
+      toast.warning('Please solve the riddle first...')
+    } else {
+      try {
+        setIsAsyncLoading(true)
+        setLoadingMsg("Running")
+  
+        const user = await getProfile()
+        const { judge0Response, mostRecentSubResponse } = await submitToJudge0(user.id, activeQuestionInstance?.question_instance_id, code, selectedLang?.lang_judge_id, testcases)
+        
+        setLogs(prev => [...prev, judge0Response])
+        setMostRecentSub(mostRecentSubResponse)
+        setCurrentOutputTab("results")
+  
+        // Capture run result — status comes directly from Judge0 response
+        const passed = judge0Response.status.description === "Accepted"
+        trackCodeRun(
+          activeQuestion?.question_id,
+          selectedLang!,
+          judge0Response.status.description,
+          passed,
+          judge0Response.time ?? undefined
+        )
+      } catch (err) {
+        toast.error("Error when running the code.")
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when running code. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
+        throw err
+      } finally {
+        setIsAsyncLoading(false)
+        setLoadingMsg("")
+      }
     }
   }
 
-  const [selectedLang, setSelectedLang] = useState<SupportedLanguagesType>("Java")
   // Keep a ref to the previous language so we can log "from → to" on change
-  const prevLangRef = useRef<SupportedLanguagesType>("Java")
+  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
+  const codeBuffersRef = useRef<Map<string, string>>(new Map())
 
-  const { language, judgeID, templateCode } = buildMonacoCode({
-    language: selectedLang,
-    problemName: activeQuestion?.question_name ?? "",
-    inputVars: [
-      { name: "nums", type: "number[]" },
-      { name: "target", type: "number" },
-    ],
-    outputType: "number[]",
-  });
+  // Look up the DB-stored properties for the currently selected language
+  const activeLangProps = useMemo(
+    () => activeQuestion?.language_specific_properties.find(
+      (p) => p.language_display_name === selectedLang?.display_name
+    ) ?? null,
+    [activeQuestion, selectedLang]
+  )
+
+  // Priority: DB preset_code → DB template_solution → generic fallback comment
+  const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
+  const fallbackComment = `${commentChar} Write your solution here.`
+  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || fallbackComment
 
   const [code, setCode] = useState<string>('')
 
-  // Reset editor on language change
-  useEffect(() => { setCode(templateCode) }, [selectedLang]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Restore buffer or fall back to presetCode on language/question change
+  useEffect(() => {
+    const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
+    setCode(saved ?? presetCode)
+  }, [selectedLang, activeQuestion?.question_id]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (mostRecentSub) {
       setMostRecentSubGroupClass("grid grid-cols-3 gap-2")
@@ -294,28 +360,27 @@ const CodingView = () => {
     }
   }, [mostRecentSub])
 
-  const handleLanguageChange = (lang: SupportedLanguagesType) => {
-    trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
-    prevLangRef.current = lang
-    setSelectedLang(lang)
-    setCode(templateCode)
-  }
+  const [clearingCode, setClearingCode] = useState<boolean>(false)
+  const [confirmClearingCode, setConfirmClearingCode] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (!confirmClearingCode) return
+    trackCodeReset(activeQuestion!.question_id, selectedLang!)
+    // Clear buffer so the reset sticks if the user switches away and back
+    codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
+    setConfirmClearingCode(false)
+    setCode(presetCode)
+  }, [confirmClearingCode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleQuestionChange = (q: Question) => {
-    // trackLanguageChanged(question.question_id, prevLangRef.current, lang)
-    // prevLangRef.current = lang
     setActiveQuestion(q)
     questionsInstances.forEach((qi, idx) => {
       if (qi.question_id === q.question_id) {
+        codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
         setActiveQuestionInstance(qi)
         setActiveDisplayQuestionName(`Question ${idx + 1}`)
       }
     })
-  }
-
-  const handleCodeReset = () => {
-    trackCodeReset(activeQuestion?.question_id, selectedLang)
-    setCode(templateCode)
   }
 
   const [fullCode, setFullCode] = useState(false)
@@ -364,6 +429,9 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
+        setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
+      />
       <div className='flex items-center justify-center mb-2 w-full'>
         <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
@@ -374,7 +442,7 @@ const CodingView = () => {
           <DropdownMenu data-testid='questions-dropdown'>
             <DropdownMenuTrigger
               data-testid='questions-btn'
-              className="bg-background text-black text-base font-bold h-7
+              className="bg-background text-muted-foreground text-base font-bold h-7
                 flex items-center gap-2 rounded-md p-2
                 hover:bg-primary/20 focus:bg-primary/55"
             >
@@ -383,7 +451,7 @@ const CodingView = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className='z-999' asChild>
               <div data-testid='questions-menu'
-                className="z-10 text-sm bg-white w-26 border rounded-lg"
+                className="z-10 text-sm bg-muted w-26 border rounded-lg"
               >
                 {questions.map((q, idx) => (
                   <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
@@ -434,7 +502,13 @@ const CodingView = () => {
                       <Play size={22} color="green" className='hover:fill-green fill-transparent' />
                     </Button>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={handleCodeReset}
+                      onClick={() => {
+                        if (code !== presetCode) {
+                          setClearingCode(true)
+                        } else {
+                          setConfirmClearingCode(true)
+                        }
+                      }}
                     >
                       <RotateCcw size={22} color="black" />
                     </Button>
@@ -456,24 +530,33 @@ const CodingView = () => {
                   <DropdownMenu data-testid='language-dropdown'>
                     <DropdownMenuTrigger>
                       <div data-testid='language-btn'
-                        className="bg-background text-black text-base font-bold h-7
+                        className="bg-background text-muted-foreground text-base font-bold h-7
                           flex items-center gap-2 rounded-md p-2
                           hover:bg-primary/20 focus:bg-primary/55"
                       >
-                        {selectedLang}
+                        {selectedLang?.display_name}
                         <ChevronDown />
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className='z-999' asChild>
                       <div data-testid='language-menu'
-                        className="z-10 text-sm bg-white w-26 border rounded-lg"
+                        className="z-10 text-sm bg-muted w-26 border rounded-lg"
                       >
-                        {supportedLanguages.map((lang) => (
-                          <DropdownMenuItem data-testid={`languageItem-${lang}`} key={lang}
+                        {languages?.map((lang) => (
+                          <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
                             className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                            onSelect={() => handleLanguageChange(lang)}
+                            onSelect={() => {
+                              // Save current code to buffer before switching
+                              codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
+                              if (prevLangRef.current) {
+                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+                              }
+                              prevLangRef.current = lang
+                              setSelectedLang(lang)
+                              toast.info("Code saved in this session — refreshing the page will lose your changes.")
+                            }}
                           >
-                            {lang}
+                            {lang.display_name}
                           </DropdownMenuItem>
                         ))}
                       </div>
@@ -482,11 +565,11 @@ const CodingView = () => {
                 </div>
               </div>
               <MonacoEditor
-                key={language}
-                language={language}
+                key={selectedLang?.monaco_id}
+                language={selectedLang?.monaco_id}
                 value={code}
-                theme="vs-dark"
-                onChange={(value) => { setCode(value ?? templateCode) }}
+                theme={ userPreferences?.theme === "dark" ? "vs-dark" : 'vs' }
+                onChange={(value) => { setCode(value ?? presetCode) }}
                 options={{
                   fontSize: 14,
                   automaticLayout: true,
@@ -536,7 +619,7 @@ const CodingView = () => {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || templateCode) }}
+                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || "templateCode") }} // HARDCODED FOR NOW, NEEDS TO BE CHANGE WHEN THE PRESENT CODES ARE DONE
                               className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25">
                               <UndoDot size={22} color='black' />
                             </Button>

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
 from datetime import datetime, timezone
@@ -17,6 +18,18 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
+
+
+def _set_no_cache_headers(response: Response) -> None:
+    """Prevent browsers/proxies from caching personalised or live leaderboard data."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+
+def _set_short_cache_headers(response: Response, max_age: int = 60) -> None:
+    """Allow a brief public cache for static export endpoints (past/historical data)."""
+    response.headers["Cache-Control"] = f"public, max-age={max_age}, stale-while-revalidate=30"
 
 
 def get_all_competitions(db: Session) -> List[Competition]:
@@ -140,6 +153,7 @@ def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[in
 
 @leaderboards_router.get("/competitions")
 def get_leaderboards(
+        response: Response,
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None,
         search: Annotated[Optional[str], Query(max_length=200)] = None,
@@ -156,9 +170,18 @@ def get_leaderboards(
     """
     logger.info("=== /leaderboards/competitions endpoint ===")
     logger.info(f"Params — sort={sort}, page={page}, page_size={page_size}")
+    _set_no_cache_headers(response)
 
     try:
-        query = db.query(Competition).join(BaseEvent)
+        query = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(
+                exists().where(
+                    CompetitionLeaderboardEntry.competition_id == Competition.event_id
+                )
+            )
+        )
 
         # --- Backend filtering ---
         if search:
@@ -253,6 +276,7 @@ def get_leaderboards(
 @leaderboards_router.get("/competitions/{competition_id}/all")
 def get_all_competition_entries(
         competition_id: int,
+        response: Response,
         db: Annotated[Session, Depends(get_db)],
 ):
     """
@@ -260,6 +284,7 @@ def get_all_competition_entries(
     Used for copy/download exports.
     """
     logger.info(f"=== /leaderboards/competitions/{competition_id}/all endpoint ===")
+    _set_short_cache_headers(response, max_age=60)
 
     try:
         competition = (
@@ -321,11 +346,13 @@ def get_all_competition_entries(
 
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
+        response: Response,
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None
 ):
     logger.info("=== /leaderboards/competitions/current endpoint ===")
     logger.info(f"Received current_user_id parameter: {current_user_id} (type: {type(current_user_id)})")
+    _set_no_cache_headers(response)
 
     try:
         now = datetime.now(timezone.utc)
@@ -415,6 +442,7 @@ def get_current_competition_leaderboard(
 
 @leaderboards_router.get("/algotime")
 def get_algotime_leaderboard(
+        response: Response,
         db: Annotated[Session, Depends(get_db)],
         current_user_id: Optional[int] = None,
         search: Annotated[Optional[str], Query(max_length=200)] = None,
@@ -435,6 +463,7 @@ def get_algotime_leaderboard(
         f"Accessing /leaderboards/algotime, "
         f"page={page}, page_size={page_size}"
     )
+    _set_no_cache_headers(response)
 
     try:
         # 1. Load ALL entries so ranks can be computed globally.
@@ -512,12 +541,13 @@ def get_algotime_leaderboard(
 
 
 @leaderboards_router.get("/algotime/all")
-def get_all_algotime_entries_export(db: Annotated[Session, Depends(get_db)]):
+def get_all_algotime_entries_export(response: Response, db: Annotated[Session, Depends(get_db)]):
     """
     Returns ALL AlgoTime entries with globally-computed ranks.
     No pagination — intended exclusively for copy/download exports.
     """
     logger.info("=== /leaderboards/algotime/all export endpoint ===")
+    _set_short_cache_headers(response, max_age=60)
 
     try:
         all_entries = db.query(AlgoTimeLeaderboardEntry).all()

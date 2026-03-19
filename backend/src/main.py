@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from endpoints.log_api import log_router
 from endpoints.authentification_api import auth_router
@@ -15,8 +17,10 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from logging_config import setup_logging
+from services.competition_cleanup import cleanup_ended_competitions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
@@ -44,6 +48,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
+    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
     scheduler.start()
     print("✓ Email scheduler started (polling every 60s)")
 
@@ -126,6 +131,17 @@ def root():
     return {"message": "Backend is running!"}
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    msg = ""
+    for err in exc.errors():
+        row = f"Entry {err['loc'][1]}" if len(err['loc']) > 1 else ""
+        msg += f"{row} - {err['loc'][-1]}: {err['msg']}\n"
+    return JSONResponse(
+        status_code=422,
+        content={"detail": f"Validation Error: {msg}"}
+    )
+
 # Include routers
 try:
     app.include_router(log_router, prefix="/log")
@@ -143,6 +159,7 @@ try:
     app.include_router(submission_router, prefix="/attempts")
     app.include_router(most_recent_sub_router, prefix="/recent-sub")
     app.include_router(user_preferences_router, prefix="/prefs") # New router for user preferences
+    app.include_router(languages_router, prefix="/lang")
     app.include_router(base_event_router, prefix="/events")
 except Exception:
     print("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")

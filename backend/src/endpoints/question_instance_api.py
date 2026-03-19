@@ -82,7 +82,7 @@ def get_all_question_instances_by_event_id(
         raise HTTPException(status_code=500, detail=f"Failed to retrieve question instances associated to an event. Exception: {str(e)}")
         
 
-@question_instance_router.post("/update",
+@question_instance_router.put("/put",
     status_code=201,
     responses={500: {"description": "Failed to upload question instance."}}
 )
@@ -135,5 +135,5 @@ def create_question_instance(
         }}
     except Exception as e:
         db.rollback()
-        logger.error(f"Error uploading question instance: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload question instance.")
+        logger.error(f"Error push question instance: {e}")
+        raise HTTPException(status_code=500, detail="Failed to push question instance.")

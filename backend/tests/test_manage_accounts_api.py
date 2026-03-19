@@ -1,9 +1,15 @@
-
 import pytest
 from unittest.mock import Mock, patch, call
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from src.endpoints.manage_accounts_api import (
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+from src.endpoints.manage_accounts_api import (  # noqa: E402
     get_all_accounts,
     delete_multiple_accounts,
     update_account,
@@ -33,7 +39,8 @@ def sample_user_account():
     user.first_name = "John"
     user.last_name = "Doe"
     user.email = "john.doe@example.com"
-    user.user_type = "student"
+    user.user_type = "participant"
+    user.created_at = Mock()
     return user
 
 
@@ -46,7 +53,8 @@ def sample_user_accounts():
         user.first_name = f"User{i}"
         user.last_name = f"Last{i}"
         user.email = f"user{i}@example.com"
-        user.user_type = "student"
+        user.user_type = "participant"
+        user.created_at = Mock()
         users.append(user)
     return users
 
@@ -67,26 +75,82 @@ def sample_preferences():
 class TestGetAllAccounts:
 
     def test_get_all_accounts_success(self, mock_db, sample_user_accounts):
-        mock_db.query.return_value.all.return_value = sample_user_accounts
-        result = get_all_accounts(mock_db)
-        assert result == sample_user_accounts
-        assert len(result) == 5
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = len(sample_user_accounts)
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = sample_user_accounts
+
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert result["total"] == 5
+        assert result["page"] == 1
+        assert result["page_size"] == 25
+        assert len(result["items"]) == 5
 
     def test_get_all_accounts_empty(self, mock_db):
-        mock_db.query.return_value.all.return_value = []
-        result = get_all_accounts(mock_db)
-        assert result == []
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = 0
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = []
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert result["items"] == []
+        assert result["total"] == 0
 
     def test_get_all_accounts_database_called(self, mock_db, sample_user_accounts):
-        mock_db.query.return_value.all.return_value = sample_user_accounts
-        get_all_accounts(mock_db)
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = len(sample_user_accounts)
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = sample_user_accounts
+        get_all_accounts(mock_db, page=1, page_size=25)
         mock_db.query.assert_called_once()
 
     def test_get_all_accounts_single_result(self, mock_db, sample_user_account):
-        mock_db.query.return_value.all.return_value = [sample_user_account]
-        result = get_all_accounts(mock_db)
-        assert len(result) == 1
-        assert result[0].user_id == 1
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = 1
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = [sample_user_account]
+        result = get_all_accounts(mock_db, page=1, page_size=25)
+        assert len(result["items"]) == 1
+        assert result["items"][0]["user_id"] == 1
+
+    def test_get_all_accounts_applies_search_and_user_type_filters(self, mock_db):
+        q = mock_db.query.return_value
+        q.filter.return_value = q
+        q.order_by.return_value = q
+        q.count.return_value = 0
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = []
+
+        result = get_all_accounts(
+            mock_db,
+            page=1,
+            page_size=25,
+            search="john",
+            user_type="participant",
+        )
+
+        assert result["items"] == []
+        assert q.filter.call_count == 2
+
+    def test_get_all_accounts_accepts_sort_param(self, mock_db):
+        q = mock_db.query.return_value
+        q.order_by.return_value = q
+        q.count.return_value = 0
+        q.offset.return_value = q
+        q.limit.return_value = q
+        q.all.return_value = []
+
+        get_all_accounts(mock_db, page=1, page_size=25, sort="email_desc")
+
+        q.order_by.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +288,7 @@ class TestUpdateAccount:
         with patch(TRACK_EVENT):
             result = update_account(1, update_data, mock_db)
 
-        assert result.first_name == "Jane"
+        assert result["first_name"] == "Jane"
         mock_db.commit.assert_called_once()
         mock_db.refresh.assert_called_once_with(sample_user_account)
 
@@ -237,21 +301,21 @@ class TestUpdateAccount:
         with patch(TRACK_EVENT):
             result = update_account(1, update_data, mock_db)
 
-        assert result.first_name == "Jane"
-        assert result.last_name == "Smith"
-        assert result.email == "jane.smith@example.com"
+        assert result["first_name"] == "Jane"
+        assert result["last_name"] == "Smith"
+        assert result["email"] == "jane.smith@example.com"
 
     def test_update_account_all_fields(self, mock_db, sample_user_account):
         mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
         update_data = UpdateAccountRequest(
             first_name="Jane", last_name="Smith",
-            email="jane.smith@example.com", user_type="instructor"
+            email="jane.smith@example.com", user_type="admin"
         )
 
         with patch(TRACK_EVENT):
             result = update_account(1, update_data, mock_db)
 
-        assert result.user_type == "instructor"
+        assert result["user_type"] == "admin"
 
     def test_update_account_not_found(self, mock_db):
         mock_db.query.return_value.filter.return_value.first.return_value = None
@@ -307,12 +371,12 @@ class TestUpdateAccount:
 
     def test_update_account_user_type_change(self, mock_db, sample_user_account):
         mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest(user_type="instructor")
+        update_data = UpdateAccountRequest(user_type="owner")
 
         with patch(TRACK_EVENT):
             result = update_account(1, update_data, mock_db)
 
-        assert result.user_type == "instructor"
+        assert result["user_type"] == "owner"
 
     def test_update_account_refresh_called_after_commit(self, mock_db, sample_user_account):
         mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account

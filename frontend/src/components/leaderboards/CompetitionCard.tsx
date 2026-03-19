@@ -67,7 +67,8 @@ export function CompetitionCard({
 }: Props) {
   const [open, setOpen] = useState(isCurrent);
   const [copied, setCopied] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [copyExporting, setCopyExporting] = useState(false);
+  const [downloadExporting, setDownloadExporting] = useState(false);
 
   const {
     trackCompetitionCardToggled,
@@ -111,7 +112,7 @@ export function CompetitionCard({
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setExporting(true);
+    setCopyExporting(true);
     try {
       const allParticipants = await fetchAllParticipants();
       const header = ["Rank", "Name", "Total Points", "Problems Solved", "Total Time"].join("\t");
@@ -143,13 +144,13 @@ export function CompetitionCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } finally {
-      setExporting(false);
+      setCopyExporting(false);
     }
   };
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setExporting(true);
+    setDownloadExporting(true);
     try {
       const allParticipants = await fetchAllParticipants();
       const rows = allParticipants.map((p) => ({
@@ -186,14 +187,14 @@ export function CompetitionCard({
 
       trackLeaderboardDownloaded("competition", competition.competitionTitle);
     } finally {
-      setExporting(false);
+      setDownloadExporting(false);
     }
   };
 
   let copyButtonState: CopyButtonState = "idle";
   if (copied) {
     copyButtonState = "copied";
-  } else if (exporting) {
+  } else if (copyExporting) {
     copyButtonState = "exporting";
   }
 
@@ -223,7 +224,7 @@ export function CompetitionCard({
         <div className="flex items-center gap-2">
           <Button
             onClick={handleCopy}
-            disabled={exporting}
+            disabled={copyExporting}
             title="Copy leaderboard to clipboard"
             variant="outline"
             className="flex items-center gap-1.5 transition-colors disabled:opacity-50 disabled:cursor-wait"
@@ -233,11 +234,11 @@ export function CompetitionCard({
 
           <Button
             onClick={handleDownload}
-            disabled={exporting}
+            disabled={downloadExporting}
             title="Download as Excel file"
             className="flex items-center gap-1.5 transition-colors disabled:cursor-wait"
           >
-            <DownloadButtonContent exporting={exporting} />
+            <DownloadButtonContent exporting={downloadExporting} />
           </Button>
 
           {statusIndicator}

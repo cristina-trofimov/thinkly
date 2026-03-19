@@ -22,13 +22,33 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import RiddleForm from "@/components/forms/FileUpload";
-import { getRiddles, deleteRiddle } from "@/api/RiddlesAPI";
+import { getRiddlesPage, deleteRiddle } from "@/api/RiddlesAPI";
 import type { Riddle } from "@/types/riddle/Riddle.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ManageRiddles() {
+  const pageSizeOptions = [11, 23, 47, 95] as const;
   const [searchQuery, setSearchQuery] = useState("");
   const [riddles, setRiddles] = useState<Riddle[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(23);
   const [loading, setLoading] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -57,8 +77,17 @@ export default function ManageRiddles() {
   const loadRiddles = async () => {
     setLoading(true);
     try {
-      const data = await getRiddles();
-      setRiddles(data);
+      const result = await getRiddlesPage({
+        page,
+        pageSize,
+        search: searchQuery,
+      });
+      setRiddles(result.items);
+      setTotal(result.total);
+
+      if (result.items.length === 0 && result.total > 0 && page > 1) {
+        setPage(page - 1);
+      }
     } catch (err: unknown) {
       logFrontend({
         level: "ERROR",
@@ -74,7 +103,8 @@ export default function ManageRiddles() {
 
   useEffect(() => {
     loadRiddles();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, searchQuery]);
 
   const handleRiddleCreated = () => {
     trackAdminRiddleCreateSuccess();
@@ -92,21 +122,37 @@ export default function ManageRiddles() {
   };
 
   const handleSearchChange = (value: string) => {
+    setPage(1);
     setSearchQuery(value);
     if (value.trim()) {
       trackAdminRiddleSearched(value.trim());
     }
   };
 
-  const filteredRiddles = useMemo(
-    () =>
-      riddles.filter(
-        (r) =>
-          r.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.answer.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [riddles, searchQuery]
-  );
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = useMemo(() => {
+    if (pageCount <= 3) {
+      return Array.from({ length: pageCount }, (_, index) => index + 1);
+    }
+
+    if (page <= 2) {
+      return [1, 2, 3, "ellipsis-right", pageCount] as const;
+    }
+
+    if (page >= pageCount - 1) {
+      return [1, "ellipsis-left", pageCount - 2, pageCount - 1, pageCount] as const;
+    }
+
+    return [
+      1,
+      "ellipsis-left",
+      page - 1,
+      page,
+      page + 1,
+      "ellipsis-right",
+      pageCount,
+    ] as const;
+  }, [page, pageCount]);
 
   function openEdit(r: Riddle) {
     setEditingRiddle(r);
@@ -179,7 +225,7 @@ export default function ManageRiddles() {
           }}
         >
           <DialogTrigger asChild>
-            <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-[200px]">
+            <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-50">
               <div className="h-full flex flex-col items-center justify-center p-6 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <Plus className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
@@ -208,7 +254,7 @@ export default function ManageRiddles() {
           </div>
         )}
 
-        {filteredRiddles.map((riddle) => (
+        {riddles.map((riddle) => (
           <Card
             key={riddle.id}
             className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
@@ -287,6 +333,83 @@ export default function ManageRiddles() {
             </CardContent>
           </Card>
         ))}
+
+        {!loading && riddles.length === 0 && (
+          <div className="col-span-full py-10 text-center text-muted-foreground">
+            No results.
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-row items-center justify-between gap-3 py-6">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Cards per page</span>
+          <Select
+            value={`${pageSize}`}
+            onValueChange={(value) => {
+              setPage(1);
+              setPageSize(Number(value));
+            }}
+          >
+            <SelectTrigger className="w-20 cursor-pointer">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((size) => (
+                <SelectItem key={size} value={`${size}`}>
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Pagination className="mx-0 w-auto">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setPage(Math.max(1, page - 1));
+                }}
+                className={page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"}
+              />
+            </PaginationItem>
+            {pageItems.map((item, index) => (
+              <PaginationItem key={`${item}-${index}`} className="hidden lg:block">
+                {typeof item === "number" ? (
+                  <PaginationLink
+                    href="#"
+                    isActive={page === item}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setPage(item);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    {item}
+                  </PaginationLink>
+                ) : (
+                  <PaginationEllipsis />
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem className="px-2 text-sm text-muted-foreground lg:hidden">
+              Page {page} of {pageCount}
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setPage(Math.min(pageCount, page + 1));
+                }}
+                className={page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
 
       {/* Edit Dialog */}

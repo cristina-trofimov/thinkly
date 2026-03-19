@@ -32,6 +32,8 @@ import ProfilePage from "./views/ProfilePage.tsx";
 import ChangePasswordPage from "./views/ChangePasswordPage.tsx";
 import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
+import ManageQuestionsPage from "./views/admin/ManageQuestionsPage.tsx";
+import QuestionJSONEditor from "./components/manageQuestions/QuestionJSONEditor.tsx";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
@@ -114,13 +116,6 @@ const router = createBrowserRouter([
               crumb: { title: "Competition" },
             },
           },
-          // {
-          //   path: "comp/:comp_name",
-          //   element: <CodingView />,
-          //   handle: {
-          //     crumb: { title: "Competition" },
-          //   },
-          // },
           {
             path: "leaderboards",
             element: <Leaderboards />,
@@ -196,6 +191,16 @@ const router = createBrowserRouter([
                 handle: { crumb: { title: "Manage Riddles" } },
               },
               {
+                path: "manageQuestions",
+                element: <ManageQuestionsPage />,
+                handle: { crumb: { title: "Manage Questions" } },
+              },
+              {
+                path: "manageQuestions/editQuestion/:questionId",
+                element: <QuestionJSONEditor />,
+                handle: { crumb: { title: "Edit Question" } },
+              },
+              {
                 path: "algoTimeSessions",
                 element: <ManageAlgotimeSessionsPage />,
                 handle: {
@@ -209,6 +214,20 @@ const router = createBrowserRouter([
                       crumb: { title: "Create AlgoTime Session" }
                     }
                   },
+                  {
+                    path: "view/:id",
+                    // element: <ViewAlgotimePage />,
+                    handle: {
+                      crumb: { title: "View AlgoTime Session" }
+                    }
+                  },
+                  {
+                    path: "edit/:id",
+                    // element: <EditAlgotimePage />,
+                    handle: {
+                      crumb: { title: "Edit AlgoTime Session" }
+                    }
+                  }
                 ]
               },
             ],

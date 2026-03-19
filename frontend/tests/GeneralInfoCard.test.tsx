@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { GeneralInfoCard } from '../src/components/createActivity/GeneralInfoCard'; 
+import { GeneralInfoCard } from '../src/components/createActivity/GeneralInfoCard';
 import React from 'react';
 
 // Mock DatePicker
@@ -92,10 +92,9 @@ describe('GeneralInfoCard', () => {
       const errors = { date: true, startTime: true, endTime: true };
       render(<GeneralInfoCard data={mockData} errors={errors} onChange={mockOnChange} />);
 
-      // Testing wrapper containers for components that don't support direct class injection easily
-      expect(screen.getByTestId('date').parentElement).toHaveClass('ring-destructive');
-      expect(screen.getByTestId('startTime').parentElement).toHaveClass('ring-destructive');
-      expect(screen.getByTestId('endTime').parentElement).toHaveClass('ring-destructive');
+      expect(screen.getByTestId('date').closest('.ring-destructive')).toBeInTheDocument();
+      expect(screen.getByTestId('startTime').closest('.ring-destructive')).toBeInTheDocument();
+      expect(screen.getByTestId('endTime').closest('.ring-destructive')).toBeInTheDocument();
     });
 
   });

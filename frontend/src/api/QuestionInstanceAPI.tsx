@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axiosClient";
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type";
+import { logFrontend } from "./LoggerAPI";
 
 export async function updateQuestionInstance(
   question_instance: QuestionInstance | undefined,
@@ -9,19 +10,25 @@ export async function updateQuestionInstance(
   }
 
   try {
-    const response = await axiosClient.post(
-      "/instances/update",
+    const response = await axiosClient.put(
+      "/instances/put",
       {
         question_id: question_instance.question_id,
         event_id: question_instance.event_id,
-        riddle_id: question_instance.riddle_id,
+        riddle_id: question_instance.riddle_id
       }
     )
 
     return response['data']['data'] || response['data']
 
   } catch (err) {
-    console.error("Error updating question instance:", err)
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when updating question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err
   }
 }
@@ -43,7 +50,13 @@ export async function getQuestionInstance(
 
     return response['data']['data']
   } catch (err) {
-    console.error("Error fetching question instance:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching question instance. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }
@@ -59,7 +72,13 @@ export async function getAllQuestionInstancesByEventID(event_id: number): Promis
 
     return response['data']['data'] || []
   } catch (err) {
-    console.error("Error fetching all question instances of an event:", err);
+    logFrontend({
+      level: "ERROR",
+      message: `Failed to fetching all question instances of an event. Reason: ${err}`,
+      component: "QuestionInstanceAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    })
     throw err;
   }
 }

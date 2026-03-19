@@ -61,7 +61,7 @@ export default function AlgoTimePage() {
             <Card key={s.id} className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col">
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="relative z-10 text-center w-full">
-                  <div className="text-xl md:text-2xl font-bold text-primary/80 break-words leading-tight">{s.eventName}</div>
+                  <div className="text-xl md:text-2xl font-bold text-primary/80 wrap-break-word leading-tight">{s.eventName}</div>
                   {s.seriesName && <div className="text-sm text-muted-foreground mt-2">{s.seriesName}</div>}
                 </div>
               </div>

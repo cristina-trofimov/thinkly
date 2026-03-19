@@ -10,7 +10,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-from database_operations.database import get_db  # fixed import
+from database_operations.database import get_db
 from src.endpoints.base_event_api import base_event_router
 
 
@@ -38,16 +38,18 @@ def client(mock_db):
 # --- GET /find TESTS ---
 
 def test_get_event_by_id_success(client, mock_db):
+    """Test fetching an event by event_id."""
     instance = SimpleNamespace(
-        event_id=1,
-        event_name="Competition 10",
-        event_location=None,
-        question_cooldown=5,
-        event_start_date='2026-01-13 03:54:26.585121+00',
-        event_end_date='2026-01-13 05:54:26.585121+00',
-        created_at='2026-01-27 03:54:26.585121+00',
-        updated_at='2026-01-27 03:54:26.585121+00',
+        event_id = 1,
+        event_name = "Competition 10",
+        event_location = None,
+        question_cooldown = 5,
+        event_start_date = '2026-01-13 03:54:26.585121+00',
+        event_end_date = '2026-01-13 05:54:26.585121+00',
+        created_at = '2026-01-27 03:54:26.585121+00',
+        updated_at = '2026-01-27 03:54:26.585121+00',
     )
+
     mock_db.query.return_value.filter_by.return_value.first.return_value = instance
 
     response = client.get("/find?event_id=1")
@@ -81,16 +83,19 @@ def test_get_event_by_id_db_error(client, mock_db):
 # --- GET /get TESTS ---
 
 def test_get_event_by_name_success(client, mock_db):
+    """Test fetching an event by event_name."""
     instance = SimpleNamespace(
-        event_id=1,
-        event_name="Competition 10",
-        event_location=None,
-        question_cooldown=5,
-        event_start_date='2026-01-13 03:54:26.585121+00',
-        event_end_date='2026-01-13 05:54:26.585121+00',
-        created_at='2026-01-27 03:54:26.585121+00',
-        updated_at='2026-01-27 03:54:26.585121+00',
+        event_id = 1,
+        event_name = "Competition 10",
+        event_location = None,
+        question_cooldown = 5,
+        event_start_date = '2026-01-13 03:54:26.585121+00',
+        event_end_date = '2026-01-13 05:54:26.585121+00',
+        created_at = '2026-01-27 03:54:26.585121+00',
+        updated_at = '2026-01-27 03:54:26.585121+00',
     )
+
+
     mock_db.query.return_value.filter_by.return_value.first.return_value = instance
 
     response = client.get("/get?event_name=Competition 10")

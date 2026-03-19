@@ -1,6 +1,7 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { BaseEvent } from "../src/types/BaseEvent.type"
 import { getEventByID, getEventByName, updateEvent } from "../src/api/BaseEventAPI"
+import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
     Object.defineProperty(global, 'import', {
@@ -25,6 +26,11 @@ jest.mock('../src/lib/axiosClient', () => ({
     API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn()
+}))
+
+const mockedLogger = logFrontend as jest.Mock
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 
 const user_id = 1
@@ -89,6 +95,7 @@ describe("Base events", () => {
                     .rejects.toThrow("Error fetching event by name")
 
         expect(mockedAxios.get).toHaveBeenCalled()
+        expect(mockedLogger).toHaveBeenCalled()
     })
 
     it("updateEvent: updates event", async () => {
@@ -119,5 +126,6 @@ describe("Base events", () => {
                     .rejects.toThrow("Error updating event")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledTimes(1)
     })
 })

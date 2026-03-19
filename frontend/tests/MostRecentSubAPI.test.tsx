@@ -1,6 +1,7 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { MostRecentSub } from "../src/types/MostRecentSub.type"
 import { updateMostRecentSub, getMostRecentSub } from "../src/api/MostRecentSubAPI"
+import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
     Object.defineProperty(global, 'import', {
@@ -25,11 +26,14 @@ jest.mock('../src/lib/axiosClient', () => ({
     API_URL: 'http://localhost:8000',
 }))
 
+jest.mock('../src/api/LoggerAPI', () => ({
+    logFrontend: jest.fn()
+}))
+
+const mockedLogger = logFrontend as jest.Mock
 const mockedAxios = axiosClient as jest.Mocked<typeof axiosClient>
 
-const question_id = 1
 const user_id = 1
-const event_id = 1
 const question_instance_id = 123
 const code = "print('Hello world')"
 const lang_judge_id = 71
@@ -76,6 +80,12 @@ describe("Most recent submission", () => {
                     .rejects.toThrow("Error updating most recent submission")
 
         expect(mockedAxios.post).toHaveBeenCalledTimes(1)
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "MostRecentSubAPI",
+            })
+        )
     })
 
     it("getMostRecentSub: returns the most recent submission associated with a given user and question instance id", async () => {
@@ -96,5 +106,11 @@ describe("Most recent submission", () => {
                     .rejects.toThrow("Error fetching most recent submission")
 
         expect(mockedAxios.get).toHaveBeenCalled()
+        expect(mockedLogger).toHaveBeenCalledWith(
+            expect.objectContaining({
+              level: "ERROR",
+              component: "MostRecentSubAPI",
+            })
+        )
     })
 })

@@ -26,7 +26,7 @@ const navMain = [
     icon: SquareTerminal,
   },
   {
-    name: "Competition",
+    name: "Competitions",
     url: "/app/competitions",
     icon: Bot,
   },

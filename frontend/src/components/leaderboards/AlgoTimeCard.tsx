@@ -28,7 +28,8 @@ export function AlgoTimeCard({ currentUserId }: Props) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [exportState, setExportState] = useState<ExportState>("idle");
+  const [copyState, setCopyState] = useState<ExportState>("idle");
+  const [downloadState, setDownloadState] = useState<ExportState>("idle");
 
   const { trackLeaderboardCopied, trackLeaderboardDownloaded } = useAnalytics();
 
@@ -81,7 +82,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
     }));
 
   const handleCopy = async () => {
-    setExportState("exporting");
+    setCopyState("exporting");
     try {
       const all = await getAllAlgoTimeEntriesForExport();
       const header = ["Rank", "Name", "Total Points", "Problems Solved", "Total Time"].join("\t");
@@ -108,15 +109,15 @@ export function AlgoTimeCard({ currentUserId }: Props) {
       }
 
       trackLeaderboardCopied("algotime");
-      setExportState("copied");
-      setTimeout(() => setExportState("idle"), 2000);
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2000);
     } catch {
-      setExportState("idle");
+      setCopyState("idle");
     }
   };
 
   const handleDownload = async () => {
-    setExportState("exporting");
+    setDownloadState("exporting");
     try {
       const all = await getAllAlgoTimeEntriesForExport();
       const worksheet = XLSX.utils.json_to_sheet(buildExportRows(all));
@@ -126,22 +127,23 @@ export function AlgoTimeCard({ currentUserId }: Props) {
       XLSX.writeFile(workbook, "algotime-leaderboard.xlsx");
       trackLeaderboardDownloaded("algotime");
     } finally {
-      setExportState("idle");
+      setDownloadState("idle");
     }
   };
 
-  const isBusy = exportState !== "idle";
+  const isCopyBusy = copyState !== "idle";
+  const isDownloadBusy = downloadState !== "idle";
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
 
   let copyButtonContent: React.ReactNode;
-  if (exportState === "copied") {
+  if (copyState === "copied") {
     copyButtonContent = (
       <>
         <Check className="w-4 h-4 text-emerald-500" />
         <span className="text-emerald-500">Copied!</span>
       </>
     );
-  } else if (exportState === "exporting") {
+  } else if (copyState === "exporting") {
     copyButtonContent = (
       <>
         <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />{" "}
@@ -170,7 +172,7 @@ export function AlgoTimeCard({ currentUserId }: Props) {
         <div className="flex items-center gap-2">
           <Button
             onClick={handleCopy}
-            disabled={isBusy}
+            disabled={isCopyBusy}
             title="Copy entire table to clipboard"
             variant="outline"
             className="flex items-center gap-1.5  disabled:opacity-50 disabled:cursor-wait"
@@ -180,12 +182,12 @@ export function AlgoTimeCard({ currentUserId }: Props) {
 
           <Button
             onClick={handleDownload}
-            disabled={isBusy}
+            disabled={isDownloadBusy}
             title="Download as Excel file"
             variant="default"
             className="flex items-center gap-1.5 text-sm transition-colors"
           >
-            {exportState === "exporting" ? (
+            {isDownloadBusy ? (
               <>
                 <span className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />{" "}
                 Fetching...
