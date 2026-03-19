@@ -58,23 +58,32 @@ export default function AlgoTimePage() {
         {[...sessions]
           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
           .map((s) => (
-            <Card key={s.id} className="cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col">
-              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                <div className="relative z-10 text-center w-full">
-                  <div className="text-xl md:text-2xl font-bold text-primary/80 wrap-break-word leading-tight">{s.eventName}</div>
-                  {s.seriesName && <div className="text-sm text-muted-foreground mt-2">{s.seriesName}</div>}
-                </div>
-              </div>
-
+            <Card
+              key={s.id}
+              className={`cursor-pointer overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col border ${s.status === "Active" ? "border-green-500" : "border-muted"}`}
+            >
               <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                 <div>
-                  <p className="text-sm font-medium">Questions: {s.questions.length}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatSessionDate(s.startTime)} — {formatSessionDate(s.endTime)}</p>
+                  <h2 className="text-lg font-bold text-primary wrap-break-word leading-tight">
+                    {s.eventName}
+                  </h2>
+                  {s.seriesName && (
+                    <p className="text-sm text-muted-foreground mt-1">{s.seriesName}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatSessionDate(s.startTime)}  {formatSessionDate(s.endTime)}
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t">
-                  <Button variant="ghost" size="sm" className="h-8">Details</Button>
-                  <Button size="sm" className="h-8">Join</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => console.log(`Accessing session ${s.id}`)}
+                  >
+                    Access Session
+                  </Button>
                 </div>
               </CardContent>
             </Card>
