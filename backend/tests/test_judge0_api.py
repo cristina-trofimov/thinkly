@@ -106,12 +106,20 @@ def test_judge0_network_error(mock_post):
         )
 
 
-@patch("src.endpoints.judge0_api.submit_to_judge0")
-def test_judge0_route_success(mock_submit):
-    mock_submit.return_value = {
-        "status": {"description": "Accepted"},
-        "stdout": "OK"
-    }
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
+@patch('src.endpoints.judge0_api.requests.get')
+@patch('src.endpoints.judge0_api.requests.post')
+def test_judge0_route_success(mock_post, mock_get):
+    mock_post.return_value = Mock(
+        status_code=201,
+        json=lambda: {"token": "abc123"},
+        raise_for_status=lambda: None,
+    )
+    mock_get.return_value = Mock(
+        status_code=200,
+        json=lambda: {"status": {"description": "Accepted"}, "stdout": "OK"},
+        raise_for_status=lambda: None,
+    )
 
     response = client.post("/judge0", json={
         "source_code": "print('Hello')",
@@ -124,10 +132,21 @@ def test_judge0_route_success(mock_submit):
     assert response.json()["ok"] is True
 
 
-@patch("src.endpoints.judge0_api.submit_to_judge0")
-def test_judge0_rate_limit(mock_submit):
+@patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
+@patch('src.endpoints.judge0_api.requests.get')
+@patch('src.endpoints.judge0_api.requests.post')
+def test_judge0_rate_limit(mock_post, mock_get):
     """Hitting the endpoint 61 times should trigger a 429 on the last request."""
-    mock_submit.return_value = {"status": {"description": "Accepted"}, "stdout": "OK"}
+    mock_post.return_value = Mock(
+        status_code=201,
+        json=lambda: {"token": "abc123"},
+        raise_for_status=lambda: None,
+    )
+    mock_get.return_value = Mock(
+        status_code=200,
+        json=lambda: {"status": {"description": "Accepted"}, "stdout": "OK"},
+        raise_for_status=lambda: None,
+    )
 
     payload = {"source_code": "print('Hi')", "language_id": "71", "stdin": ""}
 
