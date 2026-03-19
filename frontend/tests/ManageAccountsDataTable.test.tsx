@@ -11,6 +11,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { deleteAccounts } from "./../src/api/AccountsAPI";
 import { Checkbox } from "@/components/ui/checkbox";
+import React from "react";
 
 jest.mock("sonner", () => ({
   toast: { success: jest.fn(), error: jest.fn(), warning: jest.fn() },

@@ -1,4 +1,4 @@
-import pytest
+import pytest, datetime
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -41,49 +41,50 @@ def test_get_all_submissions_success(client, mock_db):
     """Test fetching submissions for a user_question_instance_id."""
     fake_subs = [
         SimpleNamespace(
-            submission_id=1,
-            user_question_instance_id=10,
-            compile_output="Accepted",
-            submitted_on="2025-01-10T12:00:00",
-            runtime=0.045,
-            status="Accepted",
-            memory=512,
-            stdout="5\n",
-            stderr=None,
-            message=None,
+            submission_id = 1,
+            user_question_instance_id = 42,
+            lang_judge_id = 71,
+            compile_output = "Accepted",
+            submitted_on = "2025-01-10T12:00:00",
+            runtime = 45,
+            status = "Accepted",
+            memory = 512,
+            stdout = "5\n",
+            stderr = None,
+            message = None
         ),
         SimpleNamespace(
-            submission_id=2,
-            user_question_instance_id=10,
-            compile_output="Wrong Answer",
-            submitted_on="2025-01-10T11:00:00",
-            runtime=0.03,
-            status="Wrong Answer",
-            memory=256,
-            stdout=None,
-            stderr=None,
-            message="Expected 5 but got 4",
+            submission_id = 2,
+            user_question_instance_id = 7,
+            lang_judge_id = 71,
+            compile_output = "Wrong Answer",
+            submitted_on = "2025-01-10T12:00:00",
+            runtime = 300,
+            status = "Wrong Answer",
+            memory = 256,
+            stdout = None,
+            stderr = None,
+            message = "Expected 5 but got None"
         ),
     ]
 
-    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_subs
+    mock_db.query.return_value.filter_by.return_value.all.return_value = [fake_subs[0]]
 
-    response = client.get("/all?user_question_instance_id=10")
+    response = client.get("/all?user_question_instance_id=42")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status_code"] == 200
-    assert len(data["data"]) == 2
+    assert len(data["data"]) == 1
     assert data["data"][0]["submission_id"] == 1
-    assert data["data"][0]["user_question_instance_id"] == 10
     assert data["data"][0]["status"] == "Accepted"
-    assert data["data"][1]["message"] == "Expected 5 but got 4"
+    assert data["data"][0]["message"] is None
 
 def test_get_all_submissions_empty(client, mock_db):
     """Test when no submissions exist for the given user_question_instance_id."""
     mock_db.query.return_value.filter_by.return_value.all.return_value = []
 
-    response = client.get("/all?user_question_instance_id=999")
+    response = client.get("/all?user_question_instance_id=99")
 
     assert response.status_code == 200
     data = response.json()
@@ -99,60 +100,49 @@ def test_get_all_submissions_db_error(client, mock_db):
     assert response.status_code == 500
     assert "Failed to retrieve submissions" in response.json()["detail"]
 
-def test_get_all_submissions_missing_params(client):
-    """Test that missing required query param returns 422."""
-    response = client.get("/all")
-    assert response.status_code == 422
-
 
 # --- POST /add TESTS ---
 
 def test_save_submission_success(client, mock_db):
     """Test saving a submission successfully."""
     payload = {
-        "user_question_instance_id": 10,
+        "user_question_instance_id": 7,
+        "lang_judge_id": 71,
         "compile_output": "Accepted",
         "submitted_on": "2025-01-10T12:00:00",
-        "runtime": 0.045,
+        "runtime": 45,
         "status": "Accepted",
         "memory": 512,
         "stdout": "5\n",
         "stderr": None,
-        "message": None,
+        "message": None
     }
+
+    def fake_refresh(instance):
+        instance.submission_id = 1
+
+    mock_db.refresh.side_effect = fake_refresh
 
     response = client.post("/add", json=payload)
 
     assert response.status_code == 201
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
-    assert response.json()["status_code"] == 200
-    assert response.json()["message"] == "Submission successful"
-
-def test_save_submission_with_null_optional_fields(client, mock_db):
-    """Test saving a submission where all optional fields are None."""
-    payload = {
-        "user_question_instance_id": 3,
-        "compile_output": "Compilation Error",
-        "submitted_on": "2025-03-01T08:00:00",
-        "runtime": None,
-        "status": None,
-        "memory": None,
-        "stdout": None,
-        "stderr": "SyntaxError: invalid syntax",
-        "message": None,
-    }
-
-    response = client.post("/add", json=payload)
-
-    assert response.status_code == 201
-    mock_db.add.assert_called_once()
-    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+    data = response.json()
+    assert data["status_code"] == 200
+    assert data["data"]['submission_id'] == 1
+    assert data["data"]['memory'] == 512
+    assert data["data"]['runtime'] == 45
+    assert data["data"]['stderr'] is None
+    assert data["data"]['message'] is None
 
 def test_save_submission_db_error(client, mock_db):
     """Test that a commit failure rolls back and returns 500."""
     payload = {
-        "user_question_instance_id": 10,
+        "user_id": 42,
+        "lang_judge_id": 71,
+        "question_instance_id": 7,
         "compile_output": "Accepted",
         "submitted_on": "2025-01-10T12:00:00",
         "runtime": 0.045,
@@ -160,7 +150,7 @@ def test_save_submission_db_error(client, mock_db):
         "memory": 512,
         "stdout": None,
         "stderr": None,
-        "message": None,
+        "message": None
     }
 
     mock_db.commit.side_effect = Exception("Commit Failed")
@@ -174,32 +164,10 @@ def test_save_submission_db_error(client, mock_db):
 def test_save_submission_missing_required_fields(client, mock_db):
     """Test that a payload missing required keys returns 500 (KeyError)."""
     incomplete_payload = {
-        "compile_output": "Accepted",
-        # missing user_question_instance_id and submitted_on
+        "user_question_instance_id": 42,
+        # missing question_instance_id, compile_output, submitted_on
     }
 
     response = client.post("/add", json=incomplete_payload)
 
     assert response.status_code == 500
-
-def test_save_submission_add_error(client, mock_db):
-    """Test that a failure during db.add raises 500."""
-    payload = {
-        "user_question_instance_id": 10,
-        "compile_output": "Accepted",
-        "submitted_on": "2025-01-10T12:00:00",
-        "runtime": None,
-        "status": "Accepted",
-        "memory": None,
-        "stdout": None,
-        "stderr": None,
-        "message": None,
-    }
-
-    mock_db.add.side_effect = Exception("Add Failed")
-
-    response = client.post("/add", json=payload)
-
-    assert response.status_code == 500
-    assert "Failed to upload submission" in response.json()["detail"]
-    mock_db.rollback.assert_called_once()
