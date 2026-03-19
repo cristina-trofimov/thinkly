@@ -3,6 +3,8 @@ import {
   getCurrentCompetitionLeaderboard,
   getCompetitionsDetails,
   getAllCompetitionEntries,
+  getCompetitionLiveLeaderboard,
+  getCurrentAlgoTimeLeaderboard,
   getAlgoTimeEntries,
   getAllAlgoTimeEntriesForExport,
 } from "../src/api/LeaderboardsAPI";
@@ -125,6 +127,211 @@ describe("LeaderboardsAPI", () => {
     });
   });
 
+  // ─── getCompetitionLiveLeaderboard ─────────────────────────────────────────
+
+  describe("getCompetitionLiveLeaderboard", () => {
+    it("fetches from /competitions/{id}/live and maps the response", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          entries: [
+            {
+              name: "Alice",
+              userId: 10,
+              totalScore: 120,
+              problemsSolved: 5,
+              rank: 1,
+              totalTime: 360,
+            },
+            {
+              name: "Bob",
+              userId: null,
+              totalScore: 80,
+              problemsSolved: 3,
+              rank: 2,
+              totalTime: 200,
+            },
+          ],
+          showSeparator: false,
+        },
+      } as any);
+
+      const result = await getCompetitionLiveLeaderboard(42, 10);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/leaderboards/competitions/42/live",
+        {
+          params: { current_user_id: 10 },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
+      );
+      expect(result.participants).toHaveLength(2);
+      expect(result.participants[0]).toEqual({
+        name: "Alice",
+        user_id: 10,
+        total_score: 120,
+        problems_solved: 5,
+        rank: 1,
+        total_time: "360s",
+      });
+      expect(result.participants[1].user_id).toBe(0); // null → 0 fallback
+      expect(result.showSeparator).toBe(false);
+    });
+
+    it("omits current_user_id param when not provided", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { entries: [], showSeparator: false },
+      } as any);
+
+      await getCompetitionLiveLeaderboard(5);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/leaderboards/competitions/5/live",
+        {
+          params: {},
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
+      );
+    });
+
+    it("returns empty participants and showSeparator=false when entries is empty", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { entries: [], showSeparator: false },
+      } as any);
+
+      const result = await getCompetitionLiveLeaderboard(1);
+
+      expect(result.participants).toEqual([]);
+      expect(result.showSeparator).toBe(false);
+    });
+
+    it("preserves showSeparator=true from the response", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          entries: [
+            { name: "X", userId: 1, totalScore: 10, problemsSolved: 1, rank: 13, totalTime: 100 },
+          ],
+          showSeparator: true,
+        },
+      } as any);
+
+      const result = await getCompetitionLiveLeaderboard(1, 1);
+
+      expect(result.showSeparator).toBe(true);
+    });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getCompetitionLiveLeaderboard(99)).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching live leaderboard for competition 99:",
+        err
+      );
+    });
+  });
+
+  // ─── getCurrentAlgoTimeLeaderboard ─────────────────────────────────────────
+
+  describe("getCurrentAlgoTimeLeaderboard", () => {
+    it("fetches from /algotime/current and maps the response", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          entries: [
+            {
+              entryId: 1,
+              name: "Carol",
+              userId: 99,
+              totalScore: 300,
+              problemsSolved: 10,
+              rank: 1,
+              totalTime: 900,
+            },
+          ],
+          showSeparator: false,
+        },
+      } as any);
+
+      const result = await getCurrentAlgoTimeLeaderboard(99);
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/leaderboards/algotime/current",
+        {
+          params: { current_user_id: 99 },
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
+      );
+      expect(result.competitionName).toBe("AlgoTime Leaderboard");
+      expect(result.participants).toHaveLength(1);
+      expect(result.participants[0]).toEqual({
+        name: "Carol",
+        user_id: 99,
+        total_score: 300,
+        problems_solved: 10,
+        rank: 1,
+        total_time: "900s",
+      });
+      expect(result.showSeparator).toBe(false);
+    });
+
+    it("omits current_user_id param when not provided", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: { entries: [], showSeparator: false },
+      } as any);
+
+      await getCurrentAlgoTimeLeaderboard();
+
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        "/leaderboards/algotime/current",
+        {
+          params: {},
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        }
+      );
+    });
+
+    it("falls back to user_id=0 when userId is null", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          entries: [
+            { entryId: 2, name: "Guest", userId: null, totalScore: 50, problemsSolved: 2, rank: 5, totalTime: 200 },
+          ],
+          showSeparator: false,
+        },
+      } as any);
+
+      const result = await getCurrentAlgoTimeLeaderboard();
+
+      expect(result.participants[0].user_id).toBe(0);
+    });
+
+    it("preserves showSeparator=true from the response", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          entries: [
+            { entryId: 3, name: "Dave", userId: 7, totalScore: 10, problemsSolved: 1, rank: 14, totalTime: 60 },
+          ],
+          showSeparator: true,
+        },
+      } as any);
+
+      const result = await getCurrentAlgoTimeLeaderboard(7);
+
+      expect(result.showSeparator).toBe(true);
+    });
+
+    it("rethrows and logs on network error", async () => {
+      const err = new Error("Network error");
+      mockedAxios.get.mockRejectedValueOnce(err);
+
+      await expect(getCurrentAlgoTimeLeaderboard()).rejects.toThrow("Network error");
+      expect(console.error).toHaveBeenCalledWith(
+        "Error fetching current AlgoTime leaderboard:",
+        err
+      );
+    });
+  });
+
   // ─── getCompetitionsDetails ────────────────────────────────────────────────
 
   describe("getCompetitionsDetails", () => {
@@ -231,7 +438,7 @@ describe("LeaderboardsAPI", () => {
         data: { total: 0, page: 1, page_size: 20, competitions: [] },
       } as any);
 
-      await getCompetitionsDetails({ search: "  " }); // whitespace only
+      await getCompetitionsDetails({ search: "  " });
 
       const calledParams = (mockedAxios.get as jest.Mock).mock.calls[0][1].params;
       expect(calledParams).not.toHaveProperty("search");
@@ -373,22 +580,12 @@ describe("LeaderboardsAPI", () => {
         data: { total: 0, page: 3, page_size: 10, entries: [] },
       } as any);
 
-      await getAlgoTimeEntries({
-        currentUserId: 7,
-        search: "Bob",
-        page: 3,
-        pageSize: 10,
-      });
+      await getAlgoTimeEntries({ currentUserId: 7, search: "Bob", page: 3, pageSize: 10 });
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
         "/leaderboards/algotime",
         {
-          params: {
-            current_user_id: 7,
-            search: "Bob",
-            page: 3,
-            page_size: 10,
-          },
+          params: { current_user_id: 7, search: "Bob", page: 3, page_size: 10 },
           headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         }
       );

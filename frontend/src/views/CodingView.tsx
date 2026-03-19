@@ -20,6 +20,7 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
+import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
 import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
@@ -32,6 +33,7 @@ const CodingView = () => {
   const location = useLocation()
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
+  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined)
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
@@ -52,6 +54,12 @@ const CodingView = () => {
     trackCodeRun,
     trackCodeSubmitted,
   } = useAnalytics()
+
+  useEffect(() => {
+    getProfile()
+      .then((user) => setCurrentUserId(user.id))
+      .catch(() => setCurrentUserId(undefined))
+  }, [])
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -95,6 +103,7 @@ const CodingView = () => {
       prevLangRef.current = matchedLang
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const submitCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
@@ -355,8 +364,13 @@ const CodingView = () => {
           defaultSize={50} minSize={5}
           className='mr-0.75 rounded-md border'
         >
-          <CodeDescArea question={activeQuestion} question_instance={activeQuestionInstance}
+          <CodeDescArea
+              question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
+            eventId={comp?.id}
+            eventName={comp?.competitionTitle}
+            isCompetitionEvent={!!comp}
+            currentUserId={currentUserId}
           />
         </Panel>
 

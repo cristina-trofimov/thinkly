@@ -46,10 +46,6 @@ jest.mock('../src/hooks/useAnalytics', () => ({
   }),
 }))
 
-jest.mock('../src/components/leaderboards/CurrentLeaderboard', () => ({
-  CurrentLeaderboard: () => <div data-testid="leaderboard" />,
-}))
-
 jest.mock('../src/components/forms/RiddleForm', () => ({
   __esModule: true,
   default: ({ onSolved }: any) => (
@@ -62,6 +58,17 @@ jest.mock('../src/components/forms/RiddleForm', () => ({
 jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
   putUserInstance: jest.fn(),
 }))
+
+// Mock CodingPageLeaderboard at both possible import paths —
+// the @/ alias path (our output) and the relative path (in case source hasn't been replaced yet)
+jest.mock('@/components/leaderboards/CodingPageLeaderboard', () => ({
+    __esModule: true,
+    EventLeaderboard: () => <div data-testid="mock-event-leaderboard">Mock Event Leaderboard</div>
+}));
+jest.mock('../src/components/leaderboards/CodingPageLeaderboard', () => ({
+    __esModule: true,
+    EventLeaderboard: () => <div data-testid="mock-event-leaderboard">Mock Event Leaderboard</div>
+}));
 
 // ─── Test data ────────────────────────────────────────────────────────────────
 
@@ -172,12 +179,20 @@ const renderCodeDescArea = (overrides: Partial<{
   question_instance: QuestionInstance | undefined | null
   uqi: UserQuestionInstance | undefined | null
   testcases: TestCase[] | undefined | null
+  eventId: number | undefined
+  eventName: string | undefined
+  isCompetitionEvent: boolean
+  currentUserId: number | undefined
 }> = {}) => render(
   <CodeDescArea
     question={overrides.question !== undefined ? overrides.question : mockQuestion}
     question_instance={overrides.question_instance !== undefined ? overrides.question_instance : mockQuestionInstance}
     uqi={overrides.uqi !== undefined ? overrides.uqi : mockUqi}
     testcases={overrides.testcases !== undefined ? overrides.testcases : mockTestcases}
+    eventId={overrides.eventId !== undefined ? overrides.eventId : 1}
+    eventName={overrides.eventName !== undefined ? overrides.eventName : 'Test Event'}
+    isCompetitionEvent={overrides.isCompetitionEvent !== undefined ? overrides.isCompetitionEvent : true}
+    currentUserId={overrides.currentUserId}
   />
 )
 
@@ -243,7 +258,7 @@ describe('CodeDescArea — tab switching', () => {
     await waitFor(() => expect(screen.getByText('Leaderboard')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Leaderboard'))
     expect(screen.getByTestId('tabs-content-leaderboard')).toBeInTheDocument()
-    expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
+    expect(screen.getByTestId('mock-event-leaderboard')).toBeInTheDocument()
   })
 
   it('switches back to description tab after visiting another', async () => {

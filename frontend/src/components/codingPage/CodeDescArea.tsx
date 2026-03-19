@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { CurrentLeaderboard } from '../leaderboards/CurrentLeaderboard'
+import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { getAllSubmissions } from '@/api/SubmissionAPI'
@@ -24,21 +24,34 @@ import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInsta
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
 
 const CodeDescArea = (
-    { question, question_instance, uqi, testcases }:
+    { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId }:
     { question: Question | undefined,
        question_instance: QuestionInstance | undefined | null,
        uqi: UserQuestionInstance | undefined | null,
        testcases: TestCase[] | undefined | null,
+        /** The ID of the active competition/event, if the question was opened from one. */
+      eventId: number | undefined,
+      /** The display name of the active event. */
+      eventName: string | undefined,
+      /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
+      isCompetitionEvent: boolean,
+      currentUserId?: number,
     }
 ) => {
 
-    const tabs = [
+    const hasEvent = eventId !== undefined
+
+    const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> },
     ]
 
-    const { setUserQuestionInstance } = useCodingHooks(question) 
+    // Only expose the Leaderboard tab when the question belongs to an event
+    const tabs = hasEvent
+        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> }]
+        : baseTabs
+
+    const { setUserQuestionInstance } = useCodingHooks(question)
 
     const { trackCodingTabSwitched } = useAnalytics()
 
@@ -54,10 +67,15 @@ const CodeDescArea = (
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
     useEffect(() => {
+        if (!hasEvent && activeTab === "leaderboard") {
+            setActiveTab("description")
+        }
+    }, [hasEvent, activeTab])
+
+    useEffect(() => {
         if (!question_instance?.question_instance_id && uqi?.riddle_complete) return
 
         const fetchRiddle = async () => {
-            setIsLoadingRiddle(true)
             try {
                 await getRiddleById(question_instance?.riddle_id)
                     .then((resp) => setRiddleObject(resp) )
@@ -131,7 +149,7 @@ const CodeDescArea = (
                 </div>
             )
         }
-        
+
         if (riddleObject) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
@@ -207,8 +225,8 @@ const CodeDescArea = (
                             <p className='font-bold'>Example {idx + 1}:</p>
                             <div className='ml-4 flex flex-col gap-1'>
                                 <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {Object.entries(t.input_data).map(([key, val], idx) => {
-                                        const separator = idx < Object.keys(t.input_data).length - 1 ? `, ` : `\n`
+                                    {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
+                                        const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
                                         return `${key} = ${JSON.stringify(val)}${separator}`
                                     })}
                                 </span></p>
@@ -271,12 +289,19 @@ const CodeDescArea = (
                 </div>
             </TabsContent>
 
-            {/* Leaderboard */}
-            <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
-                <div className='h-full p-6'>
-                    <CurrentLeaderboard />
-                </div>
-            </TabsContent>
+            {/* Leaderboard — only mounted when an event is active */}
+            {eventId !== undefined && (
+                <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
+                    <div className='h-full p-6'>
+                        <EventLeaderboard
+                            eventId={eventId}
+                            eventName={eventName ?? ""}
+                            isCompetitionEvent={isCompetitionEvent}
+                            currentUserId={currentUserId}
+                        />
+                    </div>
+                </TabsContent>
+            )}
         </Tabs>
     )
 }

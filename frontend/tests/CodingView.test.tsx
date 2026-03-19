@@ -276,6 +276,8 @@ const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAt
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
+const { getProfile } = require('../src/api/AuthAPI')
+
 beforeEach(() => {
     jest.clearAllMocks()
         ; (useLocation as jest.Mock).mockReturnValue({
@@ -283,6 +285,7 @@ beforeEach(() => {
             state: { problem: mockProblem },
         })
     mockedUseCodingHooks.mockReturnValue(makeMockHook())
+    ;(getProfile as jest.Mock).mockResolvedValue({ id: 1 })
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
