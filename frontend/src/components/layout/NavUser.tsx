@@ -12,41 +12,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { logout, getProfile } from "@/api/AuthAPI"
+import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
-import type { Account } from "@/types/account/Account.type"
 import { logFrontend } from '../../api/LoggerAPI';
+import { useUser } from "@/context/UserContext"
 
-interface NavUserProps {
-  user?: Account | null;
-}
 
-export function NavUser({ user }: Readonly<NavUserProps>) {
+export function NavUser() {
   const navigate = useNavigate();
-  const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
 
-  React.useEffect(() => {
-    // If a user prop is not provided, fetch profile ourselves.
-    if (user) return
-    let mounted = true
-    const fetch = async () => {
-      try {
-        const profile = await getProfile()
-        if (mounted) setLocalUser(profile)
-      } catch (err) {
-        logFrontend({
-          level: 'ERROR',
-          message: `Error finding user profile: ${(err as Error).message}`,
-          component: 'NavUser',
-          url: globalThis.location.href,
-          stack: (err as Error).stack,
-        });
-      }
-    }
-    fetch()
-    return () => { mounted = false }
-  }, [user])
+  const { user } = useUser();
+  // const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
+
+  // React.useEffect(() => {
+  //   // If a user prop is not provided, fetch profile ourselves.
+  //   if (user) return
+  //   let mounted = true
+  //   const fetch = async () => {
+  //     try {
+  //       const profile = await getProfile()
+  //       if (mounted) setLocalUser(profile)
+  //     } catch (err) {
+  //       logFrontend({
+  //         level: 'ERROR',
+  //         message: `Error finding user profile: ${(err as Error).message}`,
+  //         component: 'NavUser',
+  //         url: globalThis.location.href,
+  //         stack: (err as Error).stack,
+  //       });
+  //     }
+  //   }
+  //   fetch()
+  //   return () => { mounted = false }
+  // }, [user])
 
   const handleLogout = async () => {
     try {
@@ -91,11 +90,11 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       <DropdownMenuTrigger asChild>
         <button className="cursor-pointer flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none">
           <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
+            <span className="truncate font-medium ml-2">{user?.firstName} {user?.lastName}</span>
           </div>
           <AvatarInitials className=""
-            firstName={localUser?.firstName ?? ""}
-            lastName={localUser?.lastName ?? ""}
+            firstName={user?.firstName ?? ""}
+            lastName={user?.lastName ?? ""}
             size="ml"
           />
         </button>
@@ -109,12 +108,12 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             <AvatarInitials
-              firstName={localUser?.firstName ?? ""}
-              lastName={localUser?.lastName ?? ""}
+              firstName={user?.firstName ?? ""}
+              lastName={user?.lastName ?? ""}
               size="md"
             />
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate text-xs">{localUser?.email}</span>
+              <span className="truncate text-xs">{user?.email}</span>
             </div>
           </div>
         </DropdownMenuLabel>
