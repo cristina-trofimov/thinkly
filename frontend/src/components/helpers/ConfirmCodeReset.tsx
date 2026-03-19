@@ -51,7 +51,7 @@ const ResetCode = ({
                         </div>
                         <DialogFooter className='px-6 pb-6 flex justify-between' >
                             <Button className='bg-primary hover:bg-primary/75'
-                                data-testid="no-reset-btn"
+                                data-testid="cancel-reset-btn"
                                 onClick={() => handleClose(false)} >
                                 Cancel
                             </Button>
