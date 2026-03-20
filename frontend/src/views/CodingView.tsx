@@ -162,7 +162,6 @@ const CodingView = () => {
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
-      throw err
     }
   }
 
@@ -199,7 +198,6 @@ const CodingView = () => {
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
-      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")

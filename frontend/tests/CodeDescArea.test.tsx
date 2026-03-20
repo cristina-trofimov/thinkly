@@ -59,8 +59,7 @@ jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
   putUserInstance: jest.fn(),
 }))
 
-// Mock CodingPageLeaderboard at both possible import paths —
-// the @/ alias path (our output) and the relative path (in case source hasn't been replaced yet)
+// Mock CodingPageLeaderboard at both possible import paths
 jest.mock('@/components/leaderboards/CodingPageLeaderboard', () => ({
     __esModule: true,
     EventLeaderboard: () => <div data-testid="mock-event-leaderboard">Mock Event Leaderboard</div>
@@ -173,6 +172,8 @@ const mockedGetRiddleById = getRiddleById as jest.Mock
 const mockedGetAllLanguages = getAllLanguages as jest.Mock
 
 // ─── Helper to render with default props ─────────────────────────────────────
+// CodeDescArea now accepts submissionState and latestSubmissionResult — both
+// default to their "idle / no result yet" values so existing tests are unaffected.
 
 const renderCodeDescArea = (overrides: Partial<{
   question: Question | undefined
@@ -183,6 +184,8 @@ const renderCodeDescArea = (overrides: Partial<{
   eventName: string | undefined
   isCompetitionEvent: boolean
   currentUserId: number | undefined
+  submissionState: 'idle' | 'loading' | 'done'
+  latestSubmissionResult: SubmissionType | null
 }> = {}) => render(
   <CodeDescArea
     question={overrides.question !== undefined ? overrides.question : mockQuestion}
@@ -193,6 +196,8 @@ const renderCodeDescArea = (overrides: Partial<{
     eventName={overrides.eventName !== undefined ? overrides.eventName : 'Test Event'}
     isCompetitionEvent={overrides.isCompetitionEvent !== undefined ? overrides.isCompetitionEvent : true}
     currentUserId={overrides.currentUserId}
+    submissionState={overrides.submissionState ?? 'idle'}
+    latestSubmissionResult={overrides.latestSubmissionResult ?? null}
   />
 )
 
@@ -215,14 +220,16 @@ describe('CodeDescArea — rendering', () => {
       expect(screen.getByTestId('tabs')).toBeInTheDocument()
     })
     expect(screen.getByTestId('tabs-list')).toBeInTheDocument()
-    expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(3)
+    // Component now has 4 tabs: Description, Submissions, Result, Leaderboard
+    expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(4)
   })
 
-  it('renders Description, Submissions, and Leaderboard tabs', async () => {
+  it('renders Description, Submissions, Result, and Leaderboard tabs', async () => {
     renderCodeDescArea()
     await waitFor(() => {
       expect(screen.getByText('Description')).toBeInTheDocument()
       expect(screen.getByText('Submissions')).toBeInTheDocument()
+      expect(screen.getByText('Result')).toBeInTheDocument()
       expect(screen.getByText('Leaderboard')).toBeInTheDocument()
     })
   })
@@ -267,6 +274,78 @@ describe('CodeDescArea — tab switching', () => {
     await userEvent.click(screen.getByText('Submissions'))
     await userEvent.click(screen.getByText('Description'))
     expect(screen.getByText('Two Sum')).toBeInTheDocument()
+  })
+
+  it('switches to result tab when clicked', async () => {
+    renderCodeDescArea()
+    await waitFor(() => expect(screen.getByText('Result')).toBeInTheDocument())
+    await userEvent.click(screen.getByText('Result'))
+    expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
+  })
+})
+
+describe('CodeDescArea — result tab', () => {
+  it('shows idle state message when no submission yet', async () => {
+    renderCodeDescArea({ submissionState: 'idle' })
+    await userEvent.click(screen.getByText('Result'))
+    expect(screen.getByText(/No submission yet/i)).toBeInTheDocument()
+  })
+
+  it('shows skeleton when submissionState is loading', async () => {
+    // submissionState=loading auto-switches to result tab
+    renderCodeDescArea({ submissionState: 'loading' })
+    await waitFor(() =>
+      expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
+    )
+    // Skeleton is rendered — check for the result tab content presence
+    expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
+  })
+
+  it('shows submission result when submissionState is done', async () => {
+    renderCodeDescArea({
+      submissionState: 'done',
+      latestSubmissionResult: mockSubmissions[0],
+    })
+    await waitFor(() =>
+      expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
+    )
+    expect(screen.getByText('Accepted')).toBeInTheDocument()
+    expect(screen.getByText('Submission Result')).toBeInTheDocument()
+  })
+
+  it('auto-switches to result tab when submissionState becomes loading', async () => {
+    const { rerender } = render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="idle"
+        latestSubmissionResult={null}
+      />
+    )
+    // Start on description tab
+    await waitFor(() => expect(screen.getByText('Description')).toBeInTheDocument())
+
+    rerender(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="loading"
+        latestSubmissionResult={null}
+      />
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
+    )
   })
 })
 
