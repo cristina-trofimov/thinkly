@@ -44,6 +44,15 @@ jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
   EditAlgoTimeSessionDialog: () => null,
 }));
 
+jest.mock('@/lib/axiosClient', () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
 const mockSessions = [
   {
     id: 1,
