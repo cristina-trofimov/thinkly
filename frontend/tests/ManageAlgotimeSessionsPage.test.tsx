@@ -53,6 +53,10 @@ jest.mock('@/lib/axiosClient', () => ({
   },
 }));
 
+jest.mock('@/api/LeaderboardsAPI', () => ({
+  resetAlgoTimeLeaderboard: jest.fn(),
+}));
+
 const mockSessions = [
   {
     id: 1,
