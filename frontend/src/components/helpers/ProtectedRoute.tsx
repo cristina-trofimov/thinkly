@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { getProfile } from "@/api/AuthAPI"; // We use this to trigger the refresh logic
 import { logFrontend } from "@/api/LoggerAPI";
+import { useUser } from "@/context/UserContext";
 
 interface ProtectedRouteProps {
     allowedRoles: string[];
@@ -11,6 +12,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
     const [userRole, setUserRole] = useState<string | null>(null);
     const token = localStorage.getItem("token");
+    const { user } = useUser();
 
     useEffect(() => {
         const verifySession = async () => {
@@ -22,14 +24,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
 
             try {
                 /**
-                 * We call getProfile(). 
                  * If the token is expired (15 mins), our Axios Interceptor will 
                  * catch the 401, refresh the token via the cookie, and then 
                  * this call will eventually succeed.
                  */
-                const user = await getProfile();
-                setUserRole(user.accountType.toLowerCase());
-                setStatus('authorized');
+                if (user) {
+                    setUserRole(user?.accountType.toLowerCase());
+                    setStatus('authorized');
+                }
+
             } catch (error) {
                 // If getProfile fails even after the interceptor tried to refresh,
                 // it means the 7-day refresh token is also expired.
