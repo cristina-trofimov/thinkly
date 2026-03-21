@@ -1,5 +1,5 @@
 import React from "react";
-import { getProfile, isGoogleAccount } from "@/api/AuthAPI";
+import { isGoogleAccount } from "@/api/AuthAPI";
 import { updateAccount, updateUserPreferences } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import { logFrontend } from "@/api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { UserPreferences } from "@/types/account/UserPreferences.type";
 import { getUserPrefs } from "@/api/UserPreferencesAPI";
+import { useUser } from "@/context/UserContext";
 
 // Extending the local Account type to include the Google provider check
 interface ProfileAccount extends Account {
@@ -130,8 +131,8 @@ const EditableField: React.FC<EditableFieldProps> = ({
 };
 
 function ProfilePage() {
+  const { user: baseUser, loading, setUser: setBaseUser } = useUser();
   const [user, setUser] = React.useState<ProfileAccount | null>(null);
-  const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
 
   const [preferences, setPreferences] = React.useState<UserPreferences>({
@@ -139,7 +140,7 @@ function ProfilePage() {
     notifications_enabled: true,
     last_used_programming_language: null,
     pref_id: -1,
-    user_id: -1
+    user_id: -1,
   });
   const navigate = useNavigate();
   const outlet = useOutlet();
@@ -156,18 +157,14 @@ function ProfilePage() {
 
   React.useEffect(() => {
     const handleThemeSync = () => {
-      // Read directly from storage to ensure we have the latest value
       const currentTheme = localStorage.getItem("theme");
       if (currentTheme === "light" || currentTheme === "dark") {
-        setPreferences((prev) => ({
-          ...prev,
-          theme: currentTheme
-        }));
+        setPreferences((prev) => ({ ...prev, theme: currentTheme }));
       }
     };
 
-    globalThis.addEventListener("storage", handleThemeSync);      // For other tabs
-    globalThis.addEventListener("storage_sync", handleThemeSync); // For NavUser in this tab
+    globalThis.addEventListener("storage", handleThemeSync);
+    globalThis.addEventListener("storage_sync", handleThemeSync);
 
     return () => {
       globalThis.removeEventListener("storage", handleThemeSync);
@@ -188,53 +185,36 @@ function ProfilePage() {
   }, []);
 
   React.useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const [currentAccount, googleStatus] = await Promise.all([
-          getProfile(),
-          isGoogleAccount(),
-        ]);
-        setUser({
-          ...currentAccount,
-          isGoogleUser: googleStatus.isGoogleUser,
-        });
+    if (!baseUser) return;
+    const init = async () => {
+      const [googleStatus, prefs] = await Promise.all([
+        isGoogleAccount().catch(() => ({ isGoogleUser: false })),
+        getUserPrefs(baseUser.id).catch(() => null),
+      ]);
 
-        try {
-          const prefs = await getUserPrefs(currentAccount.id);
-          setPreferences(prefs);
-        } catch {
-          logFrontend({
-            level: "ERROR",
-            message: `Failed fetch preferences`,
-            component: "ProfilePage.ts",
-            url: globalThis.location.href,
-          });
-        }
-      } catch (error) {
+      setUser({ ...baseUser, isGoogleUser: googleStatus.isGoogleUser });
+
+      if (prefs) {
+        setPreferences(prefs);
+      } else {
         logFrontend({
           level: "ERROR",
-          message: `Failed to load user profile: ${error}`,
+          message: "Failed to fetch preferences",
           component: "ProfilePage",
           url: globalThis.location.href,
         });
-        toast.error("Failed to load profile data.");
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchUser();
-  }, []);
+    init();
+  }, [baseUser]);
 
-  // Automatic saving handler
   const handlePreferenceChange = async (updates: Partial<UserPreferences>) => {
     if (!user) return;
 
-    // Optimistically update local state
     const updatedPrefs = { ...preferences, ...updates };
     setPreferences(updatedPrefs);
 
-    // Immediate UI feedback for theme
     if (updates.theme) {
       const root = document.documentElement;
       if (updates.theme === "dark") {
@@ -244,7 +224,6 @@ function ProfilePage() {
         root.classList.remove("dark");
         localStorage.setItem("theme", "light");
       }
-
       globalThis.dispatchEvent(new Event("storage_sync"));
     }
 
@@ -287,7 +266,10 @@ function ProfilePage() {
         [fieldMapping[editingField]]: tempValue,
       });
       trackProfileFieldSaved(editingField);
+
+      setBaseUser(updatedAccount);
       setUser({ ...updatedAccount, isGoogleUser: user.isGoogleUser });
+
       toast.success("Profile updated successfully.");
       setEditingField(null);
     } catch {
@@ -401,8 +383,12 @@ function ProfilePage() {
                     <KeyRound className="h-4 w-4 opacity-70 text-primary" /> Password
                   </Label>
                   <div className="flex items-center justify-between group min-h-10">
-                    <Label className="text-muted-foreground text-base font-normal tracking-widest">••••••••••••</Label>
-                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">Managed by Google</span>
+                    <Label className="text-muted-foreground text-base font-normal tracking-widest">
+                      ••••••••••••
+                    </Label>
+                    <span className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">
+                      Managed by Google
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -430,7 +416,11 @@ function ProfilePage() {
           <CardContent className="p-8 space-y-8">
             <div className="space-y-3">
               <Label className="text-sm font-semibold flex items-center gap-2">
-                {preferences.theme === "dark" ? <Moon className="h-4 w-4 opacity-70 text-primary" /> : <Sun className="h-4 w-4 opacity-70 text-primary" />}
+                {preferences.theme === "dark" ? (
+                  <Moon className="h-4 w-4 opacity-70 text-primary" />
+                ) : (
+                  <Sun className="h-4 w-4 opacity-70 text-primary" />
+                )}
                 Theme
               </Label>
               <div className="flex items-center gap-2">
@@ -438,8 +428,8 @@ function ProfilePage() {
                   type="button"
                   onClick={() => handlePreferenceChange({ theme: "light" })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "light"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
                     }`}
                 >
                   <Sun className="h-4 w-4" /> Light
@@ -448,8 +438,8 @@ function ProfilePage() {
                   type="button"
                   onClick={() => handlePreferenceChange({ theme: "dark" })}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${preferences.theme === "dark"
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/40"
                     }`}
                 >
                   <Moon className="h-4 w-4" /> Dark
@@ -464,17 +454,25 @@ function ProfilePage() {
                 <Bell className="h-4 w-4 opacity-70 text-primary" /> Notifications
               </Label>
               <div className="flex items-center justify-between min-h-10">
-                <Label className="text-muted-foreground text-base font-normal">Enable email notifications</Label>
+                <Label className="text-muted-foreground text-base font-normal">
+                  Enable email notifications
+                </Label>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={preferences.notifications_enabled}
-                  onClick={() => handlePreferenceChange({ notifications_enabled: !preferences.notifications_enabled })}
+                  onClick={() =>
+                    handlePreferenceChange({
+                      notifications_enabled: !preferences.notifications_enabled,
+                    })
+                  }
                   className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${preferences.notifications_enabled ? "bg-primary" : "bg-input"
                     }`}
                 >
-                  <span className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
-                    }`} />
+                  <span
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform duration-200 ${preferences.notifications_enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                  />
                 </button>
               </div>
             </div>

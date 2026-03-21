@@ -13,6 +13,45 @@ import type { Competition } from "@/types/competition/Competition.type";
 import CompetitionItem from "@/components/helpers/CompetitionItem";
 import HomePageBanner from "@/components/helpers/HomePageBanner";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+export function DataTableSkeleton() {
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {/* Adjust these to match the number of columns in your questionsColumns */}
+            {[...Array(5)].map((_, i) => (
+              <TableHead key={i}><Skeleton className="h-4 w-[100px]" /></TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {[...Array(10)].map((_, i) => (
+            <TableRow key={i}>
+              {[...Array(5)].map((_, j) => (
+                <TableCell key={j}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+export function BannerSkeleton() {
+  return (
+    <div className="w-full flex flex-col gap-4">
+      {/* The main banner area */}
+      <Skeleton className="h-[225px] w-full rounded-xl" />
+    </div>
+  );
+}
 
 function HomePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -23,6 +62,8 @@ function HomePage() {
   const [questionSearch, setQuestionSearch] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isCompLoading, setIsCompLoading] = useState<boolean>(true);
 
   const {
     trackHomepageViewed,
@@ -38,6 +79,7 @@ function HomePage() {
 
   useEffect(() => {
     const getAllQuestions = async () => {
+      setIsLoading(true);
       try {
         const result = await getQuestionsPage({
           page: questionsPage,
@@ -71,6 +113,8 @@ function HomePage() {
           url: globalThis.location.href,
           stack: isError ? err.stack : undefined,
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -79,6 +123,7 @@ function HomePage() {
 
   useEffect(() => {
     const getAllCompetitions = async () => {
+      setIsCompLoading(true);
       try {
         const data = await getCompetitions();
         const transformedData = data.map((c) => ({
@@ -107,6 +152,8 @@ function HomePage() {
           url: globalThis.location.href,
           stack: isError ? err.stack : undefined,
         });
+      } finally {
+        setIsCompLoading(false);
       }
     };
     getAllCompetitions();
@@ -140,30 +187,34 @@ function HomePage() {
     <div className="flex flex-col w-full px-4">
       <div className="flex w-full gap-6 items-start">
         <div className="flex flex-col flex-1 min-w-0 gap-4">
-          <HomePageBanner competitions={competitions} />
+          {isCompLoading ? <BannerSkeleton /> : <HomePageBanner competitions={competitions} />}
           <div className="flex flex-col gap-4">
-            <DataTable
-              columns={columns}
-              data={questions}
-              total={totalQuestions}
-              page={questionsPage}
-              pageSize={questionsPageSize}
-              search={questionSearch}
-              difficultyFilter={difficultyFilter}
-              onSearchChange={(value) => {
-                setQuestionsPage(1);
-                setQuestionSearch(value);
-              }}
-              onDifficultyFilterChange={(value) => {
-                setQuestionsPage(1);
-                setDifficultyFilter(value);
-              }}
-              onPageChange={setQuestionsPage}
-              onPageSizeChange={(value) => {
-                setQuestionsPage(1);
-                setQuestionsPageSize(value);
-              }}
-            />
+            {isLoading ? (
+              <DataTableSkeleton />
+            ) : (
+              <DataTable
+                columns={columns}
+                data={questions}
+                total={totalQuestions}
+                page={questionsPage}
+                pageSize={questionsPageSize}
+                search={questionSearch}
+                difficultyFilter={difficultyFilter}
+                onSearchChange={(value) => {
+                  setQuestionsPage(1);
+                  setQuestionSearch(value);
+                }}
+                onDifficultyFilterChange={(value) => {
+                  setQuestionsPage(1);
+                  setDifficultyFilter(value);
+                }}
+                onPageChange={setQuestionsPage}
+                onPageSizeChange={(value) => {
+                  setQuestionsPage(1);
+                  setQuestionsPageSize(value);
+                }}
+              />
+            )}
           </div>
         </div>
 

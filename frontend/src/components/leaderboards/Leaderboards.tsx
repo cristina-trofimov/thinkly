@@ -11,8 +11,31 @@ import {
   getCurrentCompetitionLeaderboard,
   type CompetitionsPage,
 } from "@/api/LeaderboardsAPI";
-import { getProfile } from "@/api/AuthAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useUser } from "@/context/UserContext";
+
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function CompetitionCardSkeleton() {
+  return (
+    <div className="space-y-4 rounded-lg border p-4">
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-6 w-1/3" /> {/* Title */}
+        <Skeleton className="h-4 w-20" />  {/* Date/Status */}
+      </div>
+      <div className="space-y-2">
+        {/* Participant Rows */}
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-2">
+            <Skeleton className="h-8 w-8 rounded-full" /> {/* Avatar */}
+            <Skeleton className="h-4 flex-1" />           {/* Name */}
+            <Skeleton className="h-4 w-12" />             {/* Score */}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type LeaderboardType = "competition" | "algotime";
 
@@ -35,7 +58,8 @@ export function Leaderboards() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined);
+
+  const { user } = useUser();
 
   const {
     trackLeaderboardViewed,
@@ -59,19 +83,7 @@ export function Leaderboards() {
     trackLeaderboardViewed(newType);
   };
 
-  // Fetch current user ID
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const profile = await getProfile();
-        setCurrentUserId(profile.id);
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-        setCurrentUserId(undefined);
-      }
-    };
-    fetchCurrentUser();
-  }, []);
+
 
   // ─── Competition data loading ──────────────────────────────────────────────
   // AlgoTime data is managed entirely inside AlgoTimeCard.
@@ -83,9 +95,9 @@ export function Leaderboards() {
       setError(null);
 
       const [currentStandings, pageData] = await Promise.all([
-        getCurrentCompetitionLeaderboard(currentUserId),
+        getCurrentCompetitionLeaderboard(user?.id),
         getCompetitionsDetails({
-          currentUserId,
+          currentUserId: user?.id,
           search,
           sort: sortAsc ? "asc" : "desc",
           page,
@@ -122,7 +134,7 @@ export function Leaderboards() {
     } finally {
       setLoading(false);
     }
-  }, [leaderboardType, currentUserId, search, sortAsc, page]);
+  }, [leaderboardType, user?.id, search, sortAsc, page]);
 
   useEffect(() => {
     loadCompetitions();
@@ -179,19 +191,65 @@ export function Leaderboards() {
       </div>
 
       {leaderboardType === "competition" && (
-        <SearchAndFilterBar
-          search={search}
-          setSearch={handleSearchChange}
-          sortAsc={sortAsc}
-          setSortAsc={handleSortChange}
-        />
+        loading ? (
+          <>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+            <div className="flex gap-4 items-center">
+              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
+              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
+            </div>
+          </>
+        ) : (
+          <SearchAndFilterBar
+            search={search}
+            setSearch={handleSearchChange}
+            sortAsc={sortAsc}
+            setSortAsc={handleSortChange}
+          />
+        )
       )}
 
-      {loading && leaderboardType === "competition" && (
-        <div className="text-center py-8 text-muted-foreground">
-          Loading leaderboards...
-        </div>
-      )}
+
+
       {error && (
         <div className="text-center py-8 text-destructive bg-destructive/10 rounded-lg border border-destructive/20">
           {error}
@@ -208,7 +266,7 @@ export function Leaderboards() {
               <CompetitionCard
                 competition={currentCompetition}
                 isCurrent={true}
-                currentUserId={currentUserId}
+                currentUserId={user?.id}
               />
             </div>
           )}
@@ -224,7 +282,7 @@ export function Leaderboards() {
                 <CompetitionCard
                   key={comp.id}
                   competition={comp}
-                  currentUserId={currentUserId}
+                  currentUserId={user?.id}
                 />
               ))}
             </>
@@ -263,7 +321,7 @@ export function Leaderboards() {
       {/* AlgoTimeCard is self-contained: it owns its own data fetching, pagination,
           and search state. Leaderboards.tsx only passes the user identity. */}
       {leaderboardType === "algotime" && (
-        <AlgoTimeCard currentUserId={currentUserId} />
+        <AlgoTimeCard currentUserId={user?.id} />
       )}
     </div>
   );
