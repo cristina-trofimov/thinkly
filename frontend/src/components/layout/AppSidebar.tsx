@@ -15,8 +15,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { getProfile } from "@/api/AuthAPI"
-import type { Account } from "@/types/account/Account.type"
 import { useUser } from "@/context/UserContext"
 
 // Static data definitions

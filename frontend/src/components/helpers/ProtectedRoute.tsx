@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { getProfile } from "@/api/AuthAPI"; // We use this to trigger the refresh logic
 import { logFrontend } from "@/api/LoggerAPI";
 import { useUser } from "@/context/UserContext";
 

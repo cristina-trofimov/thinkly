@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getProfile } from "@/api/AuthAPI";
 import type { Account } from "@/types/account/Account.type";
+import { logFrontend } from "@/api/LoggerAPI";
 
 interface UserContextType {
     user: Account | null;
@@ -20,6 +21,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const profile = await getProfile();
             setUser(profile);
         } catch (error) {
+            logFrontend({
+                level: 'ERROR',
+                message: `Failed to refresh user profile: ${(error as Error).message}`,
+                component: 'UserContext.tsx',
+                url: globalThis.location.href,
+            });
             setUser(null);
         } finally {
             setLoading(false);

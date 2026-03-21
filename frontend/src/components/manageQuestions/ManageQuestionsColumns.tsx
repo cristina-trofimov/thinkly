@@ -151,16 +151,7 @@ export const columns: ColumnDef<Question>[] = [
     },
     cell: ({ row }) => {
       const difficulty = row.getValue<string>("difficulty");
-      const normalizedDifficulty = difficulty.toLowerCase();
-      // let tagColorClass = "text-muted-foreground";
 
-      // if (normalizedDifficulty === "hard") {
-      //   tagColorClass = "text-red-500";
-      // } else if (normalizedDifficulty === "medium") {
-      //   tagColorClass = "text-yellow-500";
-      // } else if (normalizedDifficulty === "easy") {
-      //   tagColorClass = "text-green-500";
-      // }
 
       return (
         <div className={`flex items-center gap-2 justify-center  `} >
