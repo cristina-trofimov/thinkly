@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { FileText, History, Trophy, Loader2 } from 'lucide-react'
+import { FileText, History, Trophy, Loader2, ClipboardCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
@@ -22,9 +22,13 @@ import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
 import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
+import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 const CodeDescArea = (
-    { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId }:
+    { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
+      submissionState, latestSubmissionResult }:
     { question: Question | undefined,
        question_instance: QuestionInstance | undefined | null,
        uqi: UserQuestionInstance | undefined | null,
@@ -36,6 +40,10 @@ const CodeDescArea = (
       /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
       isCompetitionEvent: boolean,
       currentUserId?: number,
+      /** Driven by the parent when the user hits Submit. */
+      submissionState?: 'idle' | 'loading' | 'done',
+      /** The latest submission returned by the API once submissionState === 'done'. */
+      latestSubmissionResult?: SubmissionType | null,
     }
 ) => {
 
@@ -44,6 +52,7 @@ const CodeDescArea = (
     const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
+        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck /> },
     ]
 
     // Only expose the Leaderboard tab when the question belongs to an event
@@ -65,6 +74,13 @@ const CodeDescArea = (
 
     const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
+
+    // Auto-switch to the Result tab whenever a submission starts or finishes
+    useEffect(() => {
+        if (submissionState === 'loading' || submissionState === 'done') {
+            setActiveTab('result')
+        }
+    }, [submissionState])
 
     useEffect(() => {
         if (!hasEvent && activeTab === "leaderboard") {
@@ -190,6 +206,9 @@ const CodeDescArea = (
                     if (containerWidth < halfSize && !isActive) showText = false
                     if (containerWidth < quarterSize && isActive) showText = false
 
+                    // Pulse the Result tab trigger while a submission is in flight
+                    const isResultLoading = t.id === 'result' && submissionState === 'loading'
+
                     return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
                         className={`bg-muted rounded-none
                         hover:border-t-2 hover:border-primary/40
@@ -203,6 +222,7 @@ const CodeDescArea = (
                         dark:data-[state=active]:border-primary
                         flex items-center gap-2 transition-all
                             ${showText ? 'px-4' : 'px-2'}
+                            ${isResultLoading ? 'animate-pulse' : ''}
                         `}
                     >
                         {t.icon}
@@ -270,7 +290,7 @@ const CodeDescArea = (
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-card' >{TimeAgoFormat(s.submitted_on.toISOString())}</span>
+                                            <span className='text-card' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
                                         </TableCell>
                                         <TableCell className="" >
                                             {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
@@ -285,6 +305,25 @@ const CodeDescArea = (
                                 </TableRow>
                             </TableFooter>
                         </Table>
+                    )}
+                </div>
+            </TabsContent>
+
+            {/* Result — live submission feedback */}
+            <TabsContent value='result' data-testid="tabs-content-result">
+                <div className='h-full p-6 overflow-y-auto'>
+                    {submissionState === 'loading' && <SubmissionResultSkeleton />}
+
+                    {submissionState === 'done' && latestSubmissionResult && (
+                        <SubmissionResult result={latestSubmissionResult} />
+                    )}
+
+                    {(submissionState === 'idle' || submissionState === undefined) && (
+                        <div className='flex flex-col items-center justify-center h-full py-16 text-muted-foreground gap-2'>
+                            <ClipboardCheck className="w-8 h-8 opacity-30" />
+                            <p className="text-base">No submission yet</p>
+                            <p className="text-sm">Hit <span className="font-semibold text-foreground">Submit</span> to see your results here</p>
+                        </div>
                     )}
                 </div>
             </TabsContent>
