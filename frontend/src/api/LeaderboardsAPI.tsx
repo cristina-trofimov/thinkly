@@ -376,3 +376,15 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
         throw err;
     }
 }
+
+export async function resetAlgoTimeLeaderboard(): Promise<{ message: string; entriesDeleted: number }> {
+    try {
+        const response = await axiosClient.delete<{ message: string; entriesDeleted: number }>(
+            "/leaderboards/algotime/reset"
+        );
+        return response.data;
+    } catch (err) {
+        console.error("Error resetting AlgoTime leaderboard:", err);
+        throw err;
+    }
+}

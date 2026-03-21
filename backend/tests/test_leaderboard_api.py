@@ -18,6 +18,7 @@ from src.endpoints.leaderboards_api import (
     get_all_competition_entries,
     _set_no_cache_headers,
     _set_short_cache_headers,
+    reset_algotime_leaderboard
 )
 
 
@@ -1235,3 +1236,36 @@ class TestGetLeaderboardsAdditional:
 
         assert result["competitions"][0]["id"] == "42"
         assert isinstance(result["competitions"][0]["id"], str)
+
+class TestResetAlgoTimeLeaderboard:
+
+    def test_successful_reset_returns_count(self, mock_db, mock_response):
+        mock_db.query.return_value.delete.return_value = 5
+
+        result = reset_algotime_leaderboard(mock_response, mock_db)
+
+        assert result["entriesDeleted"] == 5
+        assert "successfully cleared" in result["message"]
+
+    def test_reset_with_zero_entries(self, mock_db, mock_response):
+        mock_db.query.return_value.delete.return_value = 0
+
+        result = reset_algotime_leaderboard(mock_response, mock_db)
+
+        assert result["entriesDeleted"] == 0
+
+    def test_commits_after_delete(self, mock_db, mock_response):
+        mock_db.query.return_value.delete.return_value = 3
+
+        reset_algotime_leaderboard(mock_response, mock_db)
+
+        mock_db.commit.assert_called_once()
+
+    def test_database_error_raises_500(self, mock_db, mock_response):
+        mock_db.query.side_effect = Exception("DB down")
+
+        with pytest.raises(HTTPException) as exc_info:
+            reset_algotime_leaderboard(mock_response, mock_db)
+
+        assert exc_info.value.status_code == 500
+        assert "Failed to reset" in exc_info.value.detail
