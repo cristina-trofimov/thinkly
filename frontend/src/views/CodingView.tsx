@@ -27,6 +27,7 @@ import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import { submitAttempt } from '@/api/SubmitCodeAPI';
 import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
+import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 
 
 const CodingView = () => {
@@ -67,6 +68,8 @@ const CodingView = () => {
 
   const [logs, setLogs] = useState<Judge0Response[]>([])
   const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
+  const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
+  const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
   const outputTabs = [
     { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
     { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
@@ -116,10 +119,10 @@ const CodingView = () => {
       return
     }
 
-    try {
-      setIsAsyncLoading(true)
-      setLoadingMsg("Submitting")
+    // Drive the left-panel Result tab instead of a full-page loader
+    setSubmissionState('loading')
 
+    try {
       if (userQuestionInstance) {
         userQuestionInstance.attempts = userQuestionInstance.attempts
           ? userQuestionInstance.attempts + 1
@@ -137,17 +140,13 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases)
+        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
 
-      if (submissionResponse.status === "Accepted") {
-        toast.success("Code successfully passed tests")
-      } else {
-        toast.warning("Code failed at least one tests")
-      }
+      setLatestSubmissionResult(submissionResponse)
+      setSubmissionState('done')
 
       setLogs(prev => [...prev, codeRunResponse.judge0Response])
       setMostRecentSub(mostRecentSubResponse)
-      setCurrentOutputTab("results")
 
       trackCodeSubmitted(
         activeQuestion!.question_id,
@@ -155,6 +154,7 @@ const CodingView = () => {
       )
     } catch (err) {
       toast.error("Error when submitting the code.")
+      setSubmissionState('idle')
       logFrontend({
         level: "ERROR",
         message: `An error occurred when submitting code. Reason: ${err}`,
@@ -162,10 +162,6 @@ const CodingView = () => {
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
-      throw err
-    } finally {
-      setIsAsyncLoading(false)
-      setLoadingMsg("")
     }
   }
 
@@ -180,7 +176,7 @@ const CodingView = () => {
       setLoadingMsg("Running")
 
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases)
+        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")
@@ -202,7 +198,6 @@ const CodingView = () => {
         url: globalThis.location.href,
         stack: (err as Error).stack,
       });
-      throw err
     } finally {
       setIsAsyncLoading(false)
       setLoadingMsg("")
@@ -371,6 +366,8 @@ const CodingView = () => {
             eventName={comp?.competitionTitle}
             isCompetitionEvent={!!comp}
             currentUserId={currentUserId}
+            submissionState={submissionState}
+            latestSubmissionResult={latestSubmissionResult}
           />
         </Panel>
 

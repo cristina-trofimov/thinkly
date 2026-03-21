@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="My Backend API", lifespan=lifespan)
 
 # --- Rate Limiting ---
-limiter = Limiter(key_func=get_remote_address, default_limits=["25/minute"])
+limiter = Limiter(key_func=get_remote_address, default_limits=["45/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
