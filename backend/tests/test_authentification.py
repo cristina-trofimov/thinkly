@@ -9,8 +9,7 @@ from src.endpoints import authentification_api
 from src.database_operations import database
 from fastapi import FastAPI
 import bcrypt
-from fastapi import FastAPI, HTTPException 
-from src.database_operations import database
+from fastapi import HTTPException 
 from src.database_operations.database import engine  # ADD THIS LINE
 from src.database_operations.db import Base  # ADD THIS LINE
 

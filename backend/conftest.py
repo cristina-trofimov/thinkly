@@ -1,5 +1,4 @@
 import os
-import pytest
 
 # 1. SET ENV VARS FIRST (Before any other imports)
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"

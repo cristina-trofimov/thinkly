@@ -1,18 +1,7 @@
-import os
-import sys
 from sqlalchemy import text
 from dotenv import load_dotenv
 
 from database_operations.db import Base, engine
-from models.schema import (
-    UserAccount, UserPreferences, UserSession,
-    BaseEvent, Competition, CompetitionEmail,
-    AlgoTimeSeries, AlgoTimeSession,
-    Question, QuestionLanguageSpecificProperties, TestCase, Tag,
-    Riddle, Language, QuestionInstance, UserQuestionInstance,
-    Submission, MostRecentSubmission,
-    CompetitionLeaderboardEntry, AlgoTimeLeaderboardEntry
-)
 
 load_dotenv()
 

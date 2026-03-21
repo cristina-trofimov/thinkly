@@ -1,4 +1,5 @@
-import pytest, sys
+import pytest
+import sys
 from unittest.mock import AsyncMock, Mock, patch
 from pathlib import Path
 from fastapi.testclient import TestClient
@@ -8,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.endpoints.judge0_api import (
     judge0_get_output,
     submit_to_judge0,
-    judge0_run_code,
 )
 
 # Import app after sys.path is set — raise_server_exceptions=False lets the
