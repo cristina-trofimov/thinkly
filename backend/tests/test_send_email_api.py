@@ -179,6 +179,25 @@ class TestSendEmailViaBrevo(unittest.TestCase):
 class TestSendEmailEndpoint:
     """Tests for send_email endpoint"""
 
+    def _make_request(self):
+        """Create a minimal real Starlette Request for slowapi compatibility."""
+        from starlette.requests import Request as StarletteRequest
+        from starlette.datastructures import Headers
+        scope = {
+            "type": "http",
+            "method": "POST",
+            "path": "/email/send",
+            "query_string": b"",
+            "headers": Headers(headers={}).raw,
+            "client": ("127.0.0.1", 9999),
+        }
+        return StarletteRequest(scope)
+
+    def setup_method(self):
+        """Reset limiter storage before each test to avoid cross-test rate limit hits."""
+        from src.endpoints.send_email_api import limiter
+        limiter._storage.reset()
+
     @pytest.mark.asyncio
     @patch("src.endpoints.send_email_api.track_custom_event")
     @patch("src.endpoints.send_email_api.send_email_via_brevo")
@@ -187,9 +206,7 @@ class TestSendEmailEndpoint:
     async def test_send_email_success(self, mock_send, mock_track):
         mock_send.return_value = {"brevo": {"messageId": "msg-123"}}
 
-        request = Mock(to=["a@b.com"], subject="Test", text="Body")
-
-        result = await send_email(request)
+        result = await send_email(self._make_request(), body=Mock(to=["a@b.com"], subject="Test", text="Body"))
 
         assert result["ok"] is True
         mock_send.assert_called_once()
@@ -202,10 +219,8 @@ class TestSendEmailEndpoint:
     async def test_send_email_error(self, mock_send):
         mock_send.side_effect = Exception("fail")
 
-        request = Mock(to=["a@b.com"], subject="Test", text="Body")
-
         with pytest.raises(HTTPException) as exc:
-            await send_email(request)
+            await send_email(self._make_request(), body=Mock(to=["a@b.com"], subject="Test", text="Body"))
 
         assert exc.value.status_code == 400
         assert exc.value.detail == "Error sending email."
@@ -215,10 +230,8 @@ class TestSendEmailEndpoint:
     @patch("src.endpoints.send_email_api.BREVO_API_KEY", None)
     @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", "sender@example.com")
     async def test_send_email_503_when_api_key_missing(self):
-        request = Mock(to=["a@b.com"], subject="Test", text="Body")
-
         with pytest.raises(HTTPException) as exc:
-            await send_email(request)
+            await send_email(self._make_request(), body=Mock(to=["a@b.com"], subject="Test", text="Body"))
 
         assert exc.value.status_code == 503
         assert exc.value.detail == "Email service is not configured."
@@ -227,10 +240,8 @@ class TestSendEmailEndpoint:
     @patch("src.endpoints.send_email_api.BREVO_API_KEY", "test-key")
     @patch("src.endpoints.send_email_api.DEFAULT_SENDER_EMAIL", None)
     async def test_send_email_503_when_sender_email_missing(self):
-        request = Mock(to=["a@b.com"], subject="Test", text="Body")
-
         with pytest.raises(HTTPException) as exc:
-            await send_email(request)
+            await send_email(self._make_request(), body=Mock(to=["a@b.com"], subject="Test", text="Body"))
 
         assert exc.value.status_code == 503
         assert exc.value.detail == "Email service is not configured."
