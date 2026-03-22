@@ -74,7 +74,7 @@ function fallbackCopyToClipboard(text: string): void {
   textArea.select();
   try {
     // eslint-disable-next-line @typescript-eslint/no-deprecated
-    const success = (document as Document).execCommand("copy");
+    const success = document.execCommand("copy");
     if (!success) throw new Error("execCommand copy failed");
   } finally {
     textArea.remove();
