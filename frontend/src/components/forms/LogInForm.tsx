@@ -18,7 +18,8 @@ import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getUserPreferences } from "@/api/AccountsAPI";
-import { useUser } from "@/context/UserContext.tsx";
+import { useUser } from "@/context/UserContext";
+
 
 export function LoginForm({
   className,
