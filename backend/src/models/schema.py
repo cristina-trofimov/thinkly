@@ -129,9 +129,6 @@ class AlgoTimeSeries(Base):
     algotime_series_name: Mapped[str] = mapped_column(unique=True)
     algotime_sessions: Mapped[List[AlgoTimeSession]] = relationship('AlgoTimeSession', back_populates='algotime_series',
                                                                     uselist=True)
-    algotime_leaderboard_entries: Mapped[List[AlgoTimeLeaderboardEntry]] = relationship('AlgoTimeLeaderboardEntry',
-                                                                                        back_populates='algotime_series',
-                                                                                        uselist=True)
 
 
 class AlgoTimeSession(Base):
@@ -142,9 +139,10 @@ class AlgoTimeSession(Base):
         ForeignKey('algotime_series.algotime_series_id', ondelete=ON_DELETE_SET_NULL))
 
     base_event: Mapped[BaseEvent] = relationship('BaseEvent', back_populates='algotime', uselist=False)
+    
+    # ADDED THIS LINE BACK IN to fix the mapper initialization error
     algotime_series: Mapped[Optional[AlgoTimeSeries]] = relationship('AlgoTimeSeries',
                                                                      back_populates='algotime_sessions', uselist=False)
-
 
 question_tag = Table(
     'question_tag', Base.metadata,
@@ -322,17 +320,13 @@ class CompetitionLeaderboardEntry(Base):
         UniqueConstraint('competition_id', 'user_id', name='uix_competition_user'),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.calculated_rank = None
+
 
 
 class AlgoTimeLeaderboardEntry(Base):
     __tablename__ = 'algotime_leaderboard_entry'
 
     algotime_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    algotime_series_id: Mapped[int] = mapped_column(
-        ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'))
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
@@ -340,15 +334,14 @@ class AlgoTimeLeaderboardEntry(Base):
     total_time: Mapped[int] = mapped_column()
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc),
                                                    onupdate=datetime.now(timezone.utc))
-    algotime_series: Mapped[AlgoTimeSeries] = relationship('AlgoTimeSeries',
-                                                           back_populates='algotime_leaderboard_entries', uselist=False)
+    
+
     user_account: Mapped[Optional[UserAccount]] = relationship('UserAccount',
                                                                back_populates='algotime_leaderboard_entries',
                                                                uselist=False)
 
-    __table_args__ = (
-        UniqueConstraint('algotime_series_id', 'user_id', name='uix_algotime_user'),
-    )
+
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

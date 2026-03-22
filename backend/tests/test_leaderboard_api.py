@@ -578,7 +578,6 @@ class TestGetAlgoTimeEndpoints:
     def _make_algo_entry(self, user_id: int, score: int, series_id: int = 1, last_updated=None):
         entry = Mock()
         entry.algotime_leaderboard_entry_id = user_id * 10
-        entry.algotime_series_id = series_id
         entry.user_id = user_id
         entry.name = f"User {user_id}"
         entry.total_score = score
@@ -615,11 +614,10 @@ class TestGetAlgoTimeEndpoints:
         row = result["entries"][0]
 
         assert set(row.keys()) == {
-            "entryId", "algoTimeSeriesId", "name", "userId",
+            "entryId", "name", "userId",
             "totalScore", "problemsSolved", "totalTime", "rank", "lastUpdated"
         }
         assert row["entryId"] == 10
-        assert row["algoTimeSeriesId"] == 7
         assert row["name"] == "First1 Last1"
         assert row["userId"] == 1
         assert row["totalScore"] == 100
@@ -677,13 +675,6 @@ class TestGetAlgoTimeEndpoints:
 
         assert len(result["entries"]) == 2
 
-    def test_paginated_algotime_series_id_preserved(self, mock_db, mock_response):
-        entry = self._make_algo_entry(1, 50, series_id=99)
-        mock_db.query.return_value.all.return_value = [entry]
-
-        result = get_algotime_leaderboard(mock_response, mock_db, **_ALGOTIME_DEFAULTS)
-
-        assert result["entries"][0]["algoTimeSeriesId"] == 99
 
     def test_paginated_last_updated_is_iso_string(self, mock_db, mock_response):
         ts = datetime(2025, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
@@ -1041,7 +1032,6 @@ class TestGetCurrentAlgoTimeLeaderboard:
     def _make_algo_entry(self, user_id, score, series_id=1):
         entry = Mock()
         entry.algotime_leaderboard_entry_id = user_id * 10
-        entry.algotime_series_id = series_id
         entry.user_id = user_id
         entry.name = f"User {user_id}"
         entry.total_score = score
