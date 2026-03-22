@@ -73,7 +73,6 @@ function fallbackCopyToClipboard(text: string): void {
   textArea.focus();
   textArea.select();
   try {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
     const success = document.execCommand("copy");
     if (!success) throw new Error("execCommand copy failed");
   } finally {
