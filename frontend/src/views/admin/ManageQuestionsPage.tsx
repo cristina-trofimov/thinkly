@@ -60,20 +60,6 @@ export default function ManageQuestionsPage() {
     return <div>Error: {error}</div>;
   }
 
-  const handleDeleteQuestions = (deletedQuestionIds: number[]) => {
-    // Log the successful update of the UI state after deletion
-    logFrontend({
-      level: 'INFO',
-      message: `UI state updated after batch deletion of ${deletedQuestionIds.length} questions.`,
-      component: 'ManageQuestionsPage',
-      url: globalThis.location.href,
-    });
-
-    setData((prevData) =>
-      prevData.filter((question) => !deletedQuestionIds.includes(question.question_id))
-    );
-  };
-
   const handleToggleFrontpage = (questionId: number, shouldShow: boolean) => {
     setData((prevData) =>
       prevData.map((question) =>
@@ -89,9 +75,8 @@ export default function ManageQuestionsPage() {
       <ManageQuestionsDataTable
         columns={columns}
         data={data}
-        onDeleteQuestions={handleDeleteQuestions}
         onToggleFrontpage={handleToggleFrontpage}
-        onUploadQuestions={getAllQuestions}
+        refreshTable={getAllQuestions}
       />
     </div>
   );

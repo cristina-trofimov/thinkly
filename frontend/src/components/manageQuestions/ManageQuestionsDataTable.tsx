@@ -64,37 +64,36 @@ import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 import { logFrontend } from "@/api/LoggerAPI";
 
-async function handleQuestionDelete(questionId: number): Promise<void> {
-  try {
-    await deleteQuestion(questionId);
-    toast.success(`Question ${questionId} deleted successfully!`);
-  } catch (error) {
-    const message = parseAxiosErrorMessage(error);
-    console.error("Error deleting questions:", error);
-    toast.error(`Failed to delete question ${questionId}: ${message}`);
-  }
-}
-
 interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  onDeleteQuestions?: (deletedQuestionIds: number[]) => void;
   onToggleFrontpage?: (questionId: number, shouldShow: boolean) => void;
-  onUploadQuestions?: () => void;
+  refreshTable?: () => void | Promise<void>;
 }
 
 export function ManageQuestionsDataTable<TData, TValue>({
   columns,
   data,
-  onDeleteQuestions,
   onToggleFrontpage,
-  onUploadQuestions
+  refreshTable
 }: Readonly<ManageQuestionsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
   const [rowSelection, setRowSelection] = React.useState({});
+
+  const handleQuestionDelete = async (questionId: number): Promise<void> => {
+    try {
+      await deleteQuestion(questionId);
+      toast.success(`Question ${questionId} deleted successfully!`);
+      await refreshTable?.();
+    } catch (error) {
+      const message = parseAxiosErrorMessage(error);
+      console.error("Error deleting questions:", error);
+      toast.error(`Failed to delete question ${questionId}: ${message}`);
+    }
+  };
 
   const handleQuestionFrontpageToggle = async (questionId: number, shouldShow: boolean): Promise<boolean> => {
     try {
@@ -158,8 +157,6 @@ export function ManageQuestionsDataTable<TData, TValue>({
         url: globalThis.location.href,
       });
 
-      const deletedIds = response.deleted_questions.map((question) => question.question_id);
-
       if (response?.errors?.length) {
         toast.success(
           `Deleted ${response.deleted_count}/${response.total_requested} questions successfully.`
@@ -172,7 +169,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
         });
         console.warn("Partial deletion errors:", response.errors);
         toast.warning(`${response.errors.length} questions could not be deleted.`);
-        onDeleteQuestions?.(deletedIds);
+        await refreshTable?.();
       } else {
         toast.success(
           `Successfully deleted ${response.deleted_count} question(s).`
@@ -183,7 +180,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
           component: "ManageQuestionsDataTable",
           url: globalThis.location.href,
         });
-        onDeleteQuestions?.(deletedIds);
+        await refreshTable?.();
       }
     } catch (error: unknown) {
       console.error("Error deleting questions:", error);
@@ -295,7 +292,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
             variant="default"
             textWhileUploading={<>Uploading...</>}
             onSuccess={() => {
-              onUploadQuestions?.();
+              void refreshTable?.();
               toast.success("Questions uploaded successfully!");
             }}
             onFailure={(errorMessage) => {
