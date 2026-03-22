@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict, model_validator
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
-from models.schema import Language, Question, QuestionLanguageSpecificProperties, Riddle, Tag, TestCase
+from models.schema import Language, Question, QuestionLanguageSpecificProperties, QuestionInstance, Riddle, Tag, TestCase
 from database_operations.database import get_db
 import logging
 from services.posthog_analytics import track_custom_event
@@ -74,6 +74,7 @@ class QuestionListItemResponse(BaseModel):
     test_cases: List[TestCaseResponse]
     created_at: str
     last_modified_at: str
+    show_on_frontpage: bool = False
     tags: List[TagResponse]
 
     @staticmethod
@@ -91,6 +92,16 @@ class QuestionListItemResponse(BaseModel):
             test_cases=[TestCaseResponse.from_testcase(tc) for tc in getattr(question, "test_cases", [])],
             created_at=question.created_at.isoformat(),
             last_modified_at=question.last_modified_at.isoformat(),
+            show_on_frontpage=bool(
+                getattr(
+                    question,
+                    "show_on_frontpage",
+                    any(
+                        getattr(instance, "event_id", None) is None
+                        for instance in getattr(question, "question_instances", [])
+                    ),
+                )
+            ),
             tags=[TagResponse.from_tag(tag) for tag in getattr(question, "tags", [])],
         )
 
@@ -256,6 +267,28 @@ def get_all_questions(
             query = query.order_by(Question.question_id.asc())
 
         total, questions = paginate_query(query, page, page_size)
+
+        question_ids = [question.question_id for question in questions]
+        show_on_frontpage_ids = set()
+        if question_ids:
+            show_on_frontpage_rows = (
+                db.query(QuestionInstance.question_id)
+                .filter(
+                    QuestionInstance.question_id.in_(question_ids),
+                    QuestionInstance.event_id.is_(None),
+                )
+                .all()
+            )
+            for row in show_on_frontpage_rows:
+                if isinstance(row, tuple):
+                    show_on_frontpage_ids.add(row[0])
+                else:
+                    question_id = getattr(row, "question_id", None)
+                    if question_id is not None:
+                        show_on_frontpage_ids.add(question_id)
+
+        for question in questions:
+            question.show_on_frontpage = question.question_id in show_on_frontpage_ids
 
         response.headers.update(common_headers)
 
@@ -484,6 +517,61 @@ def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)])
 
 class BatchDeleteQuestionsRequest(BaseModel):
     question_ids: list[int]
+
+
+class ShowQuestionOnFrontpageRequest(BaseModel):
+    should_show: bool
+
+
+@questions_router.put(
+    "/show-question-on-frontpage-by-id/{question_id}",
+    responses={
+        404: {"description": "Question not found."},
+        500: {"description": "Error updating frontpage visibility."},
+    },
+)
+def show_question_on_frontpage_by_id(
+    question_id: int,
+    payload: ShowQuestionOnFrontpageRequest,
+    db: Annotated[Session, Depends(get_db)],
+):
+    try:
+        question = db.query(Question).filter(Question.question_id == question_id).first()
+        if not question:
+            raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
+
+        if payload.should_show:
+            existing_instance = (
+                db.query(QuestionInstance)
+                .filter(
+                    QuestionInstance.question_id == question_id,
+                    QuestionInstance.event_id.is_(None),
+                )
+                .first()
+            )
+            if existing_instance is None:
+                db.add(QuestionInstance(question_id=question_id, event_id=None))
+        else:
+            (
+                db.query(QuestionInstance)
+                .filter(
+                    QuestionInstance.question_id == question_id,
+                    QuestionInstance.event_id.is_(None),
+                )
+                .delete(synchronize_session=False)
+            )
+
+        db.commit()
+        return {
+            "question_id": question_id,
+            "show_on_frontpage": payload.should_show,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating frontpage visibility for question {question_id}: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error updating frontpage visibility.")
 
 @questions_router.delete(
     "/batch-delete",

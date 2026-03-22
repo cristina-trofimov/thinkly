@@ -36,6 +36,7 @@ function mapQuestion(
     difficulty: normalizeDifficulty(question.difficulty),
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    show_on_frontpage: Boolean(question.show_on_frontpage),
     tags: [] as TagResponse[],
     test_cases: [] as Array<TestCase>,
     language_specific_properties: [] as Array<LanguageSpecificProperties>,
@@ -161,6 +162,17 @@ export async function deleteQuestions(questionIds: number[]): Promise<{
 
 export async function deleteQuestion(questionId: number): Promise<void> {
   await deleteQuestions([questionId]);
+}
+
+export async function ShowQuestionOnFrontpageByID(
+  questionId: number,
+  shouldShow: boolean,
+): Promise<{ question_id: number; show_on_frontpage: boolean }> {
+  const response = await axiosClient.put(
+    `/questions/show-question-on-frontpage-by-id/${questionId}`,
+    { should_show: shouldShow },
+  );
+  return response.data;
 }
 
 export async function getRiddles(): Promise<Riddle[]> {

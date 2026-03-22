@@ -31,6 +31,7 @@ export type Question = {
   difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
   created_at: Date;
   last_modified_at: Date;
+  show_on_frontpage?: boolean;
 }
 
 export type EditableTestCaseFields = {

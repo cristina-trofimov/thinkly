@@ -19,6 +19,7 @@ const difficultyOrder: Record<string, number> = {
 interface TableMeta {
   handleQuestionUpdate?: (questionId: number, updatedQuestionFields: EditableQuestionFields) => boolean;
   handleQuestionDelete?: (questionId: number) => void;
+  handleQuestionFrontpageToggle?: (questionId: number, shouldShow: boolean) => Promise<boolean>;
 }
 
 export const columns: ColumnDef<Question>[] = [
@@ -157,6 +158,28 @@ export const columns: ColumnDef<Question>[] = [
         </div>
       );
     },
+  },
+  {
+    id: "show_on_frontpage",
+    header: () => <div className="text-center">Frontpage</div>,
+    cell: ({ row, table }) => {
+      const question = row.original;
+      const meta = table.options.meta as TableMeta;
+      const { handleQuestionFrontpageToggle } = meta;
+
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={Boolean(question.show_on_frontpage)}
+            onCheckedChange={(value) => {
+              void handleQuestionFrontpageToggle?.(question.question_id, !!value);
+            }}
+            aria-label={`Show question ${question.question_id} on frontpage`}
+          />
+        </div>
+      );
+    },
+    enableSorting: false,
   },
   {
       id: "actions",

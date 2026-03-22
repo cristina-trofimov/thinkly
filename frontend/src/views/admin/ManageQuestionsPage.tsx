@@ -74,12 +74,23 @@ export default function ManageQuestionsPage() {
     );
   };
 
+  const handleToggleFrontpage = (questionId: number, shouldShow: boolean) => {
+    setData((prevData) =>
+      prevData.map((question) =>
+        question.question_id === questionId
+          ? { ...question, show_on_frontpage: shouldShow }
+          : question
+      )
+    );
+  };
+
   return (
     <div className="container mx-auto p-6">
       <ManageQuestionsDataTable
         columns={columns}
         data={data}
         onDeleteQuestions={handleDeleteQuestions}
+        onToggleFrontpage={handleToggleFrontpage}
         onUploadQuestions={getAllQuestions}
       />
     </div>

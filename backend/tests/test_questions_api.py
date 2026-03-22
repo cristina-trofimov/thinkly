@@ -499,6 +499,59 @@ def test_batch_delete_questions_error_rolls_back(client, mock_db):
     mock_db.rollback.assert_called_once()
 
 
+def test_show_question_on_frontpage_by_id_creates_instance(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = SimpleNamespace(question_id=5)
+
+    existing_query = MagicMock()
+    existing_query.filter.return_value.first.return_value = None
+
+    mock_db.query.side_effect = [question_lookup_query, existing_query]
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/5",
+        json={"should_show": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"question_id": 5, "show_on_frontpage": True}
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+
+
+def test_show_question_on_frontpage_by_id_deletes_instance(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = SimpleNamespace(question_id=7)
+
+    delete_query = MagicMock()
+    delete_query.filter.return_value.delete.return_value = 1
+
+    mock_db.query.side_effect = [question_lookup_query, delete_query]
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/7",
+        json={"should_show": False},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"question_id": 7, "show_on_frontpage": False}
+    mock_db.commit.assert_called_once()
+
+
+def test_show_question_on_frontpage_by_id_returns_404_for_missing_question(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = None
+    mock_db.query.return_value = question_lookup_query
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/999",
+        json={"should_show": True},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Question with id 999 not found"
+
+
 def test_update_question_not_found_returns_404_with_message(client, mock_db):
     mock_db.query.return_value.filter.return_value.first.return_value = None
 

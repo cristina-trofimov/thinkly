@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import type { Question } from "@/types/questions/QuestionPagination.type";
-import { deleteQuestion, deleteQuestions } from "@/api/QuestionsAPI";
+import { deleteQuestion, deleteQuestions, ShowQuestionOnFrontpageByID } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 import { logFrontend } from "@/api/LoggerAPI";
@@ -79,6 +79,7 @@ interface ManageQuestionsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onDeleteQuestions?: (deletedQuestionIds: number[]) => void;
+  onToggleFrontpage?: (questionId: number, shouldShow: boolean) => void;
   onUploadQuestions?: () => void;
 }
 
@@ -86,6 +87,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
   columns,
   data,
   onDeleteQuestions,
+  onToggleFrontpage,
   onUploadQuestions
 }: Readonly<ManageQuestionsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -93,6 +95,23 @@ export function ManageQuestionsDataTable<TData, TValue>({
     []
   );
   const [rowSelection, setRowSelection] = React.useState({});
+
+  const handleQuestionFrontpageToggle = async (questionId: number, shouldShow: boolean): Promise<boolean> => {
+    try {
+      await ShowQuestionOnFrontpageByID(questionId, shouldShow);
+      onToggleFrontpage?.(questionId, shouldShow);
+      toast.success(
+        shouldShow
+          ? `Question ${questionId} is now shown on the frontpage.`
+          : `Question ${questionId} was removed from the frontpage.`,
+      );
+      return true;
+    } catch (error) {
+      const message = parseAxiosErrorMessage(error);
+      toast.error(`Failed to update frontpage setting for ${questionId}: ${message}`);
+      return false;
+    }
+  };
 
   const table = useReactTable({
     data,
@@ -111,6 +130,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
     },
     meta: {
       handleQuestionDelete,
+      handleQuestionFrontpageToggle,
     } as TableMeta<TData>
   });
 
