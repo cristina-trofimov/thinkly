@@ -173,6 +173,42 @@ def test_get_all_questions_returns_304_when_etag_matches(client, mock_db):
 
     assert response.status_code == 304
     assert response.headers["etag"] == etag
+
+
+def test_get_all_questions_returns_200_when_one_validator_is_stale(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.first.return_value = (1, latest, 1, 1)
+    query.count.return_value = 1
+    query.all.return_value = [
+        SimpleNamespace(
+            question_id=1,
+            question_name="Two Sum",
+            question_description="desc",
+            media=None,
+            difficulty="easy",
+            created_at=datetime(2025, 1, 1, 0, 0, 0),
+            last_modified_at=latest,
+            tags=[],
+            test_cases=[],
+            language_specific_properties=[],
+            question_instances=[],
+        )
+    ]
+
+    first_response = client.get("/get-all-questions")
+    etag = first_response.headers["etag"]
+
+    response = client.get(
+        "/get-all-questions",
+        headers={
+            "If-None-Match": etag,
+            "If-Modified-Since": format_datetime(latest - timedelta(seconds=10), usegmt=True),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 

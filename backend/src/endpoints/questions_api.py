@@ -246,20 +246,24 @@ def get_all_questions(
             "ETag": etag,
         }
 
+        validators = []
+
         if_none_match = request.headers.get("if-none-match")
         if if_none_match:
             client_etags = [tag.strip() for tag in if_none_match.split(",")]
-            if "*" in client_etags or etag in client_etags:
-                return Response(status_code=304, headers=common_headers)
+            validators.append("*" in client_etags or etag in client_etags)
 
         if_modified_since = request.headers.get("if-modified-since")
         if if_modified_since:
             try:
                 client_timestamp = parsedate_to_datetime(if_modified_since).astimezone(timezone.utc)
-                if client_timestamp >= latest_modified:
-                    return Response(status_code=304, headers=common_headers)
+                validators.append(client_timestamp >= latest_modified)
             except (TypeError, ValueError):
                 logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
+                validators.append(False);
+
+        if validators and all(validators):
+            return Response(status_code=304, headers=common_headers)
 
         if sort == "desc":
             query = query.order_by(Question.question_id.desc())
