@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useNavigate } from "react-router-dom";
-import { getAllAlgotimeSessions, deleteAlgotime} from "@/api/AlgotimeAPI";
+import { getAlgotimeSessionsPage, deleteAlgotime} from "@/api/AlgotimeAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import {
@@ -43,6 +43,7 @@ import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [algotimesSessions, setAlgotimesSessions] = useState<AlgoTimeSession[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -66,8 +67,17 @@ export default function ManageAlgotimeSessionsPage() {
   const loadATsessions = async () => {
     setLoading(true);
     try {
-      const data = await getAllAlgotimeSessions();
-      setAlgotimesSessions(data);
+      const data = await getAlgotimeSessionsPage({
+        page,
+        pageSize,
+        search: searchQuery,
+        status: statusFilter === "all" ? undefined : statusFilter.toLowerCase() as "active" | "upcoming" | "completed",
+      });
+      setAlgotimesSessions(data.items);
+      setTotal(data.total);
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        setPage(page - 1);
+      }
     } catch (err: unknown) {
       logFrontend({
         level: "ERROR",
@@ -83,7 +93,7 @@ export default function ManageAlgotimeSessionsPage() {
 
   useEffect(() => {
     loadATsessions();
-  }, []);
+  }, [page, pageSize, searchQuery, statusFilter]);
 
   const getSessionStatus = (startTime: Date, endTime: Date) => {
     const now = new Date();
@@ -92,36 +102,8 @@ export default function ManageAlgotimeSessionsPage() {
     return { label: "Completed", className: "bg-gray-100 text-gray-600" };
   };
 
-  const filteredSessions = algotimesSessions
-    .slice()
-    .sort((a, b) => {
-      const statusOrder = { Active: 0, Upcoming: 1, Completed: 2 };
-      const statusA = getSessionStatus(a.startTime, a.endTime).label as keyof typeof statusOrder;
-      const statusB = getSessionStatus(b.startTime, b.endTime).label as keyof typeof statusOrder;
-      if (statusOrder[statusA] !== statusOrder[statusB]) {
-        return statusOrder[statusA] - statusOrder[statusB];
-      }
-      return b.startTime.getTime() - a.startTime.getTime();
-    })
-    .filter((session) => {
-    const matchesSearch = session.eventName.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-    if (statusFilter === "all") return true;
-    const status = getSessionStatus(session.startTime, session.endTime);
-    return status.label === statusFilter;
-  });
-  const pageCount = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
-  const paginatedSessions = filteredSessions.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
-  useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount);
-    }
-  }, [page, pageCount]);
 
   const handleCreateNavigation = () => {
     trackAdminAlgotimeCreateNavigated();
@@ -264,7 +246,7 @@ export default function ManageAlgotimeSessionsPage() {
           </div>
         )}
 
-        {paginatedSessions.map((ATsession) => (
+        {algotimesSessions.map((ATsession) => (
           <Card
             key={ATsession.id}
             className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
@@ -359,7 +341,7 @@ export default function ManageAlgotimeSessionsPage() {
           </Card>
         ))}
       </div>
-      {filteredSessions.length > 0 && (
+      {total > 0 && (
         <div className="flex flex-row items-center justify-between gap-3 py-6">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Cards per page</span>
@@ -389,6 +371,22 @@ export default function ManageAlgotimeSessionsPage() {
             pageItems={pageItems}
             onPageChange={setPage}
           />
+        </div>
+      )}
+      {total === 0 && !loading && (searchQuery.trim() || statusFilter !== "all") && (
+        <div className="text-center py-16">
+          <h3 className="text-lg font-semibold mb-2">No sessions found</h3>
+          <p className="text-muted-foreground">
+            Try adjusting your search or filter criteria
+          </p>
+        </div>
+      )}
+      {total === 0 && !loading && !searchQuery.trim() && statusFilter === "all" && (
+        <div className="text-center py-16">
+          <h3 className="text-lg font-semibold mb-2">No algotime sessions yet</h3>
+          <p className="text-muted-foreground">
+            Get started by creating your first algotime session
+          </p>
         </div>
       )}
       {selectedSessionId && (
