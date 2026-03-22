@@ -578,7 +578,6 @@ class TestGetAlgoTimeEndpoints:
     def _make_algo_entry(self, user_id: int, score: int, series_id: int = 1, last_updated=None):
         entry = Mock()
         entry.algotime_leaderboard_entry_id = user_id * 10
-        entry.algotime_series_id = series_id
         entry.user_id = user_id
         entry.name = f"User {user_id}"
         entry.total_score = score
@@ -1033,7 +1032,6 @@ class TestGetCurrentAlgoTimeLeaderboard:
     def _make_algo_entry(self, user_id, score, series_id=1):
         entry = Mock()
         entry.algotime_leaderboard_entry_id = user_id * 10
-        entry.algotime_series_id = series_id
         entry.user_id = user_id
         entry.name = f"User {user_id}"
         entry.total_score = score

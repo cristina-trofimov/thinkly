@@ -666,7 +666,7 @@ def get_algotime_leaderboard(
                 "page": page,
                 "search": search,
                 "is_authenticated": current_user_id is not None,
-                "unique_series": len({e.algotime_series_id for e in all_entries}),
+                
             }
         )
 
