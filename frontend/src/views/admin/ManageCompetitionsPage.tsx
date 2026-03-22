@@ -26,7 +26,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { type Competition } from "../../types/competition/Competition.type";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
-import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
+import { getCompetitionsPage, deleteCompetition } from "../../api/CompetitionAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import {
   Select,
@@ -40,16 +40,15 @@ import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
 
 const getCompetitionStatus = (
   competitionStart: Date | string
+  ,
+  competitionEnd?: Date | string
 ): "Completed" | "Active" | "Upcoming" => {
   const now = new Date();
   const start = new Date(competitionStart);
+  const end = competitionEnd ? new Date(competitionEnd) : start;
   if (Number.isNaN(start.getTime())) return "Upcoming";
   if (now < start) return "Upcoming";
-  const sameDay =
-    now.getFullYear() === start.getFullYear() &&
-    now.getMonth() === start.getMonth() &&
-    now.getDate() === start.getDate();
-  if (sameDay) return "Active";
+  if (!Number.isNaN(end.getTime()) && now <= end) return "Active";
   return "Completed";
 };
 
@@ -71,6 +70,7 @@ const ManageCompetitions = () => {
     title: string;
   } | null>(null);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{
@@ -100,17 +100,16 @@ const ManageCompetitions = () => {
   }, []);
 
   const loadCompetitions = async () => {
-    try {
-      const data1 = await getCompetitions();
-      setCompetitions(data1);
-    } catch (err) {
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
-        component: "ManageCompetitionsPage.tsx",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
+    const data = await getCompetitionsPage({
+      page,
+      pageSize,
+      search: searchQuery,
+      status: statusFilter?.toLowerCase() as "active" | "upcoming" | "completed" | undefined,
+    });
+    setCompetitions(data.items);
+    setTotal(data.total);
+    if (data.items.length === 0 && data.total > 0 && page > 1) {
+      setPage(page - 1);
     }
   };
 
@@ -139,8 +138,7 @@ const ManageCompetitions = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const data = await getCompetitions();
-        if (!cancelled) setCompetitions(data);
+        await loadCompetitions();
       } catch (err) {
         logFrontend({
           level: "ERROR",
@@ -156,7 +154,7 @@ const ManageCompetitions = () => {
     return () => {
       cancelled = true;
     };
-  }, [location.key]);
+  }, [location.key, page, pageSize, searchQuery, statusFilter]);
 
   const handleCreateNavigation = () => {
     trackAdminCompetitionCreateNavigated();
@@ -179,45 +177,12 @@ const ManageCompetitions = () => {
     trackAdminCompetitionFilterChanged(status ?? "all");
   };
 
-  const filteredCompetitions = competitions
-    .filter((comp) => {
-      const matchesSearch =
-        (comp.competitionTitle?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        ) ||
-        (comp.competitionLocation?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        );
-      const status = getCompetitionStatus(comp.startDate);
-      const matchesStatus =
-        !statusFilter ||
-        statusFilter === "All competitions" ||
-        status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      const aDate = new Date(a.startDate);
-      const bDate = new Date(b.startDate);
-      const aTime = Number.isNaN(aDate.getTime()) ? 0 : aDate.getTime();
-      const bTime = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
-      return bTime - aTime;
-    });
-  const pageCount = Math.max(1, Math.ceil(filteredCompetitions.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
-  const paginatedCompetitions = filteredCompetitions.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
-
-  useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount);
-    }
-  }, [page, pageCount]);
 
   const handleCardClick = (id: number, title: string) => {
     const comp = competitions.find((c) => c.id === id);
-    const status = comp ? getCompetitionStatus(comp.startDate) : "Upcoming";
+    const status = comp ? getCompetitionStatus(comp.startDate, comp.endDate) : "Upcoming";
     setIsReadOnly(status === "Active" || status === "Completed");
     setSelectedCompetition({ id, title });
     setEditDialogOpen(true);
@@ -225,7 +190,7 @@ const ManageCompetitions = () => {
   };
 
   const handleEditSuccess = () => {
-    loadCompetitions();
+    setPage(1);
   };
 
   const handleDeleteClick = (
@@ -347,8 +312,8 @@ const ManageCompetitions = () => {
           </div>
         )}
 
-        {paginatedCompetitions.map((comp) => {
-          const status = getCompetitionStatus(comp.startDate);
+        {competitions.map((comp) => {
+          const status = getCompetitionStatus(comp.startDate, comp.endDate);
           const title = comp.competitionTitle || "Untitled Competition";
 
           return (
@@ -398,7 +363,7 @@ const ManageCompetitions = () => {
         })}
       </div>
 
-      {filteredCompetitions.length > 0 && (
+      {total > 0 && (
         <div className="flex flex-row items-center justify-between gap-3 py-6">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Cards per page</span>
@@ -431,7 +396,7 @@ const ManageCompetitions = () => {
         </div>
       )}
 
-      {filteredCompetitions.length === 0 && competitions.length > 0 && (
+      {total === 0 && !loading && (searchQuery.trim() || statusFilter) && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
             <Search className="w-8 h-8 text-muted-foreground" />
@@ -443,7 +408,7 @@ const ManageCompetitions = () => {
         </div>
       )}
 
-      {competitions.length === 0 && !loading && (
+      {total === 0 && !loading && !searchQuery.trim() && !statusFilter && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
             <Plus className="w-8 h-8 text-muted-foreground" />
