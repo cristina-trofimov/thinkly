@@ -72,6 +72,12 @@ const calculateNewList = <T,>(
     return currentOrdered;
 };
 
+function getFormTitle(isReadOnly: boolean, hasInitialData: boolean): string {
+    if (isReadOnly) return "View Competition";
+    if (hasInitialData) return "Edit Competition";
+    return "Create New Competition";
+}
+
 export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, isReadOnly = false }: Readonly<CompetitionFormProps>) {
     const [formData, setFormData] = useState({
         name: initialData?.competitionTitle || initialData?.name || "",
@@ -262,12 +268,14 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, 
         }
     };
 
+    const formTitle = getFormTitle(isReadOnly, !!initialData);
+
     return (
         <div className="flex flex-col h-full">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-primary">
-                        {isReadOnly ? "View Competition" : initialData ? "Edit Competition" : "Create New Competition"}
+                        {formTitle}
                     </h2>
                     <p className="text-muted-foreground text-sm">
                         {isReadOnly ? "This competition is read-only." : "Configure logic, timeline, and content."}

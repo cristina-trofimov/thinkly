@@ -51,7 +51,6 @@ interface CurrentCompetitionResponse {
 
 export interface AlgoTimeEntry {
     entryId: number;
-    seriesId: number;
     name: string;
     user_id: number;
     total_score: number;
@@ -313,7 +312,6 @@ export async function getAlgoTimeEntries(
             page_size: number;
             entries: Array<{
                 entryId: number;
-                algoTimeSeriesId: number;
                 name: string;
                 userId: number;
                 totalScore: number;
@@ -333,7 +331,7 @@ export async function getAlgoTimeEntries(
             pageSize: response.data.page_size,
             entries: response.data.entries.map((e) => ({
                 entryId: e.entryId,
-                seriesId: e.algoTimeSeriesId,
+
                 name: e.name,
                 user_id: e.userId,
                 total_score: e.totalScore,
@@ -363,7 +361,6 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
 
         return response.data.map((e) => ({
             entryId: e.entryId,
-            seriesId: 0,
             name: e.name,
             user_id: e.userId,
             total_score: e.totalScore,

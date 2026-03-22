@@ -80,12 +80,12 @@ const CodingView = () => {
       setTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs")
     }
 
-    window.addEventListener("storage", handleThemeSync)      // other tabs
-    window.addEventListener("storage_sync", handleThemeSync) // same tab (NavUser)
+    globalThis.addEventListener("storage", handleThemeSync)      // other tabs
+    globalThis.addEventListener("storage_sync", handleThemeSync) // same tab (NavUser)
 
     return () => {
-      window.removeEventListener("storage", handleThemeSync)
-      window.removeEventListener("storage_sync", handleThemeSync)
+      globalThis.removeEventListener("storage", handleThemeSync)
+      globalThis.removeEventListener("storage_sync", handleThemeSync)
     }
   }, [])
 

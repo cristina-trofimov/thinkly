@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
-    AlgoTimeSession, QuestionInstance, Submission, UserSession
+    AlgoTimeSession, QuestionInstance, UserQuestionInstance, Submission, UserSession
 )
 from database_operations.database import get_db
 from endpoints.authentification_api import role_required
@@ -341,7 +341,8 @@ async def get_questions_solved_stats(
                 func.count(Submission.submission_id).label('count')
             )
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
+            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
+            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
             .filter(
                 Submission.status == 'Accepted',
                 Submission.submitted_on >= range_start
@@ -397,7 +398,8 @@ async def get_time_to_solve_stats(
                 ).label('avg_minutes')
             )
             .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(Submission, QuestionInstance.question_instance_id == Submission.question_instance_id)
+            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
+            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
             .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
             .filter(
                 Submission.status == 'Accepted',
@@ -537,7 +539,8 @@ async def get_participation_stats(
         def get_submission_count(day_start, day_end):
             query = (
                 db.query(func.count(Submission.submission_id))
-                .join(QuestionInstance, Submission.question_instance_id == QuestionInstance.question_instance_id)
+                .join(UserQuestionInstance, Submission.user_question_instance_id == UserQuestionInstance.user_question_instance_id)
+                .join(QuestionInstance, UserQuestionInstance.question_instance_id == QuestionInstance.question_instance_id)
             )
 
             # Filter by event type

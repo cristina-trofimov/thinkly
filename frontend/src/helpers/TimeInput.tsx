@@ -44,7 +44,14 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
       const startHour24 = viewPeriod === "AM" ? 0 : 12;
       for (let h = startHour24; h < startHour24 + 12; h++) {
         for (let m = 0; m < 60; m += 15) {
-          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          let h12: number;
+          if (h === 0) {
+            h12 = 12;
+          } else if (h > 12) {
+            h12 = h - 12;
+          } else {
+            h12 = h;
+          }
           const label = `${h12}:${String(m).padStart(2, "0")} ${viewPeriod}`;
           const value24 = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
           result.push({ label, value24 });

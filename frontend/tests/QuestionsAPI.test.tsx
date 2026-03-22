@@ -3,7 +3,6 @@ import {
   getQuestionByID,
   getQuestions,
   getQuestionsPage,
-  // getRiddles,
   deleteCompetition,
   deleteQuestions,
   deleteQuestion,
