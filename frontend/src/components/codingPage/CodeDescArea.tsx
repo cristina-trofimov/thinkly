@@ -89,11 +89,20 @@ const CodeDescArea = (
     }, [hasEvent, activeTab])
 
     useEffect(() => {
-        if (!question_instance?.question_instance_id && uqi?.riddle_complete) return
+        // No riddle on this question — skip fetch entirely and clear loading state
+        if (!question_instance?.riddle_id) {
+            setIsLoadingRiddle(false)
+            return
+        }
+        // Riddle already solved — no need to re-fetch
+        if (uqi?.riddle_complete) {
+            setIsLoadingRiddle(false)
+            return
+        }
 
         const fetchRiddle = async () => {
             try {
-                await getRiddleById(question_instance?.riddle_id)
+                await getRiddleById(question_instance.riddle_id)
                     .then((resp) => setRiddle(resp) )
             } catch (error) {
                 toast.error("Failed to load riddle...")
@@ -156,7 +165,7 @@ const CodeDescArea = (
         )
     }
 
-    if (!uqi?.riddle_complete) { // Needs to solve riddle
+    if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle || !riddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
