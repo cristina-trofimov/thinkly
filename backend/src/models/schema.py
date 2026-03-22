@@ -320,9 +320,7 @@ class CompetitionLeaderboardEntry(Base):
         UniqueConstraint('competition_id', 'user_id', name='uix_competition_user'),
     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.calculated_rank = None
+
 
 
 class AlgoTimeLeaderboardEntry(Base):
@@ -342,9 +340,6 @@ class AlgoTimeLeaderboardEntry(Base):
                                                                back_populates='algotime_leaderboard_entries',
                                                                uselist=False)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.calculated_rank = None
 
 
 
