@@ -562,7 +562,6 @@ describe("LeaderboardsAPI", () => {
         entries: [
           {
             entryId: 1,
-            seriesId: 2,
             name: "Carol",
             user_id: 99,
             total_score: 300,
@@ -649,7 +648,6 @@ describe("LeaderboardsAPI", () => {
       expect(result).toEqual([
         {
           entryId: 5,
-          seriesId: 0,
           name: "Dave",
           user_id: 22,
           total_score: 500,

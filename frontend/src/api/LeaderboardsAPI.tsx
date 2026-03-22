@@ -361,7 +361,6 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
 
         return response.data.map((e) => ({
             entryId: e.entryId,
-            seriesId: 0,
             name: e.name,
             user_id: e.userId,
             total_score: e.totalScore,
