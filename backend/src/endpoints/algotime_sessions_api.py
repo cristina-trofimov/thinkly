@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 from models.schema import AlgoTimeSession, AlgoTimeSeries, BaseEvent, QuestionInstance, Question
 from database_operations.database import get_db
 from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
 from pydantic import BaseModel, validator
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional
 import logging
 from services.posthog_analytics import track_custom_event
 from endpoints.authentification_api import get_current_user
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 algotime_router = APIRouter(tags=["Algotime"])
 LOCAL_TZ = ZoneInfo("America/Toronto") 
 SESSION_NOT_FOUND = "AlgoTime session not found"
+DEFAULT_PAGE_SIZE = 11
+MAX_PAGE_SIZE = 100
 
 
 # ---------------- Models ----------------
@@ -68,6 +71,25 @@ class AlgoTimeSessionResponse(BaseModel):
     seriesId: Optional[int] = None
     seriesName: Optional[str] = None
     questions: List[AlgoTimeQuestionResponse]
+
+
+class AlgoTimeSessionCardResponse(BaseModel):
+    id: int
+    eventName: str
+    startTime: str
+    endTime: str
+    questionCooldown: int
+    location: Optional[str] = None
+    seriesId: Optional[int] = None
+    seriesName: Optional[str] = None
+    questionCount: int
+
+
+class AlgoTimeSessionCardPageResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[AlgoTimeSessionCardResponse]
 
 class DetailedAlgoTimeSessionResponse(BaseModel):
     """Response model for editing algotime sessions - includes all necessary details"""
@@ -248,47 +270,90 @@ def create_algotime(
         )
 
 
-@algotime_router.get("/", response_model=List[AlgoTimeSessionResponse])
-def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
+@algotime_router.get("/", response_model=AlgoTimeSessionCardPageResponse)
+def get_all_algotime_sessions(
+    db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+    search: Optional[str] = None,
+    status_filter: Annotated[Optional[Literal["active", "upcoming", "completed"]], Query(alias="status")] = None,
+    sort: Annotated[Literal["asc", "desc"], Query()] = "desc",
+):
     try:
-        sessions = db.query(AlgoTimeSession).all()
-        logger.info(f"Fetched {len(sessions)} AlgoTime sessions.")
+        now = datetime.now(timezone.utc)
+        query = (
+            db.query(AlgoTimeSession)
+            .join(BaseEvent)
+            .outerjoin(AlgoTimeSeries, AlgoTimeSession.algotime_series_id == AlgoTimeSeries.algotime_series_id)
+        )
 
-        response = []
-
-        for s in sessions:
-            event = s.base_event
-
-            question_instances = (
-                db.query(QuestionInstance)
-                .filter(QuestionInstance.event_id == event.event_id)
-                .all()
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    BaseEvent.event_name.ilike(search_term),
+                    AlgoTimeSeries.algotime_series_name.ilike(search_term),
+                )
             )
 
-            questions = [
-                {
-                    "questionId": qi.question.question_id,
-                    "questionName": qi.question.question_name,
-                    "questionDescription": qi.question.question_description,
-                    "difficulty": qi.question.difficulty,
-                    "tags": [tag.tag_name for tag in qi.question.tags],
-                }
-                for qi in question_instances
-            ]
+        if status_filter == "upcoming":
+            query = query.filter(BaseEvent.event_start_date > now)
+        elif status_filter == "active":
+            query = query.filter(
+                BaseEvent.event_start_date <= now,
+                BaseEvent.event_end_date >= now,
+            )
+        elif status_filter == "completed":
+            query = query.filter(BaseEvent.event_end_date < now)
 
-            response.append({
-                "id": s.event_id,
-                "eventName": event.event_name,
-                "startTime": str(event.event_start_date),
-                "endTime": str(event.event_end_date),
-                "questionCooldown": event.question_cooldown,
-                "seriesId": s.algotime_series.algotime_series_id
-                if s.algotime_series else None,
-                "seriesName": s.algotime_series.algotime_series_name
-                if s.algotime_series else None,
-                "questions": questions,
-            })
-        return response
+        total = query.count()
+        status_order = case(
+            (BaseEvent.event_start_date > now, 1),
+            (BaseEvent.event_end_date < now, 2),
+            else_=0,
+        )
+        date_order = BaseEvent.event_start_date.asc() if sort == "asc" else BaseEvent.event_start_date.desc()
+        sessions = (
+            query
+            .order_by(status_order.asc(), date_order)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        logger.info("Fetched %s AlgoTime sessions for page=%s page_size=%s", len(sessions), page, page_size)
+
+        event_ids = [session.event_id for session in sessions]
+        question_counts = {
+            event_id: count for event_id, count in (
+                db.query(
+                    QuestionInstance.event_id,
+                    func.count(QuestionInstance.question_instance_id),
+                )
+                .filter(QuestionInstance.event_id.in_(event_ids))
+                .group_by(QuestionInstance.event_id)
+                .all()
+            )
+        } if event_ids else {}
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": [
+                {
+                    "id": s.event_id,
+                    "eventName": s.base_event.event_name,
+                    "startTime": str(s.base_event.event_start_date),
+                    "endTime": str(s.base_event.event_end_date),
+                    "questionCooldown": s.base_event.question_cooldown,
+                    "location": s.base_event.event_location,
+                    "seriesId": s.algotime_series.algotime_series_id if s.algotime_series else None,
+                    "seriesName": s.algotime_series.algotime_series_name if s.algotime_series else None,
+                    "questionCount": question_counts.get(s.event_id, 0),
+                }
+                for s in sessions
+            ],
+        }
 
     except Exception as e:
         logger.error(f"Error fetching AlgoTime sessions: {e}")
