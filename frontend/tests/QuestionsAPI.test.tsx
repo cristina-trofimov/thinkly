@@ -72,6 +72,7 @@ describe("QuestionsAPI", () => {
           question_description: "Add two numbers",
           media: null,
           difficulty: "Easy",
+          show_on_frontpage: false,
           language_specific_properties: [],
           tags: [] as TagResponse[],
           test_cases: [] as TestCase[],
@@ -174,6 +175,7 @@ describe("QuestionsAPI", () => {
             question_description: "Page item",
             media: null,
             difficulty: "Medium",
+            show_on_frontpage: false,
             language_specific_properties: [],
             tags: [] as TagResponse[],
             test_cases: [] as TestCase[],
@@ -221,6 +223,7 @@ describe("QuestionsAPI", () => {
         question_name: "Single",
         question_description: "One question",
         media: null,
+        show_on_frontpage: false,
         difficulty: "Hard",
         created_at: new Date("2025-02-02T00:00:00Z"),
         last_modified_at: new Date("2025-02-02T00:00:00Z"),
@@ -391,8 +394,8 @@ describe("QuestionsAPI", () => {
         media: null,
         difficulty: "medium",
         language_specific_properties: [],
-        tags: [] as TagResponse[],
-        testcases: [] as TestCase[],
+        tags: [],
+        testcases: [],
       });
 
       expect(mockedAxios.put).toHaveBeenCalledWith("/questions/update-question/5", {
@@ -401,8 +404,8 @@ describe("QuestionsAPI", () => {
         media: null,
         difficulty: "medium",
         language_specific_properties: [],
-        tags: [] as TagResponse[],
-        testcases: [] as TestCase[],
+        tags: [],
+        testcases: [],
       });
     });
 
