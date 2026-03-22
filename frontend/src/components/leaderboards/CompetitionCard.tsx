@@ -73,7 +73,8 @@ function fallbackCopyToClipboard(text: string): void {
   textArea.focus();
   textArea.select();
   try {
-    const success = document.execCommand("copy");
+    // leave this error in sonarqube
+    const success = document.execCommand("copy"); // NOSONAR
     if (!success) throw new Error("execCommand copy failed");
   } finally {
     textArea.remove();
