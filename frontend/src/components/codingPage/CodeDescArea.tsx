@@ -109,7 +109,7 @@ const CodeDescArea = (
             }
         }
         fetchRiddle()
-    }, [question_instance])
+    }, [question_instance, uqi?.riddle_complete])
 
     useEffect(() => {
         if (uqi?.user_question_instance_id) {
@@ -165,31 +165,19 @@ const CodeDescArea = (
                 </div>
             )
         }
-
-        if (riddleObject) {
-            return (
-                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
-
-                    <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8 text-center space-y-3">
-                            <p className="text-muted-foreground text-lg">
-                                Solve the riddle below to reveal the description for<br /><span className="text-foreground font-semibold">{question.question_name}</span>
-                            </p>
-                        </div>
-
-                        {/* Pass the entire object to the User Form */}
-                        <RiddleUserForm
-                            riddle={riddleObject}
-                            onSolved={async () => {
-                                uqi.riddle_complete = true
-                                await putUserInstance(uqi)
-                                    .then((resp) => setUserQuestionInstance(resp))
-                            }}
-                        />
-                    </div>
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
+                <div className="w-full max-w-md">
+                    <RiddleUserForm
+                        riddleObject={riddleObject}
+                        onSuccess={async (updatedUqi) => {
+                            await putUserInstance(updatedUqi)
+                                .then((resp) => setUserQuestionInstance(resp))
+                        }}
+                    />
                 </div>
-            )
-        }
+            </div>
+        )
     }
     //Riddle Rendering End-------------------------------------------------
     return (

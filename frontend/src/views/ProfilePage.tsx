@@ -175,8 +175,12 @@ function ProfilePage() {
     };
   }, []);
 
+  // Use a ref so we only call trackProfileViewed once on mount without
+  // re-running if the analytics function reference changes between renders.
+  const trackProfileViewedRef = React.useRef(trackProfileViewed);
+  trackProfileViewedRef.current = trackProfileViewed;
   React.useEffect(() => {
-    trackProfileViewed();
+    trackProfileViewedRef.current();
   }, []);
 
   React.useEffect(() => {
