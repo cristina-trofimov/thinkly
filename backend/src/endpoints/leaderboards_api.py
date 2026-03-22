@@ -60,21 +60,28 @@ def get_scoreboard_for_competition(db: Session, competition_id: int) -> List[Com
 
 def calculate_rank(entries: List) -> List:
     """
-    Calculate rank for each entry based on total_score (highest score = rank 1).
-    Entries with the same score get the same rank.
-    Returns entries sorted by score (highest first) with rank added.
+    Calculate rank for each entry:
+      1. Highest total_score = rank 1
+      2. On equal score, lowest total_time (seconds) wins
+    Entries with identical score AND time share the same rank.
+    Returns entries sorted by (score desc, time asc) with rank added.
     """
     if not entries:
         return []
 
-    # Sort by total_score descending
-    sorted_entries = sorted(entries, key=lambda x: x.total_score, reverse=True)
+    # Sort by total_score descending, then total_time ascending as tiebreaker
+    sorted_entries = sorted(
+        entries,
+        key=lambda x: (-x.total_score, x.total_time)
+    )
 
-    # Assign ranks
+    # Assign ranks — two entries share a rank only if both score and time are equal
     current_rank = 1
     for i, entry in enumerate(sorted_entries):
-        if i > 0 and sorted_entries[i].total_score < sorted_entries[i - 1].total_score:
-            current_rank = i + 1
+        if i > 0:
+            prev = sorted_entries[i - 1]
+            if entry.total_score != prev.total_score or entry.total_time != prev.total_time:
+                current_rank = i + 1
         entry.calculated_rank = current_rank
 
     return sorted_entries
@@ -344,6 +351,85 @@ def get_all_competition_entries(
         )
 
 
+@leaderboards_router.get("/competitions/{competition_id}/live")
+def get_competition_live_leaderboard(
+        competition_id: int,
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None,
+):
+    """
+    Returns top-10 entries for a specific competition (+ current user ±1 context if outside top 10).
+    Intended for the live in-session leaderboard widget — never cached.
+    """
+    logger.info(f"=== /leaderboards/competitions/{competition_id}/live, current_user_id={current_user_id} ===")
+    _set_no_cache_headers(response)
+
+    try:
+        competition = (
+            db.query(Competition)
+            .join(BaseEvent)
+            .filter(Competition.event_id == competition_id)
+            .first()
+        )
+
+        if not competition:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Competition {competition_id} not found."
+            )
+
+        all_entries = list(competition.competition_leaderboard_entries)
+        filtered_entries, show_separator = get_filtered_leaderboard_entries(all_entries, current_user_id)
+
+        result = []
+        for entry in filtered_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "name": user_name,
+                "userId": entry.user_id,
+                "totalScore": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(
+            f"Returning {len(result)} live entries for competition {competition_id}, "
+            f"show_separator={show_separator}."
+        )
+
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="competition_live_leaderboard_viewed",
+            properties={
+                "competition_id": competition_id,
+                "competition_name": competition.base_event.event_name,
+                "entries_shown": len(result),
+                "total_entries": len(all_entries),
+                "is_authenticated": current_user_id is not None,
+                "has_separator": show_separator,
+            }
+        )
+
+        return {
+            "entries": result,
+            "showSeparator": show_separator,
+        }
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception(f"FATAL error fetching live leaderboard for competition {competition_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve live competition leaderboard."
+        )
+
+
 @leaderboards_router.get("/competitions/current")
 def get_current_competition_leaderboard(
         response: Response,
@@ -440,6 +526,66 @@ def get_current_competition_leaderboard(
         )
 
 
+@leaderboards_router.get("/algotime/current")
+def get_current_algotime_leaderboard(
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
+        current_user_id: Optional[int] = None,
+):
+    """
+    Returns top-10 AlgoTime entries (+ current user ±1 context if outside top 10).
+    Intended for the live in-session leaderboard widget — never cached.
+    """
+    logger.info(f"=== /leaderboards/algotime/current, current_user_id={current_user_id} ===")
+    _set_no_cache_headers(response)
+
+    try:
+        all_entries = db.query(AlgoTimeLeaderboardEntry).all()
+
+        filtered_entries, show_separator = get_filtered_leaderboard_entries(all_entries, current_user_id)
+
+        result = []
+        for entry in filtered_entries:
+            user_name = (
+                f"{entry.user_account.first_name} {entry.user_account.last_name}"
+                if entry.user_account else entry.name
+            )
+            result.append({
+                "entryId": entry.algotime_leaderboard_entry_id,
+                "name": user_name,
+                "userId": entry.user_id,
+                "totalScore": entry.total_score,
+                "problemsSolved": entry.problems_solved,
+                "totalTime": entry.total_time,
+                "rank": entry.calculated_rank,
+            })
+
+        logger.info(f"Returning {len(result)} AlgoTime current entries, show_separator={show_separator}.")
+
+        track_custom_event(
+            user_id=str(current_user_id) if current_user_id else "anonymous",
+            event_name="algotime_current_leaderboard_viewed",
+            properties={
+                "entries_shown": len(result),
+                "total_entries": len(all_entries),
+                "is_authenticated": current_user_id is not None,
+                "has_separator": show_separator,
+            }
+        )
+
+        return {
+            "entries": result,
+            "showSeparator": show_separator,
+        }
+
+    except Exception:
+        logger.exception("FATAL error while fetching current AlgoTime leaderboard.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve current AlgoTime leaderboard."
+        )
+
+
 @leaderboards_router.get("/algotime")
 def get_algotime_leaderboard(
         response: Response,
@@ -494,7 +640,6 @@ def get_algotime_leaderboard(
         result = [
             {
                 "entryId": entry.algotime_leaderboard_entry_id,
-                "algoTimeSeriesId": entry.algotime_series_id,
                 "name": display_name(entry),
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,
@@ -521,7 +666,7 @@ def get_algotime_leaderboard(
                 "page": page,
                 "search": search,
                 "is_authenticated": current_user_id is not None,
-                "unique_series": len({e.algotime_series_id for e in all_entries}),
+                
             }
         )
 
@@ -584,4 +729,39 @@ def get_all_algotime_entries_export(response: Response, db: Annotated[Session, D
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export AlgoTime leaderboard entries."
+        )
+
+
+@leaderboards_router.delete("/algotime/reset")
+def reset_algotime_leaderboard(
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
+):
+    logger.info("=== DELETE /leaderboards/algotime/reset ===")
+    _set_no_cache_headers(response)
+
+    try:
+        deleted = db.query(AlgoTimeLeaderboardEntry).delete(synchronize_session=False)
+        db.commit()
+
+        logger.info(f"Reset AlgoTime leaderboard: deleted {deleted} entries.")
+
+        track_custom_event(
+            user_id="anonymous",
+            event_name="algotime_leaderboard_reset",
+            properties={"entries_deleted": deleted}
+        )
+
+        return {
+            "message": "AlgoTime leaderboard successfully cleared.",
+            "entriesDeleted": deleted,
+        }
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("FATAL error while resetting AlgoTime leaderboard.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset AlgoTime leaderboard."
         )

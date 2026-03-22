@@ -399,65 +399,6 @@ def upload_question_batch(
 
     db.rollback()
     raise HTTPException(status_code=error_code, detail=f"Failed to upload question batch: {error_message}")
-        
-@questions_router.get(
-    "/get-all-riddles",
-    response_model=PaginatedRiddlesResponse,
-    responses={500: {"description": "Failed to retrieve questions."}}
-)
-def get_all_riddles(
-    response: Response,
-    db: Annotated[Session, Depends(get_db)],
-    page: Annotated[int, Query(ge=1)] = 1,
-    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
-    search: Annotated[Optional[str], Query(max_length=200)] = None,
-):
-    try:
-        query = db.query(Riddle)
-        query = apply_text_search(
-            query,
-            search,
-            Riddle.riddle_question,
-            Riddle.riddle_answer,
-        )
-
-        query = query.order_by(Riddle.riddle_id.desc())
-
-        total, riddles = paginate_query(query, page, page_size)
-
-        response.headers["Cache-Control"] = "public, max-age=60"
-
-        logger.info(
-            "Fetched %s riddle(s) for page=%s, page_size=%s (total=%s).",
-            len(riddles),
-            page,
-            page_size,
-            total,
-        )
-        return build_paginated_response(
-            total,
-            page,
-            page_size,
-            [serialize_riddle(riddle) for riddle in riddles],
-        )
-    except Exception as e:
-        logger.error(f"Error fetching riddles: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve riddles.")
-
-
-@questions_router.get(
-    "/get-all-testcases/{question_id}",
-    response_model=list[TestCaseResponse],
-    responses={500: {"description": "Failed to upload test cases."}}
-)
-def get_all_testcases(question_id: int, db: Annotated[Session, Depends(get_db)]):
-    try:
-        testcases = db.query(TestCase).filter_by(question_id=question_id).all()
-        logger.info(f"Fetched {len(testcases)} test cases from the database.")
-        return [serialize_test_case(test_case) for test_case in testcases]
-    except Exception as e:
-        logger.error(f"Error fetching test cases: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve test cases.")
 
 class BatchDeleteQuestionsRequest(BaseModel):
     question_ids: list[int]

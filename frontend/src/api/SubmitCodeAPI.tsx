@@ -18,6 +18,7 @@ export async function submitAttempt(
     source_code: string,
     language_id: number | undefined,
     testcases: TestCase[],
+    userId: number,
   ): Promise<SubmitAttemptResponse> {
     try {
       if (!questionInstance || !userQuestionInstance || !question || !language_id) {
@@ -27,10 +28,10 @@ export async function submitAttempt(
       if (event && !userQuestionInstance.riddle_complete) {
         throw new Error("SubmitAttempt: riddle needs to be completed")
       }
-  
+
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases)
-  
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases, userId)
+
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
         if (question.difficulty.toLowerCase() == 'easy') {
@@ -41,25 +42,25 @@ export async function submitAttempt(
           userQuestionInstance.points = 300
         }
       }
-  
+
       // 3. Update user question instance
       userQuestionInstance = await putUserInstance(userQuestionInstance)
-  
+
       // 4. Save most recent submission
       const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
-  
+
       // 5. Save submission's output details
       let runtime: number | null = null
       let memory: number | null = null
-      
+
       if (judge0Response['time']) {
         runtime = Number.parseInt(judge0Response['time'])
       }
-      
+
       if (judge0Response['memory']) {
         memory = Number.parseInt(judge0Response['memory'])
       }
-  
+
       const submissionResponse = await saveSubmission({
         submission_id: -1,
         user_question_instance_id: userQuestionInstance.user_question_instance_id,
@@ -73,7 +74,7 @@ export async function submitAttempt(
         compile_output: judge0Response['compile_output'],
         message: judge0Response['message'],
       } as SubmissionType)
-  
+
       return {
         codeRunResponse: {
           judge0Response: judge0Response,
@@ -82,7 +83,7 @@ export async function submitAttempt(
         submissionResponse: submissionResponse,
         mostRecentSubResponse: mostRecentSubResponse,
       }
-  
+
     } catch (err) {
       logFrontend({
         level: "ERROR",
@@ -94,4 +95,3 @@ export async function submitAttempt(
       throw err;
     }
   }
-  

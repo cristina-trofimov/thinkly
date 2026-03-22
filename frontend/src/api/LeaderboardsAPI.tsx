@@ -51,7 +51,6 @@ interface CurrentCompetitionResponse {
 
 export interface AlgoTimeEntry {
     entryId: number;
-    seriesId: number;
     name: string;
     user_id: number;
     total_score: number;
@@ -207,6 +206,92 @@ export async function getAllCompetitionEntries(
 }
 
 /**
+ * Get top-10 entries for a specific competition (+ current user ±1 context if outside top 10).
+ * Intended for the live in-session leaderboard widget — never cached.
+ */
+export async function getCompetitionLiveLeaderboard(
+    competitionId: number,
+    currentUserId?: number
+): Promise<CurrentStandings> {
+    try {
+        const params = currentUserId ? { current_user_id: currentUserId } : {};
+        const response = await axiosClient.get<{
+            entries: Array<{
+                name: string;
+                userId: number | null;
+                totalScore: number;
+                problemsSolved: number;
+                totalTime: number;
+                rank: number;
+            }>;
+            showSeparator: boolean;
+        }>(`/leaderboards/competitions/${competitionId}/live`, {
+            params,
+            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
+
+        return {
+            competitionName: "",   // caller has the name from the event object
+            participants: response.data.entries.map((p) => ({
+                name: p.name,
+                user_id: p.userId ?? 0,
+                total_score: p.totalScore,
+                problems_solved: p.problemsSolved,
+                rank: p.rank,
+                total_time: formatSecondsToTime(p.totalTime),
+            })),
+            showSeparator: response.data.showSeparator,
+        };
+    } catch (err) {
+        console.error(`Error fetching live leaderboard for competition ${competitionId}:`, err);
+        throw err;
+    }
+}
+
+/**
+ * Get top-10 AlgoTime entries + current user context (±1) for the live in-session widget.
+ * Uses no-cache headers — do not use for export.
+ */
+export async function getCurrentAlgoTimeLeaderboard(
+    currentUserId?: number
+): Promise<CurrentStandings> {
+    try {
+        const params = currentUserId ? { current_user_id: currentUserId } : {};
+        const response = await axiosClient.get<{
+            entries: Array<{
+                entryId: number;
+                name: string;
+                userId: number | null;
+                totalScore: number;
+                problemsSolved: number;
+                totalTime: number;
+                rank: number;
+            }>;
+            showSeparator: boolean;
+        }>("/leaderboards/algotime/current", {
+            params,
+            headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
+
+        return {
+            competitionName: "AlgoTime Leaderboard",
+            participants: response.data.entries.map((e) => ({
+                name: e.name,
+                user_id: e.userId ?? 0,
+                total_score: e.totalScore,
+                problems_solved: e.problemsSolved,
+                rank: e.rank,
+                total_time: formatSecondsToTime(e.totalTime),
+            })),
+            showSeparator: response.data.showSeparator,
+        };
+    } catch (err) {
+        console.error("Error fetching current AlgoTime leaderboard:", err);
+        throw err;
+    }
+}
+
+/**
  * Get a single page of AlgoTime leaderboard entries.
  * All filtering and pagination is performed on the backend — a new request is
  * made only when the user changes page or updates the search query.
@@ -227,7 +312,6 @@ export async function getAlgoTimeEntries(
             page_size: number;
             entries: Array<{
                 entryId: number;
-                algoTimeSeriesId: number;
                 name: string;
                 userId: number;
                 totalScore: number;
@@ -247,7 +331,7 @@ export async function getAlgoTimeEntries(
             pageSize: response.data.page_size,
             entries: response.data.entries.map((e) => ({
                 entryId: e.entryId,
-                seriesId: e.algoTimeSeriesId,
+
                 name: e.name,
                 user_id: e.userId,
                 total_score: e.totalScore,
@@ -277,7 +361,6 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
 
         return response.data.map((e) => ({
             entryId: e.entryId,
-            seriesId: 0,
             name: e.name,
             user_id: e.userId,
             total_score: e.totalScore,
@@ -287,6 +370,18 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
         }));
     } catch (err) {
         console.error("Error fetching all AlgoTime entries for export:", err);
+        throw err;
+    }
+}
+
+export async function resetAlgoTimeLeaderboard(): Promise<{ message: string; entriesDeleted: number }> {
+    try {
+        const response = await axiosClient.delete<{ message: string; entriesDeleted: number }>(
+            "/leaderboards/algotime/reset"
+        );
+        return response.data;
+    } catch (err) {
+        console.error("Error resetting AlgoTime leaderboard:", err);
         throw err;
     }
 }
