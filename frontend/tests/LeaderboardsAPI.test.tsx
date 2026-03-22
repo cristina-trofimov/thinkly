@@ -534,7 +534,6 @@ describe("LeaderboardsAPI", () => {
           entries: [
             {
               entryId: 1,
-              algoTimeSeriesId: 2,
               name: "Carol",
               userId: 99,
               totalScore: 300,

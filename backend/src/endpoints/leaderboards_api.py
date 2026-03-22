@@ -640,7 +640,6 @@ def get_algotime_leaderboard(
         result = [
             {
                 "entryId": entry.algotime_leaderboard_entry_id,
-                "algoTimeSeriesId": entry.algotime_series_id,
                 "name": display_name(entry),
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,

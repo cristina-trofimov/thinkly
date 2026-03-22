@@ -313,7 +313,6 @@ export async function getAlgoTimeEntries(
             page_size: number;
             entries: Array<{
                 entryId: number;
-                algoTimeSeriesId: number;
                 name: string;
                 userId: number;
                 totalScore: number;
@@ -333,7 +332,6 @@ export async function getAlgoTimeEntries(
             pageSize: response.data.page_size,
             entries: response.data.entries.map((e) => ({
                 entryId: e.entryId,
-                seriesId: e.algoTimeSeriesId,
                 name: e.name,
                 user_id: e.userId,
                 total_score: e.totalScore,
