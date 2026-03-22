@@ -72,7 +72,7 @@ const CodeDescArea = (
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
     const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-    const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
+    const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
     // Auto-switch to the Result tab whenever a submission starts or finishes
@@ -94,7 +94,7 @@ const CodeDescArea = (
         const fetchRiddle = async () => {
             try {
                 await getRiddleById(question_instance?.riddle_id)
-                    .then((resp) => setRiddleObject(resp) )
+                    .then((resp) => setRiddle(resp) )
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -157,7 +157,7 @@ const CodeDescArea = (
     }
 
     if (!uqi?.riddle_complete) { // Needs to solve riddle
-        if (isLoadingRiddle) {
+        if (isLoadingRiddle || !riddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
@@ -168,10 +168,12 @@ const CodeDescArea = (
         return (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
                 <div className="w-full max-w-md">
+                    <h2 className="text-lg font-semibold mb-4 text-center">{question.question_name}</h2>
                     <RiddleUserForm
-                        riddleObject={riddleObject}
-                        onSuccess={async (updatedUqi) => {
-                            await putUserInstance(updatedUqi)
+                        riddle={riddle}
+                        onSolved={async () => {
+                            const updated = { ...uqi, riddle_complete: true }
+                            await putUserInstance(updated)
                                 .then((resp) => setUserQuestionInstance(resp))
                         }}
                     />
