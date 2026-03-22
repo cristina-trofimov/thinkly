@@ -65,7 +65,7 @@ def build_query_mock(mock_db):
     query.order_by.return_value = query
     query.offset.return_value = query
     query.limit.return_value = query
-    query.scalar.return_value = datetime(2025, 1, 1, 0, 0, 0)
+    query.first.return_value = (0, datetime(2025, 1, 1, 0, 0, 0), 0, 0)
     return query
 
 # --- TESTS ---
@@ -138,12 +138,13 @@ def test_get_all_questions_success(client, mock_db):
     assert "2025-01-10" in data["items"][0]["created_at"]
     assert response.headers["cache-control"] == "no-cache, must-revalidate"
     assert "last-modified" in response.headers
+    assert "etag" in response.headers
 
 
 def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
     query = build_query_mock(mock_db)
     latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
-    query.scalar.return_value = latest
+    query.first.return_value = (0, latest, 0, 0)
 
     response = client.get(
         "/get-all-questions",
@@ -153,6 +154,25 @@ def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
     assert response.status_code == 304
     assert response.headers["cache-control"] == "no-cache, must-revalidate"
     assert response.headers["last-modified"] == format_datetime(latest, usegmt=True)
+
+
+def test_get_all_questions_returns_304_when_etag_matches(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.first.return_value = (2, latest, 7, 10)
+    query.count.return_value = 2
+    query.all.return_value = []
+
+    first_response = client.get("/get-all-questions")
+    etag = first_response.headers["etag"]
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-None-Match": etag},
+    )
+
+    assert response.status_code == 304
+    assert response.headers["etag"] == etag
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 
@@ -644,7 +664,7 @@ def test_get_question_by_id_unexpected_error_returns_500(client, mock_db):
 
 def test_get_all_questions_invalid_if_modified_since_uses_fallback(client, mock_db):
     query = build_query_mock(mock_db)
-    query.scalar.return_value = datetime(2025, 2, 1, 10, 0, 0)
+    query.first.return_value = (0, datetime(2025, 2, 1, 10, 0, 0), 0, 0)
     query.count.return_value = 0
     query.all.return_value = []
 
@@ -776,7 +796,7 @@ def test_update_question_success_replaces_fields_tags_and_testcases(client, mock
 
 def test_get_all_questions_uses_now_when_last_modified_missing(client, mock_db):
     query = build_query_mock(mock_db)
-    query.scalar.return_value = None
+    query.first.return_value = (0, None, 0, 0)
     query.count.return_value = 0
     query.all.return_value = []
 

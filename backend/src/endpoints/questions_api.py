@@ -1,6 +1,7 @@
 from typing import Annotated, Literal, Optional, List, Any as AnyJSONNode
 from datetime import datetime, timezone
 from email.utils import format_datetime, parsedate_to_datetime
+from hashlib import sha256
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Response, Request
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from sqlalchemy import or_, func
@@ -204,7 +205,19 @@ def get_all_questions(
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
 
-        latest_modified = query.with_entities(func.max(Question.last_modified_at)).scalar()
+        total_for_cache, latest_modified, max_question_id, sum_question_ids = (
+            query.with_entities(
+                func.count(Question.question_id),
+                func.max(Question.last_modified_at),
+                func.max(Question.question_id),
+                func.sum(Question.question_id),
+            ).first()
+        )
+
+        total_for_cache = total_for_cache or 0
+        max_question_id = max_question_id or 0
+        sum_question_ids = sum_question_ids or 0
+
         if latest_modified is None:
             latest_modified = datetime.now(timezone.utc)
         elif latest_modified.tzinfo is None:
@@ -213,10 +226,20 @@ def get_all_questions(
             latest_modified = latest_modified.astimezone(timezone.utc)
         latest_modified = latest_modified.replace(microsecond=0)
 
+        etag_seed = f"questions:{total_for_cache}:{max_question_id}:{sum_question_ids}:{int(latest_modified.timestamp())}"
+        etag = f'W/"{sha256(etag_seed.encode("utf-8")).hexdigest()}"'
+
         common_headers = {
             "Cache-Control": "no-cache, must-revalidate",
             "Last-Modified": format_datetime(latest_modified, usegmt=True),
+            "ETag": etag,
         }
+
+        if_none_match = request.headers.get("if-none-match")
+        if if_none_match:
+            client_etags = [tag.strip() for tag in if_none_match.split(",")]
+            if "*" in client_etags or etag in client_etags:
+                return Response(status_code=304, headers=common_headers)
 
         if_modified_since = request.headers.get("if-modified-since")
         if if_modified_since:
@@ -483,6 +506,7 @@ def batch_delete_questions(payload: BatchDeleteQuestionsRequest, db: Annotated[S
             )
         else:
             deleted_count = 0
+
         db.commit()
         logger.info(f"Deleted {deleted_count} questions from the database.")
 
