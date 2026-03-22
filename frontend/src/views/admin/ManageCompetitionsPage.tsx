@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Filter, Trash2 } from "lucide-react";
 import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { type Competition } from "../../types/competition/Competition.type";
 import { toast } from "sonner";
@@ -81,6 +81,7 @@ const ManageCompetitions = () => {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const latestRequestId = useRef(0);
 
   const {
     trackAdminCompetitionsViewed,
@@ -100,16 +101,26 @@ const ManageCompetitions = () => {
   }, []);
 
   const loadCompetitions = async () => {
-    const data = await getCompetitionsPage({
-      page,
-      pageSize,
-      search: searchQuery,
-      status: statusFilter?.toLowerCase() as "active" | "upcoming" | "completed" | undefined,
-    });
-    setCompetitions(data.items);
-    setTotal(data.total);
-    if (data.items.length === 0 && data.total > 0 && page > 1) {
-      setPage(page - 1);
+    const requestId = ++latestRequestId.current;
+    try {
+      const data = await getCompetitionsPage({
+        page,
+        pageSize,
+        search: searchQuery,
+        status: statusFilter?.toLowerCase() as "active" | "upcoming" | "completed" | undefined,
+      });
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
+      setCompetitions(data.items);
+      setTotal(data.total);
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        setPage(page - 1);
+      }
+    } finally {
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -134,7 +145,6 @@ const ManageCompetitions = () => {
   }, [location.state]);
 
   useEffect(() => {
-    let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
@@ -146,14 +156,9 @@ const ManageCompetitions = () => {
           component: "ManageCompetitionsPage.tsx",
           url: globalThis.location.href,
         });
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
   }, [location.key, page, pageSize, searchQuery, statusFilter]);
 
   const handleCreateNavigation = () => {

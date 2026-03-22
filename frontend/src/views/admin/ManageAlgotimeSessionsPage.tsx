@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter} from "@/components/ui/card";
 import { Input} from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, Trash, Filter} from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useNavigate } from "react-router-dom";
@@ -51,6 +51,7 @@ export default function ManageAlgotimeSessionsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const latestRequestId = useRef(0);
 
   const {
     trackAdminAlgotimeSessionsViewed,
@@ -65,6 +66,7 @@ export default function ManageAlgotimeSessionsPage() {
   }, []);
 
   const loadATsessions = async () => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     try {
       const data = await getAlgotimeSessionsPage({
@@ -73,12 +75,18 @@ export default function ManageAlgotimeSessionsPage() {
         search: searchQuery,
         status: statusFilter === "all" ? undefined : statusFilter.toLowerCase() as "active" | "upcoming" | "completed",
       });
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
       setAlgotimesSessions(data.items);
       setTotal(data.total);
       if (data.items.length === 0 && data.total > 0 && page > 1) {
         setPage(page - 1);
       }
     } catch (err: unknown) {
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
       logFrontend({
         level: "ERROR",
         message: `Failed to load algotime sessions: ${(err as Error).message}`,
@@ -87,7 +95,9 @@ export default function ManageAlgotimeSessionsPage() {
       });
       toast.error("Failed to load algotime sessions");
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+      }
     }
   };
 
