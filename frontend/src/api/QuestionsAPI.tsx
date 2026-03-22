@@ -5,12 +5,11 @@ import type {
   QuestionsPageParams,
   QuestionsPageResult,
   QuestionsResponse,
-  RiddlesResponse,
   TestCase,
   LanguageSpecificProperties
 } from "@/types/questions/QuestionPagination.type";
 import { logFrontend } from "./LoggerAPI";
-import type { Riddle } from "@/types/riddle/Riddle.type";
+
 
 const DEFAULT_PAGE_SIZE = 100;
 

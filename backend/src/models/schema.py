@@ -331,8 +331,6 @@ class AlgoTimeLeaderboardEntry(Base):
     __tablename__ = 'algotime_leaderboard_entry'
 
     algotime_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    algotime_series_id: Mapped[int] = mapped_column(
-        ForeignKey('algotime_series.algotime_series_id', ondelete='CASCADE'))
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
