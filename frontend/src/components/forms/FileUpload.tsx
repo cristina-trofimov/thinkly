@@ -31,6 +31,24 @@ interface RiddleFormProps {
     initial?: InitialRiddle;
 }
 
+function getErrorMessage(err: unknown, isEdit: boolean): string {
+    if (axios.isAxiosError(err)) {
+        const data = err.response?.data;
+        return data?.detail ?? data ?? err.message;
+    }
+    if (err instanceof Error) {
+        return err.message;
+    }
+    return isEdit ? "Failed to update riddle" : "Failed to create riddle";
+}
+
+function getSubmitLabel(isSubmitting: boolean, isEdit: boolean): string {
+    if (isSubmitting) {
+        return isEdit ? "Saving..." : "Uploading & Creating...";
+    }
+    return isEdit ? "Save Changes" : "Create Riddle";
+}
+
 export default function RiddleForm({ mode, onSuccess, initial }: Readonly<RiddleFormProps>) {
     const isEdit = mode === "edit";
 
@@ -150,44 +168,31 @@ export default function RiddleForm({ mode, onSuccess, initial }: Readonly<Riddle
                     riddleId: initial!.id,
                     question,
                     answer,
-                    file, // replace if present
-                    removeFile: removeExistingFile, // remove if true
+                    file,
+                    removeFile: removeExistingFile,
                 });
                 toast.success("Riddle updated successfully!");
             } else {
-                await createRiddle({
-                    question,
-                    answer,
-                    file,
-                });
+                await createRiddle({ question, answer, file });
                 toast.success("Riddle created successfully!");
             }
 
             onSuccess?.();
 
-            // Reset after create; for edit you usually close the modal anyway
-            if (!isEdit) {
+            if (isEdit) {
+                removeSelectedFile();
+            } else {
                 setQuestion("");
                 setAnswer("");
                 removeSelectedFile();
-            } else {
-                // If edit succeeded and we removed file / replaced file, clear local selection state.
-                removeSelectedFile();
             }
         } catch (err: unknown) {
-let msg;
-
-if (axios.isAxiosError(err)) {
-    msg = err.response?.data?.detail ?? err.response?.data ?? err.message;
-} else if (err instanceof Error) {
-    msg = err.message;
-} else {
-    msg = isEdit ? "Failed to update riddle" : "Failed to create riddle";
-}
+            const msg = getErrorMessage(err, isEdit);
+            const failLabel = isEdit ? "Failed to update riddle" : "Failed to create riddle";
 
             logFrontend({
                 level: "ERROR",
-                message: `${isEdit ? "Failed to update riddle" : "Failed to create riddle"}: ${String(msg)}`,
+                message: `${failLabel}: ${String(msg)}`,
                 component: "RiddleForm.tsx",
                 url: globalThis.location.href,
             });
@@ -199,6 +204,7 @@ if (axios.isAxiosError(err)) {
     }
 
     const title = isEdit ? "Edit Riddle" : "Create New Riddle";
+    const submitLabel = getSubmitLabel(isSubmitting, isEdit);
 
     return (
         <div className="max-w-2xl mx-auto py-6">
@@ -341,7 +347,7 @@ if (axios.isAxiosError(err)) {
                     </div>
 
                     <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isSubmitting}>
-                        {isSubmitting ? (isEdit ? "Saving..." : "Uploading & Creating...") : isEdit ? "Save Changes" : "Create Riddle"}
+                        {submitLabel}
                     </Button>
                 </CardContent>
             </Card>
