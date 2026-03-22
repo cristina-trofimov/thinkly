@@ -22,12 +22,21 @@ import {
 import { Plus, Search, Filter, Trash2 } from "lucide-react";
 import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog";
 import { useEffect, useState } from "react";
-import { useNavigate, useOutlet, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { type Competition } from "../../types/competition/Competition.type";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TablePagination } from "@/components/helpers/Pagination";
+import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
 
 const getCompetitionStatus = (
   competitionStart: Date | string
@@ -52,12 +61,10 @@ const formatCompetitionDate = (competitionDate: Date) => {
 
 const ManageCompetitions = () => {
   const navigate = useNavigate();
-  const outlet = useOutlet();
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [_, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<{
     id: number;
@@ -72,6 +79,8 @@ const ManageCompetitions = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const {
     trackAdminCompetitionsViewed,
@@ -149,16 +158,15 @@ const ManageCompetitions = () => {
     };
   }, [location.key]);
 
-  if (outlet) return outlet;
-
   const handleCreateNavigation = () => {
     trackAdminCompetitionCreateNavigated();
-    navigate("createCompetition");
+    navigate("/app/dashboard/competitions/createCompetition");
   };
 
   // Debounce-free: track on blur or enter would be ideal, but for admin
   // pages simple onChange tracking is acceptable since usage is low-frequency
   const handleSearchChange = (value: string) => {
+    setPage(1);
     setSearchQuery(value);
     if (value.trim()) {
       trackAdminCompetitionSearched(value.trim());
@@ -166,6 +174,7 @@ const ManageCompetitions = () => {
   };
 
   const handleFilterChange = (status: string | undefined) => {
+    setPage(1);
     setStatusFilter(status);
     trackAdminCompetitionFilterChanged(status ?? "all");
   };
@@ -193,6 +202,18 @@ const ManageCompetitions = () => {
       const bTime = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
       return bTime - aTime;
     });
+  const pageCount = Math.max(1, Math.ceil(filteredCompetitions.length / pageSize));
+  const pageItems = getPageItems(page, pageCount);
+  const paginatedCompetitions = filteredCompetitions.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   const handleCardClick = (id: number, title: string) => {
     const comp = competitions.find((c) => c.id === id);
@@ -326,7 +347,7 @@ const ManageCompetitions = () => {
           </div>
         )}
 
-        {filteredCompetitions.map((comp) => {
+        {paginatedCompetitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate);
           const title = comp.competitionTitle || "Untitled Competition";
 
@@ -377,6 +398,39 @@ const ManageCompetitions = () => {
         })}
       </div>
 
+      {filteredCompetitions.length > 0 && (
+        <div className="flex flex-row items-center justify-between gap-3 py-6">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Cards per page</span>
+            <Select
+              value={`${pageSize}`}
+              onValueChange={(value) => {
+                setPage(1);
+                setPageSize(Number(value));
+              }}
+            >
+              <SelectTrigger className="w-20 cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TablePagination
+            page={page}
+            pageCount={pageCount}
+            pageItems={pageItems}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
+
       {filteredCompetitions.length === 0 && competitions.length > 0 && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
@@ -398,7 +452,7 @@ const ManageCompetitions = () => {
           <p className="text-muted-foreground mb-4">
             Get started by creating your first competition
           </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={handleCreateNavigation}>
             <Plus className="w-4 h-4 mr-2" />
             Create Competition
           </Button>
