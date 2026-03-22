@@ -60,6 +60,27 @@ function DownloadButtonContent({ exporting }: { readonly exporting: boolean }) {
   );
 }
 
+/**
+ * Fallback clipboard copy for browsers that don't support the async Clipboard API.
+ * Uses the legacy `execCommand("copy")` — deprecated but still widely supported as
+ * a fallback. The deprecation warning is expected and intentional here.
+ */
+function fallbackCopyToClipboard(text: string): void {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    const success = (document as Document).execCommand("copy");
+    if (!success) throw new Error("execCommand copy failed");
+  } finally {
+    textArea.remove();
+  }
+}
+
 export function CompetitionCard({
   competition,
   isCurrent = false,
@@ -125,19 +146,7 @@ export function CompetitionCard({
         await navigator.clipboard.writeText(text);
       } catch {
         // Fallback for environments where the async Clipboard API is unavailable
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.cssText = "position:fixed;opacity:0;pointer-events:none";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          // sonar error expected, its a fall back for older browsers
-          const success = document.execCommand("copy"); // sonar: deprecated API, fallback for older browsers
-          if (!success) throw new Error("execCommand copy failed");
-        } finally {
-          textArea.remove();
-        }
+        fallbackCopyToClipboard(text);
       }
 
       trackLeaderboardCopied("competition", competition.competitionTitle);
