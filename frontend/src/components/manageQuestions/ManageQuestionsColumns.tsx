@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EditableQuestionFields, Question } from "@/types/questions/QuestionPagination.type";
 import ActionsCell from "./QuestionActionsCell";
 
@@ -161,7 +162,18 @@ export const columns: ColumnDef<Question>[] = [
   },
   {
     id: "show_on_frontpage",
-    header: () => <div className="text-center">Frontpage</div>,
+    header: () => (
+      <div className="text-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-help">Public</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Shows the Question on the default frontpage without a competition or AlgoTime
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    ),
     cell: ({ row, table }) => {
       const question = row.original;
       const meta = table.options.meta as TableMeta;
