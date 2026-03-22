@@ -260,7 +260,7 @@ def get_all_questions(
                 validators.append(client_timestamp >= latest_modified)
             except (TypeError, ValueError):
                 logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
-                validators.append(False);
+                validators.append(False)
 
         if validators and all(validators):
             return Response(status_code=304, headers=common_headers)
