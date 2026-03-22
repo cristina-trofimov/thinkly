@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import case, or_
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
     CompetitionLeaderboardEntry
@@ -8,7 +9,7 @@ from endpoints.send_email_api import send_email_via_brevo
 import logging
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional
 from zoneinfo import ZoneInfo
 from services.posthog_analytics import track_custom_event
 
@@ -18,6 +19,8 @@ ERROR_COMPETITION_NOT_FOUND = "Competition not found"
 
 logger = logging.getLogger(__name__)
 competitions_router = APIRouter(tags=["Competitions"])
+DEFAULT_PAGE_SIZE = 11
+MAX_PAGE_SIZE = 100
 
 
 # ---------------- Models ----------------
@@ -110,6 +113,21 @@ class CompetitionResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CompetitionCardResponse(BaseModel):
+    id: int
+    competition_title: str
+    competition_location: Optional[str] = None
+    start_date: datetime
+    end_date: datetime
+
+
+class CompetitionCardPageResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[CompetitionCardResponse]
 
 
 class DetailedCompetitionResponse(BaseModel):
@@ -294,23 +312,78 @@ def send_competition_emails(
 
 
 # ---------------- Routes ----------------
-@competitions_router.get("/")
-def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
-    """Get all competitions (existing endpoint kept for compatibility)"""
+@competitions_router.get("/", response_model=CompetitionCardPageResponse)
+def get_all_competitions(
+        db: Annotated[Session, Depends(get_db)],
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+        search: Optional[str] = None,
+        status_filter: Annotated[Optional[Literal["active", "upcoming", "completed"]], Query(alias="status")] = None,
+        sort: Annotated[Literal["asc", "desc"], Query()] = "desc",
+):
+    """Get competitions with pagination, optional search, and optional status filtering."""
     try:
-        competitions = db.query(Competition).join(BaseEvent).all()
-        logger.info(f"Fetched {len(competitions)} competitions from the database.")
+        now = datetime.now(timezone.utc)
+        query = db.query(Competition).join(BaseEvent)
 
-        return [
-            {
-                "id": comp.event_id,
-                "competition_title": comp.base_event.event_name,
-                "competition_location": comp.base_event.event_location,
-                "start_date": comp.base_event.event_start_date,
-                "end_date": comp.base_event.event_end_date,
-            }
-            for comp in competitions
-        ]
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    BaseEvent.event_name.ilike(search_term),
+                    BaseEvent.event_location.ilike(search_term),
+                )
+            )
+
+        if status_filter == "upcoming":
+            query = query.filter(BaseEvent.event_start_date > now)
+        elif status_filter == "active":
+            query = query.filter(
+                BaseEvent.event_start_date <= now,
+                BaseEvent.event_end_date >= now,
+            )
+        elif status_filter == "completed":
+            query = query.filter(BaseEvent.event_end_date < now)
+
+        total = query.count()
+
+        status_order = case(
+            (BaseEvent.event_start_date > now, 1),
+            (BaseEvent.event_end_date < now, 2),
+            else_=0,
+        )
+        date_order = BaseEvent.event_start_date.asc() if sort == "asc" else BaseEvent.event_start_date.desc()
+        competitions = (
+            query
+            .order_by(status_order.asc(), date_order)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        logger.info(
+            "Fetched %s competitions for page=%s page_size=%s search=%s status=%s",
+            len(competitions),
+            page,
+            page_size,
+            search or "none",
+            status_filter or "all",
+        )
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": [
+                {
+                    "id": comp.event_id,
+                    "competition_title": comp.base_event.event_name,
+                    "competition_location": comp.base_event.event_location,
+                    "start_date": comp.base_event.event_start_date,
+                    "end_date": comp.base_event.event_end_date,
+                }
+                for comp in competitions
+            ],
+        }
     except Exception as e:
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
