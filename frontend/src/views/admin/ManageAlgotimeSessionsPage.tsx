@@ -5,7 +5,7 @@ import { Plus, Search, Eye, Trash, Filter} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
-import { useOutlet, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { getAllAlgotimeSessions, deleteAlgotime} from "@/api/AlgotimeAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -30,16 +30,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
 import { resetAlgoTimeLeaderboard } from "@/api/LeaderboardsAPI";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TablePagination } from "@/components/helpers/Pagination";
+import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [algotimesSessions, setAlgotimesSessions] = useState<AlgoTimeSession[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const outlet = useOutlet();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const {
     trackAdminAlgotimeSessionsViewed,
@@ -100,15 +110,26 @@ export default function ManageAlgotimeSessionsPage() {
     const status = getSessionStatus(session.startTime, session.endTime);
     return status.label === statusFilter;
   });
+  const pageCount = Math.max(1, Math.ceil(filteredSessions.length / pageSize));
+  const pageItems = getPageItems(page, pageCount);
+  const paginatedSessions = filteredSessions.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
-  if (outlet) return outlet;
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
 
   const handleCreateNavigation = () => {
     trackAdminAlgotimeCreateNavigated();
-    navigate("algoTimeSessionsManagement");
+    navigate("/app/dashboard/algoTimeSessions/algoTimeSessionsManagement");
   };
 
   const handleSearchChange = (value: string) => {
+    setPage(1);
     setSearchQuery(value);
     if (value.trim()) {
       trackAdminAlgotimeSearched(value.trim());
@@ -149,16 +170,28 @@ export default function ManageAlgotimeSessionsPage() {
         <DropdownMenuContent align="start" className="w-48">
           <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+          <DropdownMenuItem onClick={() => {
+            setStatusFilter("all");
+            setPage(1);
+          }}>
             All Sessions
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setStatusFilter("Active")}>
+          <DropdownMenuItem onClick={() => {
+            setStatusFilter("Active");
+            setPage(1);
+          }}>
             Active
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setStatusFilter("Upcoming")}>
+          <DropdownMenuItem onClick={() => {
+            setStatusFilter("Upcoming");
+            setPage(1);
+          }}>
             Upcoming
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setStatusFilter("Completed")}>
+          <DropdownMenuItem onClick={() => {
+            setStatusFilter("Completed");
+            setPage(1);
+          }}>
             Completed
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -231,7 +264,7 @@ export default function ManageAlgotimeSessionsPage() {
           </div>
         )}
 
-        {filteredSessions.map((ATsession) => (
+        {paginatedSessions.map((ATsession) => (
           <Card
             key={ATsession.id}
             className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
@@ -326,6 +359,38 @@ export default function ManageAlgotimeSessionsPage() {
           </Card>
         ))}
       </div>
+      {filteredSessions.length > 0 && (
+        <div className="flex flex-row items-center justify-between gap-3 py-6">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Cards per page</span>
+            <Select
+              value={`${pageSize}`}
+              onValueChange={(value) => {
+                setPage(1);
+                setPageSize(Number(value));
+              }}
+            >
+              <SelectTrigger className="w-20 cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TablePagination
+            page={page}
+            pageCount={pageCount}
+            pageItems={pageItems}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
       {selectedSessionId && (
         <EditAlgoTimeSessionDialog
           open={editDialogOpen}
