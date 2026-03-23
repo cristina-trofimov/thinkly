@@ -58,10 +58,11 @@ function mapQuestion(
       language_id: prop.language_id,
       question_id: prop.question_id,
       language_display_name: prop.language_display_name,
-      preset_code: prop.preset_code,
-      template_solution: prop.template_solution,
-      from_json_function: prop.from_json_function,
-      to_json_function: prop.to_json_function,
+      imports: prop.imports,
+      preset_classes: prop.preset_classes,
+      preset_functions: prop.preset_functions,
+      main_function: prop.main_function,
+      template_code: prop.template_code,
     }));
   }
 

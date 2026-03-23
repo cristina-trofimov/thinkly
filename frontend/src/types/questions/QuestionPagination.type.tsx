@@ -14,10 +14,11 @@ export type LanguageSpecificProperties = {
   language_id: number;
   question_id: number;
   language_display_name: string;
-  preset_code: string;
-  template_solution: string;
-  from_json_function: string;
-  to_json_function: string;
+  imports: string;
+  preset_classes: string;
+  preset_functions: string;
+  main_function: string;
+  template_code: string;
 }
 
 export type Question = {
@@ -41,10 +42,11 @@ export type EditableTestCaseFields = {
 
 export type EditableLanguageSpecificProperties = {
   language_name: string;
-  preset_code: string;
-  template_solution: string;
-  from_json_function: string;
-  to_json_function: string;
+  imports: string;
+  preset_classes: string;
+  preset_functions: string;
+  main_function: string;
+  template_code: string;
 }
 
 export type EditableQuestionFields = {
@@ -104,10 +106,11 @@ export function getQuestionFields(question: Question): EditableQuestionFields {
     difficulty: question.difficulty.toLowerCase() as "easy" | "medium" | "hard",
     language_specific_properties: question.language_specific_properties.map((prop) => ({
       language_name: prop.language_display_name,
-      preset_code: prop.preset_code,
-      template_solution: prop.template_solution,
-      from_json_function: prop.from_json_function,
-      to_json_function: prop.to_json_function,
+      imports: prop.imports,
+      preset_classes: prop.preset_classes,
+      preset_functions: prop.preset_functions,
+      main_function: prop.main_function,
+      template_code: prop.template_code,
     })),
     tags: question.tags.map((tag) => tag.tag_name),
     testcases,
