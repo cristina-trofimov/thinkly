@@ -25,8 +25,8 @@ export function CompetitionCardSkeleton() {
       </div>
       <div className="space-y-2">
         {/* Participant Rows */}
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="flex items-center gap-4 py-2">
+        {[...new Array(5)].map((_, i) => (
+          <div key={i * (Math.random())} className="flex items-center gap-4 py-2">
             <Skeleton className="h-8 w-8 rounded-full" /> {/* Avatar */}
             <Skeleton className="h-4 flex-1" />           {/* Name */}
             <Skeleton className="h-4 w-12" />             {/* Score */}
@@ -193,50 +193,12 @@ export function Leaderboards() {
       {leaderboardType === "competition" && (
         loading ? (
           <>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
-            <div className="flex gap-4 items-center">
-              <Skeleton className="h-10 flex-1 rounded-md" /> {/* Search Input */}
-              <Skeleton className="h-10 w-32 rounded-md" />   {/* Sort Button */}
-            </div>
+            {Array.from({ length: 11 }).map((_, i) => (
+              <div key={i} className="flex gap-4 items-center">
+                <Skeleton className="h-10 flex-1 rounded-md" />
+                <Skeleton className="h-10 w-32 rounded-md" />
+              </div>
+            ))}
           </>
         ) : (
           <SearchAndFilterBar

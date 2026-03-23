@@ -24,15 +24,15 @@ export function DataTableSkeleton() {
           <TableRow>
             {/* Adjust these to match the number of columns in your questionsColumns */}
             {[...Array(5)].map((_, i) => (
-              <TableHead key={i}><Skeleton className="h-4 w-[100px]" /></TableHead>
+              <TableHead key={i * (Math.random())}><Skeleton className="h-4 w-[100px]" /></TableHead>
             ))}
           </TableRow>
         </TableHeader>
         <TableBody>
           {[...Array(10)].map((_, i) => (
             <TableRow key={i}>
-              {[...Array(5)].map((_, j) => (
-                <TableCell key={j}>
+              {[...new Array(5)].map((_, j) => (
+                <TableCell key={j * (Math.random())}>
                   <Skeleton className="h-4 w-full" />
                 </TableCell>
               ))}
