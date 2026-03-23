@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import json  # Add this at the top of the file
 from fastapi import APIRouter, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -102,13 +103,13 @@ def submit_to_judge0(
     _validate_judge0_url()
 
     # Construct the batch payload
-    batch_payload = []
+    batch_payload = {"submissions": []}
     for submission in submissions:
         payload = {
             "source_code": submission["source_code"],
             "language_id": submission["language_id"],
             "stdin": submission.get("stdin", ""),
-            "expected_output": submission.get("expected_output"),
+            "expected_output": str(submission["expected_output"]) if isinstance(submission.get("expected_output"), dict) else submission.get("expected_output"),
             "cpu_time_limit": None,
             "cpu_extra_time": None,
             "wall_time_limit": None,
@@ -120,9 +121,10 @@ def submit_to_judge0(
             "max_file_size": None,
             "enable_network": None
         }
-        # Remove None fields
-        batch_payload.append({k: v for k, v in payload.items() if v is not None})
-        logger.debug(f"Prepared payload for Judge0: {batch_payload[-1]}")
+        batch_payload["submissions"].append(payload)
+
+    # Log the batch payload as a JSON string
+    logger.debug(f"BATCH PAYLOAD: {json.dumps(batch_payload)}")
 
     try:
         logger.debug("Posting batch submissions to Judge0...")
@@ -138,6 +140,7 @@ def submit_to_judge0(
 
         # Post the batch payload
         post_resp = requests.post(f"{JUDGE0_URL}/submissions/batch", json=batch_payload)
+        logger.debug(f"Judge0 batch submission response: {post_resp.status_code} - {post_resp.text}")
         post_resp.raise_for_status()
 
         # Extract all tokens from the response

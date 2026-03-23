@@ -55,14 +55,18 @@ export async function submitToJudge0(
         // Create submissions array for batch processing
         const submissions = testcases.map((testcase) => {
             const stdin = Object.values(testcase.input_data as Record<string, unknown>)
-                .map((v) => JSON.stringify(v))
+                .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
+                .join(" ");
+
+            const expected_output = Object.values(testcase.expected_output as Record<string, unknown>)
+                .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
                 .join(" ");
 
             return {
                 language_id: `${language_id}`,
                 source_code: source_code.trim(),
                 stdin: stdin,
-                expected_output: testcase.expected_output,
+                expected_output: expected_output,
             };
         });
 
