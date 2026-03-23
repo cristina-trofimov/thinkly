@@ -3,6 +3,8 @@
 import { render, screen } from "@testing-library/react";
 import { Layout } from "../src/components/layout/AppLayout";
 import { jest } from '@jest/globals';
+import { UserContext } from '../src/context/UserContext'
+import type { Account } from '../src/types/account/Account.type'
 
 // Mock react-router-dom
 const mockUseMatches = jest.fn();
@@ -11,6 +13,15 @@ jest.mock("react-router-dom", () => ({
   Outlet: () => <div data-testid="outlet">Outlet Content</div>,
   useMatches: () => mockUseMatches(),
 }));
+
+jest.mock('@/lib/axiosClient', () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  }
+}))
 
 // Mock child components
 jest.mock("../src/components/ui/sidebar", () => ({
@@ -49,6 +60,37 @@ jest.mock("../src/components/layout/NavUser", () => ({
   NavUser: () => <div data-testid="nav-user">Nav User</div>,
 }));
 
+jest.mock('../src/lib/axiosClient', () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  }
+}))
+
+const mockUser: Account = {
+  id: 1,
+  firstName: 'Test',
+  lastName: 'User',
+  email: 'test@example.com',
+  accountType: 'Admin',
+}
+
+const mockContextValue = {
+  user: mockUser,
+  loading: false,
+  setUser: jest.fn(),
+  refreshUser: jest.fn() as () => Promise<void>,
+}
+
+const renderLayout = () =>
+  render(
+    <UserContext.Provider value={mockContextValue}>
+      <Layout />
+    </UserContext.Provider>
+  )
+
 describe("Layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -57,32 +99,32 @@ describe("Layout", () => {
   describe("Component Structure", () => {
     test("renders SidebarProvider wrapper", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(screen.getByTestId("sidebar-provider")).toBeInTheDocument();
     });
 
     test("renders AppSidebar", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(screen.getByTestId("app-sidebar")).toBeInTheDocument();
     });
 
     test("renders AppBreadcrumbs", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(screen.getByTestId("app-breadcrumbs")).toBeInTheDocument();
     });
 
     test("renders Outlet for nested routes", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(screen.getByTestId("outlet")).toBeInTheDocument();
       expect(screen.getByText("Outlet Content")).toBeInTheDocument();
     });
 
     test("renders main content area with correct structure", () => {
       mockUseMatches.mockReturnValue([]);
-      const { container } = render(<Layout />);
+      const { container } = renderLayout();
       const main = container.querySelector("main");
       expect(main).toBeInTheDocument();
       expect(main).toHaveClass("flex-1");
@@ -90,20 +132,20 @@ describe("Layout", () => {
 
     test("renders flex container with min-h-screen", () => {
       mockUseMatches.mockReturnValue([]);
-      const { container } = render(<Layout />);
+      const { container } = renderLayout();
       const flexContainer = container.querySelector(".flex.min-h-screen");
       expect(flexContainer).toBeInTheDocument();
     });
 
     test("renders NavUser in the header", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(screen.getByTestId("nav-user")).toBeInTheDocument();
     });
 
     test("renders NavUser inside the right-aligned header container", () => {
       mockUseMatches.mockReturnValue([]);
-      const { container } = render(<Layout />);
+      const { container } = renderLayout();
       const navUser = screen.getByTestId("nav-user");
       const rightContainer = navUser.closest(".ml-auto");
       expect(rightContainer).toBeInTheDocument();
@@ -111,7 +153,7 @@ describe("Layout", () => {
 
     test("renders header with sticky positioning", () => {
       mockUseMatches.mockReturnValue([]);
-      const { container } = render(<Layout />);
+      const { container } = renderLayout();
       const header = container.querySelector("header");
       expect(header).toBeInTheDocument();
       expect(header).toHaveClass("sticky");
@@ -136,7 +178,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Products")).toBeInTheDocument();
@@ -160,7 +202,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Destination")).toBeInTheDocument();
@@ -183,7 +225,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Destination")).toBeInTheDocument();
@@ -202,7 +244,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       const homeSpan = screen.getByText("Home");
       const settingsSpan = screen.getByText("Settings");
@@ -214,7 +256,7 @@ describe("Layout", () => {
     test("handles empty routes array", () => {
       mockUseMatches.mockReturnValue([]);
 
-      render(<Layout />);
+      renderLayout();
 
       const breadcrumbs = screen.getByTestId("app-breadcrumbs");
       expect(breadcrumbs).toBeEmptyDOMElement();
@@ -233,7 +275,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       const breadcrumbs = screen.getByTestId("app-breadcrumbs");
       expect(breadcrumbs).toBeEmptyDOMElement();
@@ -254,7 +296,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       const productItem = screen.getByText("Product Item");
       const subcategory = screen.getByText("Subcategory");
@@ -276,7 +318,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Settings & Preferences")).toBeInTheDocument();
       expect(screen.getByText("User's Profile")).toBeInTheDocument();
@@ -291,7 +333,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
     });
@@ -306,7 +348,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Level 1")).toBeInTheDocument();
@@ -319,13 +361,13 @@ describe("Layout", () => {
   describe("Hook Usage", () => {
     test("calls useMatches hook", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(mockUseMatches).toHaveBeenCalled();
     });
 
     test("calls useMatches only once per render", () => {
       mockUseMatches.mockReturnValue([]);
-      render(<Layout />);
+      renderLayout();
       expect(mockUseMatches).toHaveBeenCalledTimes(1);
     });
   });
@@ -340,7 +382,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       const searchSpan = screen.getByText("Search");
       expect(searchSpan).toHaveAttribute("data-href", "/search");
@@ -358,7 +400,7 @@ describe("Layout", () => {
       ];
       mockUseMatches.mockReturnValue(mockRoutes);
 
-      render(<Layout />);
+      renderLayout();
 
       expect(screen.getByText("Home")).toBeInTheDocument();
       expect(screen.getByText("Page 1")).toBeInTheDocument();
