@@ -236,7 +236,8 @@ describe("ManageAlgotimeSessionsPage", () => {
       .getByText("Winter AlgoTime 2025")
       .closest('[data-slot="card"]') as HTMLElement;
     fireEvent.click(within(sessionCard).getAllByRole("button")[1]);
-    fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    const dialog = screen.getByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
 
     await waitFor(() => {
       expect(deleteAlgotime).toHaveBeenCalledWith(1);

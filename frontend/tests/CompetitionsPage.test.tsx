@@ -78,10 +78,12 @@ describe("CompetitionsPage", () => {
     mockNavigate.mockClear();
   });
 
-  it("shows loading state initially", () => {
+  it("shows loading state initially", async () => {
     (getCompetitionsPage as jest.Mock).mockReturnValue(new Promise(() => {}));
     render(<CompetitionsPage />);
-    expect(screen.getByText(/loading competitions/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/loading competitions/i)).toBeInTheDocument();
+    });
   });
 
   it("renders all competitions after loading", async () => {

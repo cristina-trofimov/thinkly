@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 import ManageCompetitions from "../src/views/admin/ManageCompetitionsPage";
@@ -252,7 +252,8 @@ describe("ManageCompetitions", () => {
 
     await waitFor(() => screen.getByText(/Math Contest/i));
     fireEvent.click(screen.getAllByText("Delete")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(mockedDeleteCompetition).toHaveBeenCalledWith(1);
@@ -270,7 +271,8 @@ describe("ManageCompetitions", () => {
     await waitFor(() => screen.getByText(/Math Contest/i));
 
     fireEvent.click(screen.getAllByText("Delete")[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
