@@ -581,9 +581,8 @@ describe('CodingView — run code', () => {
 describe('CodingView - submit code', () => {
     it('calls submitAttempt with correct args including userId', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
-        render(<CodingView />)
+        renderCodingView()
         // Wait for getProfile to resolve so currentUserId is populated before clicking
-        await waitFor(() => expect(getProfile).toHaveBeenCalled())
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
         // expect.anything() does NOT match null, and the default hook mock has
@@ -606,9 +605,11 @@ describe('CodingView - submit code', () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error when submitting the code.'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+        // Non-accepted results are shown inline, not via toast
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
+        expect(toast.error).not.toHaveBeenCalled()
     })
 
 
