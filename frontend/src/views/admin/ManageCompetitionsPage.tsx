@@ -38,6 +38,7 @@ import {
 import { TablePagination } from "@/components/helpers/Pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 const CARD_PAGE_SIZE_OPTIONS = [
   { value: 11, label: "11" },
@@ -89,7 +90,7 @@ const ManageCompetitions = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(11);
+  const [pageSize, setPageSize] = useState(27);
   const [cardsVisible, setCardsVisible] = useState(false);
   const latestRequestId = useRef(0);
 
@@ -317,6 +318,13 @@ const ManageCompetitions = () => {
         </DropdownMenu>
       </div>
 
+      {loading && hasLoadedOnce && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Spinner className="size-4" />
+          <span>Updating results...</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Create Button Card */}
         <Card
@@ -351,7 +359,9 @@ const ManageCompetitions = () => {
           return (
             <Card
               key={comp.id}
-              className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+              className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
+                loading && hasLoadedOnce ? "pointer-events-none" : ""
+              }`}
               onClick={() => handleCardClick(comp.id, title)}
               aria-busy={loading && hasLoadedOnce}
               style={{
@@ -408,6 +418,7 @@ const ManageCompetitions = () => {
               onValueChange={(value) => {
                 setPage(1);
                 setPageSize(Number(value));
+                globalThis.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >
               <SelectTrigger className="w-20 cursor-pointer">

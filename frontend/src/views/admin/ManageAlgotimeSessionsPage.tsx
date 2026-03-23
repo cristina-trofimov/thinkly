@@ -40,6 +40,7 @@ import {
 import { TablePagination } from "@/components/helpers/Pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageAlgotimeSessionsSkeleton from "@/components/algotime/ManageAlgotimeSessionsSkeleton";
+import { Spinner } from "@/components/ui/spinner";
 
 const CARD_PAGE_SIZE_OPTIONS = [
   { value: 11, label: "11" },
@@ -59,7 +60,7 @@ export default function ManageAlgotimeSessionsPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(11);
+  const [pageSize, setPageSize] = useState(27);
   const [cardsVisible, setCardsVisible] = useState(false);
   const latestRequestId = useRef(0);
 
@@ -257,6 +258,13 @@ export default function ManageAlgotimeSessionsPage() {
         </div>
       </div>
 
+      {loading && hasLoadedOnce && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Spinner className="size-4" />
+          <span>Updating results...</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <Card
           className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
@@ -289,7 +297,7 @@ export default function ManageAlgotimeSessionsPage() {
           <Card
             key={ATsession.id}
             className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full ${
-              loading && hasLoadedOnce ? "opacity-50" : "opacity-100"
+              loading && hasLoadedOnce ? "opacity-50 pointer-events-none" : "opacity-100"
             } ${enterClass} motion-safe:duration-700 motion-safe:ease-out`}
             aria-busy={loading && hasLoadedOnce}
             style={{
@@ -398,6 +406,7 @@ export default function ManageAlgotimeSessionsPage() {
               onValueChange={(value) => {
                 setPage(1);
                 setPageSize(Number(value));
+                globalThis.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >
               <SelectTrigger className="w-20 cursor-pointer">
