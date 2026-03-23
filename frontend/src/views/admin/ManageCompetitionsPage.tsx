@@ -38,7 +38,6 @@ import {
 import { TablePagination } from "@/components/helpers/Pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
-import { Spinner } from "@/components/ui/spinner";
 
 const CARD_PAGE_SIZE_OPTIONS = [
   { value: 11, label: "11" },
@@ -304,13 +303,6 @@ const ManageCompetitions = () => {
         </DropdownMenu>
       </div>
 
-      {loading && hasLoadedOnce && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-          <Spinner className="size-4" />
-          <span>Updating competition results...</span>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Create Button Card */}
         <Card
@@ -336,12 +328,14 @@ const ManageCompetitions = () => {
         {competitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate, comp.endDate);
           const title = comp.competitionTitle || "Untitled Competition";
+          const opacityClass = loading && hasLoadedOnce ? "opacity-50" : status === "Completed" ? "opacity-75" : "opacity-100";
 
           return (
             <Card
               key={comp.id}
-              className={`cursor-pointer overflow-hidden transition-shadow bg-card flex flex-col ${status === "Completed" ? "opacity-75 hover:shadow-lg" : "hover:shadow-lg"}`}
+              className={`cursor-pointer overflow-hidden transition-all bg-card flex flex-col hover:shadow-lg ${opacityClass}`}
               onClick={() => handleCardClick(comp.id, title)}
+              aria-busy={loading && hasLoadedOnce}
             >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>

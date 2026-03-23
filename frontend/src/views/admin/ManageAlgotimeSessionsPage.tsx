@@ -40,7 +40,6 @@ import {
 import { TablePagination } from "@/components/helpers/Pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageAlgotimeSessionsSkeleton from "@/components/algotime/ManageAlgotimeSessionsSkeleton";
-import { Spinner } from "@/components/ui/spinner";
 
 const CARD_PAGE_SIZE_OPTIONS = [
   { value: 11, label: "11" },
@@ -244,13 +243,6 @@ export default function ManageAlgotimeSessionsPage() {
         </div>
       </div>
 
-      {loading && hasLoadedOnce && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-          <Spinner className="size-4" />
-          <span>Updating algotime session results...</span>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <Card
           className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
@@ -275,7 +267,10 @@ export default function ManageAlgotimeSessionsPage() {
         {algotimesSessions.map((ATsession) => (
           <Card
             key={ATsession.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
+            className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full ${
+              loading && hasLoadedOnce ? "opacity-50" : "opacity-100"
+            }`}
+            aria-busy={loading && hasLoadedOnce}
           >
             <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
               <div className="absolute top-3 right-3 z-20">
