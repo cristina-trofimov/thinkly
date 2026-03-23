@@ -103,16 +103,22 @@ def test_get_all_competitions_success(client, mock_db):
     response = client.get("/competitions/")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == 101
-    assert data[0]["competition_title"] == "Winter Hackathon"
+    assert data["total"] == 1
+    assert data["page"] == 1
+    assert data["items"][0]["id"] == 101
+    assert data["items"][0]["competition_title"] == "Winter Hackathon"
 
 
 def test_get_all_competitions_empty(client, mock_db):
     mock_db.query.return_value = create_mock_query([])
     response = client.get("/competitions/")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {
+        "total": 0,
+        "page": 1,
+        "page_size": 11,
+        "items": [],
+    }
 
 
 def test_get_all_competitions_db_error(client, mock_db):
