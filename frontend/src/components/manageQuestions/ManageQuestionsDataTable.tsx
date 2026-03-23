@@ -87,9 +87,22 @@ export function ManageQuestionsDataTable<TData, TValue>({
     try {
       await deleteQuestion(questionId);
       toast.success(`Question ${questionId} deleted successfully!`);
+      logFrontend({
+        level: "INFO",
+        message: `Deleted question with ID ${questionId}.`,
+        component: "ManageQuestionsDataTable",
+        url: globalThis.location.href,
+      })
       await refreshTable?.();
     } catch (error) {
       const message = parseAxiosErrorMessage(error);
+      logFrontend({
+        level: "ERROR",
+        message: `Failed to delete question with ID ${questionId}: ${message}`,
+        component: "ManageQuestionsDataTable",
+        url: globalThis.location.href,
+        stack: error instanceof Error ? error.stack : undefined,
+      })
       console.error("Error deleting questions:", error);
       toast.error(`Failed to delete question ${questionId}: ${message}`);
     }
