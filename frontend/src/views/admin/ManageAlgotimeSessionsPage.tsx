@@ -217,7 +217,7 @@ export default function ManageAlgotimeSessionsPage() {
                     try {
                       const result = await resetAlgoTimeLeaderboard();
                       toast.success(
-                        `Leaderboard reset successfully — ${result.entriesDeleted} ${result.entriesDeleted === 1 ? "entry" : "entries"} deleted.`
+                        `Leaderboard reset successfully - ${result.entriesDeleted} ${result.entriesDeleted === 1 ? "entry" : "entries"} deleted.`
                       );
                     } catch {
                       toast.error("Failed to reset the leaderboard.");
