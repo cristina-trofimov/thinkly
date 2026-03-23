@@ -59,11 +59,11 @@ class QuestionLanguageSpecificPropertiesResponse(BaseModel):
             question_id=getattr(qlsp, "question_id", 0),
             language_id=getattr(qlsp, "language_id", 0),
             language_display_name=getattr(getattr(qlsp, "language", None), "display_name", ""),
-            imports=getattr(qlsp, "imports", ""),
-            preset_classes=getattr(qlsp, "preset_classes", ""),
-            preset_functions=getattr(qlsp, "preset_functions", ""),
-            main_function=getattr(qlsp, "main_function", ""),
-            template_code=getattr(qlsp, "template_code", ""),
+            imports=getattr(qlsp, "imports", "") or "",
+            preset_classes=getattr(qlsp, "preset_classes", "") or "",
+            preset_functions=getattr(qlsp, "preset_functions", "") or "",
+            main_function=getattr(qlsp, "main_function", "") or "",
+            template_code=getattr(qlsp, "template_code", "") or "",
         )
 
 class QuestionListItemResponse(BaseModel):
