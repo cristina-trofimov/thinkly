@@ -11,87 +11,18 @@ import type { Competition } from "@/types/competition/Competition.type";
 import type { Participant } from "@/types/account/Participant.type";
 import { useNavigate } from "react-router-dom";
 import { logFrontend } from "../api/LoggerAPI";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TablePagination } from "@/components/helpers/Pagination";
+import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
+import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
-
-const PUBLIC_PAGE_SIZE_OPTIONS = ["12", "24", "48", "96"] as const;
-
-type CompetitionStatus = "Active" | "Upcoming" | "Completed";
-
-const getCompetitionStatus = (
-  competitionStart: Date | string,
-  competitionEnd?: Date | string
-): CompetitionStatus => {
-  const now = new Date();
-  const start = new Date(competitionStart);
-  const end = competitionEnd ? new Date(competitionEnd) : start;
-  if (Number.isNaN(start.getTime())) return "Upcoming";
-  if (now < start) return "Upcoming";
-  if (!Number.isNaN(end.getTime()) && now <= end) return "Active";
-  return "Completed";
-};
-
-const formatCompetitionDate = (competitionDate: Date) => {
-  const date = new Date(competitionDate);
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatCompetitionDateLong = (competitionDate: Date) => {
-  const date = new Date(competitionDate);
-  return date.toLocaleString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const getStatusClasses = (status: CompetitionStatus) => {
-  switch (status) {
-    case "Active":
-      return "bg-green-100 text-green-700";
-    case "Upcoming":
-      return "bg-blue-100 text-blue-700";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-};
-
-const getCardBorder = (status: CompetitionStatus) => {
-  switch (status) {
-    case "Active":
-      return "border-2 border-green-500/50";
-    case "Upcoming":
-      return "border-2 border-blue-500/50";
-    default:
-      return "border border-border opacity-70";
-  }
-};
-
-const getTitleColor = (status: CompetitionStatus) => {
-  switch (status) {
-    case "Active":
-      return "text-green-600 dark:text-green-400";
-    case "Upcoming":
-      return "text-blue-600 dark:text-blue-400";
-    default:
-      return "text-muted-foreground";
-  }
-};
+import {
+  formatEventDateTime,
+  formatEventDateTimeLong,
+  getEventStatus,
+  getPublicCompetitionCardBorderClasses,
+  getPublicCompetitionStatusBadgeClasses,
+  getPublicCompetitionTitleClasses,
+  type EventStatus as CompetitionStatus,
+} from "@/utils/eventDisplay";
 
 type ModalState =
   | { type: "leaderboard"; competition: Competition }
@@ -250,7 +181,7 @@ export default function CompetitionsPage() {
 
   const competitionsWithStatus: CompetitionWithStatus[] = competitions.map((c) => ({
     comp: c,
-    status: getCompetitionStatus(c.startDate, c.endDate),
+    status: getEventStatus(c.startDate, c.endDate),
   }));
   const hasNoMatchingCompetitions = competitionsWithStatus.length === 0 && !loading;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -298,17 +229,17 @@ export default function CompetitionsPage() {
             return (
               <Card
                 key={comp.id}
-                className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getCardBorder(status)}`}
+                className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)}`}
               >
                 <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                   <div className="absolute inset-0 bg-grid-primary/5"></div>
                   <div className="absolute top-3 right-3 z-20">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getPublicCompetitionStatusBadgeClasses(status)}`}>
                       {status}
                     </span>
                   </div>
                   <div className="relative z-10 text-center w-full">
-                    <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}>
+                    <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getPublicCompetitionTitleClasses(status)}`}>
                       {title}
                     </div>
                   </div>
@@ -320,7 +251,7 @@ export default function CompetitionsPage() {
                       {comp.competitionLocation || "Online"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatCompetitionDate(comp.startDate)}
+                      {formatEventDateTime(comp.startDate)}
                     </p>
                   </div>
 
@@ -335,37 +266,18 @@ export default function CompetitionsPage() {
       )}
 
       {total > 0 && (
-        <div className="flex flex-row items-center justify-between gap-3 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Cards per page</span>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPage(1);
-                setPageSize(Number(value));
-                globalThis.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <SelectTrigger className="w-20 cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PUBLIC_PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TablePagination
-            page={page}
-            pageCount={pageCount}
-            pageItems={pageItems}
-            onPageChange={setPage}
-          />
-        </div>
+        <CardPaginationControls
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          pageSize={pageSize}
+          pageSizeOptions={PUBLIC_CARD_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1);
+            setPageSize(value);
+          }}
+        />
       )}
 
       {hasNoMatchingCompetitions && (
@@ -419,14 +331,14 @@ export default function CompetitionsPage() {
           {modal?.type === "details" && (
             <div className="space-y-4 pt-2">
               <div>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusClasses(getCompetitionStatus(modal.competition.startDate, modal.competition.endDate))}`}>
-                  {getCompetitionStatus(modal.competition.startDate, modal.competition.endDate)}
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getPublicCompetitionStatusBadgeClasses(getEventStatus(modal.competition.startDate, modal.competition.endDate))}`}>
+                  {getEventStatus(modal.competition.startDate, modal.competition.endDate)}
                 </span>
               </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground font-medium shrink-0">Date & Time</span>
-                  <span className="text-right">{formatCompetitionDateLong(modal.competition.startDate)}</span>
+                  <span className="text-right">{formatEventDateTimeLong(modal.competition.startDate)}</span>
                 </div>
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground font-medium shrink-0">Location</span>

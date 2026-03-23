@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import case, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
     CompetitionLeaderboardEntry
 from database_operations.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
+from endpoints.event_utils import (
+    apply_event_status_filter,
+    build_event_date_order,
+    build_event_status_order,
+    parse_local_datetime_from_request,
+    validate_event_times,
+)
 from endpoints.send_email_api import send_email_via_brevo
 import logging
 from datetime import datetime, timezone, timedelta
@@ -150,42 +157,19 @@ class DetailedCompetitionResponse(BaseModel):
 
 # ---------------- Helper Functions ----------------
 def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
-    """
-    Combines date and time strings into a timezone-aware datetime object.
-    """
-    try:
-        dt_naive = datetime.fromisoformat(f"{date_str}T{time_str}:00")
-
-        # Attach LOCAL timezone
-        dt_local = dt_naive.replace(tzinfo=LOCAL_TZ)
-
-        # Convert to UTC
-        dt_utc = dt_local.astimezone(timezone.utc)
-
-        return dt_utc
-    except ValueError:
-        logger.error(f"Invalid date/time format: {date_str} {time_str}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date or time format."
-        )
+    """Combines date and time strings into a timezone-aware datetime object."""
+    return parse_local_datetime_from_request(date_str, time_str, LOCAL_TZ, logger)
 
 
 def validate_competition_times(start_dt: datetime, end_dt: datetime, skip_future_check: bool = False):
     """Validates that competition times are logical and in the future."""
-    if not skip_future_check:
-        now = datetime.now(timezone.utc)
-        if start_dt <= now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Competition start time must be in the future"
-            )
-
-    if end_dt <= start_dt:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Competition end time must be after start time"
-        )
+    validate_event_times(
+        start_dt,
+        end_dt,
+        require_future_start=not skip_future_check,
+        future_start_detail="Competition start time must be in the future",
+        invalid_range_detail="Competition end time must be after start time",
+    )
 
 
 def check_competition_name_exists(db: Session, name: str, exclude_id: Optional[int] = None) -> bool:
@@ -408,24 +392,12 @@ def get_all_competitions(
                 )
             )
 
-        if status_filter == "upcoming":
-            query = query.filter(BaseEvent.event_start_date > now)
-        elif status_filter == "active":
-            query = query.filter(
-                BaseEvent.event_start_date <= now,
-                BaseEvent.event_end_date >= now,
-            )
-        elif status_filter == "completed":
-            query = query.filter(BaseEvent.event_end_date < now)
+        query = apply_event_status_filter(query, BaseEvent, status_filter, now)
 
         total = query.count()
 
-        status_order = case(
-            (BaseEvent.event_start_date > now, 1),
-            (BaseEvent.event_end_date < now, 2),
-            else_=0,
-        )
-        date_order = BaseEvent.event_start_date.asc() if sort == "asc" else BaseEvent.event_start_date.desc()
+        status_order = build_event_status_order(BaseEvent, now)
+        date_order = build_event_date_order(BaseEvent, sort)
         competitions = (
             query
             .order_by(status_order.asc(), date_order)

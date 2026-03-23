@@ -30,24 +30,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
 import { resetAlgoTimeLeaderboard } from "@/api/LeaderboardsAPI";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TablePagination } from "@/components/helpers/Pagination";
+import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
+import { ADMIN_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageAlgotimeSessionsSkeleton from "@/components/algotime/ManageAlgotimeSessionsSkeleton";
 import { Spinner } from "@/components/ui/spinner";
-
-const CARD_PAGE_SIZE_OPTIONS = [
-  { value: 11, label: "11" },
-  { value: 27, label: "27" },
-  { value: 55, label: "55" },
-  { value: 95, label: "95" },
-] as const;
+import { useCardReveal } from "@/hooks/useCardReveal";
+import {
+  formatEventDate,
+  getAdminStatusBadgeClasses,
+  getEventStatus,
+} from "@/utils/eventDisplay";
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +54,6 @@ export default function ManageAlgotimeSessionsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(27);
-  const [cardsVisible, setCardsVisible] = useState(false);
   const latestRequestId = useRef(0);
 
   const {
@@ -117,29 +109,11 @@ export default function ManageAlgotimeSessionsPage() {
     loadATsessions();
   }, [page, pageSize, searchQuery, statusFilter]);
 
-  useEffect(() => {
-    if (loading) {
-      setCardsVisible(false);
-      return;
-    }
-
-    const frame = globalThis.requestAnimationFrame(() => {
-      setCardsVisible(true);
-    });
-
-    return () => globalThis.cancelAnimationFrame(frame);
-  }, [loading, algotimesSessions]);
+  const cardsVisible = useCardReveal(loading, algotimesSessions.length);
 
   if (loading && !hasLoadedOnce) {
     return <ManageAlgotimeSessionsSkeleton />;
   }
-
-  const getSessionStatus = (startTime: Date, endTime: Date) => {
-    const now = new Date();
-    if (now < startTime) return { label: "Upcoming", className: "bg-blue-100 text-blue-700" };
-    if (now >= startTime && now <= endTime) return { label: "Active", className: "bg-green-100 text-green-700" };
-    return { label: "Completed", className: "bg-gray-100 text-gray-600" };
-  };
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
@@ -305,16 +279,16 @@ export default function ManageAlgotimeSessionsPage() {
             }}
           >
             <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-              <div className="absolute top-3 right-3 z-20">
-                {(() => {
-                  const status = getSessionStatus(ATsession.startTime, ATsession.endTime);
-                  return (
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${status.className}`}>
-                      {status.label}
-                    </span>
-                  );
-                })()}
-              </div>
+                <div className="absolute top-3 right-3 z-20">
+                  {(() => {
+                    const status = getEventStatus(ATsession.startTime, ATsession.endTime);
+                    return (
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}>
+                        {status}
+                      </span>
+                    );
+                  })()}
+                </div>
               <div className="relative z-10 text-center w-full">
                 <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
                   {ATsession.eventName || "no event"}
@@ -327,7 +301,7 @@ export default function ManageAlgotimeSessionsPage() {
                   Date
                 </h4>
                 <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                  {ATsession.startTime.toLocaleDateString()}
+                  {formatEventDate(ATsession.startTime)}
                 </p>
               </div>
             </CardContent>
@@ -398,37 +372,18 @@ export default function ManageAlgotimeSessionsPage() {
         ))}
       </div>
       {total > 0 && (
-        <div className="flex flex-row items-center justify-between gap-3 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Cards per page</span>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPage(1);
-                setPageSize(Number(value));
-                globalThis.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <SelectTrigger className="w-20 cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CARD_PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size.value} value={`${size.value}`}>
-                    {size.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TablePagination
-            page={page}
-            pageCount={pageCount}
-            pageItems={pageItems}
-            onPageChange={setPage}
-          />
-        </div>
+        <CardPaginationControls
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          pageSize={pageSize}
+          pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1);
+            setPageSize(value);
+          }}
+        />
       )}
       {total === 0 && !loading && (searchQuery.trim() || statusFilter !== "all") && (
         <div className="text-center py-16">

@@ -28,44 +28,17 @@ import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { getCompetitionsPage, deleteCompetition } from "../../api/CompetitionAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TablePagination } from "@/components/helpers/Pagination";
+import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
+import { ADMIN_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
 import { Spinner } from "@/components/ui/spinner";
-
-const CARD_PAGE_SIZE_OPTIONS = [
-  { value: 11, label: "11" },
-  { value: 27, label: "27" },
-  { value: 55, label: "55" },
-  { value: 95, label: "95" },
-] as const;
-
-const getCompetitionStatus = (
-  competitionStart: Date | string
-  ,
-  competitionEnd?: Date | string
-): "Completed" | "Active" | "Upcoming" => {
-  const now = new Date();
-  const start = new Date(competitionStart);
-  const end = competitionEnd ? new Date(competitionEnd) : start;
-  if (Number.isNaN(start.getTime())) return "Upcoming";
-  if (now < start) return "Upcoming";
-  if (!Number.isNaN(end.getTime()) && now <= end) return "Active";
-  return "Completed";
-};
-
-const formatCompetitionDate = (competitionDate: Date) => {
-  const date = new Date(competitionDate);
-  if (Number.isNaN(date.getTime())) return "TBD";
-  return date.toLocaleDateString();
-};
+import { useCardReveal } from "@/hooks/useCardReveal";
+import {
+  formatEventDate,
+  getAdminStatusBadgeClasses,
+  getEventStatus,
+} from "@/utils/eventDisplay";
 
 const ManageCompetitions = () => {
   const navigate = useNavigate();
@@ -91,7 +64,6 @@ const ManageCompetitions = () => {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(27);
-  const [cardsVisible, setCardsVisible] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const latestRequestId = useRef(0);
 
@@ -137,19 +109,6 @@ const ManageCompetitions = () => {
     }
   };
 
-  const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-700";
-      case "Upcoming":
-        return "bg-blue-100 text-blue-700";
-      case "Completed":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
   useEffect(() => {
     if (location.state?.success) {
       toast.success("Competition published successfully!");
@@ -174,18 +133,7 @@ const ManageCompetitions = () => {
     load();
   }, [location.key, page, pageSize, searchQuery, statusFilter, refreshKey]);
 
-  useEffect(() => {
-    if (loading) {
-      setCardsVisible(false);
-      return;
-    }
-
-    const frame = globalThis.requestAnimationFrame(() => {
-      setCardsVisible(true);
-    });
-
-    return () => globalThis.cancelAnimationFrame(frame);
-  }, [loading, competitions]);
+  const cardsVisible = useCardReveal(loading, competitions.length);
 
   if (loading && !hasLoadedOnce) {
     return <ManageCompetitionsSkeleton />;
@@ -217,7 +165,7 @@ const ManageCompetitions = () => {
 
   const handleCardClick = (id: number, title: string) => {
     const comp = competitions.find((c) => c.id === id);
-    const status = comp ? getCompetitionStatus(comp.startDate, comp.endDate) : "Upcoming";
+    const status = comp ? getEventStatus(comp.startDate, comp.endDate) : "Upcoming";
     setIsReadOnly(status === "Active" || status === "Completed");
     setSelectedCompetition({ id, title });
     setEditDialogOpen(true);
@@ -349,7 +297,7 @@ const ManageCompetitions = () => {
         </Card>
 
         {competitions.map((comp, index) => {
-          const status = getCompetitionStatus(comp.startDate, comp.endDate);
+          const status = getEventStatus(comp.startDate, comp.endDate);
           const title = comp.competitionTitle || "Untitled Competition";
           let opacityClass = "opacity-100";
           if (loading && hasLoadedOnce) {
@@ -378,7 +326,7 @@ const ManageCompetitions = () => {
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
                 <div className="absolute top-3 right-3 z-20">
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}
                   >
                     {status}
                   </span>
@@ -396,7 +344,7 @@ const ManageCompetitions = () => {
                     {comp.competitionLocation || "Location TBD"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatCompetitionDate(comp.startDate)}
+                  {formatEventDate(comp.startDate)}
                   </p>
                 </div>
                 <div className="flex items-center justify-end pt-2 border-t">
@@ -416,37 +364,18 @@ const ManageCompetitions = () => {
       </div>
 
       {total > 0 && (
-        <div className="flex flex-row items-center justify-between gap-3 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Cards per page</span>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPage(1);
-                setPageSize(Number(value));
-                globalThis.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <SelectTrigger className="w-20 cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CARD_PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size.value} value={`${size.value}`}>
-                    {size.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TablePagination
-            page={page}
-            pageCount={pageCount}
-            pageItems={pageItems}
-            onPageChange={setPage}
-          />
-        </div>
+        <CardPaginationControls
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          pageSize={pageSize}
+          pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1);
+            setPageSize(value);
+          }}
+        />
       )}
 
       {total === 0 && !loading && (searchQuery.trim() || statusFilter) && (

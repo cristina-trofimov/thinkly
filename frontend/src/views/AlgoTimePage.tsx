@@ -4,28 +4,10 @@ import { Button } from "@/components/ui/button";
 import { getAlgotimeSessionsPage } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { TablePagination } from "@/components/helpers/Pagination";
+import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
+import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
-
-const PUBLIC_PAGE_SIZE_OPTIONS = ["12", "24", "48", "96"] as const;
-
-const formatSessionDate = (d: Date) => {
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return "TBD";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
+import { formatEventDateTime } from "@/utils/eventDisplay";
 
 export default function AlgoTimePage() {
   const [sessions, setSessions] = useState<AlgoTimeSession[]>([]);
@@ -94,7 +76,7 @@ export default function AlgoTimePage() {
             <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
               <div>
                 <p className="text-sm font-medium">Questions: {session.questionCount ?? session.questions.length}</p>
-                <p className="text-xs text-muted-foreground mt-1">{formatSessionDate(session.startTime)} - {formatSessionDate(session.endTime)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{formatEventDateTime(session.startTime)} - {formatEventDateTime(session.endTime)}</p>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t">
@@ -107,37 +89,18 @@ export default function AlgoTimePage() {
       </div>
 
       {total > 0 && (
-        <div className="flex flex-row items-center justify-between gap-3 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Cards per page</span>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPage(1);
-                setPageSize(Number(value));
-                globalThis.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            >
-              <SelectTrigger className="w-20 cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PUBLIC_PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TablePagination
-            page={page}
-            pageCount={pageCount}
-            pageItems={pageItems}
-            onPageChange={setPage}
-          />
-        </div>
+        <CardPaginationControls
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          pageSize={pageSize}
+          pageSizeOptions={PUBLIC_CARD_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1);
+            setPageSize(value);
+          }}
+        />
       )}
 
       {total === 0 && !loading && (
