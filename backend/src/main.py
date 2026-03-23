@@ -20,8 +20,13 @@ from endpoints.user_preferences_api import user_preferences_router
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from endpoints.user_question_instance_api import user_question_instance_router
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from logging_config import setup_logging
 from services.competition_cleanup import cleanup_ended_competitions
+from services.algotime_cleanup import cleanup_ended_algotime_sessions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
@@ -38,7 +43,6 @@ JUDGE0_URL = os.getenv("JUDGE0_URL")
 setup_logging()
 logger = logging.getLogger(__name__)
 
-
 # Modern lifespan event handler (replaces deprecated on_event)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,6 +54,7 @@ async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
     scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
+    scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
     print("✓ Email scheduler started (polling every 60s)")
 
@@ -64,6 +69,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
+
+# --- Rate Limiting ---
+limiter = Limiter(key_func=get_remote_address, default_limits=["45/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 # --- Allow frontend requests (CORS setup) ---
@@ -169,4 +180,4 @@ except Exception:
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

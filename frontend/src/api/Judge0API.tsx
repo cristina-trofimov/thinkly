@@ -3,16 +3,13 @@ import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
-import { getProfile } from "./AuthAPI";
-
-
 export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
     let expected_output: string | null = ''
 
     testcases.forEach((t) => {
         let inputs = ''
-        Object.values(t.input_data).forEach((v) => {
+        Object.values(t.input_data as Record<string, unknown>).forEach((v) => {
             inputs += ` ${JSON.stringify(v)}`
         })
         stdin += `${inputs.trim()}\n`
@@ -38,6 +35,7 @@ export async function submitToJudge0(
     source_code: string,
     language_id: number | undefined,
     testcases: TestCase[],
+    userId: number,
 ): Promise<CodeRunResponse> {
     try {
         if (!question_instance_id || !language_id) {
@@ -56,8 +54,7 @@ export async function submitToJudge0(
             }
         )
 
-        const user = await getProfile()
-        const userPref = await updateLastProgLang(user.id, language_id)
+        const userPref = await updateLastProgLang(userId, language_id)
 
         return {
             judge0Response: response['data'],

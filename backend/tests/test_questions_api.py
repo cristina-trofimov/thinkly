@@ -65,7 +65,7 @@ def build_query_mock(mock_db):
     query.order_by.return_value = query
     query.offset.return_value = query
     query.limit.return_value = query
-    query.scalar.return_value = datetime(2025, 1, 1, 0, 0, 0)
+    query.first.return_value = (0, datetime(2025, 1, 1, 0, 0, 0), 0, 0)
     return query
 
 # --- TESTS ---
@@ -138,12 +138,13 @@ def test_get_all_questions_success(client, mock_db):
     assert "2025-01-10" in data["items"][0]["created_at"]
     assert response.headers["cache-control"] == "no-cache, must-revalidate"
     assert "last-modified" in response.headers
+    assert "etag" in response.headers
 
 
 def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
     query = build_query_mock(mock_db)
     latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
-    query.scalar.return_value = latest
+    query.first.return_value = (0, latest, 0, 0)
 
     response = client.get(
         "/get-all-questions",
@@ -153,6 +154,61 @@ def test_get_all_questions_returns_304_when_unmodified(client, mock_db):
     assert response.status_code == 304
     assert response.headers["cache-control"] == "no-cache, must-revalidate"
     assert response.headers["last-modified"] == format_datetime(latest, usegmt=True)
+
+
+def test_get_all_questions_returns_304_when_etag_matches(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.first.return_value = (2, latest, 7, 10)
+    query.count.return_value = 2
+    query.all.return_value = []
+
+    first_response = client.get("/get-all-questions")
+    etag = first_response.headers["etag"]
+
+    response = client.get(
+        "/get-all-questions",
+        headers={"If-None-Match": etag},
+    )
+
+    assert response.status_code == 304
+    assert response.headers["etag"] == etag
+
+
+def test_get_all_questions_returns_200_when_one_validator_is_stale(client, mock_db):
+    query = build_query_mock(mock_db)
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    query.first.return_value = (1, latest, 1, 1)
+    query.count.return_value = 1
+    query.all.return_value = [
+        SimpleNamespace(
+            question_id=1,
+            question_name="Two Sum",
+            question_description="desc",
+            media=None,
+            difficulty="easy",
+            created_at=datetime(2025, 1, 1, 0, 0, 0),
+            last_modified_at=latest,
+            tags=[],
+            test_cases=[],
+            language_specific_properties=[],
+            question_instances=[],
+        )
+    ]
+
+    first_response = client.get("/get-all-questions")
+    etag = first_response.headers["etag"]
+
+    response = client.get(
+        "/get-all-questions",
+        headers={
+            "If-None-Match": etag,
+            "If-Modified-Since": format_datetime(latest - timedelta(seconds=10), usegmt=True),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
 def test_get_all_questions_empty(client, mock_db):
     """Test when the database has no questions."""
 
@@ -479,6 +535,59 @@ def test_batch_delete_questions_error_rolls_back(client, mock_db):
     mock_db.rollback.assert_called_once()
 
 
+def test_show_question_on_frontpage_by_id_creates_instance(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = SimpleNamespace(question_id=5)
+
+    existing_query = MagicMock()
+    existing_query.filter.return_value.first.return_value = None
+
+    mock_db.query.side_effect = [question_lookup_query, existing_query]
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/5",
+        json={"should_show": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"question_id": 5, "show_on_frontpage": True}
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+
+
+def test_show_question_on_frontpage_by_id_deletes_instance(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = SimpleNamespace(question_id=7)
+
+    delete_query = MagicMock()
+    delete_query.filter.return_value.delete.return_value = 1
+
+    mock_db.query.side_effect = [question_lookup_query, delete_query]
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/7",
+        json={"should_show": False},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"question_id": 7, "show_on_frontpage": False}
+    mock_db.commit.assert_called_once()
+
+
+def test_show_question_on_frontpage_by_id_returns_404_for_missing_question(client, mock_db):
+    question_lookup_query = MagicMock()
+    question_lookup_query.filter.return_value.first.return_value = None
+    mock_db.query.return_value = question_lookup_query
+
+    response = client.put(
+        "/show-question-on-frontpage-by-id/999",
+        json={"should_show": True},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Question with id 999 not found"
+
+
 def test_update_question_not_found_returns_404_with_message(client, mock_db):
     mock_db.query.return_value.filter.return_value.first.return_value = None
 
@@ -522,115 +631,7 @@ def test_upload_question_batch_db_error(client, mock_db):
     assert response.status_code == 500
     assert response.json()["detail"].startswith("Failed to upload question batch")
 
-# --- get_all_riddles ---
 
-def test_get_all_riddles_success(client, mock_db):
-    """Test the happy path where riddles are returned correctly."""
-    fake_riddles = [
-        SimpleNamespace(riddle_id=1, riddle_question="What am I?", riddle_answer="A riddle", riddle_file=None),
-        SimpleNamespace(riddle_id=2, riddle_question="Another?", riddle_answer="Another", riddle_file=None),
-    ]
-    query = build_query_mock(mock_db)
-    query.count.return_value = 2
-    query.all.return_value = fake_riddles
-
-    response = client.get("/get-all-riddles")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["total"] == 2
-    assert data["page"] == 1
-    assert data["page_size"] == 25
-    assert len(data["items"]) == 2
-    assert data["items"][0]["riddle_id"] == 1
-    assert data["items"][0]["riddle_question"] == "What am I?"
-
-
-def test_get_all_riddles_empty(client, mock_db):
-    """Test when there are no riddles in the database."""
-    query = build_query_mock(mock_db)
-    query.count.return_value = 0
-    query.all.return_value = []
-
-    response = client.get("/get-all-riddles")
-    assert response.status_code == 200
-    assert response.json() == {"total": 0, "page": 1, "page_size": 25, "items": []}
-
-
-def test_get_all_riddles_db_error(client, mock_db):
-    """Test that a DB error returns 500 with the generic riddles message."""
-    query = build_query_mock(mock_db)
-    query.count.side_effect = Exception("DB failure")
-
-    response = client.get("/get-all-riddles")
-    assert response.status_code == 500
-    assert response.json()["detail"] == "Failed to retrieve riddles."
-
-
-# --- get_all_testcases ---
-
-def test_get_all_testcases_success(client, mock_db):
-    """Test the happy path where test cases for a question are returned correctly."""
-    fake_testcases = [
-        SimpleNamespace(test_case_id=1, question_id=1, input_data="[1,2]", expected_output="3"),
-        SimpleNamespace(test_case_id=2, question_id=1, input_data="[3,4]", expected_output="7"),
-    ]
-    mock_db.query.return_value.filter_by.return_value.all.return_value = fake_testcases
-
-    response = client.get("/get-all-testcases/1")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-    assert data[0]["test_case_id"] == 1
-    assert data[0]["input_data"] == "[1,2]"
-
-
-def test_get_all_testcases_empty(client, mock_db):
-    """Test when a question has no test cases."""
-    mock_db.query.return_value.filter_by.return_value.all.return_value = []
-
-    response = client.get("/get-all-testcases/99")
-    assert response.status_code == 200
-    assert response.json() == []
-
-
-def test_get_all_testcases_db_error(client, mock_db):
-    """Test that a DB error returns 500 with the generic test cases message."""
-    mock_db.query.return_value.filter_by.return_value.all.side_effect = Exception("DB failure")
-
-    response = client.get("/get-all-testcases/1")
-    assert response.status_code == 500
-    assert response.json()["detail"] == "Failed to retrieve test cases."
-
-
-def test_get_all_riddles_returns_paginated_envelope(client, mock_db):
-    query = build_query_mock(mock_db)
-    query.count.return_value = 1
-    query.all.return_value = [
-        SimpleNamespace(
-            riddle_id=10,
-            riddle_question="What has keys but can't open locks?",
-            riddle_answer="Piano",
-            riddle_file=None,
-        )
-    ]
-
-    response = client.get("/get-all-riddles", params={"search": "keys"})
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "total": 1,
-        "page": 1,
-        "page_size": 25,
-        "items": [
-            {
-                "riddle_id": 10,
-                "riddle_question": "What has keys but can't open locks?",
-                "riddle_answer": "Piano",
-                "riddle_file": None,
-            }
-        ],
-    }
-    assert response.headers["cache-control"] == "public, max-age=60"
 
 
 def test_get_question_by_id_unexpected_error_returns_500(client, mock_db):
@@ -644,7 +645,7 @@ def test_get_question_by_id_unexpected_error_returns_500(client, mock_db):
 
 def test_get_all_questions_invalid_if_modified_since_uses_fallback(client, mock_db):
     query = build_query_mock(mock_db)
-    query.scalar.return_value = datetime(2025, 2, 1, 10, 0, 0)
+    query.first.return_value = (0, datetime(2025, 2, 1, 10, 0, 0), 0, 0)
     query.count.return_value = 0
     query.all.return_value = []
 
@@ -776,7 +777,7 @@ def test_update_question_success_replaces_fields_tags_and_testcases(client, mock
 
 def test_get_all_questions_uses_now_when_last_modified_missing(client, mock_db):
     query = build_query_mock(mock_db)
-    query.scalar.return_value = None
+    query.first.return_value = (0, None, 0, 0)
     query.count.return_value = 0
     query.all.return_value = []
 

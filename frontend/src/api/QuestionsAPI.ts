@@ -5,12 +5,11 @@ import type {
   QuestionsPageParams,
   QuestionsPageResult,
   QuestionsResponse,
-  RiddlesResponse,
   TestCase,
   LanguageSpecificProperties
 } from "@/types/questions/QuestionPagination.type";
 import { logFrontend } from "./LoggerAPI";
-import type { Riddle } from "@/types/riddle/Riddle.type";
+
 
 const DEFAULT_PAGE_SIZE = 100;
 
@@ -36,6 +35,7 @@ function mapQuestion(
     difficulty: normalizeDifficulty(question.difficulty),
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    show_on_frontpage: Boolean(question.show_on_frontpage),
     tags: [] as TagResponse[],
     test_cases: [] as Array<TestCase>,
     language_specific_properties: [] as Array<LanguageSpecificProperties>,
@@ -163,65 +163,15 @@ export async function deleteQuestion(questionId: number): Promise<void> {
   await deleteQuestions([questionId]);
 }
 
-export async function getRiddles(): Promise<Riddle[]> {
-  try {
-    const firstPage = await axiosClient.get<RiddlesResponse>(
-      "/questions/get-all-riddles",
-      { params: { page: 1, page_size: DEFAULT_PAGE_SIZE } },
-    );
-
-    let riddleItems = [...firstPage.data.items];
-    const totalPages = Math.ceil(firstPage.data.total / firstPage.data.page_size);
-
-    for (let page = 2; page <= totalPages; page += 1) {
-      const nextPage = await axiosClient.get<RiddlesResponse>(
-        "/questions/get-all-riddles",
-        { params: { page, page_size: firstPage.data.page_size } },
-      );
-      riddleItems = [...riddleItems, ...nextPage.data.items];
-    }
-
-    return riddleItems.map((riddle) => ({
-      id: riddle.riddle_id,
-      question: riddle.riddle_question,
-      answer: riddle.riddle_answer,
-      file: riddle.riddle_file || null,
-    }));
-  } catch (err) {
-    logFrontend({
-      level: "ERROR",
-      message: `An error occurred when fetching riddles. Reason: ${err}`,
-      component: "QuestionsAPI",
-      url: globalThis.location.href,
-      stack: (err as Error).stack,
-    })
-    throw err;
-  }
-}
-
-export async function getTestcases(
-  question_id: number,
-): Promise<TestCase[]> {
-  try {
-    const response = await axiosClient.get<
-      {
-        test_case_id: number;
-        question_id: number;
-        input_data: unknown;
-        expected_output: unknown;
-      }[]
-    >(`/questions/get-all-testcases/${question_id}`);
-
-    return response.data.map((testcase) => ({
-      test_case_id: testcase.test_case_id,
-      question_id: testcase.question_id,
-      input_data: testcase.input_data,
-      expected_output: testcase.expected_output,
-    }));
-  } catch (err) {
-    console.error("Error fetching testcases:", err);
-    throw err;
-  }
+export async function ShowQuestionOnFrontpageByID(
+  questionId: number,
+  shouldShow: boolean,
+): Promise<{ question_id: number; show_on_frontpage: boolean }> {
+  const response = await axiosClient.put(
+    `/questions/show-question-on-frontpage-by-id/${questionId}`,
+    { should_show: shouldShow },
+  );
+  return response.data;
 }
 
 export async function deleteCompetition(competitionId: string): Promise<void> {

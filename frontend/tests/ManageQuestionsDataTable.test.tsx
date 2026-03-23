@@ -123,13 +123,13 @@ describe("ManageQuestionsDataTable", () => {
       errors: [],
     } as any);
 
-    const onDeleteQuestions = jest.fn();
+    const refreshTable = jest.fn();
     render(
       <MemoryRouter>
         <ManageQuestionsDataTable
           columns={columns as any}
           data={data}
-          onDeleteQuestions={onDeleteQuestions}
+          refreshTable={refreshTable}
         />
       </MemoryRouter>
     );
@@ -141,7 +141,7 @@ describe("ManageQuestionsDataTable", () => {
 
     await waitFor(() => {
       expect(mockedDeleteQuestions).toHaveBeenCalledWith([1]);
-      expect(onDeleteQuestions).toHaveBeenCalledWith([1]);
+      expect(refreshTable).toHaveBeenCalled();
       expect(mockedToast.success).toHaveBeenCalled();
     });
   });
@@ -155,9 +155,10 @@ describe("ManageQuestionsDataTable", () => {
       errors: [{ question_id: 2, error: "Question not found." }],
     } as any);
 
+    const refreshTable = jest.fn();
     render(
       <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} onDeleteQuestions={jest.fn()} />
+        <ManageQuestionsDataTable columns={columns as any} data={data} refreshTable={refreshTable} />
       </MemoryRouter>
     );
 
@@ -173,6 +174,7 @@ describe("ManageQuestionsDataTable", () => {
       expect(mockedToast.warning).toHaveBeenCalledWith(
         "1 questions could not be deleted."
       );
+      expect(refreshTable).toHaveBeenCalled();
     });
   });
 
@@ -280,20 +282,20 @@ describe("ManageQuestionsDataTable", () => {
   });
 
   it("handles upload callbacks", () => {
-    const onUploadQuestions = jest.fn();
+    const refreshTable = jest.fn();
     render(
       <MemoryRouter>
         <ManageQuestionsDataTable
           columns={columns as any}
           data={data}
-          onUploadQuestions={onUploadQuestions}
+          refreshTable={refreshTable}
         />
       </MemoryRouter>
     );
 
     fireEvent.click(screen.getByTestId("upload-json"));
 
-    expect(onUploadQuestions).toHaveBeenCalled();
+    expect(refreshTable).toHaveBeenCalled();
     expect(mockedToast.success).toHaveBeenCalledWith("Questions uploaded successfully!");
     expect(mockedToast.error).toHaveBeenCalledWith("Questions failed to upload: boom");
   });

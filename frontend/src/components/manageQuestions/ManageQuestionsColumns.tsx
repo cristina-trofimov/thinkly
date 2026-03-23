@@ -4,6 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EditableQuestionFields, Question } from "@/types/questions/QuestionPagination.type";
 import ActionsCell from "./QuestionActionsCell";
 
@@ -19,6 +20,7 @@ const difficultyOrder: Record<string, number> = {
 interface TableMeta {
   handleQuestionUpdate?: (questionId: number, updatedQuestionFields: EditableQuestionFields) => boolean;
   handleQuestionDelete?: (questionId: number) => void;
+  handleQuestionFrontpageToggle?: (questionId: number, shouldShow: boolean) => Promise<boolean>;
 }
 
 export const columns: ColumnDef<Question>[] = [
@@ -157,6 +159,39 @@ export const columns: ColumnDef<Question>[] = [
         </div>
       );
     },
+  },
+  {
+    id: "show_on_frontpage",
+    header: () => (
+      <div className="text-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-help">Public</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Shows the Question on the default frontpage without a competition or AlgoTime
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    ),
+    cell: ({ row, table }) => {
+      const question = row.original;
+      const meta = table.options.meta as TableMeta;
+      const { handleQuestionFrontpageToggle } = meta;
+
+      return (
+        <div className="flex justify-center">
+          <Checkbox
+            checked={Boolean(question.show_on_frontpage)}
+            onCheckedChange={(value) => {
+              void handleQuestionFrontpageToggle?.(question.question_id, !!value);
+            }}
+            aria-label={`Show question ${question.question_id} on frontpage`}
+          />
+        </div>
+      );
+    },
+    enableSorting: false,
   },
   {
       id: "actions",

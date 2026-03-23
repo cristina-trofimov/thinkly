@@ -76,7 +76,7 @@ const baseEditablePayload = {
   media: null,
   difficulty: "easy",
   language_specific_properties: [],
-  tags: [] as TagResponse[],
+  tags: [] as string[],
   testcases: [{ input_data: "in", expected_output: "out" }], // Note: testcases (not test_cases)
 };
 
@@ -114,7 +114,7 @@ describe("QuestionJSONEditor", () => {
         media: null,
         difficulty: "easy",
         language_specific_properties: [],
-        tags: [{ tag_id: 1, tag_name: "tag" }] as TagResponse[],
+        tags: ["tag"],
         testcases: [{ input_data: "in", expected_output: "out" }],
       },
       null,
@@ -329,7 +329,7 @@ describe("QuestionJSONEditor", () => {
             media: null,
             difficulty: "easy",
             language_specific_properties: [],
-            tags: [] as TagResponse[],
+            tags: [] as string[],
             testcases: [{ input_data: "in", expected_output: "out" }],
           },
           null,
