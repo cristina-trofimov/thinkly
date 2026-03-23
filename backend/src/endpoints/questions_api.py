@@ -166,7 +166,115 @@ def serialize_test_case(test_case: TestCase) -> dict:
         "input_data": test_case.input_data,
         "expected_output": test_case.expected_output,
     }
-        
+
+
+def normalize_latest_modified(latest_modified: Optional[datetime]) -> datetime:
+    """
+    Normalize a datetime to UTC with no microseconds.
+
+    Args:
+        latest_modified: A datetime object that may be None, naive, or timezone-aware
+
+    Returns:
+        A UTC datetime with microseconds set to 0
+    """
+    if latest_modified is None:
+        latest_modified = datetime.now(timezone.utc)
+    elif latest_modified.tzinfo is None:
+        latest_modified = latest_modified.replace(tzinfo=timezone.utc)
+    else:
+        latest_modified = latest_modified.astimezone(timezone.utc)
+    return latest_modified.replace(microsecond=0)
+
+
+def build_cache_headers(
+    total: int, max_question_id: int, sum_question_ids: int, latest_modified: datetime
+) -> dict:
+    """
+    Build cache-related HTTP headers for the questions response.
+
+    Args:
+        total: Total count of questions matching the query
+        max_question_id: Maximum question ID in the dataset
+        sum_question_ids: Sum of all question IDs matching the query
+        latest_modified: Latest modification timestamp (UTC, no microseconds)
+
+    Returns:
+        Dict containing Cache-Control, Last-Modified, and ETag headers
+    """
+    etag_seed = f"questions:{total}:{max_question_id}:{sum_question_ids}:{int(latest_modified.timestamp())}"
+    etag = f'W/"{sha256(etag_seed.encode("utf-8")).hexdigest()}"'
+    return {
+        "Cache-Control": "no-cache, must-revalidate",
+        "Last-Modified": format_datetime(latest_modified, usegmt=True),
+        "ETag": etag,
+    }
+
+
+def check_cache_validators(request: Request, etag: str, latest_modified: datetime) -> bool:
+    """
+    Check HTTP cache validation headers (If-None-Match, If-Modified-Since).
+
+    Args:
+        request: The HTTP request object
+        etag: The current ETag value
+        latest_modified: The latest modification timestamp (UTC, no microseconds)
+
+    Returns:
+        True if client has a current version and 304 response should be sent, False otherwise
+    """
+    validators = []
+
+    if_none_match = request.headers.get("if-none-match")
+    if if_none_match:
+        client_etags = [tag.strip() for tag in if_none_match.split(",")]
+        validators.append("*" in client_etags or etag in client_etags)
+
+    if_modified_since = request.headers.get("if-modified-since")
+    if if_modified_since:
+        try:
+            client_timestamp = parsedate_to_datetime(if_modified_since).astimezone(timezone.utc)
+            validators.append(client_timestamp >= latest_modified)
+        except (TypeError, ValueError):
+            logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
+            validators.append(False)
+
+    return validators and all(validators)
+
+
+def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
+    """
+    Query and populate the show_on_frontpage flag for each question.
+
+    Sets the show_on_frontpage attribute on each question in-place based on whether
+    it appears in QuestionInstance records with no event_id (indicating frontpage display).
+
+    Args:
+        db: Database session
+        questions: List of Question objects to update
+    """
+    question_ids = [question.question_id for question in questions]
+    show_on_frontpage_ids = set()
+    if question_ids:
+        show_on_frontpage_rows = (
+            db.query(QuestionInstance.question_id)
+            .filter(
+                QuestionInstance.question_id.in_(question_ids),
+                QuestionInstance.event_id.is_(None),
+            )
+            .all()
+        )
+        for row in show_on_frontpage_rows:
+            if isinstance(row, tuple):
+                show_on_frontpage_ids.add(row[0])
+            else:
+                question_id = getattr(row, "question_id", None)
+                if question_id is not None:
+                    show_on_frontpage_ids.add(question_id)
+
+    for question in questions:
+        question.show_on_frontpage = question.question_id in show_on_frontpage_ids
+
 
 @questions_router.get(
     "/get-question-by-id/{question_id}",
@@ -205,6 +313,7 @@ def get_all_questions(
     sort: Annotated[Literal["asc", "desc"], Query()] = "asc",
 ):
     try:
+        # Build query with filters
         query = db.query(Question)
         query = apply_text_search(
             query,
@@ -216,6 +325,7 @@ def get_all_questions(
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
 
+        # Fetch cache-related aggregates
         total_for_cache, latest_modified, max_question_id, sum_question_ids = (
             query.with_entities(
                 func.count(Question.question_id),
@@ -229,42 +339,18 @@ def get_all_questions(
         max_question_id = max_question_id or 0
         sum_question_ids = sum_question_ids or 0
 
-        if latest_modified is None:
-            latest_modified = datetime.now(timezone.utc)
-        elif latest_modified.tzinfo is None:
-            latest_modified = latest_modified.replace(tzinfo=timezone.utc)
-        else:
-            latest_modified = latest_modified.astimezone(timezone.utc)
-        latest_modified = latest_modified.replace(microsecond=0)
+        # Normalize datetime and build cache headers
+        latest_modified = normalize_latest_modified(latest_modified)
+        common_headers = build_cache_headers(
+            total_for_cache, max_question_id, sum_question_ids, latest_modified
+        )
+        etag = common_headers["ETag"]
 
-        etag_seed = f"questions:{total_for_cache}:{max_question_id}:{sum_question_ids}:{int(latest_modified.timestamp())}"
-        etag = f'W/"{sha256(etag_seed.encode("utf-8")).hexdigest()}"'
-
-        common_headers = {
-            "Cache-Control": "no-cache, must-revalidate",
-            "Last-Modified": format_datetime(latest_modified, usegmt=True),
-            "ETag": etag,
-        }
-
-        validators = []
-
-        if_none_match = request.headers.get("if-none-match")
-        if if_none_match:
-            client_etags = [tag.strip() for tag in if_none_match.split(",")]
-            validators.append("*" in client_etags or etag in client_etags)
-
-        if_modified_since = request.headers.get("if-modified-since")
-        if if_modified_since:
-            try:
-                client_timestamp = parsedate_to_datetime(if_modified_since).astimezone(timezone.utc)
-                validators.append(client_timestamp >= latest_modified)
-            except (TypeError, ValueError):
-                logger.warning("Invalid If-Modified-Since header: %s", if_modified_since)
-                validators.append(False)
-
-        if validators and all(validators):
+        # Check cache validators and return 304 if client has current version
+        if check_cache_validators(request, etag, latest_modified):
             return Response(status_code=304, headers=common_headers)
 
+        # Sort and paginate
         if sort == "desc":
             query = query.order_by(Question.question_id.desc())
         else:
@@ -272,28 +358,10 @@ def get_all_questions(
 
         total, questions = paginate_query(query, page, page_size)
 
-        question_ids = [question.question_id for question in questions]
-        show_on_frontpage_ids = set()
-        if question_ids:
-            show_on_frontpage_rows = (
-                db.query(QuestionInstance.question_id)
-                .filter(
-                    QuestionInstance.question_id.in_(question_ids),
-                    QuestionInstance.event_id.is_(None),
-                )
-                .all()
-            )
-            for row in show_on_frontpage_rows:
-                if isinstance(row, tuple):
-                    show_on_frontpage_ids.add(row[0])
-                else:
-                    question_id = getattr(row, "question_id", None)
-                    if question_id is not None:
-                        show_on_frontpage_ids.add(question_id)
+        # Populate frontpage flags
+        populate_frontpage_flags(db, questions)
 
-        for question in questions:
-            question.show_on_frontpage = question.question_id in show_on_frontpage_ids
-
+        # Set response headers and return
         response.headers.update(common_headers)
 
         logger.info(
