@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { logFrontend } from "@/api/LoggerAPI";
 import { useUser } from "@/context/UserContext";
 
 interface ProtectedRouteProps {

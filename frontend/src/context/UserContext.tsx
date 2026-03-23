@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getProfile } from "@/api/AuthAPI";
 import type { Account } from "@/types/account/Account.type";
@@ -44,7 +45,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useUser = () => {
     const context = useContext(UserContext);
     if (context === undefined) {
