@@ -268,7 +268,7 @@ describe("ManageAlgotimeSessionsPage", () => {
     await waitFor(() => {
       expect(resetAlgoTimeLeaderboard).toHaveBeenCalledTimes(1);
       expect(toast.success).toHaveBeenCalledWith(
-        "Leaderboard reset successfully — 5 entries deleted."
+        "Leaderboard reset successfully - 5 entries deleted."
       );
     });
   });

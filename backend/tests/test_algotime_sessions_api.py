@@ -251,6 +251,8 @@ def test_update_algotime_session_success(client, mock_db):
         mock_query.filter.return_value = mock_query
         if model == AlgoTimeSession:
             mock_query.first.return_value = mock_session
+        elif model == Question:
+            mock_query.count.return_value = 1
         elif model == QuestionInstance:
             mock_query.all.return_value = [mock_question_instance]
             mock_query.delete.return_value = None
@@ -303,7 +305,8 @@ def test_delete_algotime_session_success(client, mock_db):
     )
     mock_session = SimpleNamespace(
         event_id=1,
-        algotime_series_id=1
+        algotime_series_id=1,
+        base_event=mock_event,
     )
 
     def query_side_effect(model):

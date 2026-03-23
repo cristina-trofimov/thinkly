@@ -469,7 +469,12 @@ def delete_algotime_session(
     try:
         # Fetch the AlgoTimeSession first (not BaseEvent) so we have series info
         algotime_session = get_algotime_session_or_404(db, session_id)
-        base_event = algotime_session.base_event
+        base_event = getattr(algotime_session, "base_event", None)
+
+        if not base_event:
+            base_event = db.query(BaseEvent).filter(
+                BaseEvent.event_id == session_id
+            ).first()
 
         if not base_event:
             raise HTTPException(
