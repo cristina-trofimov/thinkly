@@ -90,6 +90,7 @@ const ManageCompetitions = () => {
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(11);
+  const [cardsVisible, setCardsVisible] = useState(false);
   const latestRequestId = useRef(0);
 
   const {
@@ -170,6 +171,19 @@ const ManageCompetitions = () => {
     };
     load();
   }, [location.key, page, pageSize, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (loading) {
+      setCardsVisible(false);
+      return;
+    }
+
+    const frame = globalThis.requestAnimationFrame(() => {
+      setCardsVisible(true);
+    });
+
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [loading, competitions]);
 
   if (loading && !hasLoadedOnce) {
     return <ManageCompetitionsSkeleton />;
@@ -325,17 +339,24 @@ const ManageCompetitions = () => {
           </CardContent>
         </Card>
 
-        {competitions.map((comp) => {
+        {competitions.map((comp, index) => {
           const status = getCompetitionStatus(comp.startDate, comp.endDate);
           const title = comp.competitionTitle || "Untitled Competition";
           const opacityClass = loading && hasLoadedOnce ? "opacity-50" : status === "Completed" ? "opacity-75" : "opacity-100";
+          const rowIndex = Math.floor(index / 4);
+          const enterClass = cardsVisible
+            ? "translate-y-0"
+            : "translate-y-2 opacity-0";
 
           return (
             <Card
               key={comp.id}
-              className={`cursor-pointer overflow-hidden transition-all bg-card flex flex-col hover:shadow-lg ${opacityClass}`}
+              className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
               onClick={() => handleCardClick(comp.id, title)}
               aria-busy={loading && hasLoadedOnce}
+              style={{
+                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+              }}
             >
               <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                 <div className="absolute inset-0 bg-grid-primary/5"></div>
@@ -366,7 +387,7 @@ const ManageCompetitions = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:bg-destructive/10 h-8"
+                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={(e) => handleDeleteClick(comp.id, title, e)}
                   >
                     Delete <Trash2 className="h-4 w-4 ml-1" />
@@ -464,7 +485,7 @@ const ManageCompetitions = () => {
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>

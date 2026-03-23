@@ -60,6 +60,7 @@ export default function ManageAlgotimeSessionsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(11);
+  const [cardsVisible, setCardsVisible] = useState(false);
   const latestRequestId = useRef(0);
 
   const {
@@ -114,6 +115,19 @@ export default function ManageAlgotimeSessionsPage() {
   useEffect(() => {
     loadATsessions();
   }, [page, pageSize, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    if (loading) {
+      setCardsVisible(false);
+      return;
+    }
+
+    const frame = globalThis.requestAnimationFrame(() => {
+      setCardsVisible(true);
+    });
+
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [loading, algotimesSessions]);
 
   if (loading && !hasLoadedOnce) {
     return <ManageAlgotimeSessionsSkeleton />;
@@ -206,7 +220,7 @@ export default function ManageAlgotimeSessionsPage() {
         <div className="sm:ml-auto">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button  className="gap-2 text-destructive bg-destructive text-white font-bold hover:bg-destructive/40 sm:w-auto w-full">
+              <Button  className="gap-2 bg-destructive text-white font-bold hover:bg-destructive/40 sm:w-auto w-full">
                 <Trash className="h-4 w-4" />
                 Reset Leaderboard
               </Button>
@@ -264,13 +278,23 @@ export default function ManageAlgotimeSessionsPage() {
             </CardContent>
         </Card>
 
-        {algotimesSessions.map((ATsession) => (
+        {algotimesSessions.map((ATsession, index) => (
+          (() => {
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0"
+              : "translate-y-2 opacity-0";
+
+            return (
           <Card
             key={ATsession.id}
             className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full ${
               loading && hasLoadedOnce ? "opacity-50" : "opacity-100"
-            }`}
+            } ${enterClass} motion-safe:duration-700 motion-safe:ease-out`}
             aria-busy={loading && hasLoadedOnce}
+            style={{
+              transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+            }}
           >
             <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
               <div className="absolute top-3 right-3 z-20">
@@ -304,6 +328,7 @@ export default function ManageAlgotimeSessionsPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="hover:text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     setSelectedSessionId(ATsession.id);
@@ -319,7 +344,7 @@ export default function ManageAlgotimeSessionsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-destructive hover:bg-destructive/10"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Trash className="h-4 w-4 " />
@@ -360,6 +385,8 @@ export default function ManageAlgotimeSessionsPage() {
               </div>
               </CardFooter>
           </Card>
+            );
+          })()
         ))}
       </div>
       {total > 0 && (
