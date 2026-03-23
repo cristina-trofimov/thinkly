@@ -53,90 +53,133 @@ def judge0_get_output(
     raise RuntimeError("Judge0 polling timed out")
 
 
+def judge0_get_outputs(
+        tokens: list[str],
+        interval_ms: int = 500,
+        max_attempts: int = 300,
+):
+    """
+    Retrieve results for multiple submissions from Judge0.
+
+    :param tokens: List of submission tokens.
+    :param interval_ms: Polling interval in milliseconds.
+    :param max_attempts: Maximum number of polling attempts.
+    :return: List of results for each token.
+    """
+    _validate_judge0_url()
+
+    token_str = ",".join(tokens)
+    for _ in range(max_attempts):
+        try:
+            logger.debug("Getting Judge0 batch submission outputs...")
+            resp = requests.get(f"{JUDGE0_URL}/submissions/batch?tokens={token_str}")
+            resp.raise_for_status()
+
+            data = resp.json()
+            statuses = [item['status']['description'] for item in data]
+
+            if all(status not in ("In Queue", "Processing") for status in statuses):
+                return data
+
+            time.sleep(interval_ms / 1000)
+
+        except Exception as e:
+            logger.exception("Network error when getting Judge0 batch outputs")
+            raise RuntimeError(f"Network error when getting Judge0 batch outputs: {e}")
+
+    raise RuntimeError("Judge0 batch polling timed out")
+
+
 def submit_to_judge0(
-        source_code: str,
-        language_id: str,
-        stdin: str,
-        expected_output: str | None = None,
+        submissions: list[dict],
         user_id: str = "anonymous",
 ):
-    _validate_judge0_url()
-    payload = {
-        "source_code": source_code,
-        "language_id": language_id,
-        "number_of_runs": None,
-        "stdin": stdin,
-        "expected_output": expected_output,
-        "cpu_time_limit": None,
-        "cpu_extra_time": None,
-        "wall_time_limit": None,
-        "memory_limit": None,
-        "stack_limit": None,
-        "max_processes_and_or_threads": None,
-        "enable_per_process_and_thread_time_limit": None,
-        "enable_per_process_and_thread_memory_limit": None,
-        "max_file_size": None,
-        "enable_network": None
-    }
 
-    # Remove None fields, should be null
-    payload = {k: v for k, v in payload.items() if v is not None}
+    # print the submissions for debugging
+    logger.debug(f"Submitting to Judge0 with {len(submissions)} submissions: {submissions}")
+    logger.debug(f"LENGTH: {len(submissions)}")
+
+    _validate_judge0_url()
+
+    # Construct the batch payload
+    batch_payload = []
+    for submission in submissions:
+        payload = {
+            "source_code": submission["source_code"],
+            "language_id": submission["language_id"],
+            "stdin": submission.get("stdin", ""),
+            "expected_output": submission.get("expected_output"),
+            "cpu_time_limit": None,
+            "cpu_extra_time": None,
+            "wall_time_limit": None,
+            "memory_limit": None,
+            "stack_limit": None,
+            "max_processes_and_or_threads": None,
+            "enable_per_process_and_thread_time_limit": None,
+            "enable_per_process_and_thread_memory_limit": None,
+            "max_file_size": None,
+            "enable_network": None
+        }
+        # Remove None fields
+        batch_payload.append({k: v for k, v in payload.items() if v is not None})
+        logger.debug(f"Prepared payload for Judge0: {batch_payload[-1]}")
 
     try:
-        logger.debug("Posting to Judge0...")
+        logger.debug("Posting batch submissions to Judge0...")
 
-        # Track code submission
+        # Track batch submission event
         track_custom_event(
             user_id=user_id,
-            event_name="code_submitted",
+            event_name="batch_code_submitted",
             properties={
-                "language_id": language_id,
-                "has_stdin": len(stdin) > 0,
-                "has_expected_output": expected_output is not None,
-                "code_length": len(source_code),
+                "submission_count": len(submissions),
             }
         )
 
-        post_resp = requests.post(f"{JUDGE0_URL}/submissions/batch", json=payload)
+        # Post the batch payload
+        post_resp = requests.post(f"{JUDGE0_URL}/submissions/batch", json=batch_payload)
         post_resp.raise_for_status()
 
-        results = judge0_get_output(post_resp.json()['token'])
+        # Extract all tokens from the response
+        tokens = [item['token'] for item in post_resp.json()]
 
-        # Track execution completion
-        status_description = results.get('status', {}).get('description', 'Unknown')
-        track_custom_event(
-            user_id=user_id,
-            event_name="code_execution_completed",
-            properties={
-                "language_id": language_id,
-                "status": status_description,
-                "execution_time": results.get('time'),
-                "memory_used": results.get('memory'),
-                "is_accepted": status_description == "Accepted",
-                "is_correct": status_description == "Accepted",
-                "has_compile_error": "Compilation Error" in status_description,
-                "has_runtime_error": "Runtime Error" in status_description,
-                "token": results.get('token'),
-            }
-        )
+        # Retrieve results for all tokens
+        results = judge0_get_outputs(tokens)
+
+        # Track execution completion for each result
+        for result in results:
+            status_description = result.get('status', {}).get('description', 'Unknown')
+            track_custom_event(
+                user_id=user_id,
+                event_name="code_execution_completed",
+                properties={
+                    "status": status_description,
+                    "execution_time": result.get('time'),
+                    "memory_used": result.get('memory'),
+                    "is_accepted": status_description == "Accepted",
+                    "is_correct": status_description == "Accepted",
+                    "has_compile_error": "Compilation Error" in status_description,
+                    "has_runtime_error": "Runtime Error" in status_description,
+                    "token": result.get('token'),
+                }
+            )
 
         return results
 
     except Exception as e:
-        logger.exception("Network error when running code with Judge0")
+        logger.exception("Network error when running batch code with Judge0")
 
         # Track execution error
         track_custom_event(
             user_id=user_id,
-            event_name="code_execution_error",
+            event_name="batch_code_execution_error",
             properties={
-                "language_id": language_id,
                 "error_message": str(e),
                 "error_type": "network_error",
             }
         )
 
-        raise RuntimeError(f"Network error when running code with Judge0: {e}")
+        raise RuntimeError(f"Network error when running batch code with Judge0: {e}")
 
 
 # Routes
@@ -149,14 +192,17 @@ def judge0_run_code(request: Request, body: dict = None):
     user_id = body.get("user_id", "anonymous") if body else "anonymous"
 
     try:
+        # Extract submissions from the body
+        submissions = body.get("submissions", []) if body else []
+
+        if not submissions:
+            raise HTTPException(status_code=400, detail="No submissions provided.")
+
         response = submit_to_judge0(
-            source_code=body["source_code"],
-            language_id=body['language_id'],
-            stdin=body['stdin'],
-            expected_output=body.get("expected_output"),
+            submissions=submissions,
             user_id=str(user_id),
         )
-        return {"ok": True, "status_code": 200, **response}
+        return {"ok": True, "status_code": 200, "results": response}
     except Exception:
         # Error is already tracked in submit_to_judge0, just raise HTTP exception
         raise HTTPException(status_code=400, detail="Failed to run code.")
