@@ -36,7 +36,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/helpers/Pagination";
-import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
+import { getPageItems } from "@/utils/paginationUtils";
+import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
+import { Spinner } from "@/components/ui/spinner";
+
+const CARD_PAGE_SIZE_OPTIONS = [
+  { value: 11, label: "11" },
+  { value: 27, label: "27" },
+  { value: 55, label: "55" },
+  { value: 95, label: "95" },
+] as const;
 
 const getCompetitionStatus = (
   competitionStart: Date | string
@@ -71,7 +80,8 @@ const ManageCompetitions = () => {
   } | null>(null);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{
     id: number;
@@ -80,7 +90,7 @@ const ManageCompetitions = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(11);
   const latestRequestId = useRef(0);
 
   const {
@@ -120,6 +130,7 @@ const ManageCompetitions = () => {
     } finally {
       if (requestId === latestRequestId.current) {
         setLoading(false);
+        setHasLoadedOnce(true);
       }
     }
   };
@@ -160,6 +171,10 @@ const ManageCompetitions = () => {
     };
     load();
   }, [location.key, page, pageSize, searchQuery, statusFilter]);
+
+  if (loading && !hasLoadedOnce) {
+    return <ManageCompetitionsSkeleton />;
+  }
 
   const handleCreateNavigation = () => {
     trackAdminCompetitionCreateNavigated();
@@ -289,6 +304,13 @@ const ManageCompetitions = () => {
         </DropdownMenu>
       </div>
 
+      {loading && hasLoadedOnce && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Spinner className="size-4" />
+          <span>Updating competition results...</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {/* Create Button Card */}
         <Card
@@ -310,12 +332,6 @@ const ManageCompetitions = () => {
             </p>
           </CardContent>
         </Card>
-
-        {loading && competitions.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
-            Refreshing competition list...
-          </div>
-        )}
 
         {competitions.map((comp) => {
           const status = getCompetitionStatus(comp.startDate, comp.endDate);
@@ -383,9 +399,9 @@ const ManageCompetitions = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
+                {CARD_PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size.value} value={`${size.value}`}>
+                    {size.label}
                   </SelectItem>
                 ))}
               </SelectContent>

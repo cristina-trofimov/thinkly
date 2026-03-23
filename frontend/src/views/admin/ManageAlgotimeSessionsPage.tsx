@@ -38,19 +38,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/helpers/Pagination";
-import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
+import { getPageItems } from "@/utils/paginationUtils";
+import ManageAlgotimeSessionsSkeleton from "@/components/algotime/ManageAlgotimeSessionsSkeleton";
+import { Spinner } from "@/components/ui/spinner";
+
+const CARD_PAGE_SIZE_OPTIONS = [
+  { value: 11, label: "11" },
+  { value: 27, label: "27" },
+  { value: 55, label: "55" },
+  { value: 95, label: "95" },
+] as const;
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [algotimesSessions, setAlgotimesSessions] = useState<AlgoTimeSession[]>([]);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const navigate = useNavigate();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "Upcoming" | "Active" | "Completed">("all");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(11);
   const latestRequestId = useRef(0);
 
   const {
@@ -97,6 +107,7 @@ export default function ManageAlgotimeSessionsPage() {
     } finally {
       if (requestId === latestRequestId.current) {
         setLoading(false);
+        setHasLoadedOnce(true);
       }
     }
   };
@@ -104,6 +115,10 @@ export default function ManageAlgotimeSessionsPage() {
   useEffect(() => {
     loadATsessions();
   }, [page, pageSize, searchQuery, statusFilter]);
+
+  if (loading && !hasLoadedOnce) {
+    return <ManageAlgotimeSessionsSkeleton />;
+  }
 
   const getSessionStatus = (startTime: Date, endTime: Date) => {
     const now = new Date();
@@ -229,6 +244,13 @@ export default function ManageAlgotimeSessionsPage() {
         </div>
       </div>
 
+      {loading && hasLoadedOnce && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+          <Spinner className="size-4" />
+          <span>Updating algotime session results...</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <Card
           className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
@@ -249,12 +271,6 @@ export default function ManageAlgotimeSessionsPage() {
               </p>
             </CardContent>
         </Card>
-
-        {loading && algotimesSessions.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
-            Loading algotime sessions...
-          </div>
-        )}
 
         {algotimesSessions.map((ATsession) => (
           <Card
@@ -366,9 +382,9 @@ export default function ManageAlgotimeSessionsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
+                {CARD_PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size.value} value={`${size.value}`}>
+                    {size.label}
                   </SelectItem>
                 ))}
               </SelectContent>
