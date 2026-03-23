@@ -37,7 +37,6 @@ export default {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/tests/__mocks__/fileMock.js',
     "^@/(.*)$": "<rootDir>/src/$1",
-    "^.*/lib/axiosClient.*$": "<rootDir>/tests/__mocks__/axiosClient.ts",
   },
   testMatch: [
     '<rootDir>/tests/**/*.test.ts',
