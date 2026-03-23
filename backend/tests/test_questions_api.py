@@ -82,10 +82,10 @@ def test_get_all_questions_success(client, mock_db):
             question_description="Given an array of integers, return indices of two numbers that add to target.",
             media=None,
             difficulty="Easy",
-            preset_code="def two_sum(nums, target):\n    pass",
+            preset_functions="def two_sum(nums, target):\n    pass",
             from_string_function="def from_string(s):\n    return s",
             to_string_function="def to_string(result):\n    return str(result)",
-            template_solution="def two_sum(nums, target):\n    return []",
+            template_code="def two_sum(nums, target):\n    return []",
             created_at=datetime(2025, 1, 10, 12, 0, 0),
             last_modified_at=datetime(2025, 1, 10, 12, 0, 0),
             tags=[SimpleNamespace(tag_id=1, tag_name="array"), SimpleNamespace(tag_id=2, tag_name="hashmap")],
@@ -100,10 +100,10 @@ def test_get_all_questions_success(client, mock_db):
             question_description="Reverse a singly linked list.",
             media=None,
             difficulty="Medium",
-            preset_code="def reverse_list(head):\n    pass",
+            preset_functions="def reverse_list(head):\n    pass",
             from_string_function="def from_string(s):\n    return s",
             to_string_function="def to_string(result):\n    return str(result)",
-            template_solution="def reverse_list(head):\n    return head",
+            template_code="def reverse_list(head):\n    return head",
             created_at=datetime(2025, 2, 15, 14, 30, 0),
             last_modified_at=datetime(2025, 2, 15, 14, 30, 0),
             tags=[SimpleNamespace(tag_id=0, tag_name="linked-list")],
@@ -320,10 +320,10 @@ def test_upload_question_success(client, mock_db):
         "question_name": "Sample Question",
         "question_description": "This is a sample question.",
         "difficulty": "easy",
-        "preset_code": "class PresetCode:\n    pass",
+        "preset_functions": "class PresetCode:\n    pass",
         "from_string_function": "def from_string(s):\n    return s",
         "to_string_function": "def to_string(obj):\n    return str(obj)",
-        "template_solution": "def solution():\n    pass",
+        "template_code": "def solution():\n    pass",
         "tags": ["sample", "test"],
         "testcases": [
             ("input1", "output1"),
@@ -344,10 +344,10 @@ def test_upload_question_batch_success(client, mock_db):
             "question_name": "Batch Question 1",
             "question_description": "First question in batch.",
             "difficulty": "medium",
-            "preset_code": "",
+            "preset_functions": "",
             "from_string_function": "",
             "to_string_function": "",
-            "template_solution": "def solution1():\n    pass",
+            "template_code": "def solution1():\n    pass",
             "tags": ["batch", "first"],
             "testcases": [
                 ("inputA", "outputA")
@@ -357,10 +357,10 @@ def test_upload_question_batch_success(client, mock_db):
             "question_name": "Batch Question 2",
             "question_description": "Second question in batch.",
             "difficulty": "hard",
-            "preset_code": "",
+            "preset_functions": "",
             "from_string_function": "",
             "to_string_function": "",
-            "template_solution": "def solution2():\n    pass",
+            "template_code": "def solution2():\n    pass",
             "tags": ["batch", "second"],
             "testcases": [
                 ("inputB", "outputB")
@@ -380,10 +380,10 @@ def test_upload_question_db_error(client, mock_db):
         "question_name": "Error Question",
         "question_description": "This will trigger a DB error.",
         "difficulty": "easy",
-        "preset_code": "",
+        "preset_functions": "",
         "from_string_function": "",
         "to_string_function": "",
-        "template_solution": "def solution():\n    pass",
+        "template_code": "def solution():\n    pass",
         "tags": [],
         "testcases": []
     }
@@ -399,7 +399,7 @@ def test_upload_question_invalid_payload(client):
     """Test uploading a question with invalid payload."""
     
     invalid_payload = {
-        # Missing required fields like question_name, template_solution, etc.
+        # Missing required fields like question_name, template_code, etc.
         "question_description": "Missing name and solution."
     }
 
@@ -413,10 +413,10 @@ def test_upload_question_existing_name(client, mock_db):
         "question_name": "Existing Question",
         "question_description": "This question name already exists.",
         "difficulty": "easy",
-        "preset_code": "",
+        "preset_functions": "",
         "from_string_function": "",
         "to_string_function": "",
-        "template_solution": "def solution():\n    pass",
+        "template_code": "def solution():\n    pass",
         "tags": [],
         "testcases": []
     }
@@ -436,10 +436,10 @@ def test_upload_question_existing_tags(client, mock_db):
         "question_name": "Tag Test Question",
         "question_description": "Testing existing tags.",
         "difficulty": "medium",
-        "preset_code": "",
+        "preset_functions": "",
         "from_string_function": "",
         "to_string_function": "",
-        "template_solution": "def solution():\n    pass",
+        "template_code": "def solution():\n    pass",
         "tags": ["existing_tag1", "existing_tag2"],
         "testcases": []
     }
@@ -464,10 +464,10 @@ def test_get_question_by_id_success(client, mock_db):
         question_description="Return two indices.",
         media=None,
         difficulty="easy",
-        preset_code="",
+        preset_functions="",
         from_string_function="def from_string(s): return s",
         to_string_function="def to_string(x): return str(x)",
-        template_solution="def solve(): pass",
+        template_code="def solve(): pass",
         created_at=datetime(2025, 1, 1, 0, 0, 0),
         last_modified_at=datetime(2025, 1, 2, 0, 0, 0),
         tags=[SimpleNamespace(tag_name="array")],
@@ -595,10 +595,10 @@ def test_update_question_not_found_returns_404_with_message(client, mock_db):
         "question_name": "Updated",
         "question_description": "Updated description",
         "difficulty": "easy",
-        "preset_code": "",
+        "preset_functions": "",
         "from_string_function": "",
         "to_string_function": "",
-        "template_solution": "def solve(): pass",
+        "template_code": "def solve(): pass",
         "tags": [],
         "testcases": [],
     }
@@ -616,10 +616,10 @@ def test_upload_question_batch_db_error(client, mock_db):
             "question_name": "Batch Q",
             "question_description": "desc",
             "difficulty": "easy",
-            "preset_code": "",
+            "preset_functions": "",
             "from_string_function": "",
             "to_string_function": "",
-            "template_solution": "def s(): pass",
+            "template_code": "def s(): pass",
             "tags": [],
             "testcases": [],
         }
@@ -665,10 +665,10 @@ def test_upload_question_batch_integrity_error_returns_409(client, mock_db):
             "question_name": "Batch Q",
             "question_description": "desc",
             "difficulty": "easy",
-            "preset_code": "",
+            "preset_functions": "",
             "from_string_function": "",
             "to_string_function": "",
-            "template_solution": "def s(): pass",
+            "template_code": "def s(): pass",
             "tags": [],
             "testcases": [],
         }
@@ -691,10 +691,10 @@ def test_upload_question_batch_data_error_returns_400(client, mock_db):
             "question_name": "Batch Q",
             "question_description": "desc",
             "difficulty": "easy",
-            "preset_code": "",
+            "preset_functions": "",
             "from_string_function": "",
             "to_string_function": "",
-            "template_solution": "def s(): pass",
+            "template_code": "def s(): pass",
             "tags": [],
             "testcases": [],
         }
@@ -734,10 +734,10 @@ def test_update_question_success_replaces_fields_tags_and_testcases(client, mock
         question_description="Old desc",
         media=None,
         difficulty="easy",
-        preset_code="",
+        preset_functions="",
         from_string_function="",
         to_string_function="",
-        template_solution="old",
+        template_code="old",
         tags=[],
         test_cases=[SimpleNamespace(test_case_id=1, input_data="in", expected_output="out")],
     )
@@ -755,10 +755,10 @@ def test_update_question_success_replaces_fields_tags_and_testcases(client, mock
         "question_description": "Updated description",
         "media": None,
         "difficulty": "medium",
-        "preset_code": "",
+        "preset_functions": "",
         "from_string_function": "",
         "to_string_function": "",
-        "template_solution": "def solve(): return 1",
+        "template_code": "def solve(): return 1",
         "tags": ["arrays"],
         "testcases": [["1 2", "3"]],
     }
@@ -802,10 +802,10 @@ def test_question_language_specific_properties_response_handles_missing_language
         question_id=1,
         language_id=2,
         language=None,
-        from_json_function="from_json",
-        to_json_function="to_json",
-        preset_code="pass",
-        template_solution="return 1",
+        imports="from_json",
+        main_function="to_json",
+        preset_functions="pass",
+        template_code="return 1",
     )
 
     response = QuestionLanguageSpecificPropertiesResponse.from_question_language_specific_properties(qlsp)
