@@ -35,20 +35,33 @@ describe("CompetitionAPI", () => {
   describe("getCompetitions", () => {
     it("fetches and formats competitions", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: [
-          {
-            id: 1,
-            competition_title: "Hackathon",
-            competition_location: "Montreal",
-            start_date: "2025-01-01",
-            end_date: "2025-01-02",
-          },
-        ],
+        data: {
+          total: 1,
+          page: 1,
+          page_size: 12,
+          items: [
+            {
+              id: 1,
+              competition_title: "Hackathon",
+              competition_location: "Montreal",
+              start_date: "2025-01-01",
+              end_date: "2025-01-02",
+            },
+          ],
+        },
       } as any);
 
       const result = await getCompetitions();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/competitions/");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/competitions/", {
+        params: {
+          page: 1,
+          page_size: 12,
+          search: undefined,
+          sort: "desc",
+          status: undefined,
+        },
+      });
       expect(result).toEqual([
         {
           id: 1,
