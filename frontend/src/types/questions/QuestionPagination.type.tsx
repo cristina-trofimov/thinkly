@@ -31,6 +31,7 @@ export type Question = {
   difficulty: "easy" | "medium" | "hard" | "Easy" | "Medium" | "Hard";
   created_at: Date;
   last_modified_at: Date;
+  show_on_frontpage?: boolean;
 }
 
 export type EditableTestCaseFields = {
@@ -52,7 +53,7 @@ export type EditableQuestionFields = {
   media: string | null;
   difficulty: "easy" | "medium" | "hard";
   language_specific_properties: Array<EditableLanguageSpecificProperties>;
-  tags: TagResponse[],
+  tags: string[],
   testcases: Array<EditableTestCaseFields>;
 }
 
@@ -108,7 +109,7 @@ export function getQuestionFields(question: Question): EditableQuestionFields {
       from_json_function: prop.from_json_function,
       to_json_function: prop.to_json_function,
     })),
-    tags: question.tags,
+    tags: question.tags.map((tag) => tag.tag_name),
     testcases,
   };
 }
