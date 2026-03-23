@@ -28,23 +28,24 @@ import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
 
 const CodeDescArea = (
     { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-      submissionState, latestSubmissionResult }:
-    { question: Question | undefined,
-       question_instance: QuestionInstance | undefined | null,
-       uqi: UserQuestionInstance | undefined | null,
-       testcases: TestCase[] | undefined | null,
-        /** The ID of the active competition/event, if the question was opened from one. */
-      eventId: number | undefined,
-      /** The display name of the active event. */
-      eventName: string | undefined,
-      /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
-      isCompetitionEvent: boolean,
-      currentUserId?: number,
-      /** Driven by the parent when the user hits Submit. */
-      submissionState?: 'idle' | 'loading' | 'done',
-      /** The latest submission returned by the API once submissionState === 'done'. */
-      latestSubmissionResult?: SubmissionType | null,
-    }
+        submissionState, latestSubmissionResult }:
+        {
+            question: Question | undefined,
+            question_instance: QuestionInstance | undefined | null,
+            uqi: UserQuestionInstance | undefined | null,
+            testcases: TestCase[] | undefined | null,
+            /** The ID of the active competition/event, if the question was opened from one. */
+            eventId: number | undefined,
+            /** The display name of the active event. */
+            eventName: string | undefined,
+            /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
+            isCompetitionEvent: boolean,
+            currentUserId?: number,
+            /** Driven by the parent when the user hits Submit. */
+            submissionState?: 'idle' | 'loading' | 'done',
+            /** The latest submission returned by the API once submissionState === 'done'. */
+            latestSubmissionResult?: SubmissionType | null,
+        }
 ) => {
 
     const hasEvent = eventId !== undefined
@@ -52,7 +53,7 @@ const CodeDescArea = (
     const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck /> },
+        { "id": "result", "label": "Result", "icon": <ClipboardCheck /> },
     ]
 
     // Only expose the Leaderboard tab when the question belongs to an event
@@ -65,7 +66,7 @@ const CodeDescArea = (
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
-    const [allLanguages, setAllLanguages, ] = useState<Language[] | null>(null)
+    const [allLanguages, setAllLanguages,] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
@@ -103,7 +104,7 @@ const CodeDescArea = (
         const fetchRiddle = async () => {
             try {
                 await getRiddleById(question_instance.riddle_id)
-                    .then((resp) => setRiddle(resp) )
+                    .then((resp) => setRiddle(resp))
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -112,7 +113,7 @@ const CodeDescArea = (
                     component: "CodeDescArea",
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
-                  })
+                })
             } finally {
                 setIsLoadingRiddle(false)
             }
@@ -236,7 +237,7 @@ const CodeDescArea = (
                     <h1 className='font-bold mb-3'>
                         {question.question_name}
                     </h1>
-                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
+                    <p className='text-left leading-6 break-words whitespace-pre-wrap overflow-y-auto max-h-96'>
                         {question.question_description}
                     </p>
                     {testcases?.map((t, idx) => {
@@ -268,7 +269,7 @@ const CodeDescArea = (
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
-                        </div> )}
+                        </div>)}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
                         <Table data-testid="table">
@@ -284,8 +285,8 @@ const CodeDescArea = (
                                 {submissions?.map((s, idx) => {
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                    onClick={() => setSelectedSubmission(s)}
+                                    return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
+                                        onClick={() => setSelectedSubmission(s)}
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
@@ -295,7 +296,7 @@ const CodeDescArea = (
                                             {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
                                         </TableCell>
                                         <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                        </TableRow>
+                                    </TableRow>
                                 })}
                             </TableBody>
                             <TableFooter className='mt-3' >
