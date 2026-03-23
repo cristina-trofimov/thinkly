@@ -33,8 +33,8 @@ jest.mock('@/components/forms/AlgoTimeForm', () => ({
 
 const mockSession = {
   eventName: 'Winter AlgoTime 2025',
-  startTime: new Date('2025-12-28T17:30:00'),
-  endTime: new Date('2025-12-28T18:30:00'),
+  startTime: new Date('2026-12-28T17:30:00'),
+  endTime: new Date('2026-12-28T18:30:00'),
   questionCooldown: 300,
   location: 'Room 101',
   questions: [

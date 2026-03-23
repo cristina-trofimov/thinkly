@@ -21,10 +21,12 @@ import {
 import { TablePagination } from "@/components/helpers/Pagination";
 import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
 
+type CompetitionStatus = "Active" | "Upcoming" | "Completed";
+
 const getCompetitionStatus = (
   competitionStart: Date | string,
   competitionEnd?: Date | string
-): "Completed" | "Active" | "Upcoming" => {
+): CompetitionStatus => {
   const now = new Date();
   const start = new Date(competitionStart);
   const end = competitionEnd ? new Date(competitionEnd) : start;
@@ -56,7 +58,7 @@ const formatCompetitionDateLong = (competitionDate: Date) => {
   });
 };
 
-const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
+const getStatusClasses = (status: CompetitionStatus) => {
   switch (status) {
     case "Active":
       return "bg-green-100 text-green-700";
@@ -67,7 +69,7 @@ const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
   }
 };
 
-const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
+const getCardBorder = (status: CompetitionStatus) => {
   switch (status) {
     case "Active":
       return "border-2 border-green-500/50";
@@ -78,7 +80,7 @@ const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
   }
 };
 
-const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
+const getTitleColor = (status: CompetitionStatus) => {
   switch (status) {
     case "Active":
       return "text-green-600 dark:text-green-400";
@@ -94,12 +96,61 @@ type ModalState =
   | { type: "details"; competition: Competition }
   | null;
 
+const renderCompetitionButton = (
+  status: CompetitionStatus,
+  comp: Competition,
+  nav: ReturnType<typeof useNavigate>,
+  setModal: (state: ModalState) => void
+) => {
+  if (status === "Active") {
+    return (
+      <Button
+        size="sm"
+        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-primary-foreground"
+        onClick={() => {
+          nav(`/app/comp/${comp.competitionTitle}`, {
+            state: {
+              fromFeed: true,
+              comp: comp,
+            },
+          });
+        }}
+      >
+        Join Now
+      </Button>
+    );
+  }
+
+  if (status === "Completed") {
+    return (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 text-xs text-muted-foreground hover:bg-muted"
+        onClick={() => setModal({ type: "leaderboard", competition: comp })}
+      >
+        View leaderboard
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+      onClick={() => setModal({ type: "details", competition: comp })}
+    >
+      View details
+    </Button>
+  );
+};
+
 export default function CompetitionsPage() {
   const nav = useNavigate();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<"All" | "Active" | "Upcoming" | "Completed">("All");
+  const [selectedFilter, setSelectedFilter] = useState<"All" | CompetitionStatus>("All");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [modal, setModal] = useState<ModalState>(null);
@@ -193,8 +244,28 @@ export default function CompetitionsPage() {
     return () => { cancelled = true; };
   }, [modal]);
 
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const pageItems = getPageItems(page, pageCount);
+  type CompetitionWithStatus = { comp: Competition; status: CompetitionStatus };
+
+  const competitionsWithStatus: CompetitionWithStatus[] = competitions.map((c) => ({
+    comp: c,
+    status: getCompetitionStatus(c.startDate),
+  }));
+
+  const statusOrder: Record<CompetitionStatus, number> = { Active: 0, Upcoming: 1, Completed: 2 };
+
+  const sortedCompetitions = competitionsWithStatus.slice().sort(
+    (a: CompetitionWithStatus, b: CompetitionWithStatus) => {
+      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+      if (statusDiff !== 0) return statusDiff;
+      return new Date(a.comp.startDate).getTime() - new Date(b.comp.startDate).getTime();
+    }
+  );
+
+  const filteredCompetitions = selectedFilter === "All"
+    ? sortedCompetitions
+    : sortedCompetitions.filter((c) => c.status === selectedFilter);
+
+  const hasNoMatchingCompetitions = filteredCompetitions.length === 0 && !loading;
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -220,7 +291,7 @@ export default function CompetitionsPage() {
               size="sm"
               onClick={() => {
                 setPage(1);
-                setSelectedFilter(filter as "All" | "Active" | "Upcoming" | "Completed");
+                setSelectedFilter(filter as "All" | CompetitionStatus);
               }}
               className={selectedFilter === filter ? "bg-primary text-primary-foreground" : ""}
             >
@@ -232,11 +303,8 @@ export default function CompetitionsPage() {
 
       {competitions.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {competitions.map((comp) => {
-            const status = getCompetitionStatus(comp.startDate, comp.endDate);
+          {filteredCompetitions.map(({ comp, status }: CompetitionWithStatus) => {
             const title = comp.competitionTitle || "Untitled Competition";
-            const isActive = status === "Active";
-            const isCompleted = status === "Completed";
 
             return (
               <Card
@@ -259,7 +327,7 @@ export default function CompetitionsPage() {
 
                 <CardContent className="p-4 pb-0 flex flex-col gap-2">
                   <div>
-                    <p className={`text-sm font-medium ${isCompleted ? "text-muted-foreground" : ""}`}>
+                    <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
                       {comp.competitionLocation || "Online"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -268,39 +336,7 @@ export default function CompetitionsPage() {
                   </div>
 
                   <div className="flex items-center justify-end pt-2 border-t">
-                    {isActive ? (
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-green-600 hover:bg-green-700 text-primary-foreground"
-                        onClick={() => {
-                          nav(`/app/comp/${comp.competitionTitle}`, {
-                            state: {
-                              fromFeed: true,
-                              comp,
-                            },
-                          });
-                        }}
-                      >
-                        Join Now
-                      </Button>
-                    ) : isCompleted ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs text-muted-foreground hover:bg-muted"
-                        onClick={() => setModal({ type: "leaderboard", competition: comp })}
-                      >
-                        View leaderboard
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground"
-                        onClick={() => setModal({ type: "details", competition: comp })}
-                      >
-                        View details
-                      </Button>
-                    )}
+                    {renderCompetitionButton(status, comp, nav, setModal)}
                   </div>
                 </CardContent>
               </Card>
@@ -309,46 +345,17 @@ export default function CompetitionsPage() {
         </div>
       )}
 
-      {total > 0 && (
-        <div className="flex flex-row items-center justify-between gap-3 py-6">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Cards per page</span>
-            <Select
-              value={`${pageSize}`}
-              onValueChange={(value) => {
-                setPage(1);
-                setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="w-20 cursor-pointer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={size}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TablePagination
-            page={page}
-            pageCount={pageCount}
-            pageItems={pageItems}
-            onPageChange={setPage}
-          />
-        </div>
-      )}
-
-      {total === 0 && !loading && (
+      {hasNoMatchingCompetitions && (
         <div className="text-center py-16">
           <h3 className="text-lg font-semibold mb-2">
-            No {selectedFilter !== "All" ? selectedFilter.toLowerCase() : ""} competitions available
+            {selectedFilter === "All"
+              ? "No competitions available"
+              : `No ${selectedFilter.toLowerCase()} competitions available`}
           </h3>
           <p className="text-muted-foreground">
-            {selectedFilter !== "All" ? "Try selecting a different filter." : "Check back later for upcoming events."}
+            {selectedFilter === "All"
+              ? "Check back later for upcoming events."
+              : "Try selecting a different filter."}
           </p>
         </div>
       )}

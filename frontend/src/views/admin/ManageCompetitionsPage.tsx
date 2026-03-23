@@ -92,6 +92,7 @@ const ManageCompetitions = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(27);
   const [cardsVisible, setCardsVisible] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const latestRequestId = useRef(0);
 
   const {
@@ -171,7 +172,7 @@ const ManageCompetitions = () => {
       }
     };
     load();
-  }, [location.key, page, pageSize, searchQuery, statusFilter]);
+  }, [location.key, page, pageSize, searchQuery, statusFilter, refreshKey]);
 
   useEffect(() => {
     if (loading) {
@@ -224,7 +225,7 @@ const ManageCompetitions = () => {
   };
 
   const handleEditSuccess = () => {
-    setPage(1);
+    setRefreshKey((current) => current + 1);
   };
 
   const handleDeleteClick = (

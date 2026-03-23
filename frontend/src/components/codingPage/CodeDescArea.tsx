@@ -28,23 +28,24 @@ import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
 
 const CodeDescArea = (
     { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-      submissionState, latestSubmissionResult }:
-    { question: Question | undefined,
-       question_instance: QuestionInstance | undefined | null,
-       uqi: UserQuestionInstance | undefined | null,
-       testcases: TestCase[] | undefined | null,
-        /** The ID of the active competition/event, if the question was opened from one. */
-      eventId: number | undefined,
-      /** The display name of the active event. */
-      eventName: string | undefined,
-      /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
-      isCompetitionEvent: boolean,
-      currentUserId?: number,
-      /** Driven by the parent when the user hits Submit. */
-      submissionState?: 'idle' | 'loading' | 'done',
-      /** The latest submission returned by the API once submissionState === 'done'. */
-      latestSubmissionResult?: SubmissionType | null,
-    }
+        submissionState, latestSubmissionResult }:
+        {
+            question: Question | undefined,
+            question_instance: QuestionInstance | undefined | null,
+            uqi: UserQuestionInstance | undefined | null,
+            testcases: TestCase[] | undefined | null,
+            /** The ID of the active competition/event, if the question was opened from one. */
+            eventId: number | undefined,
+            /** The display name of the active event. */
+            eventName: string | undefined,
+            /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
+            isCompetitionEvent: boolean,
+            currentUserId?: number,
+            /** Driven by the parent when the user hits Submit. */
+            submissionState?: 'idle' | 'loading' | 'done',
+            /** The latest submission returned by the API once submissionState === 'done'. */
+            latestSubmissionResult?: SubmissionType | null,
+        }
 ) => {
 
     const hasEvent = eventId !== undefined
@@ -52,7 +53,7 @@ const CodeDescArea = (
     const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck /> },
+        { "id": "result", "label": "Result", "icon": <ClipboardCheck /> },
     ]
 
     // Only expose the Leaderboard tab when the question belongs to an event
@@ -65,14 +66,14 @@ const CodeDescArea = (
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
-    const [allLanguages, setAllLanguages, ] = useState<Language[] | null>(null)
+    const [allLanguages, setAllLanguages,] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
     const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
-    const [riddleObject, setRiddleObject] = useState<Riddle | null>(null)
+    const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
     // Auto-switch to the Result tab whenever a submission starts or finishes
@@ -89,12 +90,21 @@ const CodeDescArea = (
     }, [hasEvent, activeTab])
 
     useEffect(() => {
-        if (!question_instance?.question_instance_id && uqi?.riddle_complete) return
+        // No riddle on this question — skip fetch entirely and clear loading state
+        if (!question_instance?.riddle_id) {
+            setIsLoadingRiddle(false)
+            return
+        }
+        // Riddle already solved — no need to re-fetch
+        if (uqi?.riddle_complete) {
+            setIsLoadingRiddle(false)
+            return
+        }
 
         const fetchRiddle = async () => {
             try {
-                await getRiddleById(question_instance?.riddle_id)
-                    .then((resp) => setRiddleObject(resp) )
+                await getRiddleById(question_instance.riddle_id)
+                    .then((resp) => setRiddle(resp))
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -103,13 +113,13 @@ const CodeDescArea = (
                     component: "CodeDescArea",
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
-                  })
+                })
             } finally {
                 setIsLoadingRiddle(false)
             }
         }
         fetchRiddle()
-    }, [question_instance])
+    }, [question_instance, uqi?.riddle_complete])
 
     useEffect(() => {
         if (uqi?.user_question_instance_id) {
@@ -156,8 +166,8 @@ const CodeDescArea = (
         )
     }
 
-    if (!uqi?.riddle_complete) { // Needs to solve riddle
-        if (isLoadingRiddle) {
+    if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
+        if (isLoadingRiddle || !riddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
@@ -165,31 +175,21 @@ const CodeDescArea = (
                 </div>
             )
         }
-
-        if (riddleObject) {
-            return (
-                <div className="w-full h-full flex flex-col items-center justify-start p-6 pt-16 bg-background backdrop-blur-sm overflow-y-auto">
-
-                    <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="mb-8 text-center space-y-3">
-                            <p className="text-muted-foreground text-lg">
-                                Solve the riddle below to reveal the description for<br /><span className="text-foreground font-semibold">{question.question_name}</span>
-                            </p>
-                        </div>
-
-                        {/* Pass the entire object to the User Form */}
-                        <RiddleUserForm
-                            riddle={riddleObject}
-                            onSolved={async () => {
-                                uqi.riddle_complete = true
-                                await putUserInstance(uqi)
-                                    .then((resp) => setUserQuestionInstance(resp))
-                            }}
-                        />
-                    </div>
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
+                <div className="w-full max-w-md">
+                    <h2 className="text-lg font-semibold mb-4 text-center">{question.question_name}</h2>
+                    <RiddleUserForm
+                        riddle={riddle}
+                        onSolved={async () => {
+                            const updated = { ...uqi, riddle_complete: true }
+                            await putUserInstance(updated)
+                                .then((resp) => setUserQuestionInstance(resp))
+                        }}
+                    />
                 </div>
-            )
-        }
+            </div>
+        )
     }
     //Riddle Rendering End-------------------------------------------------
     return (
@@ -237,7 +237,7 @@ const CodeDescArea = (
                     <h1 className='font-bold mb-3'>
                         {question.question_name}
                     </h1>
-                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
+                    <p className='text-left leading-6 break-words whitespace-pre-wrap overflow-y-auto max-h-96'>
                         {question.question_description}
                     </p>
                     {testcases?.map((t, idx) => {
@@ -269,7 +269,7 @@ const CodeDescArea = (
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
-                        </div> )}
+                        </div>)}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
                         <Table data-testid="table">
@@ -285,8 +285,8 @@ const CodeDescArea = (
                                 {submissions?.map((s, idx) => {
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                    onClick={() => setSelectedSubmission(s)}
+                                    return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
+                                        onClick={() => setSelectedSubmission(s)}
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
@@ -296,7 +296,7 @@ const CodeDescArea = (
                                             {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
                                         </TableCell>
                                         <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                        </TableRow>
+                                    </TableRow>
                                 })}
                             </TableBody>
                             <TableFooter className='mt-3' >

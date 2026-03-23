@@ -3,7 +3,6 @@ from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 from models.schema import AlgoTimeSession, AlgoTimeSeries, BaseEvent, QuestionInstance, Question
 from database_operations.database import get_db
-from endpoints.authentification_api import role_required
 from datetime import datetime, timezone
 from pydantic import BaseModel, validator
 from typing import Annotated, List, Literal, Optional
@@ -155,7 +154,7 @@ def generate_unique_series_name(name: str) -> str:
 def create_algotime(
         request: CreateAlgoTimeRequest,
         db: Annotated[Session, Depends(get_db)],
-        current_user: Annotated[dict, Depends(role_required("admin"))]
+        current_user: Annotated[dict, Depends(get_current_user)]
 ):
     logger.info("Creating AlgoTime series")
 
@@ -496,7 +495,7 @@ def delete_algotime_session(
     current_user: Annotated[dict, Depends(get_current_user)]
 ):
     user_email = current_user.get("sub") or "unknown"
-    logger.info(f"Admin '{user_email}' attempting to delete AlgoTime session {session_id}")
+    logger.info(f"User '{user_email}' attempting to delete AlgoTime session {session_id}")
 
     try:
         # Fetch the AlgoTimeSession first (not BaseEvent) so we have series info

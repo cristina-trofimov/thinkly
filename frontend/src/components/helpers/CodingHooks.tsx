@@ -71,7 +71,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             }
             InitializeCompEvent()
         }
-    }, [comp?.id])
+    }, [comp?.id, comp?.competitionTitle])
 
     // Getting the question instance (if it's a practice question and no event was passed)
     // Or all the question instances associated to the given event
@@ -129,7 +129,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         }
     }, [event, question?.question_id])
 
-    // If an event is passed, get all the associated questions' details 
+    // If an event is passed, get all the associated questions' details
     useEffect(() => {
         if (!questionsInstances?.length || questions.length >= questionsInstances.length) return
 
@@ -155,7 +155,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             }
         }
         fetchQuestions()
-    }, [questionsInstances])
+    }, [questionsInstances, questions.length])
 
     // Setting the default active question and question instance
     // Then loads all active languages and user's preferences
@@ -189,7 +189,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             }
         }
         loadLanguagesAndPrefs()
-    }, [questions, questionsInstances])
+    }, [questions, questionsInstances, activeQuestion, activeQuestionInstance])
 
     useEffect(() => {
         if (!languages || languages.length < 1) return
@@ -238,7 +238,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         }
         setStartTime(new Date())
         getOrCreateUserQuestionInstance()
-    }, [activeQuestionInstance?.question_instance_id])
+    }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance])
 
     // switches to a grid with 3 columns when the user already submitted something
     useEffect(() => {

@@ -85,7 +85,7 @@ interface EditAlgoTimeSessionDialogProps {
       };
   
       load();
-    }, [open, sessionId]);
+    }, [open, sessionId, onOpenChange]);
 
     useEffect(() => {
       if (!open) setIsEditing(false);
