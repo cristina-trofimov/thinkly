@@ -4,6 +4,7 @@ import '@testing-library/jest-dom'
 import { useTestcases } from '../src/components/helpers/useTestcases'
 import Testcases from '../src/components/codingPage/Testcases'
 
+
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
   default: {
@@ -85,9 +86,9 @@ describe('Testcases Component', () => {
 
   it('calls removeTestcase when clicking on X svg', async () => {
     const { removeTestcase } = setupCases()
-    
+
     fireEvent.click(screen.getByTestId('trigger-case-1')
-                          .querySelector('svg')!)
+      .querySelector('svg')!)
 
     expect(removeTestcase).toHaveBeenCalledWith(mockTestcases[0])
   })
@@ -96,7 +97,7 @@ describe('Testcases Component', () => {
     setupCases()
 
     fireEvent.click(screen.getByTestId('trigger-case-1')
-                          .querySelector('svg')!)
+      .querySelector('svg')!)
 
     expect(screen.getByTestId('trigger-case-1')).toBeInTheDocument()
   })
