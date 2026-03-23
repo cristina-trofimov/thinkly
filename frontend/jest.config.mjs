@@ -3,6 +3,7 @@ import { createDefaultPreset } from 'ts-jest';
 /** @type {import("jest").Config} */
 const tsJestTransformCfg = createDefaultPreset().transform;
 
+
 export default {
   preset: 'ts-jest',
   testEnvironment: 'jsdom', // Remove duplicate, keep only one
@@ -17,7 +18,7 @@ export default {
     'import.meta': {
       env: {
         VITE_BACKEND_URL: 'http://localhost:8000'
-       // VITE_BACKEND_URL: 'https://thinkly-production.up.railway.app'
+        // VITE_BACKEND_URL: 'https://thinkly-production.up.railway.app'
       }
     },
     'ts-jest': {
@@ -36,6 +37,7 @@ export default {
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
     '\\.(png|jpg|jpeg|gif|svg)$': '<rootDir>/tests/__mocks__/fileMock.js',
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@/lib/axiosClient$": "<rootDir>/tests/__mocks__/axiosClient.ts",
   },
   testMatch: [
     '<rootDir>/tests/**/*.test.ts',

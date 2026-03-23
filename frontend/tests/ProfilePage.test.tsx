@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ProfilePage from "../src/views/ProfilePage";
-import { getProfile, isGoogleAccount } from "../src/api/AuthAPI";
+import { isGoogleAccount } from "../src/api/AuthAPI";
 import { updateAccount, updateUserPreferences } from "../src/api/AccountsAPI";
 import { getUserPrefs, updateAllPrefs } from "../src/api/UserPreferencesAPI";
 import { useNavigate, useOutlet } from "react-router-dom";
