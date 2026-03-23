@@ -16,6 +16,8 @@ from endpoints.send_email_api import send_email_via_brevo
 from services.posthog_analytics import identify_user, track_custom_event
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
