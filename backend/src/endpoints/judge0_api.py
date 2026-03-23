@@ -97,7 +97,7 @@ def submit_to_judge0(
             }
         )
 
-        post_resp = requests.post(f"{JUDGE0_URL}/submissions", json=payload)
+        post_resp = requests.post(f"{JUDGE0_URL}/submissions/batch", json=payload)
         post_resp.raise_for_status()
 
         results = judge0_get_output(post_resp.json()['token'])

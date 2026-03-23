@@ -3,6 +3,9 @@ import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
+import Testcases from "@/components/codingPage/Testcases";
+import { getTestCasesByQuestionId } from "./QuestionsAPI";
+
 export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
     let expected_output: string | null = ''
@@ -23,6 +26,8 @@ export function parse_input_output(testcases: TestCase[]) {
         expected_output = null
     }
 
+    console.log("THIS IS THE STDIN", stdin)
+
     if (!stdin) {
         stdin = "Judge0"
     }
@@ -32,36 +37,52 @@ export function parse_input_output(testcases: TestCase[]) {
 
 export async function submitToJudge0(
     question_instance_id: number | undefined,
+    question_id: number, 
     source_code: string,
     language_id: number | undefined,
-    testcases: TestCase[],
     userId: number,
 ): Promise<CodeRunResponse> {
     try {
         if (!question_instance_id || !language_id) {
-            throw new Error("RunCode: Question instance or language cannot be undefined")
+            throw new Error("RunCode: Question instance or language cannot be undefined");
         }
 
-        const { stdin, expected_output } = parse_input_output(testcases)
+        console.log("this is the question ID:", question_id)
+        const testcases = await getTestCasesByQuestionId(question_id);
+        // const testcases = await getTestCasesByQuestionId(question_instance_id);
+
+
+        // Create submissions array for batch processing
+        const submissions = testcases.map((testcase) => {
+            const stdin = Object.values(testcase.input_data as Record<string, unknown>)
+                .map((v) => JSON.stringify(v))
+                .join(" ");
+
+            return {
+                language_id: `${language_id}`,
+                source_code: source_code.trim(),
+                stdin: stdin,
+                expected_output: testcase.expected_output,
+            };
+        });
+
+        // Log submissions to the browser console
+        console.log("Submissions:", submissions);
 
         const response = await axiosClient.post(
             "/judge0",
             {
-                source_code: source_code.trim(),
-                language_id: `${language_id}`,
-                stdin: stdin,
-                expected_output: expected_output,
+                submissions,
             }
-        )
+        );
 
-        const userPref = await updateLastProgLang(userId, language_id)
+        const userPref = await updateLastProgLang(userId, language_id);
 
         return {
             judge0Response: response['data'],
-            userPrefs: userPref
-        }
-
-      } catch (err) {
+            userPrefs: userPref,
+        };
+    } catch (err) {
         logFrontend({
             level: "ERROR",
             message: `An error occurred when running the code. Reason: ${err}`,
@@ -69,6 +90,6 @@ export async function submitToJudge0(
             url: globalThis.location.href,
             stack: (err as Error).stack,
         });
-        throw err
-      }
+        throw err;
+    }
 }

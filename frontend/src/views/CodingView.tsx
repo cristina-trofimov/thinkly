@@ -121,7 +121,7 @@ const CodingView = () => {
 
     // Drive the left-panel Result tab instead of a full-page loader
     setSubmissionState('loading')
-    console.log('Testcases:', testcases)
+    console.log('Testcases:', activeQuestion?.test_cases)
     console.log('Active Question:', activeQuestion)
 
     try {

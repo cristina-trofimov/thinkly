@@ -17,7 +17,7 @@ export async function submitAttempt(
     event: BaseEvent | undefined | null,
     source_code: string,
     language_id: number | undefined,
-    testcases: TestCase[],
+    // testcases: TestCase[],
     userId: number,
   ): Promise<SubmitAttemptResponse> {
     try {
@@ -30,7 +30,7 @@ export async function submitAttempt(
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id,source_code, language_id, userId)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
