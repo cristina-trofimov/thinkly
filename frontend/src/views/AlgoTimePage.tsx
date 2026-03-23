@@ -12,7 +12,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/helpers/Pagination";
-import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
+import { getPageItems } from "@/utils/paginationUtils";
+
+const PUBLIC_PAGE_SIZE_OPTIONS = ["12", "24", "48", "96"] as const;
 
 const formatSessionDate = (d: Date) => {
   const date = new Date(d);
@@ -30,7 +32,7 @@ export default function AlgoTimePage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(24);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,13 +115,14 @@ export default function AlgoTimePage() {
               onValueChange={(value) => {
                 setPage(1);
                 setPageSize(Number(value));
+                globalThis.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >
               <SelectTrigger className="w-20 cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
+                {PUBLIC_PAGE_SIZE_OPTIONS.map((size) => (
                   <SelectItem key={size} value={size}>
                     {size}
                   </SelectItem>

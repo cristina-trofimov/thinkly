@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TablePagination } from "@/components/helpers/Pagination";
-import { getPageItems, PAGE_SIZE_OPTIONS } from "@/utils/paginationUtils";
+import { getPageItems } from "@/utils/paginationUtils";
+
+const PUBLIC_PAGE_SIZE_OPTIONS = ["12", "24", "48", "96"] as const;
 
 type CompetitionStatus = "Active" | "Upcoming" | "Completed";
 
@@ -152,7 +154,7 @@ export default function CompetitionsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<"All" | CompetitionStatus>("All");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(24);
   const [modal, setModal] = useState<ModalState>(null);
 
   const [leaderboardParticipants, setLeaderboardParticipants] = useState<Participant[]>([]);
@@ -248,24 +250,11 @@ export default function CompetitionsPage() {
 
   const competitionsWithStatus: CompetitionWithStatus[] = competitions.map((c) => ({
     comp: c,
-    status: getCompetitionStatus(c.startDate),
+    status: getCompetitionStatus(c.startDate, c.endDate),
   }));
-
-  const statusOrder: Record<CompetitionStatus, number> = { Active: 0, Upcoming: 1, Completed: 2 };
-
-  const sortedCompetitions = competitionsWithStatus.slice().sort(
-    (a: CompetitionWithStatus, b: CompetitionWithStatus) => {
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-      if (statusDiff !== 0) return statusDiff;
-      return new Date(a.comp.startDate).getTime() - new Date(b.comp.startDate).getTime();
-    }
-  );
-
-  const filteredCompetitions = selectedFilter === "All"
-    ? sortedCompetitions
-    : sortedCompetitions.filter((c) => c.status === selectedFilter);
-
-  const hasNoMatchingCompetitions = filteredCompetitions.length === 0 && !loading;
+  const hasNoMatchingCompetitions = competitionsWithStatus.length === 0 && !loading;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = getPageItems(page, pageCount);
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -282,7 +271,7 @@ export default function CompetitionsPage() {
         <div className="py-12 text-center text-muted-foreground">Loading competitions...</div>
       )}
 
-      {!loading && total > 1 && (
+      {!loading && total > 0 && (
         <div className="mb-6 flex flex-wrap gap-2">
           {["All", "Active", "Upcoming", "Completed"].map((filter) => (
             <Button
@@ -303,7 +292,7 @@ export default function CompetitionsPage() {
 
       {competitions.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredCompetitions.map(({ comp, status }: CompetitionWithStatus) => {
+          {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus) => {
             const title = comp.competitionTitle || "Untitled Competition";
 
             return (
@@ -342,6 +331,40 @@ export default function CompetitionsPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {total > 0 && (
+        <div className="flex flex-row items-center justify-between gap-3 py-6">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Cards per page</span>
+            <Select
+              value={`${pageSize}`}
+              onValueChange={(value) => {
+                setPage(1);
+                setPageSize(Number(value));
+                globalThis.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
+              <SelectTrigger className="w-20 cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PUBLIC_PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TablePagination
+            page={page}
+            pageCount={pageCount}
+            pageItems={pageItems}
+            onPageChange={setPage}
+          />
         </div>
       )}
 
