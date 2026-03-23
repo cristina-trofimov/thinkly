@@ -322,17 +322,15 @@ def get_all_algotime_sessions(
         logger.info("Fetched %s AlgoTime sessions for page=%s page_size=%s", len(sessions), page, page_size)
 
         event_ids = [session.event_id for session in sessions]
-        question_counts = {
-            event_id: count for event_id, count in (
-                db.query(
-                    QuestionInstance.event_id,
-                    func.count(QuestionInstance.question_instance_id),
-                )
-                .filter(QuestionInstance.event_id.in_(event_ids))
-                .group_by(QuestionInstance.event_id)
-                .all()
+        question_counts = dict(
+            db.query(
+                QuestionInstance.event_id,
+                func.count(QuestionInstance.question_instance_id),
             )
-        } if event_ids else {}
+            .filter(QuestionInstance.event_id.in_(event_ids))
+            .group_by(QuestionInstance.event_id)
+            .all()
+        ) if event_ids else {}
 
         return {
             "total": total,

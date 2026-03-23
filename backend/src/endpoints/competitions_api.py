@@ -361,12 +361,12 @@ def get_all_competitions(
             .all()
         )
         logger.info(
-            "Fetched %s competitions for page=%s page_size=%s search=%s status=%s",
+            "Fetched %s competitions for page=%s page_size=%s has_search=%s has_status_filter=%s",
             len(competitions),
             page,
             page_size,
-            search or "none",
-            status_filter or "all",
+            bool(search and search.strip()),
+            bool(status_filter),
         )
 
         return {

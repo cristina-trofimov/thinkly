@@ -351,7 +351,12 @@ const ManageCompetitions = () => {
         {competitions.map((comp, index) => {
           const status = getCompetitionStatus(comp.startDate, comp.endDate);
           const title = comp.competitionTitle || "Untitled Competition";
-          const opacityClass = loading && hasLoadedOnce ? "opacity-50" : status === "Completed" ? "opacity-75" : "opacity-100";
+          let opacityClass = "opacity-100";
+          if (loading && hasLoadedOnce) {
+            opacityClass = "opacity-50";
+          } else if (status === "Completed") {
+            opacityClass = "opacity-75";
+          }
           const rowIndex = Math.floor(index / 4);
           const enterClass = cardsVisible
             ? "translate-y-0"
