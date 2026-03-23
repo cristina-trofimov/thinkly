@@ -57,7 +57,7 @@ const ManageCompetitions = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [_, setCreateDialogOpen] = useState(false);
+  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<{
     id: number;
@@ -171,7 +171,7 @@ const ManageCompetitions = () => {
   };
 
   const filteredCompetitions = competitions
-    .filter((comp) => {
+    .filter((comp: Competition) => {
       const matchesSearch =
         (comp.competitionTitle?.toLowerCase() || "").includes(
           searchQuery.toLowerCase()
@@ -186,7 +186,8 @@ const ManageCompetitions = () => {
         status === statusFilter;
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => {
+    .slice()
+    .sort((a: Competition, b: Competition) => {
       const aDate = new Date(a.startDate);
       const bDate = new Date(b.startDate);
       const aTime = Number.isNaN(aDate.getTime()) ? 0 : aDate.getTime();

@@ -552,6 +552,10 @@ describe('CodingView — run code', () => {
         renderCodingView()
         await userEvent.click(screen.getByTestId('play-btn'))
         await waitFor(() => expect(submitToJudge0).toHaveBeenCalledTimes(1))
+        // userId should be passed as last arg
+        expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
+            expect.anything(), expect.anything(), expect.anything(), expect.anything(), user_id
+        )
     })
 
     it('does not call submitToJudge0 when riddle is not complete', async () => {
@@ -573,13 +577,28 @@ describe('CodingView — run code', () => {
     })
 })
 
-describe('CodingView — submit code', () => {
-    it('calls submitAttempt and shows success toast when Accepted', async () => {
+
+describe('CodingView - submit code', () => {
+    it('calls submitAttempt with correct args including userId', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        render(<CodingView />)
+        // Wait for getProfile to resolve so currentUserId is populated before clicking
+        await waitFor(() => expect(getProfile).toHaveBeenCalled())
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+        // expect.anything() does NOT match null, and the default hook mock has
+        // userQuestionInstance=null and event=null. Check just the last arg (userId).
+        const callArgs = mockedSubmitAttempt.mock.calls[0]
+        expect(callArgs[callArgs.length - 1]).toBe(user_id)
+    })
+
+    it('shows submission result inline (not toast) when Accepted', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        expect(toast.success).toHaveBeenCalledWith('Code successfully passed tests')
+        // Result is shown inline via state - no success/warning toast is fired
+        expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
     })
 
@@ -587,10 +606,11 @@ describe('CodingView — submit code', () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        expect(toast.warning).toHaveBeenCalledWith('Code failed at least one tests')
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error when submitting the code.'))
         expect(toast.success).not.toHaveBeenCalled()
+        expect(toast.warning).not.toHaveBeenCalled()
     })
+
 
     it('does not call submitAttempt when riddle is not complete', async () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({

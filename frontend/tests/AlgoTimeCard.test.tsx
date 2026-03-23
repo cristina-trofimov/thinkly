@@ -54,7 +54,6 @@ jest.mock("xlsx", () => ({
 const makeEntries = (n: number): AlgoTimeEntry[] =>
   Array.from({ length: n }, (_, i) => ({
     entryId: i + 1,
-    seriesId: 1,
     name: `User ${i + 1}`,
     user_id: i + 1,
     total_score: 1000 - i * 10,

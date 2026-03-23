@@ -3,6 +3,7 @@ import ManageAlgotimeSessionsPage from '../src/views/admin/ManageAlgotimeSession
 import { getAllAlgotimeSessions,deleteAlgotime } from '../src/api/AlgotimeAPI';
 import { toast } from 'sonner';
 import { logFrontend } from '../src/api/LoggerAPI';
+import { resetAlgoTimeLeaderboard } from '../src/api/LeaderboardsAPI';
 
 
 const mockNavigate = jest.fn();
@@ -15,6 +16,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('sonner', () => ({
   toast: {
     error: jest.fn(),
+    success: jest.fn(),
   },
 }));
 
@@ -40,6 +42,19 @@ jest.mock('@/api/AlgotimeAPI', () => ({
 
 jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
   EditAlgoTimeSessionDialog: () => null,
+}));
+
+jest.mock('@/lib/axiosClient', () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+jest.mock('@/api/LeaderboardsAPI', () => ({
+  resetAlgoTimeLeaderboard: jest.fn(),
 }));
 
 const mockSessions = [
@@ -216,4 +231,48 @@ describe('ManageAlgotimeSessionsPage', () => {
     expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
   });
 
+  test('renders reset leaderboard button', async () => {
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Reset Leaderboard')).toBeInTheDocument();
+    });
+  });
+  
+  test('calls resetAlgoTimeLeaderboard and shows success toast on confirm', async () => {
+    (resetAlgoTimeLeaderboard as jest.Mock).mockResolvedValue({ entriesDeleted: 5, message: 'success' });
+  
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Reset Leaderboard')).toBeInTheDocument();
+    });
+  
+    fireEvent.click(screen.getByText('Reset Leaderboard'));
+    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
+  
+    await waitFor(() => {
+      expect(resetAlgoTimeLeaderboard).toHaveBeenCalledTimes(1);
+      expect(toast.success).toHaveBeenCalledWith(
+        'Leaderboard reset successfully — 5 entries deleted.'
+      );
+    });
+  });
+  
+  test('shows error toast when reset fails', async () => {
+    (resetAlgoTimeLeaderboard as jest.Mock).mockRejectedValue(new Error('Server error'));
+  
+    render(<ManageAlgotimeSessionsPage />);
+  
+    await waitFor(() => {
+      expect(screen.getByText('Reset Leaderboard')).toBeInTheDocument();
+    });
+  
+    fireEvent.click(screen.getByText('Reset Leaderboard'));
+    fireEvent.click(screen.getByRole('button', { name: /reset/i }));
+  
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to reset the leaderboard.');
+    });
+  });
 });

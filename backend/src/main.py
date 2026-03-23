@@ -27,6 +27,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from logging_config import setup_logging
 from services.competition_cleanup import cleanup_ended_competitions
+from services.algotime_cleanup import cleanup_ended_algotime_sessions
 from services.posthog_analytics import init_posthog, track_api_call, shutdown_posthog
 from services.email_scheduler import run_scheduled_emails
 from contextlib import asynccontextmanager
@@ -54,6 +55,7 @@ async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
     scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
+    scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
     logger.info("✓ Email scheduler started (polling every 60s)")
 
@@ -95,7 +97,7 @@ app = FastAPI(
     dependencies=[Depends(global_auth_dependency)] # This enforces it on every route
 )
 # --- Rate Limiting ---
-limiter = Limiter(key_func=get_remote_address, default_limits=["25/minute"])
+limiter = Limiter(key_func=get_remote_address, default_limits=["45/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
@@ -204,4 +206,4 @@ except Exception:
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

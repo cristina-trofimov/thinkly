@@ -1,6 +1,5 @@
 export type AlgoTimeLeaderboardBackendEntry = {
     entryId: number;
-    algoTimeSeriesId: number;
     name: string;
     userId: number | null;
     totalScore: number;

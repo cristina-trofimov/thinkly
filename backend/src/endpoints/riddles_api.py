@@ -186,6 +186,46 @@ def _delete_from_supabase_by_public_url(public_url: str) -> None:
         logger.warning(f"Supabase remove error: {res['error']} for path: {storage_path}")
 
 
+def _apply_question_update(db: Session, riddle: Riddle, question: str) -> None:
+    """Validate and apply a question update to a riddle in place."""
+    q = question.strip()
+    if not q:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Riddle question cannot be empty",
+        )
+    if q != riddle.riddle_question and check_riddle_exists(db, q):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A riddle with this question already exists",
+        )
+    riddle.riddle_question = q
+
+
+def _apply_answer_update(riddle: Riddle, answer: str) -> None:
+    """Validate and apply an answer update to a riddle in place."""
+    a = answer.strip()
+    if not a:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Riddle answer cannot be empty",
+        )
+    riddle.riddle_answer = a
+
+
+async def _apply_file_update(riddle: Riddle, file: Optional[UploadFile], remove_file: bool) -> None:
+    """Handle file removal and/or replacement on a riddle in place."""
+    if remove_file and riddle.riddle_file:
+        _delete_from_supabase_by_public_url(riddle.riddle_file)
+        riddle.riddle_file = None
+
+    if file is not None:
+        _validate_upload(file)
+        if riddle.riddle_file:
+            _delete_from_supabase_by_public_url(riddle.riddle_file)
+        riddle.riddle_file = await _upload_to_supabase(file)
+
+
 # ---------------- GET ONE ----------------
 @riddles_router.get(
     "/{riddle_id}",
@@ -332,39 +372,12 @@ async def edit_riddle(
         riddle = _get_riddle_or_404(db, riddle_id)
 
         if question is not None:
-            q = question.strip()
-            if not q:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Riddle question cannot be empty",
-                )
-            if q != riddle.riddle_question and check_riddle_exists(db, q):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="A riddle with this question already exists",
-                )
-            riddle.riddle_question = q
+            _apply_question_update(db, riddle, question)
 
         if answer is not None:
-            a = answer.strip()
-            if not a:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Riddle answer cannot be empty",
-                )
-            riddle.riddle_answer = a
+            _apply_answer_update(riddle, answer)
 
-        if remove_file and riddle.riddle_file:
-            _delete_from_supabase_by_public_url(riddle.riddle_file)
-            riddle.riddle_file = None
-
-        if file is not None:
-            _validate_upload(file)
-            if riddle.riddle_file:
-                _delete_from_supabase_by_public_url(riddle.riddle_file)
-
-            new_url = await _upload_to_supabase(file)
-            riddle.riddle_file = new_url
+        await _apply_file_update(riddle, file, remove_file)
 
         _commit_or_rollback(db)
         db.refresh(riddle)

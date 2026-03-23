@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
+import { resetAlgoTimeLeaderboard } from "@/api/LeaderboardsAPI";
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -162,6 +163,45 @@ export default function ManageAlgotimeSessionsPage() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+        <div className="sm:ml-auto">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button  className="gap-2 text-destructive bg-destructive text-white font-bold hover:bg-destructive/40 sm:w-auto w-full">
+                <Trash className="h-4 w-4" />
+                Reset Leaderboard
+              </Button>
+            </AlertDialogTrigger>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset AlgoTime Leaderboard?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will PERMANENTLY delete all leaderboard entries. This is
+                  typically done at the end of a semester and CANNOT be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  onClick={async () => {
+                    try {
+                      const result = await resetAlgoTimeLeaderboard();
+                      toast.success(
+                        `Leaderboard reset successfully — ${result.entriesDeleted} ${result.entriesDeleted === 1 ? "entry" : "entries"} deleted.`
+                      );
+                    } catch {
+                      toast.error("Failed to reset the leaderboard.");
+                    }
+                  }}
+                >
+                  Reset
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

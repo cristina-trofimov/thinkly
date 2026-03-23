@@ -43,16 +43,21 @@ export function useTestcases(question_id?: number) {
         if (testcases.length === 1) return
 
         const idxToRemove = testcases.findIndex((tc) => tc.test_case_id === tcr.test_case_id)
-
         const filtered = testcases.filter((tc) => tc.test_case_id !== tcr.test_case_id)
-
         setTestcases(filtered)
 
-        const newID = (activeTestcase?.test_case_id === tcr.test_case_id) // is the active case being removed
-                    ? (idxToRemove === 0) // is it the first in the list
-                        ? (idxToRemove - 1) // not first in the list -> get index before
-                        : (idxToRemove + 1) // first in the list -> get next one
-                    : testcases.findIndex(tc => tc.test_case_id === activeTestcase?.test_case_id) // case being deleted is not active -> keep active
+        let newID: number;
+        if (activeTestcase?.test_case_id === tcr.test_case_id) {
+            // The active case is being removed — pick the neighbour
+            if (idxToRemove === 0) {
+                newID = idxToRemove + 1; // first in list → take the next one
+            } else {
+                newID = idxToRemove - 1; // not first → take the one before
+            }
+        } else {
+            // Active case is not being removed — keep it selected
+            newID = testcases.findIndex(tc => tc.test_case_id === activeTestcase?.test_case_id)
+        }
 
         setActiveTestcase(filtered[newID] ?? filtered[0])
     }
