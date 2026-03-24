@@ -3,12 +3,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 from unittest.mock import MagicMock
-
-
 from endpoints.algotime_sessions_api import algotime_router
 from database_operations import database
 from endpoints.authentification_api import get_current_user
-from models.schema import AlgoTimeSession,BaseEvent, QuestionInstance
+from models.schema import AlgoTimeSession, Question, BaseEvent, QuestionInstance
 
 
 @pytest.fixture
