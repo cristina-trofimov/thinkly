@@ -409,20 +409,26 @@ class TestTrackFeatureEvent:
 # TestTrackApiCall
 # ---------------------------------------------------------------------------
 
+# Canonical patch target — must match the module where asyncio is used
+_ASYNC_TO_THREAD = "backend.src.services.posthog_analytics.asyncio.to_thread"
+
 
 class TestTrackApiCall:
 
+    # ------------------------------------------------------------------
+    # Use asyncio.run() instead of get_event_loop().run_until_complete().
+    # asyncio.run() always creates a fresh event loop, so it works in
+    # Python 3.10+ where there is no implicit loop on the main thread.
+    # ------------------------------------------------------------------
     def _run(self, coro):
-        return asyncio.get_event_loop().run_until_complete(coro)
+        return asyncio.run(coro)
 
     def test_does_nothing_when_no_client(self):
         req = make_request()
         self._run(track_api_call(req, 200, 12.5))  # should not raise
 
     def test_capture_called_with_api_call_event(self, mock_client):
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", new=AsyncMock()
-        ) as mock_thread:
+        with patch(_ASYNC_TO_THREAD, new=AsyncMock()) as mock_thread:
             req = make_request("/auth/login", "POST", user_state={"user_id": 1})
             self._run(track_api_call(req, 200, 10.0))
             # First to_thread call is the capture
@@ -437,9 +443,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             req = make_request()
             self._run(track_api_call(req, 200, 5.0))
 
@@ -453,9 +457,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             self._run(track_api_call(make_request(), 200, 1.0))
 
         assert captured_props["has_error"] is False
@@ -468,9 +470,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             self._run(
                 track_api_call(make_request(), 500, 1.0, error="Something went wrong")
             )
@@ -485,9 +485,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             req = make_request(query_params={"page": "1", "limit": "10"})
             self._run(track_api_call(req, 200, 3.0))
 
@@ -501,9 +499,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             self._run(track_api_call(make_request(query_params={}), 200, 1.0))
 
         assert "query_params" not in captured_props
@@ -515,9 +511,7 @@ class TestTrackApiCall:
             if fn == mock_client.capture:
                 captured_props.update(kwargs.get("properties", {}))
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             self._run(track_api_call(make_request(), 200, 12.3456789))
 
         assert captured_props["response_time_ms"] == 12.35
@@ -526,9 +520,7 @@ class TestTrackApiCall:
         async def exploding_thread(fn, *args, **kwargs):
             raise Exception("network timeout")
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=exploding_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=exploding_thread):
             self._run(track_api_call(make_request(), 200, 1.0))  # must not propagate
 
     def test_feature_event_also_dispatched(self, mock_client):
@@ -537,9 +529,7 @@ class TestTrackApiCall:
         async def fake_to_thread(fn, *args, **kwargs):
             dispatched_fns.append(fn)
 
-        with patch(
-            "src.services.posthog_analytics.asyncio.to_thread", side_effect=fake_to_thread
-        ):
+        with patch(_ASYNC_TO_THREAD, side_effect=fake_to_thread):
             self._run(track_api_call(make_request("/auth/signup", "POST"), 201, 5.0))
 
         assert track_feature_event in dispatched_fns

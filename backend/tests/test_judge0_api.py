@@ -17,6 +17,16 @@ from main import app
 
 client = TestClient(app, raise_server_exceptions=False)
 
+# Reusable submission payload
+SINGLE_SUBMISSION = [
+    {
+        "source_code": "print('Hello')",
+        "language_id": "71",
+        "stdin": "",
+        "expected_output": None,
+    }
+]
+
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
@@ -42,24 +52,25 @@ def test_judge0_get_output_success(mock_get):
 def test_judge0_submit_success(mock_post, mock_get):
     mock_post.return_value = Mock(
         status_code=201,
-        json=lambda: {"token": "abc123"},
+        json=lambda: [{"token": "abc123"}],
         raise_for_status=lambda: None,
     )
 
     mock_get.return_value = Mock(
         status_code=200,
         json=lambda: {
-            "status": {"description": "Accepted"},
-            "stdout": "Hello\n"
+            "submissions": [
+                {
+                    "status": {"description": "Accepted"},
+                    "stdout": "Hello\n",
+                    "token": "abc123",
+                }
+            ]
         },
         raise_for_status=lambda: None,
     )
 
-    result = submit_to_judge0(
-        source_code="print('Hello')",
-        language_id="71",
-        stdin="",
-    )
+    result = submit_to_judge0(submissions=SINGLE_SUBMISSION)
 
     assert result["status"]["description"] == "Accepted"
     assert result["stdout"] == "Hello\n"
@@ -72,7 +83,7 @@ def test_judge0_submit_success(mock_post, mock_get):
 def test_judge0_polling_timeout(mock_post, mock_get, mock_sleep):
     mock_post.return_value = Mock(
         status_code=201,
-        json=lambda: {"token": "abc123"},
+        json=lambda: [{"token": "abc123"}],
         raise_for_status=lambda: None,
     )
 
@@ -80,17 +91,15 @@ def test_judge0_polling_timeout(mock_post, mock_get, mock_sleep):
     mock_get.return_value = Mock(
         status_code=200,
         json=lambda: {
-            "status": {"description": "Processing"}
+            "submissions": [
+                {"status": {"description": "Processing"}, "token": "abc123"}
+            ]
         },
         raise_for_status=lambda: None,
     )
 
     with pytest.raises(RuntimeError, match="timed out"):
-        submit_to_judge0(
-            source_code="print('Hello')",
-            language_id="71",
-            stdin="",
-        )
+        submit_to_judge0(submissions=SINGLE_SUBMISSION)
 
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
@@ -99,11 +108,7 @@ def test_judge0_network_error(mock_post):
     mock_post.side_effect = Exception("Connection failed")
 
     with pytest.raises(RuntimeError, match="Network error"):
-        submit_to_judge0(
-            source_code="print('Hello')",
-            language_id="71",
-            stdin="",
-        )
+        submit_to_judge0(submissions=SINGLE_SUBMISSION)
 
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
@@ -112,20 +117,22 @@ def test_judge0_network_error(mock_post):
 def test_judge0_route_success(mock_post, mock_get):
     mock_post.return_value = Mock(
         status_code=201,
-        json=lambda: {"token": "abc123"},
+        json=lambda: [{"token": "abc123"}],
         raise_for_status=lambda: None,
     )
     mock_get.return_value = Mock(
         status_code=200,
-        json=lambda: {"status": {"description": "Accepted"}, "stdout": "OK"},
+        json=lambda: {
+            "submissions": [
+                {"status": {"description": "Accepted"}, "stdout": "OK", "token": "abc123"}
+            ]
+        },
         raise_for_status=lambda: None,
     )
 
     response = client.post("/judge0", json={
-        "source_code": "print('Hello')",
-        "language_id": "71",
-        "stdin": "",
-        "expected_output": None
+        "submissions": SINGLE_SUBMISSION,
+        "user_id": "test-user",
     })
 
     assert response.status_code == 200
@@ -136,21 +143,28 @@ def test_judge0_route_success(mock_post, mock_get):
 @patch('src.endpoints.judge0_api.requests.get')
 @patch('src.endpoints.judge0_api.requests.post')
 def test_judge0_rate_limit(mock_post, mock_get):
-    """Hitting the endpoint 61 times should trigger a 429 on the last request."""
+    """Hitting the endpoint 6 times should trigger a 429 on the last request (limit is 5/minute)."""
     mock_post.return_value = Mock(
         status_code=201,
-        json=lambda: {"token": "abc123"},
+        json=lambda: [{"token": "abc123"}],
         raise_for_status=lambda: None,
     )
     mock_get.return_value = Mock(
         status_code=200,
-        json=lambda: {"status": {"description": "Accepted"}, "stdout": "OK"},
+        json=lambda: {
+            "submissions": [
+                {"status": {"description": "Accepted"}, "stdout": "OK", "token": "abc123"}
+            ]
+        },
         raise_for_status=lambda: None,
     )
 
-    payload = {"source_code": "print('Hi')", "language_id": "71", "stdin": ""}
+    payload = {
+        "submissions": SINGLE_SUBMISSION,
+        "user_id": "test-user",
+    }
 
-    for _ in range(60):
+    for _ in range(5):
         client.post("/judge0", json=payload)
 
     response = client.post("/judge0", json=payload)
