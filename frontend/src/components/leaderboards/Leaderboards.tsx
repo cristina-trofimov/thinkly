@@ -24,7 +24,6 @@ export function CompetitionCardSkeleton() {
         <Skeleton className="h-4 w-20" />  {/* Date/Status */}
       </div>
       <div className="space-y-2">
-        {/* eslint-disable-next-line react/no-array-index-key */}
         {[...new Array(5)].map((_, i) => (
           <div key={i} className="flex items-center gap-4 py-2">
             <Skeleton className="h-8 w-8 rounded-full" /> {/* Avatar */}
