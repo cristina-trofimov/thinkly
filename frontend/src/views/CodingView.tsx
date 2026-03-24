@@ -20,13 +20,13 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
-import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
 import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import { submitAttempt } from '@/api/SubmitCodeAPI';
 import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
+import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 
 
@@ -34,7 +34,6 @@ const CodingView = () => {
   const location = useLocation()
   const comp: Competition = location?.state?.comp
   const question: Question = location?.state?.problem
-  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined)
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
@@ -56,11 +55,7 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  useEffect(() => {
-    getProfile()
-      .then((user) => setCurrentUserId(user.id))
-      .catch(() => setCurrentUserId(undefined))
-  }, [])
+  const{user} = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -140,7 +135,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
 
       setLatestSubmissionResult(submissionResponse)
       setSubmissionState('done')
@@ -176,7 +171,7 @@ const CodingView = () => {
       setLoadingMsg("Running")
 
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")
@@ -374,7 +369,7 @@ const CodingView = () => {
             eventId={comp?.id}
             eventName={comp?.competitionTitle}
             isCompetitionEvent={!!comp}
-            currentUserId={currentUserId}
+            currentUserId={user?.id}
             submissionState={submissionState}
             latestSubmissionResult={latestSubmissionResult}
           />

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import UploadQuestionsJSONButton from "../src/components/manageQuestions/UploadQuestionsJSONButton";
 import { uploadQuestions } from "../src/api/QuestionsAPI";
 
-jest.mock("../src/lib/axiosClient", () => ({
+jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
   default: {
     get: jest.fn(),
@@ -11,9 +11,9 @@ jest.mock("../src/lib/axiosClient", () => ({
     put: jest.fn(),
     delete: jest.fn(),
   },
-  API_URL: "http://localhost:8000",
-  parseAxiosErrorMessage: jest.fn(() => "bad upload"),
-}));
+  API_URL: 'http://localhost:8000',
+  parseAxiosErrorMessage: jest.fn((error: any) => error?.message ?? 'Unknown error'),
+}))
 
 jest.mock("../src/api/QuestionsAPI", () => ({
   uploadQuestions: jest.fn(),
@@ -74,7 +74,7 @@ describe("UploadQuestionsJSONButton", () => {
   it("opens file picker when button is clicked", () => {
     const clickSpy = jest
       .spyOn(HTMLInputElement.prototype, "click")
-      .mockImplementation(() => {});
+      .mockImplementation(() => { });
 
     render(
       <UploadQuestionsJSONButton>Upload JSON</UploadQuestionsJSONButton>

@@ -3,16 +3,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 from unittest.mock import MagicMock
-from datetime import datetime
-from sqlalchemy.exc import IntegrityError
-
-import sys
-import os
-
 from endpoints.algotime_sessions_api import algotime_router
 from database_operations import database
-from endpoints.authentification_api import role_required, get_current_user
-from models.schema import AlgoTimeSession,AlgoTimeSeries,BaseEvent, QuestionInstance, Question
+from endpoints.authentification_api import get_current_user
+from models.schema import AlgoTimeSession, Question, BaseEvent, QuestionInstance
 
 
 @pytest.fixture

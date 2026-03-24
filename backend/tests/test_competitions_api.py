@@ -6,7 +6,7 @@ warnings.filterwarnings("ignore", message=".*class-based `config` is deprecated.
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
 
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone, timedelta
@@ -24,11 +24,9 @@ from src.endpoints.competitions_api import (
     resolve_email_recipients,
     check_competition_name_exists,
     validate_competition_times,
-    parse_datetime_from_request,
     create_competition_emails,
     send_competition_emails,
 )
-from src.endpoints import authentification_api
 
 
 # ---------------------------------------------------------------------------

@@ -10,13 +10,13 @@ import { getEventByName } from "@/api/BaseEventAPI"
 import { toast } from "sonner"
 import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from "@/api/QuestionInstanceAPI"
 import { getAllLanguages } from "@/api/LanguageAPI"
-import { getProfile } from "@/api/AuthAPI"
 import { getUserPrefs } from "@/api/UserPreferencesAPI"
 import { getQuestionByID } from "@/api/QuestionsAPI"
 import { useTestcases } from "./useTestcases"
 import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
+import { useUser } from "@/context/UserContext"
 
 
 export function useCodingHooks(question?: Question, comp?: Competition) {
@@ -46,6 +46,8 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
     const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
 
     const { testcases } = useTestcases(activeQuestionInstance?.question_id)
+
+    const { user } = useUser()
 
 
     // Getting the competition or algotime event if it exists
@@ -168,15 +170,17 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         }
         const loadLanguagesAndPrefs = async () => {
             try {
-                const user = await getProfile()
 
-                const [langs, userPrefs] = await Promise.all([
-                    getAllLanguages(true),
-                    getUserPrefs(user.id),
-                ])
+                if (user) {
+                    const [langs, userPrefs] = await Promise.all([
+                        getAllLanguages(true),
+                        getUserPrefs(user?.id),
+                    ])
 
-                setLanguages(langs)
-                setUserPreferences(userPrefs)
+                    setLanguages(langs)
+                    setUserPreferences(userPrefs)
+                }
+
             } catch (error) {
                 toast.error("Error when fetching languages.")
                 logFrontend({
@@ -209,13 +213,13 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         // Restart time lapse
         const getOrCreateUserQuestionInstance = async () => {
             try {
-                const user = await getProfile()
-                const uqi = await getUserInstance(user.id, activeQuestionInstance.question_instance_id)
+                if (user) {
+                    const uqi = await getUserInstance(user.id, activeQuestionInstance.question_instance_id)
 
-                if (uqi) {
-                    setUserQuestionInstance(uqi)
-                } else {
-                    await putUserInstance({
+                    if (uqi) {
+                        setUserQuestionInstance(uqi)
+                    } else {
+                        await putUserInstance({
                             user_question_instance_id: -1,
                             user_id: user.id,
                             question_instance_id: activeQuestionInstance.question_instance_id,
@@ -224,8 +228,10 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                             lapse_time: null,
                             attempts: null
                         } as UserQuestionInstance)
-                        .then(response => setUserQuestionInstance(response))
+                            .then(response => setUserQuestionInstance(response))
+                    }
                 }
+
             } catch (error) {
                 logFrontend({
                     level: "ERROR",

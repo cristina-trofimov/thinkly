@@ -18,6 +18,8 @@ import { logFrontend } from "@/api/LoggerAPI";
 import { toast } from "sonner";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getUserPreferences } from "@/api/AccountsAPI";
+import { useUser } from "@/context/UserContext";
+
 
 export function LoginForm({
   className,
@@ -26,6 +28,7 @@ export function LoginForm({
   const [form, setForm] = useState<LoginRequest>({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { setUser } = useUser();
 
   const navigate = useNavigate();
   const {
@@ -56,23 +59,16 @@ export function LoginForm({
 
       const decoded = jwtDecode<DecodedToken>(token);
 
-      try {
-        const profile = await getProfile();
-        const prefs = await getUserPreferences(profile.id);
-        localStorage.setItem("theme", prefs.theme ?? "light");
-        if (prefs.theme === "dark") document.documentElement.classList.add("dark");
-      } catch {
-        logFrontend({
-        level: "ERROR",
-        message: `Error fetching user preferences`,
-        component: "LoginForm",
-        url: globalThis.location.href,
-      });
-      }
+      const profile = await getProfile();
+      const prefs = await getUserPreferences(profile.id);
+
+      localStorage.setItem("theme", prefs.theme ?? "light");
+      if (prefs.theme === "dark") document.documentElement.classList.add("dark");
+
+      setUser(profile);
 
       trackLoginSuccess("email_password");
 
-      // Identify the user so all future events are tied to them
       identifyUser({
         id: decoded.id,
         email: decoded.sub,
