@@ -117,6 +117,13 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: "algo/:algo_session",
+            element: <CodingView />,
+            handle: {
+              crumb: { title: "Algotime" },
+            },
+          },
+          {
             path: "leaderboards",
             element: <Leaderboards />,
             handle: { crumb: { title: "Leaderboards" } },

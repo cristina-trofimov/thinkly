@@ -59,6 +59,7 @@ class AlgoTimeQuestionResponse(BaseModel):
 
 class AlgoTimeSessionResponse(BaseModel):
     id: int
+    eventID: int
     eventName: str
     startTime: str
     endTime: str
@@ -277,6 +278,7 @@ def get_all_algotime_sessions(db: Annotated[Session, Depends(get_db)]):
 
             response.append({
                 "id": s.event_id,
+                "eventID": event.event_id,
                 "eventName": event.event_name,
                 "startTime": str(event.event_start_date),
                 "endTime": str(event.event_end_date),
@@ -335,6 +337,7 @@ def get_algotime_session(
 
     return AlgoTimeSessionResponse(
         id=session_id,
+        eventID=event.event_id,
         eventName=event.event_name,
         startTime=str(event.event_start_date),
         endTime=str(event.event_end_date),
@@ -411,6 +414,7 @@ def update_algotime_session(
 
     return AlgoTimeSessionResponse(
         id=session_id,
+        eventID=event.event_id,
         eventName=event.event_name,
         startTime=str(event.event_start_date),
         endTime=str(event.event_end_date),

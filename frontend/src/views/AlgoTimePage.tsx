@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
+import { useNavigate } from "react-router-dom";
 
 const formatSessionDate = (d: Date) => {
   const date = new Date(d);
@@ -19,6 +20,7 @@ const formatSessionDate = (d: Date) => {
 export default function AlgoTimePage() {
   const [sessions, setSessions] = useState<AlgoTimeSession[]>([]);
   const [loading, setLoading] = useState(false);
+  const nav = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +76,18 @@ export default function AlgoTimePage() {
 
                 <div className="flex items-center justify-between pt-2 border-t">
                   <Button variant="ghost" size="sm" className="h-8">Details</Button>
-                  <Button size="sm" className="h-8">Join</Button>
+                  <Button size="sm" className="h-8"
+                    onClick={() => {
+                      nav(`/app/algo/${s.eventName}`, {
+                        state: {
+                          fromFeed: true,
+                          algo_sess: s,
+                        },
+                      })
+                    }}
+                  >
+                    Join
+                  </Button>
                 </div>
               </CardContent>
             </Card>

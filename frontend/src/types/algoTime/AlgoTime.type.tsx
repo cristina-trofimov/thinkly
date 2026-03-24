@@ -36,6 +36,7 @@ export interface AlgoTimeQuestion {
 
 export interface AlgoTimeSession {
   id: number;
+  eventID: number;
   eventName: string;
   startTime: Date;
   endTime: Date;
