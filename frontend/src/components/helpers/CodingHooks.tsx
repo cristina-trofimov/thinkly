@@ -59,7 +59,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
                             setEvent(response)
                         })
                 } catch (err) {
-                    toast.error("Error when fetching competition event.")
+                    toast.error("Error when fetching event.")
                     logFrontend({
                         level: "ERROR",
                         message: `Failed to fetch competition event. Reason: ${err}`,

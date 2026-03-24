@@ -167,8 +167,6 @@ const CodingView = () => {
 
     try {
       setSubmissionState('loading')
-      setIsLoading(true)
-      setLoadingMsg("Running")
 
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
         code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
@@ -194,8 +192,6 @@ const CodingView = () => {
       });
     } finally {
       setSubmissionState('done')
-      setIsLoading(false)
-      setLoadingMsg("")
     }
   }
 

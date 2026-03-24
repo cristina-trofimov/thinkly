@@ -244,11 +244,10 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
     startTime: null,
     mostRecentSub: null,
     setMostRecentSub: jest.fn(),
-    isQuestionLoading: false,
     userQuestionInstance: null,
     setUserQuestionInstance: jest.fn(),
-    isAsyncLoading: false,
-    setIsAsyncLoading: jest.fn(),
+    isLoading: false,
+    setIsLoading: jest.fn(),
     activeQuestion: mockProblem,
     setActiveQuestion: jest.fn(),
     activeQuestionInstance: mockQuestionInstance,
@@ -259,14 +258,13 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
     questionsInstances: [mockQuestionInstance],
     languages: mockLanguages,
     prevLangRef: { current: mockLanguages[0] },
-    mostRecentSubGroupClass: '',
     userPreferences: mockUserPrefs,
     selectedLang: mockLanguages[0], // Java
     setSelectedLang: jest.fn(),
     event: null,
     testcases: [],
-    loadingMsg: '',
-    setLoadingMsg: jest.fn(),
+    // loadingMsg: '',
+    // setLoadingMsg: jest.fn(),
     ...overrides,
 })
 
@@ -299,7 +297,6 @@ describe('CodingView — rendering', () => {
         expect(screen.getAllByTestId('resizable-handle')).toHaveLength(2)
         expect(screen.getByTestId('submit-btn')).toBeInTheDocument()
         expect(screen.getByTestId('coding-btns')).toBeInTheDocument()
-        expect(screen.getByTestId('testcases-tab')).toBeInTheDocument()
         expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
         expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-182.5')
     })
@@ -314,14 +311,8 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('language-btn')).toHaveTextContent('Java')
     })
 
-    it('shows loader when isQuestionLoading is true', () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ isQuestionLoading: true }))
-        render(<CodingView />)
-        expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
-    })
-
-    it('shows loader when isAsyncLoading is true', () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ isAsyncLoading: true }))
+    it('shows loader when isLoading is true', () => {
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ isLoading: true }))
         render(<CodingView />)
         expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
     })
@@ -625,6 +616,24 @@ describe('CodingView - submit code', () => {
         fireEvent.click(screen.getByTestId('languageItem-Python'))
         expect(toast.info).toHaveBeenCalledWith(
             expect.stringContaining('Code saved in this session')
+        )
+    })
+})
+
+describe('mostRecentSub', () => {
+    it('defaults to 2-column grid when no mostRecentSub', async () => {
+        render(<CodingView />)
+
+        expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-2 gap-2')
+    })
+
+    it('switches to 3-column grid when mostRecentSub is set', async () => {
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: mockMostRecentSub }))
+
+        render(<CodingView />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-3 gap-2')
         )
     })
 })
