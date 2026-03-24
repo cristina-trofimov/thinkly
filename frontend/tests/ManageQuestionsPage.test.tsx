@@ -12,10 +12,10 @@ jest.mock("../src/api/QuestionsAPI", () => ({
 }));
 
 jest.mock("../src/components/manageQuestions/ManageQuestionsDataTable", () => ({
-  ManageQuestionsDataTable: ({ data, onDeleteQuestions }: any) => (
+  ManageQuestionsDataTable: ({ data, refreshTable }: any) => (
     <div>
       <div data-testid="manage-table">rows:{data.length}</div>
-      <button onClick={() => onDeleteQuestions?.([1])}>simulate-delete</button>
+      <button onClick={() => refreshTable?.()}>simulate-refresh</button>
     </div>
   ),
 }));
@@ -34,8 +34,8 @@ describe("ManageQuestionsPage", () => {
         title: "Q1",
         description: "d",
         media: null,
-        preset_code: "",
-        template_solution: "",
+        preset_functions: "",
+        template_code: "",
         from_string_function: "",
         to_string_function: "",
         tags: [],
@@ -54,15 +54,16 @@ describe("ManageQuestionsPage", () => {
     });
   });
 
-  it("updates rows when onDeleteQuestions callback is triggered", async () => {
-    mockedGetQuestions.mockResolvedValueOnce([
+  it("updates rows when refreshTable callback is triggered", async () => {
+    mockedGetQuestions
+      .mockResolvedValueOnce([
       {
         question_id: 1,
         question_name: "Q1",
         question_description: "d1",
         media: null,
-        preset_code: "",
-        template_solution: "",
+        preset_functions: "",
+        template_code: "",
         from_string_function: "",
         to_string_function: "",
         tags: [],
@@ -76,8 +77,8 @@ describe("ManageQuestionsPage", () => {
         question_name: "Q2",
         question_description: "d2",
         media: null,
-        preset_code: "",
-        template_solution: "",
+        preset_functions: "",
+        template_code: "",
         from_string_function: "",
         to_string_function: "",
         tags: [],
@@ -86,7 +87,24 @@ describe("ManageQuestionsPage", () => {
         created_at: new Date(),
         last_modified_at: new Date(),
       },
-    ] as any);
+    ] as any)
+      .mockResolvedValueOnce([
+        {
+          question_id: 1,
+          question_name: "Q1",
+          question_description: "d1",
+          media: null,
+          preset_functions: "",
+          template_code: "",
+          from_string_function: "",
+          to_string_function: "",
+          tags: [],
+          testcases: [],
+          difficulty: "Easy",
+          created_at: new Date(),
+          last_modified_at: new Date(),
+        },
+      ] as any);
 
     render(<ManageQuestionsPage />);
 
@@ -94,7 +112,7 @@ describe("ManageQuestionsPage", () => {
       expect(screen.getByTestId("manage-table")).toHaveTextContent("rows:2");
     });
 
-    screen.getByRole("button", { name: "simulate-delete" }).click();
+    screen.getByRole("button", { name: "simulate-refresh" }).click();
 
     await waitFor(() => {
       expect(screen.getByTestId("manage-table")).toHaveTextContent("rows:1");

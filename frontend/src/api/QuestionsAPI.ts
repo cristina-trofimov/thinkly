@@ -35,6 +35,7 @@ function mapQuestion(
     difficulty: normalizeDifficulty(question.difficulty),
     created_at: new Date(createdAt),
     last_modified_at: new Date(question.last_modified_at),
+    show_on_frontpage: Boolean(question.show_on_frontpage),
     tags: [] as TagResponse[],
     test_cases: [] as Array<TestCase>,
     language_specific_properties: [] as Array<LanguageSpecificProperties>,
@@ -57,10 +58,11 @@ function mapQuestion(
       language_id: prop.language_id,
       question_id: prop.question_id,
       language_display_name: prop.language_display_name,
-      preset_code: prop.preset_code,
-      template_solution: prop.template_solution,
-      from_json_function: prop.from_json_function,
-      to_json_function: prop.to_json_function,
+      imports: prop.imports,
+      preset_classes: prop.preset_classes,
+      preset_functions: prop.preset_functions,
+      main_function: prop.main_function,
+      template_code: prop.template_code,
     }));
   }
 
@@ -162,6 +164,16 @@ export async function deleteQuestion(questionId: number): Promise<void> {
   await deleteQuestions([questionId]);
 }
 
+export async function ShowQuestionOnFrontpageByID(
+  questionId: number,
+  shouldShow: boolean,
+): Promise<{ question_id: number; show_on_frontpage: boolean }> {
+  const response = await axiosClient.put(
+    `/questions/show-question-on-frontpage-by-id/${questionId}`,
+    { should_show: shouldShow },
+  );
+  return response.data;
+}
 
 export async function deleteCompetition(competitionId: string): Promise<void> {
   try {

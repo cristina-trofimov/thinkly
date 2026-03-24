@@ -175,13 +175,13 @@ const mockProblemWithPreset: Question = {
     language_specific_properties: [
         {
             language_id: 1, question_id: 1, language_display_name: 'Java',
-            preset_code: '// Java preset', template_solution: '// Java solution',
-            from_json_function: '', to_json_function: '',
+            preset_functions: '// Java preset', template_code: '// Java solution',
+            imports: '', preset_classes: '', main_function: '',
         },
         {
             language_id: 2, question_id: 1, language_display_name: 'Python',
-            preset_code: '# Python preset', template_solution: '# Python solution',
-            from_json_function: '', to_json_function: '',
+            preset_functions: '# Python preset', template_code: '# Python solution',
+            imports: '', preset_classes: '', main_function: '',
         },
     ],
 }
@@ -466,7 +466,7 @@ describe('CodingView — editor', () => {
         expect(screen.getByTestId('monaco-editor')).toHaveValue(source_code)
     })
 
-    it('initializes editor with preset_code when question has language_specific_properties', async () => {
+    it('initializes editor with preset_functions when question has language_specific_properties', async () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: mockProblemWithPreset }))
         renderCodingView()
         await waitFor(() =>
