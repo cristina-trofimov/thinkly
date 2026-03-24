@@ -1,6 +1,6 @@
 import type { BaseEvent } from "@/types/BaseEvent.type"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Question } from "@/types/questions/QuestionPagination.type"
 import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -17,7 +17,6 @@ export async function submitAttempt(
     event: BaseEvent | undefined | null,
     source_code: string,
     language_id: number | undefined,
-    // testcases: TestCase[],
     userId: number,
   ): Promise<SubmitAttemptResponse> {
     try {
