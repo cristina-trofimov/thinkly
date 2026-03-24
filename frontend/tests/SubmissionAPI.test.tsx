@@ -120,7 +120,7 @@ describe("SubmissionAPI", () => {
 
   describe('getAllSubmission', () => {
     it("Gets all the submissions of a user's question instance", async () => {
-      mockedAxios.get.mockResolvedValue({ data: submissions })
+      mockedAxios.get.mockResolvedValue({ data: { data: submissions } })
       await getAllSubmissions(user_question_instance_id)
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
