@@ -58,14 +58,17 @@ def judge0_get_outputs(
         tokens: list[str],
         interval_ms: int = 500,
         max_attempts: int = 300,
-):
+) -> dict:
     """
-    Retrieve results for multiple submissions from Judge0.
+    Retrieve and aggregate results for multiple batch submissions from Judge0.
+
+    Returns the first failing submission result if any test case fails,
+    or the last submission result if all are accepted.
 
     :param tokens: List of submission tokens.
     :param interval_ms: Polling interval in milliseconds.
     :param max_attempts: Maximum number of polling attempts.
-    :return: List of results for each token.
+    :return: A single submission result dict — failing one if any failed, else the last accepted.
     """
     _validate_judge0_url()
 
@@ -77,12 +80,23 @@ def judge0_get_outputs(
             resp.raise_for_status()
 
             data = resp.json()
-            statuses = [item['status']['description'] for item in data]
+            submissions = data.get("submissions", data) if isinstance(data, dict) else data
 
-            if all(status not in ("In Queue", "Processing") for status in statuses):
-                return data
+            # Keep polling if any submission is still in progress
+            statuses = [item["status"]["description"] for item in submissions]
+            if any(status in ("In Queue", "Processing") for status in statuses):
+                time.sleep(interval_ms / 1000)
+                continue
 
-            time.sleep(interval_ms / 1000)
+            # All done — find the first non-accepted result
+            for submission in submissions:
+                if submission["status"]["description"] != "Accepted":
+                    logger.debug(f"Found failing submission: {submission['token']} - {submission['status']['description']}")
+                    return submission
+
+            # All accepted — return the last one as the representative result
+            logger.debug("All submissions accepted.")
+            return submissions[-1]
 
         except Exception as e:
             logger.exception("Network error when getting Judge0 batch outputs")
@@ -146,29 +160,30 @@ def submit_to_judge0(
         # Extract all tokens from the response
         tokens = [item['token'] for item in post_resp.json()]
 
+        logger.debug(f"RTOKENS ARE HERE: {tokens}")
+
         # Retrieve results for all tokens
-        results = judge0_get_outputs(tokens)
+        # After
+        result = judge0_get_outputs(tokens)
 
-        # Track execution completion for each result
-        for result in results:
-            status_description = result.get('status', {}).get('description', 'Unknown')
-            track_custom_event(
-                user_id=user_id,
-                event_name="code_execution_completed",
-                properties={
-                    "status": status_description,
-                    "execution_time": result.get('time'),
-                    "memory_used": result.get('memory'),
-                    "is_accepted": status_description == "Accepted",
-                    "is_correct": status_description == "Accepted",
-                    "has_compile_error": "Compilation Error" in status_description,
-                    "has_runtime_error": "Runtime Error" in status_description,
-                    "token": result.get('token'),
-                }
-            )
+        status_description = result.get('status', {}).get('description', 'Unknown')
+        track_custom_event(
+            user_id=user_id,
+            event_name="code_execution_completed",
+            properties={
+                "status": status_description,
+                "execution_time": result.get('time'),
+                "memory_used": result.get('memory'),
+                "is_accepted": status_description == "Accepted",
+                "is_correct": status_description == "Accepted",
+                "has_compile_error": "Compilation Error" in status_description,
+                "has_runtime_error": "Runtime Error" in status_description,
+                "token": result.get('token'),
+            }
+        )
 
-        return results
-
+        return result
+    
     except Exception as e:
         logger.exception("Network error when running batch code with Judge0")
 
@@ -183,6 +198,20 @@ def submit_to_judge0(
         )
 
         raise RuntimeError(f"Network error when running batch code with Judge0: {e}")
+
+
+def check_all_submissions_passed(submissions: list[dict]) -> bool:
+    """
+    Check if all submissions in the response have passed.
+
+    :param submissions: List of submission results from Judge0.
+    :return: True if all submissions are "Accepted", False otherwise.
+    """
+    for submission in submissions:
+        status_description = submission.get("status", {}).get("description", "")
+        if status_description != "Accepted":
+            return False
+    return True
 
 
 # Routes

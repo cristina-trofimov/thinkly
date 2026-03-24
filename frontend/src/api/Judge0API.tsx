@@ -3,7 +3,6 @@ import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
-import Testcases from "@/components/codingPage/Testcases";
 import { getTestCasesByQuestionId } from "./QuestionsAPI";
 
 export function parse_input_output(testcases: TestCase[]) {
