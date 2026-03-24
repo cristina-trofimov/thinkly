@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { EditableQuestionFields, Question } from "@/types/questions/QuestionPagination.type";
 import ActionsCell from "./QuestionActionsCell";
+import { getDiffColor } from "@/utils/difficultyBadge";
 
 const difficultyOrder: Record<string, number> = {
   "easy": 1,
@@ -15,16 +16,6 @@ const difficultyOrder: Record<string, number> = {
   "hard": 3,
   "Hard": 3,
 }
-
-
-const getDiffColor = (d: string) => {
-  switch (d.toLowerCase()) {
-    case "easy": return "difficulty-easy";
-    case "medium": return "difficulty-medium";
-    case "hard": return "difficulty-hard";
-    default: return "difficulty-unknown";
-  }
-};
 
 
 interface TableMeta {

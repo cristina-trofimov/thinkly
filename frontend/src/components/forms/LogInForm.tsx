@@ -67,8 +67,6 @@ export function LoginForm({
 
       setUser(profile);
 
-      console.log("User profile after login:", user?.firstName);
-
       trackLoginSuccess("email_password");
 
       identifyUser({

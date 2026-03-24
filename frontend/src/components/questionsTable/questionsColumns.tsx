@@ -1,15 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Question } from "../../types/questions/QuestionPagination.type"
+import { getDiffColor } from "@/utils/difficultyBadge";
 
-
-const getDiffColor = (d: string) => {
-  switch (d.toLowerCase()) {
-    case "easy": return "difficulty-easy";
-    case "medium": return "difficulty-medium";
-    case "hard": return "difficulty-hard";
-    default: return "difficulty-unknown";
-  }
-};
 
 export const columns: ColumnDef<Question>[] = [
 
