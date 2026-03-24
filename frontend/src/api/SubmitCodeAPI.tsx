@@ -25,7 +25,7 @@ export async function submitAttempt(
         throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
       }
 
-      if (event && !userQuestionInstance.riddle_complete) {
+      if (event && questionInstance.riddle_id && !userQuestionInstance.riddle_complete) {
         throw new Error("SubmitAttempt: riddle needs to be completed")
       }
 
