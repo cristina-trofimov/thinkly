@@ -296,26 +296,28 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
     const record = prop as Record<string, unknown>;
     if (
       typeof record.language_name !== "string" ||
-      typeof record.preset_code !== "string" ||
-      typeof record.template_solution !== "string" ||
-      typeof record.from_json_function !== "string" ||
-      typeof record.to_json_function !== "string"
+      typeof record.imports !== "string" ||
+      typeof record.preset_classes !== "string" ||
+      typeof record.preset_functions !== "string" ||
+      typeof record.main_function !== "string" ||
+      typeof record.template_code !== "string"
     ) {
       return null;
     }
 
     return {
       language_name: record.language_name,
-      preset_code: record.preset_code,
-      template_solution: record.template_solution,
-      from_json_function: record.from_json_function,
-      to_json_function: record.to_json_function,
+      imports: record.imports,
+      preset_classes: record.preset_classes,
+      preset_functions: record.preset_functions,
+      main_function: record.main_function,
+      template_code: record.template_code,
     };
   });
 
   if (languageSpecificProperties.includes(null)) {
     throw new QuestionPayloadValidationError(
-      "Each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
+      "Each language_specific_properties entry must include language_name, imports, preset_classes, preset_functions, main_function, and template_code as strings"
     );
   }
 

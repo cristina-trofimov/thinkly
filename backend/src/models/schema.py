@@ -176,10 +176,11 @@ class QuestionLanguageSpecificProperties(Base):
 
     question_id: Mapped[int] = mapped_column(ForeignKey(FK_QUESTION_QUESTION_ID, ondelete='CASCADE'), primary_key=True)
     language_id: Mapped[int] = mapped_column(ForeignKey(FK_LANGUAGE_LANG_JUDGE_ID, ondelete='CASCADE'), primary_key=True)
-    preset_code: Mapped[Optional[str]] = mapped_column()
-    from_json_function: Mapped[Optional[str]] = mapped_column()
-    to_json_function: Mapped[Optional[str]] = mapped_column()
-    template_solution: Mapped[str] = mapped_column()
+    imports: Mapped[Optional[str]] = mapped_column()
+    preset_classes: Mapped[Optional[str]] = mapped_column()
+    preset_functions: Mapped[Optional[str]] = mapped_column()
+    main_function: Mapped[Optional[str]] = mapped_column()
+    template_code: Mapped[str] = mapped_column()
 
     question: Mapped[Question] = relationship('Question', back_populates='language_specific_properties', uselist=False)
     language: Mapped[Language] = relationship('Language', back_populates='question_language_specific_properties', uselist=False)

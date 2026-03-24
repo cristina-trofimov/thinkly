@@ -162,10 +162,15 @@ def main():
                 qlsp = QuestionLanguageSpecificProperties(
                     question_id=q.question_id,
                     language_id=lang.lang_judge_id,
-                    preset_code=f"# Starter code for problem {i + 1} in {lang.display_name}",
-                    from_json_function="def from_json(s): return s",
-                    to_json_function="def to_json(v): return str(v)",
-                    template_solution="Reference solution",
+                    imports="",
+                    preset_classes="",
+                    preset_functions=(
+                        f"# Starter code for problem {i + 1} in {lang.display_name}\n"
+                        "def from_json(s): return s\n"
+                        "def to_json(v): return str(v)"
+                    ),
+                    main_function="",
+                    template_code="Reference solution",
                 )
                 db.add(qlsp)
 

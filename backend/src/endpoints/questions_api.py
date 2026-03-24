@@ -47,10 +47,11 @@ class QuestionLanguageSpecificPropertiesResponse(BaseModel):
     question_id: int
     language_id: int
     language_display_name: str
-    from_json_function: str
-    to_json_function: str
-    preset_code: str
-    template_solution: str
+    imports: str
+    preset_classes: str
+    preset_functions: str
+    main_function: str
+    template_code: str
 
     @staticmethod
     def from_question_language_specific_properties(qlsp: QuestionLanguageSpecificProperties):
@@ -58,10 +59,11 @@ class QuestionLanguageSpecificPropertiesResponse(BaseModel):
             question_id=getattr(qlsp, "question_id", 0),
             language_id=getattr(qlsp, "language_id", 0),
             language_display_name=getattr(getattr(qlsp, "language", None), "display_name", ""),
-            from_json_function=getattr(qlsp, "from_json_function", ""),
-            to_json_function=getattr(qlsp, "to_json_function", ""),
-            preset_code=getattr(qlsp, "preset_code", ""),
-            template_solution=getattr(qlsp, "template_solution", "")
+            imports=getattr(qlsp, "imports", "") or "",
+            preset_classes=getattr(qlsp, "preset_classes", "") or "",
+            preset_functions=getattr(qlsp, "preset_functions", "") or "",
+            main_function=getattr(qlsp, "main_function", "") or "",
+            template_code=getattr(qlsp, "template_code", "") or "",
         )
 
 class QuestionListItemResponse(BaseModel):
@@ -397,10 +399,11 @@ def get_question(db: Annotated[str, Depends(get_db)], question_id: int):
 
 class CreateLanguageSpecificPropertiesRequest(BaseModel):
     language_name: str
-    preset_code: str
-    from_json_function: str
-    to_json_function: str
-    template_solution: str
+    imports: str = ""
+    preset_classes: str = ""
+    preset_functions: str = ""
+    main_function: str = ""
+    template_code: str
 
 class CreateTestCaseRequest(BaseModel):
     input_data: AnyJSONNode
@@ -443,10 +446,11 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
     question.language_specific_properties = [QuestionLanguageSpecificProperties(
         question_id=question.question_id,
         language=db.query(Language).filter(Language.display_name == qlsp.language_name).first(),
-        preset_code=qlsp.preset_code,
-        from_json_function=qlsp.from_json_function,
-        to_json_function=qlsp.to_json_function,
-        template_solution=qlsp.template_solution
+        imports=qlsp.imports,
+        preset_classes=qlsp.preset_classes,
+        preset_functions=qlsp.preset_functions,
+        main_function=qlsp.main_function,
+        template_code=qlsp.template_code,
     ) for qlsp in request.language_specific_properties]
 
     return question
@@ -652,10 +656,11 @@ def update_question(question_id: int, question_request: CreateQuestionRequest, d
                 QuestionLanguageSpecificProperties(
                     question_id=db_question.question_id,
                     language=language,
-                    preset_code=qlsp.preset_code,
-                    from_json_function=qlsp.from_json_function,
-                    to_json_function=qlsp.to_json_function,
-                    template_solution=qlsp.template_solution,
+                    imports=qlsp.imports,
+                    preset_classes=qlsp.preset_classes,
+                    preset_functions=qlsp.preset_functions,
+                    main_function=qlsp.main_function,
+                    template_code=qlsp.template_code,
                 )
             )
         

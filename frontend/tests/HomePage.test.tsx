@@ -86,13 +86,13 @@ describe("HomePage", () => {
             page: 1,
             pageSize: 25,
             items: [
-                { id: 1, title: "Two sum", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-02"), difficulty: "Easy" },
-                { id: 2, title: "Palindrome", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-15"), difficulty: "Medium" },
-                { id: 3, title: "Merge K Sorted Lists", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-07-01"), difficulty: "Hard" },
-                { id: 4, title: "Christmas Tree", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-07-12"), difficulty: "Easy" },
-                { id: 5, title: "Inverse String", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-03"), difficulty: "Easy" },
-                { id: 6, title: "Hash Map", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-03"), difficulty: "Medium" },
-                { id: 7, title: "Binary Tree", description: "", media: "", preset_code: "", template_solution: "", date: new Date("2025-08-19"), difficulty: "Hard" },
+                { id: 1, title: "Two sum", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-08-02"), difficulty: "Easy" },
+                { id: 2, title: "Palindrome", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-08-15"), difficulty: "Medium" },
+                { id: 3, title: "Merge K Sorted Lists", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-07-01"), difficulty: "Hard" },
+                { id: 4, title: "Christmas Tree", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-07-12"), difficulty: "Easy" },
+                { id: 5, title: "Inverse String", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-08-03"), difficulty: "Easy" },
+                { id: 6, title: "Hash Map", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-08-03"), difficulty: "Medium" },
+                { id: 7, title: "Binary Tree", description: "", media: "", preset_functions: "", template_code: "", date: new Date("2025-08-19"), difficulty: "Hard" },
             ],
         });
 
