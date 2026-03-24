@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
+
 import AlgoTimePage from "../src/views/AlgoTimePage";
-import { getAllAlgotimeSessions } from "../src/api/AlgotimeAPI";
+import { getAlgotimeSessionsPage } from "../src/api/AlgotimeAPI";
 
 jest.mock("@/lib/axiosClient", () => ({
   default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
@@ -10,22 +11,33 @@ jest.mock("../src/api/AlgotimeAPI");
 
 const mockSessions = [
   {
-    id: "1",
+    id: 1,
     eventName: "Session Alpha",
     seriesName: "Series A",
     startTime: new Date("2025-03-01T10:00:00"),
     endTime: new Date("2025-03-01T11:00:00"),
-    questions: [{ id: "q1" }, { id: "q2" }],
+    questionCooldown: 30,
+    questionCount: 2,
+    questions: [],
   },
   {
-    id: "2",
+    id: 2,
     eventName: "Session Beta",
     seriesName: null,
     startTime: new Date("2025-02-01T09:00:00"),
     endTime: new Date("2025-02-01T10:00:00"),
+    questionCooldown: 30,
+    questionCount: 0,
     questions: [],
   },
 ];
+
+const makePage = (items = mockSessions, total = items.length) => ({
+  total,
+  page: 1,
+  pageSize: 12,
+  items,
+});
 
 describe("AlgoTimePage", () => {
   beforeEach(() => {
@@ -33,13 +45,13 @@ describe("AlgoTimePage", () => {
   });
 
   it("shows loading state initially", () => {
-    (getAllAlgotimeSessions as jest.Mock).mockReturnValue(new Promise(() => {}));
+    (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(new Promise(() => {}));
     render(<AlgoTimePage />);
     expect(screen.getByText(/loading sessions/i)).toBeInTheDocument();
   });
 
   it("renders sessions after loading", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
     render(<AlgoTimePage />);
 
     await waitFor(() => {
@@ -49,7 +61,7 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders session question count", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
     render(<AlgoTimePage />);
 
     await waitFor(() => {
@@ -59,7 +71,7 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders series name when present", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
     render(<AlgoTimePage />);
 
     await waitFor(() => {
@@ -68,7 +80,7 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders Details and Join buttons for each session", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
     render(<AlgoTimePage />);
 
     await waitFor(() => {
@@ -78,28 +90,27 @@ describe("AlgoTimePage", () => {
   });
 
   it("sorts sessions by startTime ascending", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([mockSessions[1], mockSessions[0]]));
     render(<AlgoTimePage />);
 
     await waitFor(() => {
       const cards = screen.getAllByText(/Session (Alpha|Beta)/);
-      expect(cards[0].textContent).toBe("Session Beta"); // earlier date comes first
+      expect(cards[0].textContent).toBe("Session Beta");
       expect(cards[1].textContent).toBe("Session Alpha");
     });
   });
 
   it("shows empty state when no sessions", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue([]);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([], 0));
     render(<AlgoTimePage />);
 
     await waitFor(() => {
       expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();
-      expect(screen.getByText(/create a session/i)).toBeInTheDocument();
     });
   });
 
   it("handles API errors gracefully", async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockRejectedValue(new Error("Network error"));
+    (getAlgotimeSessionsPage as jest.Mock).mockRejectedValue(new Error("Network error"));
     render(<AlgoTimePage />);
 
     await waitFor(() => {

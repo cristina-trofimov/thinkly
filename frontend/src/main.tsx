@@ -172,13 +172,11 @@ const router = createBrowserRouter([
                 path: "competitions",
                 element: <ManageCompetitions />,
                 handle: { crumb: { title: "Manage Competitions" } },
-                children: [
-                  {
-                    path: "createCompetition",
-                    element: <CreateCompetition />,
-                    handle: { crumb: { title: "Create Competition" } },
-                  },
-                ],
+              },
+              {
+                path: "competitions/createCompetition",
+                element: <CreateCompetition />,
+                handle: { crumb: { title: "Create Competition" } },
               },
               {
                 path: "manageAccounts",
@@ -205,30 +203,14 @@ const router = createBrowserRouter([
                 element: <ManageAlgotimeSessionsPage />,
                 handle: {
                   crumb: { title: "Manage Algotime Sessions" }
-                },
-                children: [
-                  {
-                    path: "algoTimeSessionsManagement",
-                    element: <ManageAlgoTimePage />,
-                    handle: {
-                      crumb: { title: "Create AlgoTime Session" }
-                    }
-                  },
-                  {
-                    path: "view/:id",
-                    // element: <ViewAlgotimePage />,
-                    handle: {
-                      crumb: { title: "View AlgoTime Session" }
-                    }
-                  },
-                  {
-                    path: "edit/:id",
-                    // element: <EditAlgotimePage />,
-                    handle: {
-                      crumb: { title: "Edit AlgoTime Session" }
-                    }
-                  }
-                ]
+                }
+              },
+              {
+                path: "algoTimeSessions/algoTimeSessionsManagement",
+                element: <ManageAlgoTimePage />,
+                handle: {
+                  crumb: { title: "Create AlgoTime Session" }
+                }
               },
             ],
           },

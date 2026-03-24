@@ -21,50 +21,38 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Filter, Trash2 } from "lucide-react";
 import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog";
-import { useEffect, useState } from "react";
-import { useNavigate, useOutlet, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { type Competition } from "../../types/competition/Competition.type";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
-import { getCompetitions, deleteCompetition } from "../../api/CompetitionAPI";
+import { getCompetitionsPage, deleteCompetition } from "../../api/CompetitionAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
-
-const getCompetitionStatus = (
-  competitionStart: Date | string
-): "Completed" | "Active" | "Upcoming" => {
-  const now = new Date();
-  const start = new Date(competitionStart);
-  if (Number.isNaN(start.getTime())) return "Upcoming";
-  if (now < start) return "Upcoming";
-  const sameDay =
-    now.getFullYear() === start.getFullYear() &&
-    now.getMonth() === start.getMonth() &&
-    now.getDate() === start.getDate();
-  if (sameDay) return "Active";
-  return "Completed";
-};
-
-const formatCompetitionDate = (competitionDate: Date) => {
-  const date = new Date(competitionDate);
-  if (Number.isNaN(date.getTime())) return "TBD";
-  return date.toLocaleDateString();
-};
+import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
+import { ADMIN_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
+import { getPageItems } from "@/utils/paginationUtils";
+import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
+import {
+  formatEventDate,
+  getAdminStatusBadgeClasses,
+  getEventStatus,
+} from "@/utils/eventDisplay";
 
 const ManageCompetitions = () => {
   const navigate = useNavigate();
-  const outlet = useOutlet();
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
-  const [_createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedCompetition, setSelectedCompetition] = useState<{
     id: number;
     title: string;
   } | null>(null);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{
     id: number;
@@ -72,6 +60,12 @@ const ManageCompetitions = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(27);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const pendingScrollRef = useRef(false);
+  const scrollFrameRef = useRef<number | null>(null);
+  const latestRequestId = useRef(0);
 
   const {
     trackAdminCompetitionsViewed,
@@ -90,33 +84,30 @@ const ManageCompetitions = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadCompetitions = async () => {
+  const loadCompetitions = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
+    setLoading(true);
     try {
-      const data1 = await getCompetitions();
-      setCompetitions(data1);
-    } catch (err) {
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred. Failed to load competitions: ${(err as Error).message}`,
-        component: "ManageCompetitionsPage.tsx",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
+      const data = await getCompetitionsPage({
+        page,
+        pageSize,
+        search: searchQuery,
+        status: statusFilter?.toLowerCase() as "active" | "upcoming" | "completed" | undefined,
       });
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
+      setCompetitions(data.items);
+      setTotal(data.total);
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        setPage(page - 1);
+      }
+    } finally {
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+      }
     }
-  };
-
-  const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
-    switch (status) {
-      case "Active":
-        return "bg-green-100 text-green-700";
-      case "Upcoming":
-        return "bg-blue-100 text-blue-700";
-      case "Completed":
-        return "bg-gray-100 text-gray-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
+  }, [page, pageSize, searchQuery, statusFilter]);
 
   useEffect(() => {
     if (location.state?.success) {
@@ -126,12 +117,9 @@ const ManageCompetitions = () => {
   }, [location.state]);
 
   useEffect(() => {
-    let cancelled = false;
     const load = async () => {
-      setLoading(true);
       try {
-        const data = await getCompetitions();
-        if (!cancelled) setCompetitions(data);
+        await loadCompetitions();
       } catch (err) {
         logFrontend({
           level: "ERROR",
@@ -139,26 +127,51 @@ const ManageCompetitions = () => {
           component: "ManageCompetitionsPage.tsx",
           url: globalThis.location.href,
         });
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     };
     load();
-    return () => {
-      cancelled = true;
-    };
-  }, [location.key]);
+  }, [location.key, refreshKey, loadCompetitions]);
 
-  if (outlet) return outlet;
+  const scrollToTop = useCallback(() => {
+    if (scrollFrameRef.current !== null) {
+      cancelAnimationFrame(scrollFrameRef.current);
+    }
+
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      globalThis.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      scrollFrameRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loading || !pendingScrollRef.current) {
+      return;
+    }
+
+    pendingScrollRef.current = false;
+    scrollToTop();
+  }, [loading, scrollToTop]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  const cardsVisible = useCardReveal(loading, competitions.length);
 
   const handleCreateNavigation = () => {
     trackAdminCompetitionCreateNavigated();
-    navigate("createCompetition");
+    navigate("/app/dashboard/competitions/createCompetition");
   };
 
   // Debounce-free: track on blur or enter would be ideal, but for admin
   // pages simple onChange tracking is acceptable since usage is low-frequency
   const handleSearchChange = (value: string) => {
+    setPage(1);
     setSearchQuery(value);
     if (value.trim()) {
       trackAdminCompetitionSearched(value.trim());
@@ -166,38 +179,17 @@ const ManageCompetitions = () => {
   };
 
   const handleFilterChange = (status: string | undefined) => {
+    setPage(1);
     setStatusFilter(status);
     trackAdminCompetitionFilterChanged(status ?? "all");
   };
 
-  const filteredCompetitions = competitions
-    .filter((comp: Competition) => {
-      const matchesSearch =
-        (comp.competitionTitle?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        ) ||
-        (comp.competitionLocation?.toLowerCase() || "").includes(
-          searchQuery.toLowerCase()
-        );
-      const status = getCompetitionStatus(comp.startDate);
-      const matchesStatus =
-        !statusFilter ||
-        statusFilter === "All competitions" ||
-        status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .slice()
-    .sort((a: Competition, b: Competition) => {
-      const aDate = new Date(a.startDate);
-      const bDate = new Date(b.startDate);
-      const aTime = Number.isNaN(aDate.getTime()) ? 0 : aDate.getTime();
-      const bTime = Number.isNaN(bDate.getTime()) ? 0 : bDate.getTime();
-      return bTime - aTime;
-    });
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const pageItems = getPageItems(page, pageCount);
 
   const handleCardClick = (id: number, title: string) => {
     const comp = competitions.find((c) => c.id === id);
-    const status = comp ? getCompetitionStatus(comp.startDate) : "Upcoming";
+    const status = comp ? getEventStatus(comp.startDate, comp.endDate) : "Upcoming";
     setIsReadOnly(status === "Active" || status === "Completed");
     setSelectedCompetition({ id, title });
     setEditDialogOpen(true);
@@ -205,7 +197,7 @@ const ManageCompetitions = () => {
   };
 
   const handleEditSuccess = () => {
-    loadCompetitions();
+    setRefreshKey((current) => current + 1);
   };
 
   const handleDeleteClick = (
@@ -221,22 +213,27 @@ const ManageCompetitions = () => {
 
   const handleDeleteConfirm = async () => {
     if (!competitionToDelete) return;
+    const competition = competitionToDelete;
     setIsDeleting(true);
+    setDeleteDialogOpen(false);
     try {
-      await deleteCompetition(competitionToDelete.id);
+      pendingScrollRef.current = true;
+      setLoading(true);
+      await deleteCompetition(competition.id);
       trackAdminCompetitionDeleteSuccess(
-        competitionToDelete.id,
-        competitionToDelete.name
+        competition.id,
+        competition.name
       );
       toast.success(
-        `Competition "${competitionToDelete.name}" deleted successfully`
+        `Competition "${competition.name}" deleted successfully`
       );
       await loadCompetitions();
-      setDeleteDialogOpen(false);
       setCompetitionToDelete(null);
     } catch (err) {
+      pendingScrollRef.current = false;
+      setLoading(false);
       trackAdminCompetitionDeleteFailed(
-        competitionToDelete.id,
+        competition.id,
         (err as Error).message
       );
       toast.error("Failed to delete competition. Please try again.");
@@ -253,7 +250,7 @@ const ManageCompetitions = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">
           Manage Competitions
@@ -299,86 +296,114 @@ const ManageCompetitions = () => {
         </DropdownMenu>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Create Button Card */}
-        <Card
-          className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
-          onClick={handleCreateNavigation}
-        >
-          <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-            <Plus
-              className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
-              strokeWidth={1.5}
-            />
-          </div>
-          <CardContent className="p-4 bg-card text-center">
-            <h3 className="font-semibold text-base text-primary">
-              Create New Competition
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Setup a new coding event
-            </p>
-          </CardContent>
-        </Card>
+      {loading ? (
+        <ManageCompetitionsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Create Button Card */}
+          <Card
+            className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+            onClick={handleCreateNavigation}
+          >
+            <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+              <Plus
+                className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
+                strokeWidth={1.5}
+              />
+            </div>
+            <CardContent className="p-4 bg-card text-center">
+              <h3 className="font-semibold text-base text-primary">
+                Create New Competition
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Setup a new coding event
+              </p>
+            </CardContent>
+          </Card>
 
-        {loading && competitions.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
-            Refreshing competition list...
-          </div>
-        )}
+          {competitions.map((comp, index) => {
+            const status = getEventStatus(comp.startDate, comp.endDate);
+            const title = comp.competitionTitle || "Untitled Competition";
+            let opacityClass = "opacity-100";
+            if (status === "Completed") {
+              opacityClass = "opacity-75";
+            }
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0"
+              : "translate-y-2 opacity-0";
 
-        {filteredCompetitions.map((comp) => {
-          const status = getCompetitionStatus(comp.startDate);
-          const title = comp.competitionTitle || "Untitled Competition";
-
-          return (
-            <Card
-              key={comp.id}
-              className={`cursor-pointer overflow-hidden transition-shadow bg-card flex flex-col ${status === "Completed" ? "opacity-75 hover:shadow-lg" : "hover:shadow-lg"}`}
-              onClick={() => handleCardClick(comp.id, title)}
-            >
-              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                <div className="absolute inset-0 bg-grid-primary/5"></div>
-                <div className="absolute top-3 right-3 z-20">
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
-                  >
-                    {status}
-                  </span>
-                </div>
-                <div className="relative z-10 text-center w-full">
-                  <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
-                    {title}
+            return (
+              <Card
+                key={comp.id}
+                className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                onClick={() => handleCardClick(comp.id, title)}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
+              >
+                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                  <div className="absolute inset-0 bg-grid-primary/5"></div>
+                  <div className="absolute top-3 right-3 z-20">
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                  <div className="relative z-10 text-center w-full">
+                    <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                      {title}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {comp.competitionLocation || "Location TBD"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatCompetitionDate(comp.startDate)}
-                  </p>
-                </div>
-                <div className="flex items-center justify-end pt-2 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:bg-destructive/10 h-8"
-                    onClick={(e) => handleDeleteClick(comp.id, title, e)}
-                  >
-                    Delete <Trash2 className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {comp.competitionLocation || "Location TBD"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                    {formatEventDate(comp.startDate)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end pt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => handleDeleteClick(comp.id, title, e)}
+                    >
+                      Delete <Trash2 className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-      {filteredCompetitions.length === 0 && competitions.length > 0 && (
+      {total > 0 && (
+        <CardPaginationControls
+          page={page}
+          pageCount={pageCount}
+          pageItems={pageItems}
+          pageSize={pageSize}
+          pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
+          onPageChange={(nextPage) => {
+            pendingScrollRef.current = true;
+            setPage(nextPage);
+          }}
+          onPageSizeChange={(value) => {
+            pendingScrollRef.current = true;
+            setPage(1);
+            setPageSize(value);
+          }}
+        />
+      )}
+
+      {total === 0 && !loading && (searchQuery.trim() || statusFilter) && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
             <Search className="w-8 h-8 text-muted-foreground" />
@@ -390,7 +415,7 @@ const ManageCompetitions = () => {
         </div>
       )}
 
-      {competitions.length === 0 && !loading && (
+      {total === 0 && !loading && !searchQuery.trim() && !statusFilter && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
             <Plus className="w-8 h-8 text-muted-foreground" />
@@ -399,7 +424,7 @@ const ManageCompetitions = () => {
           <p className="text-muted-foreground mb-4">
             Get started by creating your first competition
           </p>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={handleCreateNavigation}>
             <Plus className="w-4 h-4 mr-2" />
             Create Competition
           </Button>
@@ -431,7 +456,7 @@ const ManageCompetitions = () => {
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
