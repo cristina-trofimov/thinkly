@@ -13,6 +13,7 @@ import { getRiddleById } from '../src/api/RiddlesAPI'
 import { getAllLanguages } from '../src/api/LanguageAPI'
 import { toast } from 'sonner'
 import { logFrontend } from '../src/api/LoggerAPI'
+import { Language } from '../src/types/questions/Language.type'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -168,8 +169,21 @@ const mockSubmissions: SubmissionType[] = [
   },
 ]
 
-const mockLanguages = [
-  { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
+const mockLanguages: Language[] = [
+  {
+    row_id: 1,
+    lang_judge_id: 71,
+    monaco_id: "python",
+    display_name: "Python",
+    active: true,
+  },
+  {
+    row_id: 2,
+    lang_judge_id: 51,
+    monaco_id: "java",
+    display_name: "Java",
+    active: false,
+  },
 ]
 
 // ─── Hook mock factory ────────────────────────────────────────────────────────
@@ -228,6 +242,8 @@ const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
       currentUserId={currentUserId}
       submissionState={subState}
       latestSubmissionResult={latestResult}
+      allLanguages={mockLanguages} 
+      submissions={mockSubmissions}
     />
   )
 }
@@ -391,7 +407,9 @@ describe('CodeDescArea - result tab wiring', () => {
         eventName="Test Event"
         isCompetitionEvent={true}
         submissionState="idle"
-        latestSubmissionResult={null}
+        latestSubmissionResult={null} 
+        allLanguages={mockLanguages} 
+        submissions={mockSubmissions}
       />
     )
     await waitFor(() => expect(screen.getByText('Description')).toBeInTheDocument())
@@ -407,6 +425,8 @@ describe('CodeDescArea - result tab wiring', () => {
         isCompetitionEvent={true}
         submissionState="done"
         latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={mockSubmissions}
       />
     )
     await waitFor(() =>
@@ -483,8 +503,21 @@ describe('CodeDescArea - riddle gate', () => {
 
 describe('CodeDescArea - submissions tab', () => {
   it('shows empty state when no submissions', async () => {
-    mockedGetAllSubmissions.mockResolvedValue([])
-    renderCodeDescArea()
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="done"
+        latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={[]}
+      />
+    )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await waitFor(() =>
@@ -493,7 +526,6 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('renders submission rows when submissions exist', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -504,7 +536,6 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('shows Accepted status in green', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -513,7 +544,6 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('shows Wrong Answer status in red', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -522,7 +552,6 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('shows submission count in footer', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -532,8 +561,21 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('shows singular "attempt" for one submission', async () => {
-    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
-    renderCodeDescArea()
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="done"
+        latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={[mockSubmissions[0]]}
+      />
+    )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await waitFor(() =>
@@ -542,8 +584,6 @@ describe('CodeDescArea - submissions tab', () => {
   })
 
   it('shows language name from languages list', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
-    mockedGetAllLanguages.mockResolvedValue(mockLanguages)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -555,7 +595,6 @@ describe('CodeDescArea - submissions tab', () => {
 
 describe('CodeDescArea - submission detail view', () => {
   it('opens submission detail when a row is clicked', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -566,7 +605,6 @@ describe('CodeDescArea - submission detail view', () => {
   })
 
   it('shows runtime and memory in detail view', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -577,8 +615,21 @@ describe('CodeDescArea - submission detail view', () => {
   })
 
   it('shows stdout when present in detail view', async () => {
-    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[0]])
-    renderCodeDescArea()
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="done"
+        latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={[mockSubmissions[0]]}
+      />
+    )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
@@ -587,8 +638,21 @@ describe('CodeDescArea - submission detail view', () => {
   })
 
   it('shows stderr and compile_output when present', async () => {
-    mockedGetAllSubmissions.mockResolvedValue([mockSubmissions[1]])
-    renderCodeDescArea()
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="done"
+        latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={[mockSubmissions[1]]}
+      />
+    )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
@@ -603,8 +667,22 @@ describe('CodeDescArea - submission detail view', () => {
       ...mockSubmissions[0],
       stdout: null, stderr: null, compile_output: null, message: null,
     }
-    mockedGetAllSubmissions.mockResolvedValue([minimalSub])
-    renderCodeDescArea()
+
+    render(
+      <CodeDescArea
+        question={mockQuestion}
+        question_instance={mockQuestionInstance}
+        uqi={mockUqi}
+        testcases={mockTestcases}
+        eventId={1}
+        eventName="Test Event"
+        isCompetitionEvent={true}
+        submissionState="done"
+        latestSubmissionResult={mockSubmissions[0]}
+        allLanguages={mockLanguages}
+        submissions={[minimalSub]}
+      />
+    )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
@@ -613,7 +691,6 @@ describe('CodeDescArea - submission detail view', () => {
   })
 
   it('goes back to submissions list when back button is clicked', async () => {
-    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
