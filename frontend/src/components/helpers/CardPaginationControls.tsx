@@ -42,7 +42,6 @@ export function CardPaginationControls({
           value={`${pageSize}`}
           onValueChange={(value) => {
             onPageSizeChange(Number(value));
-            globalThis.scrollTo({ top: 0, behavior: "smooth" });
           }}
         >
           <SelectTrigger className="w-20 cursor-pointer">

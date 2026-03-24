@@ -32,7 +32,6 @@ import { CardPaginationControls } from "@/components/helpers/CardPaginationContr
 import { ADMIN_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
 import ManageCompetitionsSkeleton from "@/components/manageCompetitions/ManageCompetitionsSkeleton";
-import { Spinner } from "@/components/ui/spinner";
 import { useCardReveal } from "@/hooks/useCardReveal";
 import {
   formatEventDate,
@@ -54,7 +53,6 @@ const ManageCompetitions = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [competitionToDelete, setCompetitionToDelete] = useState<{
     id: number;
@@ -65,6 +63,8 @@ const ManageCompetitions = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(27);
   const [refreshKey, setRefreshKey] = useState(0);
+  const pendingScrollRef = useRef(false);
+  const scrollFrameRef = useRef<number | null>(null);
   const latestRequestId = useRef(0);
 
   const {
@@ -105,7 +105,6 @@ const ManageCompetitions = () => {
     } finally {
       if (requestId === latestRequestId.current) {
         setLoading(false);
-        setHasLoadedOnce(true);
       }
     }
   }, [page, pageSize, searchQuery, statusFilter]);
@@ -133,11 +132,36 @@ const ManageCompetitions = () => {
     load();
   }, [location.key, refreshKey, loadCompetitions]);
 
-  const cardsVisible = useCardReveal(loading, competitions.length);
+  const scrollToTop = useCallback(() => {
+    if (scrollFrameRef.current !== null) {
+      cancelAnimationFrame(scrollFrameRef.current);
+    }
 
-  if (loading && !hasLoadedOnce) {
-    return <ManageCompetitionsSkeleton />;
-  }
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      globalThis.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      scrollFrameRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loading || !pendingScrollRef.current) {
+      return;
+    }
+
+    pendingScrollRef.current = false;
+    scrollToTop();
+  }, [loading, scrollToTop]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+      }
+    };
+  }, []);
+
+  const cardsVisible = useCardReveal(loading, competitions.length);
 
   const handleCreateNavigation = () => {
     trackAdminCompetitionCreateNavigated();
@@ -189,23 +213,27 @@ const ManageCompetitions = () => {
 
   const handleDeleteConfirm = async () => {
     if (!competitionToDelete) return;
+    const competition = competitionToDelete;
     setIsDeleting(true);
+    setDeleteDialogOpen(false);
     try {
-      await deleteCompetition(competitionToDelete.id);
+      pendingScrollRef.current = true;
+      setLoading(true);
+      await deleteCompetition(competition.id);
       trackAdminCompetitionDeleteSuccess(
-        competitionToDelete.id,
-        competitionToDelete.name
+        competition.id,
+        competition.name
       );
       toast.success(
-        `Competition "${competitionToDelete.name}" deleted successfully`
+        `Competition "${competition.name}" deleted successfully`
       );
       await loadCompetitions();
-      globalThis.scrollTo({ top: 0, behavior: "smooth" });
-      setDeleteDialogOpen(false);
       setCompetitionToDelete(null);
     } catch (err) {
+      pendingScrollRef.current = false;
+      setLoading(false);
       trackAdminCompetitionDeleteFailed(
-        competitionToDelete.id,
+        competition.id,
         (err as Error).message
       );
       toast.error("Failed to delete competition. Please try again.");
@@ -222,7 +250,7 @@ const ManageCompetitions = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 max-w-7xl">
+    <div className="container mx-auto max-w-7xl p-4 md:p-6">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold mb-2 text-primary">
           Manage Competitions
@@ -268,101 +296,93 @@ const ManageCompetitions = () => {
         </DropdownMenu>
       </div>
 
-      {loading && hasLoadedOnce && (
-        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-          <Spinner className="size-4" />
-          <span>Updating results...</span>
-        </div>
-      )}
+      {loading ? (
+        <ManageCompetitionsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Create Button Card */}
+          <Card
+            className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
+            onClick={handleCreateNavigation}
+          >
+            <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+              <Plus
+                className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
+                strokeWidth={1.5}
+              />
+            </div>
+            <CardContent className="p-4 bg-card text-center">
+              <h3 className="font-semibold text-base text-primary">
+                Create New Competition
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Setup a new coding event
+              </p>
+            </CardContent>
+          </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Create Button Card */}
-        <Card
-          className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
-          onClick={handleCreateNavigation}
-        >
-          <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-            <Plus
-              className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
-              strokeWidth={1.5}
-            />
-          </div>
-          <CardContent className="p-4 bg-card text-center">
-            <h3 className="font-semibold text-base text-primary">
-              Create New Competition
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Setup a new coding event
-            </p>
-          </CardContent>
-        </Card>
+          {competitions.map((comp, index) => {
+            const status = getEventStatus(comp.startDate, comp.endDate);
+            const title = comp.competitionTitle || "Untitled Competition";
+            let opacityClass = "opacity-100";
+            if (status === "Completed") {
+              opacityClass = "opacity-75";
+            }
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0"
+              : "translate-y-2 opacity-0";
 
-        {competitions.map((comp, index) => {
-          const status = getEventStatus(comp.startDate, comp.endDate);
-          const title = comp.competitionTitle || "Untitled Competition";
-          let opacityClass = "opacity-100";
-          if (loading && hasLoadedOnce) {
-            opacityClass = "opacity-50";
-          } else if (status === "Completed") {
-            opacityClass = "opacity-75";
-          }
-          const rowIndex = Math.floor(index / 4);
-          const enterClass = cardsVisible
-            ? "translate-y-0"
-            : "translate-y-2 opacity-0";
-
-          return (
-            <Card
-              key={comp.id}
-              className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
-                loading && hasLoadedOnce ? "pointer-events-none" : ""
-              }`}
-              onClick={() => handleCardClick(comp.id, title)}
-              aria-busy={loading && hasLoadedOnce}
-              style={{
-                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
-              }}
-            >
-              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                <div className="absolute inset-0 bg-grid-primary/5"></div>
-                <div className="absolute top-3 right-3 z-20">
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}
-                  >
-                    {status}
-                  </span>
-                </div>
-                <div className="relative z-10 text-center w-full">
-                  <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
-                    {title}
+            return (
+              <Card
+                key={comp.id}
+                className={`cursor-pointer overflow-hidden bg-card flex flex-col hover:shadow-lg ${opacityClass} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                onClick={() => handleCardClick(comp.id, title)}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
+              >
+                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                  <div className="absolute inset-0 bg-grid-primary/5"></div>
+                  <div className="absolute top-3 right-3 z-20">
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                  <div className="relative z-10 text-center w-full">
+                    <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                      {title}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {comp.competitionLocation || "Location TBD"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                  {formatEventDate(comp.startDate)}
-                  </p>
-                </div>
-                <div className="flex items-center justify-end pt-2 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => handleDeleteClick(comp.id, title, e)}
-                  >
-                    Delete <Trash2 className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {comp.competitionLocation || "Location TBD"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                    {formatEventDate(comp.startDate)}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end pt-2 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => handleDeleteClick(comp.id, title, e)}
+                    >
+                      Delete <Trash2 className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {total > 0 && (
         <CardPaginationControls
@@ -372,10 +392,11 @@ const ManageCompetitions = () => {
           pageSize={pageSize}
           pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
           onPageChange={(nextPage) => {
+            pendingScrollRef.current = true;
             setPage(nextPage);
-            globalThis.scrollTo({ top: 0, behavior: "smooth" });
           }}
           onPageSizeChange={(value) => {
+            pendingScrollRef.current = true;
             setPage(1);
             setPageSize(value);
           }}
