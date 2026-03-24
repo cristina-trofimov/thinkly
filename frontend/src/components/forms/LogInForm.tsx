@@ -28,7 +28,7 @@ export function LoginForm({
   const [form, setForm] = useState<LoginRequest>({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { setUser, user } = useUser();
+  const { setUser } = useUser();
 
   const navigate = useNavigate();
   const {
