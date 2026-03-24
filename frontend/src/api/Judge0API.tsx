@@ -62,6 +62,7 @@ export async function submitToJudge0(
                 .join(" ");
 
             return {
+                userId: userId,
                 language_id: `${language_id}`,
                 source_code: source_code.trim(),
                 stdin: stdin,

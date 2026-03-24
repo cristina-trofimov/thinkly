@@ -146,9 +146,12 @@ def submit_to_judge0(
         # Track batch submission event
         track_custom_event(
             user_id=user_id,
-            event_name="batch_code_submitted",
+            event_name="code_submitted",
             properties={
-                "submission_count": len(submissions),
+                "language_id": submissions[0]["language_id"],
+                "has_stdin": len(submissions[0].get("stdin", "")) > 0,
+                "has_expected_output": submissions[0].get("expected_output") is not None,
+                "code_length": len(submissions[0]["source_code"]),
             }
         )
 
@@ -222,6 +225,7 @@ def check_all_submissions_passed(submissions: list[dict]) -> bool:
 def judge0_run_code(request: Request, body: dict = None):
     # Extract user_id from request if available (set by frontend or auth middleware)
     user_id = body.get("user_id", "anonymous") if body else "anonymous"
+    logger.debug(f"Received code submission request from user_id: {user_id}")
 
     try:
         # Extract submissions from the body
@@ -232,8 +236,12 @@ def judge0_run_code(request: Request, body: dict = None):
 
         response = submit_to_judge0(
             submissions=submissions,
-            user_id=str(user_id),
+            user_id=user_id,
         )
+
+        # print the fianl response
+        logger.debug(f"Final Judge0 response: {response}")
+
         return {"ok": True, "status_code": 200, "results": response}
     except Exception:
         # Error is already tracked in submit_to_judge0, just raise HTTP exception

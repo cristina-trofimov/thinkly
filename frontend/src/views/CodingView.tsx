@@ -142,7 +142,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        code, selectedLang?.lang_judge_id, currentUserId ?? 0)
 
       setLatestSubmissionResult(submissionResponse)
       setSubmissionState('done')

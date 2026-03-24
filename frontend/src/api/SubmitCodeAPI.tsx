@@ -33,7 +33,7 @@ export async function submitAttempt(
       const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id,source_code, language_id, userId)
 
       // 2. Competition/Algotime points calculation
-      if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
+      if (event && judge0Response.results.status?.description?.toLocaleLowerCase() === "accepted") {
         if (question.difficulty.toLowerCase() == 'easy') {
           userQuestionInstance.points = 100
         } else if (question.difficulty.toLowerCase() == 'medium') {
