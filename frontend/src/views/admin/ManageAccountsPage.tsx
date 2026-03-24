@@ -6,6 +6,7 @@ import { getAccountsPage, type AccountsSort } from "@/api/AccountsAPI";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
+import { useUser } from "@/context/UserContext";
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
@@ -21,6 +22,7 @@ export default function ManageAccountsPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<number>(0);
+  const { user : currentUser } = useUser();
 
   const {
     trackAdminAccountsViewed,
@@ -165,6 +167,7 @@ export default function ManageAccountsPage() {
         }}
         onDeleteUsers={handleDeleteUsers}
         onUserUpdate={handleUserUpdate}
+        currentUserRole={currentUser?.accountType}
       />
     </div>
   );

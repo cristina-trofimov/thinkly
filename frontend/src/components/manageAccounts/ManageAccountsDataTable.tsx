@@ -85,6 +85,7 @@ function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
     onUserUpdate?: (updatedUser: Account) => void;
+    currentUserRole?: "Admin" | "Owner" | "Participant";
   }
 }
 
@@ -103,6 +104,7 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
+  currentUserRole?: "Admin" | "Owner" | "Participant";
 }
 
 interface SelectionActionsProps {
@@ -174,6 +176,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   onPageSizeChange = () => {},
   onDeleteUsers,
   onUserUpdate,
+  currentUserRole,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -185,7 +188,7 @@ export function ManageAccountsDataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
-    meta: { onUserUpdate },
+    meta: { onUserUpdate, currentUserRole },
     state: { sorting, rowSelection },
   });
 

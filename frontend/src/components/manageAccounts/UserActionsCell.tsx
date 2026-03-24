@@ -36,11 +36,13 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 interface ActionsCellProps {
   user: Account;
   onUserUpdate?: (updatedUser: Account) => void;
+  currentUserRole: "Admin" | "Owner" | "Participant";
 }
 
 export function ActionsCell({
   user,
   onUserUpdate,
+  currentUserRole,
 }: Readonly<ActionsCellProps>) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [firstName, setFirstName] = React.useState(user.firstName);
@@ -49,6 +51,9 @@ export function ActionsCell({
   const [accountType, setAccountType] = React.useState(
     user.accountType.toLowerCase()
   );
+
+  console.log("Current User", currentUserRole);
+  console.log("Editing User", accountType);
 
   React.useEffect(() => {
     if (isDialogOpen) {
@@ -177,7 +182,9 @@ export function ActionsCell({
                   <SelectContent>
                     <SelectItem value="participant">Participant</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="owner">Owner</SelectItem>
+                    {currentUserRole.toLowerCase() == "owner" && (
+                      <SelectItem value="owner">Owner</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </Field>
