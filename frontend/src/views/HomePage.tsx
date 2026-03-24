@@ -22,7 +22,7 @@ export function DataTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            {/* Adjust these to match the number of columns in your questionsColumns */}
+            {/* eslint-disable-next-line react/no-array-index-key */}
             {[...Array(5)].map((_, i) => (
               <TableHead key={i * (Math.random())}><Skeleton className="h-4 w-[100px]" /></TableHead>
             ))}
@@ -31,6 +31,7 @@ export function DataTableSkeleton() {
         <TableBody>
           {[...Array(10)].map((_, i) => (
             <TableRow key={i}>
+              {/* eslint-disable-next-line react/no-array-index-key */}
               {[...new Array(5)].map((_, j) => (
                 <TableCell key={j * (Math.random())}>
                   <Skeleton className="h-4 w-full" />
