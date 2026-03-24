@@ -34,12 +34,19 @@ export async function submitAttempt(
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
-        if (question.difficulty.toLowerCase() == 'easy') {
-          userQuestionInstance.points = 100
-        } else if (question.difficulty.toLowerCase() == 'medium') {
-          userQuestionInstance.points = 200
-        } else {
-          userQuestionInstance.points = 300
+        switch (question.difficulty.toLowerCase()) {
+          case 'easy':
+            userQuestionInstance.points = 100
+            break;
+          case 'medium':
+            userQuestionInstance.points = 200
+            break;
+            case 'hard':
+            userQuestionInstance.points = 300
+            break;
+          default:
+            throw new Error("SubmitAttempt: This is not a valid question difficulty level");
+            break;
         }
       }
 

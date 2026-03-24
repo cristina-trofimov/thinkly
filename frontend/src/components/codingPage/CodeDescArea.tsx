@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import { getAllSubmissions } from '@/api/SubmissionAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
@@ -14,7 +13,6 @@ import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
-import { getAllLanguages } from '@/api/LanguageAPI'
 import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
 import SubmissionDetail from './SubmissionDetail'
@@ -28,7 +26,7 @@ import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
 
 const CodeDescArea = (
     { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-      submissionState, latestSubmissionResult }:
+      submissionState, latestSubmissionResult, allLanguages, submissions }:
     { question: Question | undefined,
        question_instance: QuestionInstance | undefined | null,
        uqi: UserQuestionInstance | undefined | null,
@@ -44,6 +42,8 @@ const CodeDescArea = (
       submissionState?: 'idle' | 'loading' | 'done',
       /** The latest submission returned by the API once submissionState === 'done'. */
       latestSubmissionResult?: SubmissionType | null,
+      allLanguages: Language[] | undefined,
+      submissions: SubmissionType[] | undefined
     }
 ) => {
 
@@ -65,12 +65,10 @@ const CodeDescArea = (
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
-    const [allLanguages, setAllLanguages, ] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
-    const [submissions, setSubmissions] = useState<SubmissionType[]>()
 
     const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
@@ -119,21 +117,6 @@ const CodeDescArea = (
         }
         fetchRiddle()
     }, [question_instance, uqi?.riddle_complete])
-
-    useEffect(() => {
-        if (uqi?.user_question_instance_id) {
-            const FetchSubmissions = async () => {
-                const [subs, langs] = await Promise.all([
-                    getAllSubmissions(uqi?.user_question_instance_id),
-                    getAllLanguages(null)
-                ])
-
-                setSubmissions(subs)
-                setAllLanguages(langs)
-            }
-            FetchSubmissions()
-        }
-    }, [uqi])
 
     useEffect(() => {
         if (!containerRef.current) return
@@ -279,7 +262,7 @@ const CodeDescArea = (
                                     <TableHead className="text-right">Runtime</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody>
+                            <TableBody className='h-11/12 overflow-scroll'>
                                 {submissions?.map((s, idx) => {
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
@@ -288,18 +271,19 @@ const CodeDescArea = (
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-card' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
+                                            <span className='text-muted-foreground' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
                                         </TableCell>
                                         <TableCell className="" >
                                             {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
                                         </TableCell>
-                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
+                                        <TableCell className="text-right" >{s?.memory ? s.memory : "N/A"}</TableCell>
+                                        <TableCell className="text-right" >{s?.runtime ? s.runtime : "N/A"}</TableCell>
                                         </TableRow>
                                 })}
                             </TableBody>
                             <TableFooter className='mt-3' >
                                 <TableRow>
-                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                    <TableCell colSpan={4} className='text-muted-foreground' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
                                 </TableRow>
                             </TableFooter>
                         </Table>

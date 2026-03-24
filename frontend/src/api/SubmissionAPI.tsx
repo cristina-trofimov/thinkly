@@ -52,9 +52,17 @@ export async function getAllSubmissions(
       data: SubmissionType[]
     }>(`/attempts/all`, {
           params: { user_question_instance_id: user_question_instance_id }
-      })
+    })
 
-    return response['data']['data']
+    return response['data']['data'].sort((a, b) => {
+      if (a.submitted_on > b.submitted_on) {
+        return -1
+      } else if (a.submitted_on < b.submitted_on) {
+        return 1
+      } else {
+        return 0
+      }
+    })
   } catch (err) {
     logFrontend({
       level: "ERROR",
