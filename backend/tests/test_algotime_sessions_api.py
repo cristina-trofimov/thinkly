@@ -89,22 +89,6 @@ def test_create_algotime_duplicate_series(client, mock_db):
     assert response.status_code == 409
 
 def test_get_all_algotime_sessions_success(client, mock_db):
-    # Mock data structures
-    mock_tag1 = SimpleNamespace(tag_name="Arrays")
-    mock_tag2 = SimpleNamespace(tag_name="Dynamic Programming")
-    
-    mock_question = SimpleNamespace(
-        question_id=1,
-        question_name="Two Sum",
-        question_description="Find two numbers that add up to target",
-        difficulty="Easy",
-        tags=[mock_tag1, mock_tag2]
-    )
-    
-    mock_question_instance = SimpleNamespace(
-        question=mock_question
-    )
-    
     mock_series = SimpleNamespace(
         algotime_series_id=1,
         algotime_series_name="Winter 2025 Series"
@@ -115,7 +99,8 @@ def test_get_all_algotime_sessions_success(client, mock_db):
         event_name="Session 1",
         event_start_date="2025-12-28T20:00:00",
         event_end_date="2025-12-28T21:00:00",
-        question_cooldown=300
+        question_cooldown=300,
+        event_location="Room 101",
     )
     
     mock_session = SimpleNamespace(
@@ -123,36 +108,44 @@ def test_get_all_algotime_sessions_success(client, mock_db):
         base_event=mock_event,
         algotime_series=mock_series
     )
-    
-    # Setup mock query chain
+
     mock_sessions_query = MagicMock()
+    mock_sessions_query.join.return_value = mock_sessions_query
+    mock_sessions_query.outerjoin.return_value = mock_sessions_query
+    mock_sessions_query.filter.return_value = mock_sessions_query
+    mock_sessions_query.order_by.return_value = mock_sessions_query
+    mock_sessions_query.offset.return_value = mock_sessions_query
+    mock_sessions_query.limit.return_value = mock_sessions_query
+    mock_sessions_query.count.return_value = 1
     mock_sessions_query.all.return_value = [mock_session]
-    
-    mock_questions_query = MagicMock()
-    mock_questions_query.filter.return_value = mock_questions_query
-    mock_questions_query.all.return_value = [mock_question_instance]
-    
-    # Configure mock_db.query to return different queries based on the model
-    def query_side_effect(model):
-        if model == AlgoTimeSession:
+
+    mock_counts_query = MagicMock()
+    mock_counts_query.filter.return_value = mock_counts_query
+    mock_counts_query.group_by.return_value = mock_counts_query
+    mock_counts_query.all.return_value = [(1, 1)]
+
+    def query_side_effect(*models):
+        if len(models) == 1 and models[0] == AlgoTimeSession:
             return mock_sessions_query
-        elif model == QuestionInstance:
-            return mock_questions_query
+        if models and models[0] == QuestionInstance.event_id:
+            return mock_counts_query
         return MagicMock()
-    
+
     mock_db.query.side_effect = query_side_effect
-    
+
     response = client.get("/")
-    
+
     assert response.status_code == 200
     data = response.json()
-    
-    assert len(data) == 1
-    assert data[0]["id"] == 1
-    assert data[0]["eventName"] == "Session 1"
-    assert data[0]["seriesId"] == 1
-    assert len(data[0]["questions"]) == 1
-    assert data[0]["questions"][0]["questionName"] == "Two Sum"
+
+    assert data["total"] == 1
+    assert data["page"] == 1
+    assert data["page_size"] == 11
+    assert data["items"][0]["id"] == 1
+    assert data["items"][0]["eventName"] == "Session 1"
+    assert data["items"][0]["seriesId"] == 1
+    assert data["items"][0]["location"] == "Room 101"
+    assert data["items"][0]["questionCount"] == 1
 
 def test_get_algotime_session_success(client, mock_db):
     mock_tag = SimpleNamespace(tag_name="Arrays")
@@ -254,6 +247,8 @@ def test_update_algotime_session_success(client, mock_db):
         mock_query.filter.return_value = mock_query
         if model == AlgoTimeSession:
             mock_query.first.return_value = mock_session
+        elif model == Question:
+            mock_query.count.return_value = 1
         elif model == QuestionInstance:
             mock_query.all.return_value = [mock_question_instance]
             mock_query.delete.return_value = None
@@ -306,7 +301,8 @@ def test_delete_algotime_session_success(client, mock_db):
     )
     mock_session = SimpleNamespace(
         event_id=1,
-        algotime_series_id=1
+        algotime_series_id=1,
+        base_event=mock_event,
     )
 
     def query_side_effect(model):

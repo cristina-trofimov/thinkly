@@ -72,27 +72,24 @@ describe("AlgotimeAPI", () => {
 
   describe("getAllAlgotimeSessions", () => {
     it("fetches and formats algotime sessions", async () => {
-      const backendResponse = [
-        {
-          id: 1,
-          eventName: "Algo 101",
-          startTime: "2026-01-01T10:00:00Z",
-          endTime: "2026-01-01T11:00:00Z",
-          questionCooldown: 60,
-          seriesId: null,
-          seriesName: null,
-          questions: [
-            {
-              questionId: 10,
-              questionName: "Two Sum",
-              questionDescription: "Find two numbers",
-              difficulty: "easy",
-              tags: null,
-              points: null,
-            },
-          ],
-        },
-      ];
+      const backendResponse = {
+        total: 1,
+        page: 1,
+        page_size: 12,
+        items: [
+          {
+            id: 1,
+            eventName: "Algo 101",
+            startTime: "2026-01-01T10:00:00Z",
+            endTime: "2026-01-01T11:00:00Z",
+            questionCooldown: 60,
+            location: null,
+            seriesId: null,
+            seriesName: null,
+            questionCount: 1,
+          },
+        ],
+      };
 
       mockedAxios.get.mockResolvedValueOnce({
         data: backendResponse,
@@ -100,7 +97,15 @@ describe("AlgotimeAPI", () => {
 
       const result = await getAllAlgotimeSessions();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/", {
+        params: {
+          page: 1,
+          page_size: 12,
+          search: undefined,
+          sort: "desc",
+          status: undefined,
+        },
+      });
 
       expect(result).toHaveLength(1);
 
@@ -112,22 +117,18 @@ describe("AlgotimeAPI", () => {
       expect(session.endTime).toBeInstanceOf(Date);
       expect(session.seriesId).toBeNull();
       expect(session.seriesName).toBeNull();
-
-      expect(session.questions).toEqual([
-        {
-          questionId: 10,
-          questionName: "Two Sum",
-          questionDescription: "Find two numbers",
-          difficulty: "easy",
-          tags: [],
-          points: 0,
-        },
-      ]);
+      expect(session.questionCount).toBe(1);
+      expect(session.questions).toEqual([]);
     });
 
     it("handles empty response safely", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: null,
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 12,
+          items: [],
+        },
       } as any);
 
       const result = await getAllAlgotimeSessions();

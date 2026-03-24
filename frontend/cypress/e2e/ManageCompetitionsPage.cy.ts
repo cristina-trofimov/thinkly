@@ -5,20 +5,22 @@ describe('Manage Competitions Page', () => {
       body: { role: 'admin', firstName: 'Admin', lastName: 'User', id: 1 }
     }).as('getProfile');
 
-    // IMPORTANT: I added 'https://thinkly-production.up.railway.app' to ensure we only intercept
-    // the BACKEND request, not the frontend page load.
-    // If your API port is different, change 8000.
-    cy.intercept('GET', 'https://thinkly-production.up.railway.app/**/*competition*', {
+    cy.intercept('GET', '**/competitions/**', {
       statusCode: 200,
-      body: [
-        {
-          id: 1,
-          competition_title: 'Summer Hackathon',
-          competition_location: 'San Francisco',
-          start_date: '2024-06-01',
-          end_date: '2024-06-02'
-        }
-      ],
+      body: {
+        total: 1,
+        page: 1,
+        page_size: 27,
+        items: [
+          {
+            id: 1,
+            competition_title: 'Summer Hackathon',
+            competition_location: 'San Francisco',
+            start_date: '2024-06-01',
+            end_date: '2024-06-02',
+          },
+        ],
+      },
     }).as('getCompetitions');
 
     // Single visit, relative path, same pattern as dashboard.cy.ts
