@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter} from "@/components/ui/card";
 import { Input} from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search, Eye, Trash, Filter} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useNavigate } from "react-router-dom";
@@ -68,7 +68,7 @@ export default function ManageAlgotimeSessionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadATsessions = async () => {
+  const loadATsessions = useCallback(async () => {
     const requestId = ++latestRequestId.current;
     setLoading(true);
     try {
@@ -103,11 +103,11 @@ export default function ManageAlgotimeSessionsPage() {
         setHasLoadedOnce(true);
       }
     }
-  };
+  }, [page, pageSize, searchQuery, statusFilter]);
 
   useEffect(() => {
     loadATsessions();
-  }, [page, pageSize, searchQuery, statusFilter]);
+  }, [loadATsessions]);
 
   const cardsVisible = useCardReveal(loading, algotimesSessions.length);
 

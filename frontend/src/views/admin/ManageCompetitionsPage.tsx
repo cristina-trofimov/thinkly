@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Filter, Trash2 } from "lucide-react";
 import EditCompetitionDialog from "../../components/manageCompetitions/EditCompetitionDialog";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { type Competition } from "../../types/competition/Competition.type";
 import { toast } from "sonner";
@@ -84,8 +84,9 @@ const ManageCompetitions = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadCompetitions = async () => {
+  const loadCompetitions = useCallback(async () => {
     const requestId = ++latestRequestId.current;
+    setLoading(true);
     try {
       const data = await getCompetitionsPage({
         page,
@@ -107,7 +108,7 @@ const ManageCompetitions = () => {
         setHasLoadedOnce(true);
       }
     }
-  };
+  }, [page, pageSize, searchQuery, statusFilter]);
 
   useEffect(() => {
     if (location.state?.success) {
@@ -118,7 +119,6 @@ const ManageCompetitions = () => {
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
       try {
         await loadCompetitions();
       } catch (err) {
@@ -131,7 +131,7 @@ const ManageCompetitions = () => {
       }
     };
     load();
-  }, [location.key, page, pageSize, searchQuery, statusFilter, refreshKey]);
+  }, [location.key, refreshKey, loadCompetitions]);
 
   const cardsVisible = useCardReveal(loading, competitions.length);
 
