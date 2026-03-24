@@ -200,6 +200,7 @@ const ManageCompetitions = () => {
         `Competition "${competitionToDelete.name}" deleted successfully`
       );
       await loadCompetitions();
+      globalThis.scrollTo({ top: 0, behavior: "smooth" });
       setDeleteDialogOpen(false);
       setCompetitionToDelete(null);
     } catch (err) {
@@ -370,7 +371,10 @@ const ManageCompetitions = () => {
           pageItems={pageItems}
           pageSize={pageSize}
           pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            globalThis.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           onPageSizeChange={(value) => {
             setPage(1);
             setPageSize(value);

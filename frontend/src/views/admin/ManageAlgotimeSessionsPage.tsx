@@ -350,13 +350,14 @@ export default function ManageAlgotimeSessionsPage() {
                       <AlertDialogAction
                         className="bg-destructive text-white hover:bg-destructive/90"
                         onClick={async () => {
-                          try {
-                            await deleteAlgotime(ATsession.id);
-                            toast.success("Session deleted successfully");
-                            loadATsessions();
-                          } catch {
-                            toast.error("Failed to delete session");
-                          }
+                           try {
+                             await deleteAlgotime(ATsession.id);
+                             toast.success("Session deleted successfully");
+                             loadATsessions();
+                             globalThis.scrollTo({ top: 0, behavior: "smooth" });
+                           } catch {
+                             toast.error("Failed to delete session");
+                           }
                         }}
                       >
                         Delete
@@ -378,7 +379,10 @@ export default function ManageAlgotimeSessionsPage() {
           pageItems={pageItems}
           pageSize={pageSize}
           pageSizeOptions={ADMIN_CARD_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
+          onPageChange={(nextPage) => {
+            setPage(nextPage);
+            globalThis.scrollTo({ top: 0, behavior: "smooth" });
+          }}
           onPageSizeChange={(value) => {
             setPage(1);
             setPageSize(value);
