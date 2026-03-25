@@ -16,6 +16,17 @@ const mockLocation = {
   hash: "",
 };
 
+jest.mock("@/context/UserContext", () => ({
+  useUser: () => ({
+    user: { accountType: "Owner" },
+  }),
+}));
+
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => jest.fn(),
+}));
+
 jest.mock("../src/lib/axiosClient", () => ({
   __esModule: true,
   default: {
@@ -124,7 +135,7 @@ describe("ManageCompetitions", () => {
   });
 
   it("shows the skeleton on initial unresolved load", () => {
-    mockedGetCompetitionsPage.mockReturnValue(new Promise(() => {}) as any);
+    mockedGetCompetitionsPage.mockReturnValue(new Promise(() => { }) as any);
     const { container } = render(<ManageCompetitions />);
 
     expect(container.querySelector('[aria-busy="true"]')).toBeTruthy();
