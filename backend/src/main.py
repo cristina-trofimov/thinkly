@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +17,7 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints import authentification_api
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
 from endpoints.user_question_instance_api import user_question_instance_router
@@ -47,29 +48,54 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("🚀 Starting up...")
+    logger.info("🚀 Starting up...")
     init_posthog()
-    print("✓ PostHog analytics initialized")
+    logger.info("✓ PostHog analytics initialized")
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
     scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
     scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
-    print("✓ Email scheduler started (polling every 60s)")
+    logger.info("✓ Email scheduler started (polling every 60s)")
 
     yield  # Application runs here
 
     # Shutdown
-    print("🛑 Shutting down...")
+    logger.info("🛑 Shutting down...")
     scheduler.shutdown(wait=False)
-    print("✓ Email scheduler stopped")
+    logger.info("✓ Email scheduler stopped")
     shutdown_posthog()
-    print("✓ PostHog analytics shut down")
+    logger.info("✓ PostHog analytics shut down")
 
 
 app = FastAPI(title="My Backend API", lifespan=lifespan)
 
+    
+PUBLIC_PATHS = [
+    "/",               
+    "/auth/signup",    
+    "/auth/login",
+    "/auth/google-auth",
+    "/auth/refresh",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+]
+
+async def global_auth_dependency(request: Request):
+    if request.url.path in PUBLIC_PATHS:
+        return None
+    
+    # This manually triggers the OAuth2 logic for the middleware
+    token = await authentification_api.oauth2_scheme(request)
+    return authentification_api.get_current_user(token)
+
+
+app = FastAPI(
+    title="My Backend API", 
+    lifespan=lifespan,
+    dependencies=[Depends(global_auth_dependency)] # This enforces it on every route
+)
 # --- Rate Limiting ---
 limiter = Limiter(key_func=get_remote_address, default_limits=["45/minute"])
 app.state.limiter = limiter
@@ -132,7 +158,7 @@ async def analytics_middleware(request: Request, call_next):
 # --- Request Logging Middleware ---
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
+    logger.info(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
     response = await call_next(request)
     return response
 
@@ -175,9 +201,9 @@ try:
     app.include_router(base_event_router, prefix="/events")
     app.include_router(user_question_instance_router, prefix="/user-instances")
 except Exception:
-    print("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
+    logger.warning("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

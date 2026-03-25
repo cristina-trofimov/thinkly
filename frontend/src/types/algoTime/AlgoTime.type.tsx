@@ -41,8 +41,10 @@ export interface AlgoTimeSession {
   startTime: Date;
   endTime: Date;
   questionCooldown: number;
+  location?: string;
   seriesId?: number | null;
   seriesName?: string | null;
+  questionCount?: number;
   questions: AlgoTimeQuestion[];
 }
 
@@ -50,4 +52,40 @@ export interface AlgoTimeSeries {
   seriesId: number;
   seriesName: string;
   sessions: AlgoTimeSession[];
+}
+
+export type AlgoTimeStatusFilter = "active" | "upcoming" | "completed";
+
+export interface AlgoTimeSessionApiItem {
+  id: number;
+  eventName: string;
+  startTime: string;
+  endTime: string;
+  questionCooldown: number;
+  location?: string | null;
+  seriesId?: number | null;
+  seriesName?: string | null;
+  questionCount: number;
+}
+
+export interface AlgoTimeSessionApiPage {
+  total: number;
+  page: number;
+  page_size: number;
+  items: AlgoTimeSessionApiItem[];
+}
+
+export interface AlgoTimeSessionsPageParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: AlgoTimeStatusFilter;
+  sort?: "asc" | "desc";
+}
+
+export interface AlgoTimeSessionsPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: AlgoTimeSession[];
 }

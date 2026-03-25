@@ -1,7 +1,6 @@
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, EmailStr, constr
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr, Field
 from typing import Annotated, Optional
 from models.schema import UserAccount, UserPreferences, UserSession
 from google.oauth2 import id_token
@@ -17,6 +16,8 @@ from endpoints.send_email_api import send_email_via_brevo
 from services.posthog_analytics import identify_user, track_custom_event
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordBearer
 
 load_dotenv()
 auth_router = APIRouter(tags=["Authentication"])
@@ -24,12 +25,17 @@ limiter = Limiter(key_func=get_remote_address)
 token_blocklist = set()
 
 logger = logging.getLogger(__name__)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY env var is not set!")
 JWT_ALGORITHM = "HS256"
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173") # Safe fallback for dev only
 
 # ---------------- Error Messages ----------------
 ERROR_USER_NOT_FOUND = "User not found"
@@ -63,16 +69,16 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    new_password: constr(min_length=8)
-
+    new_password: str = Field(..., min_length=8)
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
-    new_password: constr(min_length=8)
+    new_password: str = Field(..., min_length=8)
 
 
 # ---------------- DB helpers ----------------
 def get_user_by_email(db: Session, email: str) -> Optional[UserAccount]:
+    """Retrieves a UserAccount record from the database by email address."""
     return db.query(UserAccount).filter(UserAccount.email == email).first()
 
 
@@ -124,13 +130,14 @@ def verify_token(token: str):
 
 
 def hash_password(password: str) -> str:
+    """Hashes a plain-text password using bcrypt with a generated salt."""
     return bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt()
     ).decode("utf-8")
 
-
 def verify_password(password: str, hashed: str) -> bool:
+    """Checks if a plain-text password matches the stored bcrypt hash."""
     return bcrypt.checkpw(
         password.encode("utf-8"),
         hashed.encode("utf-8")
@@ -169,12 +176,8 @@ def decode_access_token(token: str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=ERROR_INVALID_TOKEN)
 
 
-def get_current_user(request: Request):
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        logger.warning("Access denied: Missing or invalid Authorization header.")
-        raise HTTPException(status_code=401, detail="Missing token")
-    token = auth_header.split(" ")[1]
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     claims = decode_access_token(token)
     return claims
 
@@ -557,7 +560,7 @@ async def forgot_password(forgot_request: ForgotPasswordRequest, db: Annotated[S
         )
 
         # Create reset link with the actual token
-        reset_link = f"http://localhost:5173/reset-password?token={reset_token}"
+        reset_link = f"{FRONTEND_URL}/reset-password?token={reset_token}"
 
         try:
             send_email_via_brevo(

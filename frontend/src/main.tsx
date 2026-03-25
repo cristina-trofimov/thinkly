@@ -34,6 +34,7 @@ import Unauthorized from "./views/Unauthorized.tsx";
 import ProtectedRoute from "./components/helpers/ProtectedRoute.tsx";
 import ManageQuestionsPage from "./views/admin/ManageQuestionsPage.tsx";
 import QuestionJSONEditor from "./components/manageQuestions/QuestionJSONEditor.tsx";
+import { UserProvider } from "./context/UserContext.tsx";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const POSTHOG_KEY = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
@@ -179,13 +180,11 @@ const router = createBrowserRouter([
                 path: "competitions",
                 element: <ManageCompetitions />,
                 handle: { crumb: { title: "Manage Competitions" } },
-                children: [
-                  {
-                    path: "createCompetition",
-                    element: <CreateCompetition />,
-                    handle: { crumb: { title: "Create Competition" } },
-                  },
-                ],
+              },
+              {
+                path: "competitions/createCompetition",
+                element: <CreateCompetition />,
+                handle: { crumb: { title: "Create Competition" } },
               },
               {
                 path: "manageAccounts",
@@ -212,30 +211,14 @@ const router = createBrowserRouter([
                 element: <ManageAlgotimeSessionsPage />,
                 handle: {
                   crumb: { title: "Manage Algotime Sessions" }
-                },
-                children: [
-                  {
-                    path: "algoTimeSessionsManagement",
-                    element: <ManageAlgoTimePage />,
-                    handle: {
-                      crumb: { title: "Create AlgoTime Session" }
-                    }
-                  },
-                  {
-                    path: "view/:id",
-                    // element: <ViewAlgotimePage />,
-                    handle: {
-                      crumb: { title: "View AlgoTime Session" }
-                    }
-                  },
-                  {
-                    path: "edit/:id",
-                    // element: <EditAlgotimePage />,
-                    handle: {
-                      crumb: { title: "Edit AlgoTime Session" }
-                    }
-                  }
-                ]
+                }
+              },
+              {
+                path: "algoTimeSessions/algoTimeSessionsManagement",
+                element: <ManageAlgoTimePage />,
+                handle: {
+                  crumb: { title: "Create AlgoTime Session" }
+                }
               },
             ],
           },
@@ -261,7 +244,9 @@ createRoot(document.getElementById("root")!).render(
     >
       <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <Toaster position="top-center" />
-        <RouterProvider router={router} />
+        <UserProvider>
+          <RouterProvider router={router} />
+        </UserProvider>
       </GoogleOAuthProvider>
     </PostHogProvider>
   </StrictMode>

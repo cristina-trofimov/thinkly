@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import sys

@@ -17,13 +17,13 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
-import { getProfile } from '@/api/AuthAPI';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
 import { putUserInstance } from '@/api/UserQuestionInstanceAPI';
 import type { Judge0Response } from '@/types/questions/Judge0Response';
 import { submitAttempt } from '@/api/SubmitCodeAPI';
 import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
+import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
@@ -34,7 +34,6 @@ const CodingView = () => {
   const comp: Competition = location?.state?.comp
   const algo: AlgoTimeSession = location?.state?.algo_sess
   const question: Question = location?.state?.problem
-  const [currentUserId, setCurrentUserId] = useState<number | undefined>(undefined)
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
@@ -54,11 +53,7 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  useEffect(() => {
-    getProfile()
-      .then((user) => setCurrentUserId(user.id))
-      .catch(() => setCurrentUserId(undefined))
-  }, [])
+  const{user} = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -82,12 +77,12 @@ const CodingView = () => {
     }
   }, [])
 
-  // Auto-select the first language that has preset code when the question changes
+  // Auto-select the first language that has starter content when the question changes
   useEffect(() => {
     if (!activeQuestion || !languages?.length) return
 
     const langWithPreset = activeQuestion.language_specific_properties.find(
-      (p) => p.preset_code
+      (p) => p.template_code || p.preset_functions || p.preset_classes || p.imports || p.main_function
     )
     if (!langWithPreset) return
 
@@ -133,7 +128,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
 
       setLatestSubmissionResult(submissionResponse)
 
@@ -169,7 +164,7 @@ const CodingView = () => {
       setSubmissionState('loading')
 
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
 
@@ -207,10 +202,19 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: DB preset_code → DB template_solution → generic fallback comment
+  // Priority: composed starter fields -> template_code -> generic fallback comment
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
-  const presetCode = activeLangProps?.preset_code || activeLangProps?.template_solution || fallbackComment
+  const composedStarterCode = [
+    activeLangProps?.imports,
+    activeLangProps?.preset_classes,
+    activeLangProps?.preset_functions,
+    activeLangProps?.main_function,
+  ]
+    .filter((section): section is string => Boolean(section?.trim()))
+    .join('\n\n')
+
+  const presetCode = composedStarterCode || activeLangProps?.template_code || fallbackComment
 
   const [code, setCode] = useState<string>('')
 
@@ -356,7 +360,7 @@ const CodingView = () => {
             eventId={event?.event_id}
             eventName={event?.event_name}
             isCompetitionEvent={!!comp}
-            currentUserId={currentUserId}
+            currentUserId={user?.id}
             submissionState={submissionState}
             latestSubmissionResult={latestSubmissionResult}
           />

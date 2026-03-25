@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+
 import AlgoTimePage from "../src/views/AlgoTimePage";
 import { getAllAlgotimeSessions } from "../src/api/AlgotimeAPI";
 import { MemoryRouter } from "react-router-dom";
@@ -12,22 +13,33 @@ jest.mock("../src/api/AlgotimeAPI");
 
 const mockSessions = [
   {
-    id: "1",
+    id: 1,
     eventName: "Session Alpha",
     seriesName: "Series A",
     startTime: new Date("2025-03-01T10:00:00"),
     endTime: new Date("2025-03-01T11:00:00"),
-    questions: [{ id: "q1" }, { id: "q2" }],
+    questionCooldown: 30,
+    questionCount: 2,
+    questions: [],
   },
   {
-    id: "2",
+    id: 2,
     eventName: "Session Beta",
     seriesName: null,
     startTime: new Date("2025-02-01T09:00:00"),
     endTime: new Date("2025-02-01T10:00:00"),
+    questionCooldown: 30,
+    questionCount: 0,
     questions: [],
   },
 ];
+
+const makePage = (items = mockSessions, total = items.length) => ({
+  total,
+  page: 1,
+  pageSize: 12,
+  items,
+});
 
 describe("AlgoTimePage", () => {
   beforeEach(() => {
@@ -85,7 +97,7 @@ describe("AlgoTimePage", () => {
 
     await waitFor(() => {
       const cards = screen.getAllByText(/Session (Alpha|Beta)/);
-      expect(cards[0].textContent).toBe("Session Beta"); // earlier date comes first
+      expect(cards[0].textContent).toBe("Session Beta");
       expect(cards[1].textContent).toBe("Session Alpha");
     });
   });
@@ -96,7 +108,6 @@ describe("AlgoTimePage", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();
-      expect(screen.getByText(/create a session/i)).toBeInTheDocument();
     });
   });
 

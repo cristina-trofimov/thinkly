@@ -2,7 +2,7 @@ import { Editor } from "@monaco-editor/react";
 import { getQuestionByID, updateQuestion } from "@/api/QuestionsAPI";
 import { useCallback, useEffect, useState, type FC } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getQuestionFields, type EditableQuestionFields, type TagResponse } from "@/types/questions/QuestionPagination.type";
+import { getQuestionFields, type EditableQuestionFields } from "@/types/questions/QuestionPagination.type";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -257,8 +257,16 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
   if (!Array.isArray(data.tags)) {
     throw new QuestionPayloadValidationError("Tags must be an array");
   }
+  const tags = data.tags.map((tag: unknown) => {
+    if (typeof tag !== "string") {
+      return null;
+    }
+    return tag;
+  });
 
-  const tags = data.tags as TagResponse[];
+  if (tags.includes(null)) {
+    throw new QuestionPayloadValidationError("Each tag must be a string");
+  }
 
   if (!Array.isArray(data.language_specific_properties)) {
     throw new QuestionPayloadValidationError("Language_specific_properties must be an array");
@@ -277,26 +285,28 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
     const record = prop as Record<string, unknown>;
     if (
       typeof record.language_name !== "string" ||
-      typeof record.preset_code !== "string" ||
-      typeof record.template_solution !== "string" ||
-      typeof record.from_json_function !== "string" ||
-      typeof record.to_json_function !== "string"
+      typeof record.imports !== "string" ||
+      typeof record.preset_classes !== "string" ||
+      typeof record.preset_functions !== "string" ||
+      typeof record.main_function !== "string" ||
+      typeof record.template_code !== "string"
     ) {
       return null;
     }
 
     return {
       language_name: record.language_name,
-      preset_code: record.preset_code,
-      template_solution: record.template_solution,
-      from_json_function: record.from_json_function,
-      to_json_function: record.to_json_function,
+      imports: record.imports,
+      preset_classes: record.preset_classes,
+      preset_functions: record.preset_functions,
+      main_function: record.main_function,
+      template_code: record.template_code,
     };
   });
 
   if (languageSpecificProperties.includes(null)) {
     throw new QuestionPayloadValidationError(
-      "Each language_specific_properties entry must include language_name, preset_code, template_solution, from_json_function, and to_json_function as strings"
+      "Each language_specific_properties entry must include language_name, imports, preset_classes, preset_functions, main_function, and template_code as strings"
     );
   }
 
@@ -332,7 +342,7 @@ function normalizeEditableQuestionFields(payload: unknown): EditableQuestionFiel
     media,
     difficulty,
     language_specific_properties: languageSpecificProperties as EditableQuestionFields["language_specific_properties"],
-    tags,
+    tags: tags as EditableQuestionFields["tags"],
     testcases: testcases as EditableQuestionFields["testcases"],
   };
 }
