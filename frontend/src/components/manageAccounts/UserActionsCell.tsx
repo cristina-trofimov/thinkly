@@ -54,8 +54,6 @@ export function ActionsCell({
     user.accountType.toLowerCase()
   );
 
-  const isTargetAdminOrOwner = ["admin", "owner"].includes(user.accountType.toLowerCase());
-  const isAdminViewingAdmin = currentUserRole?.toLowerCase() === "admin" && isTargetAdminOrOwner;
 
   React.useEffect(() => {
     if (isDialogOpen) {

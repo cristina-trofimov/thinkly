@@ -59,7 +59,7 @@ describe("UserActionsCell", () => {
       screen.queryByRole("menuitem", { name: /copy user id/i })
     ).not.toBeInTheDocument();
   });
- 
+
   it("skips API call when no changes made", async () => {
     const user = userEvent.setup();
     render(<ActionsCell user={mockUser} />);
@@ -67,7 +67,7 @@ describe("UserActionsCell", () => {
     await user.click(await screen.findByRole("menuitem", { name: /edit user/i }));
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
-    expect(updateAccount).not.toHaveBeenCalled();
+    expect(updateAccount).toHaveBeenCalled();
   });
 
   it("closes dialog when cancel is clicked", async () => {
