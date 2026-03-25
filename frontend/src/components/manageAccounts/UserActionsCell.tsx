@@ -32,11 +32,12 @@ import { toast } from "sonner";
 import { updateAccount } from "@/api/AccountsAPI";
 import type { Account } from "@/types/account/Account.type";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 
 interface ActionsCellProps {
   user: Account;
   onUserUpdate?: (updatedUser: Account) => void;
-  currentUserRole: "Admin" | "Owner" | "Participant";
+  currentUserRole?: "Admin" | "Owner" | "Participant";
 }
 
 export function ActionsCell({
@@ -45,6 +46,7 @@ export function ActionsCell({
   currentUserRole,
 }: Readonly<ActionsCellProps>) {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [isTransferAlertOpen, setIsTransferAlertOpen] = React.useState(false);
   const [firstName, setFirstName] = React.useState(user.firstName);
   const [lastName, setLastName] = React.useState(user.lastName);
   const [email, setEmail] = React.useState(user.email);
@@ -52,8 +54,8 @@ export function ActionsCell({
     user.accountType.toLowerCase()
   );
 
-  console.log("Current User", currentUserRole);
-  console.log("Editing User", accountType);
+  const isTargetAdminOrOwner = ["admin", "owner"].includes(user.accountType.toLowerCase());
+  const isAdminViewingAdmin = currentUserRole?.toLowerCase() === "admin" && isTargetAdminOrOwner;
 
   React.useEffect(() => {
     if (isDialogOpen) {
@@ -70,40 +72,36 @@ export function ActionsCell({
     user.accountType,
   ]);
 
-  const handleSaveChanges = async () => {
+  const performUpdate = async () => {
     const updatedFields: Record<string, string> = {};
 
-    if (firstName !== user.firstName) {
-      updatedFields["first_name"] = firstName;
-    }
-    if (lastName !== user.lastName) {
-      updatedFields["last_name"] = lastName;
-    }
-    if (email !== user.email) {
-      updatedFields["email"] = email;
-    }
+    if (firstName !== user.firstName) updatedFields["first_name"] = firstName;
+    if (lastName !== user.lastName) updatedFields["last_name"] = lastName;
+    if (email !== user.email) updatedFields["email"] = email;
     if (accountType.toLowerCase() !== user.accountType.toLowerCase()) {
       updatedFields["user_type"] = accountType;
     }
 
-    if (Object.keys(updatedFields).length === 0) {
-      setIsDialogOpen(false);
-      return;
-    }
-
     try {
       const response = await updateAccount(user.id, updatedFields);
-
       toast.success("User updated successfully!");
-
-      if (onUserUpdate && response) {
-        onUserUpdate(response);
-      }
+      if (onUserUpdate && response) onUserUpdate(response);
     } catch {
       toast.error("Failed to update user.");
-      handleCancel();
     } finally {
       setIsDialogOpen(false);
+      setIsTransferAlertOpen(false);
+    }
+  };
+
+  const handleSaveClick = () => {
+    // Only trigger alert if the target is being changed to Owner and current user is an Owner
+    const isPromotingToOwner = accountType.toLowerCase() === "owner" && user.accountType.toLowerCase() !== "owner";
+
+    if (isPromotingToOwner && currentUserRole?.toLowerCase() === "owner") {
+      setIsTransferAlertOpen(true);
+    } else {
+      performUpdate();
     }
   };
 
@@ -132,6 +130,26 @@ export function ActionsCell({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Transfer Ownership Warning Modal */}
+      <AlertDialog open={isTransferAlertOpen} onOpenChange={setIsTransferAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer Ownership?</AlertDialogTitle>
+            <AlertDialogDescription >
+              This action is irreversible. You are about to promote {user.firstName} {user.lastName} to Owner.
+              <br /><br />
+              Once confirmed, your account will be downgraded to Admin and you will lose owner-level privileges.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={performUpdate} className="bg-destructive hover:bg-destructive/90">
+              Confirm Transfer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTitle></DialogTitle>
@@ -182,7 +200,7 @@ export function ActionsCell({
                   <SelectContent>
                     <SelectItem value="participant">Participant</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    {currentUserRole.toLowerCase() == "owner" && (
+                    {currentUserRole?.toLowerCase() == "owner" && (
                       <SelectItem value="owner">Owner</SelectItem>
                     )}
                   </SelectContent>
@@ -192,7 +210,7 @@ export function ActionsCell({
                 <Button variant="outline" type="button" onClick={handleCancel}>
                   Cancel
                 </Button>
-                <Button type="submit" onClick={handleSaveChanges}>
+                <Button type="submit" onClick={handleSaveClick}>
                   Save Changes
                 </Button>
               </Field>

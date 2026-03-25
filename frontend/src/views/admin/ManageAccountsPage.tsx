@@ -22,7 +22,7 @@ export default function ManageAccountsPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<number>(0);
-  const { user : currentUser } = useUser();
+  const { user: currentUser } = useUser();
 
   const {
     trackAdminAccountsViewed,
@@ -53,11 +53,11 @@ export default function ManageAccountsPage() {
         const result = Array.isArray(rawResult)
           ? { total: rawResult.length, page, pageSize, items: rawResult }
           : (rawResult as {
-              total: number;
-              page: number;
-              pageSize: number;
-              items: Account[];
-            });
+            total: number;
+            page: number;
+            pageSize: number;
+            items: Account[];
+          });
         setData(result.items);
         setTotal(result.total);
 
@@ -131,11 +131,25 @@ export default function ManageAccountsPage() {
       url: globalThis.location.href,
     });
 
-    setData((prevData) =>
-      prevData.map((account) =>
-        account.id === updatedUser.id ? updatedUser : account
-      )
-    );
+    setData((prevData) => {
+      return prevData.map((account) => {
+        // 1. Update the user that was actually edited (The New Owner)
+        if (account.id === updatedUser.id) {
+          return updatedUser;
+        }
+
+        if (
+          updatedUser.accountType.toLowerCase() === "owner" &&
+          account.id === currentUser?.id
+        ) {
+          return { ...account, accountType: "Admin" };
+        }
+
+        return account;
+      });
+    });
+
+
   };
 
   return (
