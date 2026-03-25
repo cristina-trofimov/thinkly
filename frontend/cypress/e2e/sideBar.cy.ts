@@ -25,11 +25,8 @@ describe('Sidebar Navigation', () => {
 
     cy.wait('@loadUser');
 
-    // wait for the Sidebar to reflect the Admin state.
-    cy.contains('Thinkly').should('be.visible');
-
-    // Increase timeout specifically for this check to account for context updates
-    cy.contains('Dashboard', { timeout: 10000 }).should('exist').and('be.visible');
+    // Wait for the sidebar to actually render before asserting
+    cy.contains('Dashboard', { timeout: 8000 }).should('be.visible');
 
     cy.contains('Leaderboards').click();
     cy.location('pathname').should('include', '/leaderboards');

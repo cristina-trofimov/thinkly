@@ -50,16 +50,15 @@ const navOther = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUser();
 
+  // 🔒 Filter logic:
+  // We recreate the 'navOther' list based on the user's role.
   const filteredOtherLinks = React.useMemo(() => {
-    if (!user || !user.accountType) {
-      // Return only links that DON'T require admin if user isn't loaded yet
-      return navOther.filter(item => !item.requiresAdmin);
-    }
+    if (!user) return []; // Or return just public links if you prefer
 
-    const role = user.accountType.toLowerCase();
-    const isAdminOrOwner = ['admin', 'owner'].includes(role);
+    const isAdminOrOwner = ['admin', 'owner'].includes(user?.accountType?.toLowerCase() ?? "");
 
     return navOther.filter(item => {
+      // If the item requires admin and the user is NOT one, hide it.
       if (item.requiresAdmin && !isAdminOrOwner) {
         return false;
       }
