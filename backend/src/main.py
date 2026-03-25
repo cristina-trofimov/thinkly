@@ -17,6 +17,7 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints.testcase_api import testcase_router
 from endpoints import authentification_api
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
@@ -200,6 +201,7 @@ try:
     app.include_router(languages_router, prefix="/lang")
     app.include_router(base_event_router, prefix="/events")
     app.include_router(user_question_instance_router, prefix="/user-instances")
+    app.include_router(testcase_router, prefix="/testcase")
 except Exception:
     logger.warning("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 

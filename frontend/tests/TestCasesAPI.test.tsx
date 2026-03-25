@@ -39,7 +39,7 @@ describe("getTestcases", () => {
 
         const result = await getTestcases(1);
 
-        expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-testcases/1");
+        expect(mockedAxios.get).toHaveBeenCalledWith("/testcase/1");
         expect(result).toEqual([
             {
                 test_case_id: 1,
