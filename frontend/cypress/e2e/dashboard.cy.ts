@@ -106,8 +106,8 @@ describe('Admin Dashboard', () => {
 
     // 3. Click the "Last 7 days" option
     // shadcn/ui Select renders options with role="option" in a portal
-    cy.get('[role="listbox"]').should('be.visible');
-    cy.get('[role="option"]').contains('Last 7 days').click({ force: true });
+    cy.get('body').get('[role="listbox"]').should('be.visible');
+    cy.get('body').get('[role="option"]').contains('Last 7 days').click({ force: true });
 
     // 4. Verify the time range changed
     cy.get('[role="combobox"]').first().should('contain.text', 'Last 7 days');
