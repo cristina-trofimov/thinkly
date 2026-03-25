@@ -38,6 +38,7 @@ import {
   getAdminStatusBadgeClasses,
   getEventStatus,
 } from "@/utils/eventDisplay";
+import { useUser } from "@/context/UserContext";
 
 const ManageCompetitions = () => {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ const ManageCompetitions = () => {
   const pendingScrollRef = useRef(false);
   const scrollFrameRef = useRef<number | null>(null);
   const latestRequestId = useRef(0);
+  const { user } = useUser();
 
   const {
     trackAdminCompetitionsViewed,
@@ -364,18 +366,20 @@ const ManageCompetitions = () => {
                       {comp.competitionLocation || "Location TBD"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                    {formatEventDate(comp.startDate)}
+                      {formatEventDate(comp.startDate)}
                     </p>
                   </div>
                   <div className="flex items-center justify-end pt-2 border-t">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => handleDeleteClick(comp.id, title, e)}
-                    >
-                      Delete <Trash2 className="h-4 w-4 ml-1" />
-                    </Button>
+                    {user?.accountType.toLowerCase() === "owner" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => handleDeleteClick(comp.id, title, e)}
+                      >
+                        Delete <Trash2 className="h-4 w-4 ml-1" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
