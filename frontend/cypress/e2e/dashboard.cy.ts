@@ -72,6 +72,11 @@ describe('Admin Dashboard', () => {
       ],
     }).as('getParticipation');
 
+    cy.intercept('GET', '**/algotime/sessions**', {
+      statusCode: 200,
+      body: [],
+    }).as('getAlgoTimeSessions');
+
     // Set token in localStorage before page loads
     const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9.mock';
     cy.visit('/app/dashboard', {
