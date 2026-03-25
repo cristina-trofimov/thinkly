@@ -46,7 +46,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
 
     const { testcases } = useTestcases(activeQuestionInstance?.question_id)
 
-    const eventID = comp?.id || algo?.eventID || undefined
+    const eventID = comp?.id || algo?.id || undefined
     const { user } = useUser()
 
 

@@ -13,7 +13,6 @@ import { logFrontend } from "./LoggerAPI";
 
 const mapAlgoTimeSessionCard = (session: AlgoTimeSessionApiItem): AlgoTimeSession => ({
   id: session.id,
-  eventID: session.eventID,
   eventName: session.eventName,
   startTime: new Date(session.startTime),
   endTime: new Date(session.endTime),

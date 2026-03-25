@@ -36,7 +36,6 @@ export interface AlgoTimeQuestion {
 
 export interface AlgoTimeSession {
   id: number;
-  eventID: number;
   eventName: string;
   startTime: Date;
   endTime: Date;
@@ -58,7 +57,6 @@ export type AlgoTimeStatusFilter = "active" | "upcoming" | "completed";
 
 export interface AlgoTimeSessionApiItem {
   id: number;
-  eventID: number;
   eventName: string;
   startTime: string;
   endTime: string;
