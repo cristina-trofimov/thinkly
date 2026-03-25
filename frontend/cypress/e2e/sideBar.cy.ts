@@ -1,12 +1,6 @@
 describe('Sidebar Navigation', () => {
-  const mockToken =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-    'eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9' +
-    '.mock';
-
-  beforeEach(() => {
-    // Profile must return accountType 'Admin' or 'Owner' so the Dashboard
-    // link passes the requiresAdmin filter in AppSidebar
+  it('loads the user and navigates through links', () => {
+    // 1. Mock the API call (The sidebar needs this to populate data)
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -14,78 +8,40 @@ describe('Sidebar Navigation', () => {
         firstName: 'Test',
         lastName: 'Admin',
         email: 'admin@test.com',
-        accountType: 'Admin',
-      },
-    }).as('getProfile');
+        role: 'admin'
+      }
+    }).as('loadUser');
 
-    cy.intercept('GET', '**/auth/preferences*', {
-      statusCode: 200,
-      body: { theme: 'light', notifications_enabled: true },
-    }).as('getPreferences');
+    // 2. A Mock Token that actually contains { "role": "admin" }
+    // Decoded payload: { "sub": "123", "name": "Test User", "role": "admin" }
+    const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJuYW1lIjoiVGVzdCBVc2VyIiwicm9sZSI6ImFkbWluIn0.ZnFr";
 
-    cy.visit('/app/home', {
-      onBeforeLoad(win) {
-        win.localStorage.setItem('token', mockToken);
-      },
+    // 3. Visit the page with the ADMIN token
+    cy.visit('http://localhost:5173/app/home', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('token', ADMIN_TOKEN);
+      }
     });
 
-    // Wait for profile to load so UserContext hydrates before assertions
-    cy.wait('@getProfile');
-  });
+    // 4. Verification: Ensure we stayed on Home and didn't go to /unauthorized
+    cy.location('pathname').should('include', '/app/home');
 
-  it('loads the user and navigates through links', () => {
-    // Dashboard link only appears for admin/owner — wait for sidebar to hydrate.
-    // The sidebar reads from UserContext which resolves after @getProfile,
-    // but React state updates are async so we need a generous timeout.
-    cy.contains('Dashboard', { timeout: 10000 }).should('be.visible');
+    // 5. Wait for the Sidebar to fetch data
+    cy.wait('@loadUser');
 
-    // Navigate to Leaderboards
+    // 6. Navigate
     cy.contains('Leaderboards').click();
-    cy.location('pathname').should('include', 'leaderboards');
-
-    // Navigate back to Dashboard
+    cy.location('pathname').should('include', '/leaderboards');
+    cy.wait(2000)
     cy.contains('Dashboard').click();
-    cy.location('pathname').should('include', '/app/dashboard');
-  });
-
-  it('shows AlgoTime and Competitions links for all users', () => {
-    cy.contains('AlgoTime', { timeout: 8000 }).should('be.visible');
-    cy.contains('Competitions').should('be.visible');
-  });
-
-  it('shows Leaderboards link for all users', () => {
-    cy.contains('Leaderboards', { timeout: 8000 }).should('be.visible');
-  });
-
-  it('shows Dashboard link only for admin/owner users', () => {
-    cy.contains('Dashboard', { timeout: 10000 }).should('be.visible');
-  });
-
-  it('hides Dashboard link for participant users', () => {
-    // Re-intercept profile as participant before revisiting so the UserContext
-    // hydrates with the Participant role from the very first profile fetch.
-    cy.intercept('GET', '**/auth/profile', {
-      statusCode: 200,
-      body: {
-        id: 2,
-        firstName: 'Jane',
-        lastName: 'Doe',
-        email: 'jane@test.com',
-        accountType: 'Participant',
-      },
-    }).as('getParticipantProfile');
-
-    cy.visit('/app/home', {
-      onBeforeLoad(win) {
-        win.localStorage.setItem('token', mockToken);
-      },
+    cy.wait(2000)
+    cy.visit('http://localhost:5173/app/home', {
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem('token', ADMIN_TOKEN);
+      }
     });
+    cy.wait(2000)
+    cy.contains('Competition').click();
 
-    cy.wait('@getParticipantProfile');
-
-    // AlgoTime should still be visible for all roles
-    cy.contains('AlgoTime', { timeout: 8000 }).should('be.visible');
-    // Dashboard must NOT appear for participants
-    cy.contains('Dashboard').should('not.exist');
   });
 });

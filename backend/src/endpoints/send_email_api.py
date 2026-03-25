@@ -89,7 +89,7 @@ def _validate_email_inputs(to: list[str], subject: str, text: str):
 
 
 def send_email_via_brevo(to: list[str], subject: str, text: str,
-                         html: str | None = None) -> dict:
+                        html: str | None = None) -> dict:
     """Send an email via Brevo immediately with full logging and validation."""
     _validate_email_inputs(to, subject, text)
 

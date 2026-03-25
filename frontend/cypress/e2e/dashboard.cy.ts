@@ -1,10 +1,7 @@
 describe('Admin Dashboard', () => {
-  const mockToken =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
-    'eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9' +
-    '.mock';
-
   beforeEach(() => {
+    // Set up API intercepts BEFORE visiting the page
+    // Intercept auth profile check
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -12,15 +9,11 @@ describe('Admin Dashboard', () => {
         firstName: 'Admin',
         lastName: 'User',
         email: 'admin@test.com',
-        accountType: 'Admin',
+        role: 'admin',
       },
     }).as('getProfile');
 
-    cy.intercept('GET', '**/auth/preferences*', {
-      statusCode: 200,
-      body: { theme: 'light', notifications_enabled: true },
-    }).as('getPreferences');
-
+    // Intercept API calls to prevent real network requests
     cy.intercept('GET', '**/admin/dashboard/overview', {
       statusCode: 200,
       body: {
@@ -79,61 +72,65 @@ describe('Admin Dashboard', () => {
       ],
     }).as('getParticipation');
 
+    // Set token in localStorage before page loads
+    const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9.mock';
     cy.visit('/app/dashboard', {
       onBeforeLoad(win) {
         win.localStorage.setItem('token', mockToken);
       },
     });
-
-    cy.wait('@getProfile');
   });
 
   it('renders the main dashboard overview', () => {
-    // The overview h1 uses text-base — wait for it with a longer timeout
-    // since the UserContext needs to hydrate before the admin route renders
-    cy.get('h1', { timeout: 8000 }).contains('Overview').should('be.visible');
+    // Check for the header
+    cy.get('h1').contains('Overview').should('be.visible');
 
-    // Radix TabsTrigger renders as role="tab"
-    cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'active');
+    // Check that the default tab is active
+    cy.contains('button', 'Algotime').should('have.attr', 'data-state', 'active');
 
+    // Check that the default time range is displayed
     cy.contains('Last 3 months').should('be.visible');
   });
 
   it('updates stats when the Time Range filter is changed', () => {
-    // Wait for the dashboard to fully render before asserting
-    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
+    // 1. Wait for initial data to load - check that New Accounts card is visible
+    cy.contains('New Accounts').should('be.visible');
 
-    // Open the Radix Select by clicking its trigger
-    cy.get('[role="combobox"]').click();
+    // 2. Open the Select dropdown using the trigger button
+    cy.get('[data-testid="time-range-select"], [role="combobox"]').first().click({ force: true });
 
-    // The listbox renders in a portal — use cy.get on the listbox directly
-    cy.get('[role="listbox"]').contains('Last 7 days').click();
+    // 3. Click the "Last 7 days" option
+    // shadcn/ui Select renders options with role="option" in a portal
+    cy.get('[role="listbox"]').should('be.visible');
+    cy.get('[role="option"]').contains('Last 7 days').click({ force: true });
 
-    // The trigger should now display the selected value
-    cy.get('[role="combobox"]').should('contain.text', 'Last 7 days');
+    // 4. Verify the time range changed
+    cy.get('[role="combobox"]').first().should('contain.text', 'Last 7 days');
   });
 
   it('contains correct navigation links for management cards', () => {
-    // Wait for dashboard to render before checking links
-    cy.contains('a', 'Manage Accounts', { timeout: 8000 })
+    // Verify "Manage Accounts" link
+    cy.contains('a', 'Manage Accounts')
       .should('have.attr', 'href', '/app/dashboard/manageAccounts');
 
+    // Verify "Manage Competitions" link
     cy.contains('a', 'Manage Competitions')
       .should('have.attr', 'href', '/app/dashboard/competitions');
 
+    // Verify "Manage Algotime Sessions" link
     cy.contains('a', 'Manage Algotime Sessions')
       .should('have.attr', 'href', '/app/dashboard/algoTimeSessions');
   });
 
   it('switches tabs correctly', () => {
-    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
+    // Wait for initial load to complete
+    cy.contains('New Accounts').should('be.visible');
 
-    // Tabs render as role="tab", not button
+    // Click the Competitions tab using role="tab"
     cy.get('[role="tab"]').contains('Competitions').click({ force: true });
 
-    cy.get('[role="tab"]').contains('Competitions')
-      .should('have.attr', 'data-state', 'active');
-    cy.get('[role="tab"]').contains('Algotime')
-      .should('have.attr', 'data-state', 'inactive');
+    // Verify it is now the active tab
+    cy.get('[role="tab"]').contains('Competitions').should('have.attr', 'data-state', 'active');
+    cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'inactive');
   });
 });
