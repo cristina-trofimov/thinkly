@@ -1,6 +1,7 @@
 describe('Sidebar Navigation', () => {
   it('loads the user and navigates through links', () => {
-    // 1. Mock the API call (The sidebar needs this to populate data)
+    // 1. Mock the API call — use 'accountType' to match what AppSidebar.tsx reads
+    //    from UserContext (user.accountType), NOT 'role'
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -8,11 +9,11 @@ describe('Sidebar Navigation', () => {
         firstName: 'Test',
         lastName: 'Admin',
         email: 'admin@test.com',
-        role: 'admin'
+        accountType: 'admin'   // ← was 'role', must be 'accountType' to match AppSidebar check
       }
     }).as('loadUser');
 
-    // 2. A Mock Token that actually contains { "role": "admin" }
+    // 2. A Mock Token that contains { "role": "admin" }
     // Decoded payload: { "sub": "123", "name": "Test User", "role": "admin" }
     const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJuYW1lIjoiVGVzdCBVc2VyIiwicm9sZSI6ImFkbWluIn0.ZnFr";
 
@@ -29,19 +30,24 @@ describe('Sidebar Navigation', () => {
     // 5. Wait for the Sidebar to fetch data
     cy.wait('@loadUser');
 
-    // 6. Navigate
-    cy.contains('Leaderboards').click();
+    // 6. Navigate — use cy.contains().should('be.visible') instead of cy.wait()
+    //    so the test waits for the element rather than a hardcoded time
+    cy.contains('Leaderboards').should('be.visible').click();
     cy.location('pathname').should('include', '/leaderboards');
-    cy.wait(2000)
-    cy.contains('Dashboard').click();
-    cy.wait(2000)
+
+    cy.contains('Dashboard').should('be.visible').click();
+    cy.location('pathname').should('include', '/dashboard');
+
     cy.visit('http://localhost:5173/app/home', {
       onBeforeLoad: (window) => {
         window.localStorage.setItem('token', ADMIN_TOKEN);
       }
     });
-    cy.wait(2000)
-    cy.contains('Competition').click();
 
+    // Re-wait for profile after revisit so UserContext is populated before clicking
+    cy.wait('@loadUser');
+
+    cy.contains('Competitions').should('be.visible').click();
+    cy.location('pathname').should('include', '/competitions');
   });
 });
