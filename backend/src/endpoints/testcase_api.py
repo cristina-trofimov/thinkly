@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 testcase_router = APIRouter(tags=["TestCases"])
 
 @testcase_router.get(
-    "/{question_id}",
+    "/get-all-testcases/{question_id}",
     response_model=List[TestCaseResponse],
     responses={
         404: {"description": "Question not found."},

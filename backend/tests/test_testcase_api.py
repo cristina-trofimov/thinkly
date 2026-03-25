@@ -73,7 +73,7 @@ def test_get_all_testcases_success(client, mock_db):
     mock_db.query.side_effect = query_side_effect
 
     # 4. Execute request
-    response = client.get("/1")
+    response = client.get("/get-all-testcases/1")
 
     # 5. Assertions
     assert response.status_code == 200
@@ -101,7 +101,7 @@ def test_get_all_testcases_empty_list(client, mock_db):
 
     mock_db.query.side_effect = query_side_effect
 
-    response = client.get("/1")
+    response = client.get("/get-all-testcases/1")
 
     assert response.status_code == 200
     data = response.json()
@@ -120,7 +120,7 @@ def test_get_all_testcases_question_not_found(client, mock_db):
 
     mock_db.query.side_effect = query_side_effect
 
-    response = client.get("/99")
+    response = client.get("/get-all-testcases/99")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Question 99 not found"
@@ -138,7 +138,7 @@ def test_get_all_testcases_db_error(client, mock_db):
 
     mock_db.query.side_effect = query_side_effect
 
-    response = client.get("/1")
+    response = client.get("/get-all-testcases/1")
 
     assert response.status_code == 500
     assert response.json()["detail"] == "Failed to retrieve test cases."

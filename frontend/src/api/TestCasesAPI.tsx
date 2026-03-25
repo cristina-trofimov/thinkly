@@ -12,7 +12,7 @@ export async function getTestcases(
         input_data: unknown;
         expected_output: unknown;
       }[]
-    >(`/testcase/${question_id}`);
+    >(`/testcase/get-all-testcases/${question_id}`);
 
     return response.data.map((testcase) => ({
       test_case_id: testcase.test_case_id,
