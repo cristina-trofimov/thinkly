@@ -14,6 +14,7 @@ jest.mock("../src/api/AlgotimeAPI");
 const mockSessions = [
   {
     id: 1,
+    eventID: 1,
     eventName: "Session Alpha",
     seriesName: "Series A",
     startTime: new Date("2025-03-01T10:00:00"),
@@ -24,6 +25,7 @@ const mockSessions = [
   },
   {
     id: 2,
+    eventID: 2,
     eventName: "Session Beta",
     seriesName: null,
     startTime: new Date("2025-02-01T09:00:00"),
