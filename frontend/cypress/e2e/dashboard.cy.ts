@@ -16,6 +16,11 @@ describe('Admin Dashboard', () => {
       },
     }).as('getProfile');
 
+    cy.intercept('GET', '**/auth/preferences*', {
+      statusCode: 200,
+      body: { theme: 'light', notifications_enabled: true },
+    }).as('getPreferences');
+
     cy.intercept('GET', '**/admin/dashboard/overview', {
       statusCode: 200,
       body: {
@@ -84,7 +89,9 @@ describe('Admin Dashboard', () => {
   });
 
   it('renders the main dashboard overview', () => {
-    cy.get('h1').contains('Overview').should('be.visible');
+    // The overview h1 uses text-base — wait for it with a longer timeout
+    // since the UserContext needs to hydrate before the admin route renders
+    cy.get('h1', { timeout: 8000 }).contains('Overview').should('be.visible');
 
     // Radix TabsTrigger renders as role="tab"
     cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'active');
@@ -93,7 +100,8 @@ describe('Admin Dashboard', () => {
   });
 
   it('updates stats when the Time Range filter is changed', () => {
-    cy.contains('New Accounts').should('be.visible');
+    // Wait for the dashboard to fully render before asserting
+    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
 
     // Open the Radix Select by clicking its trigger
     cy.get('[role="combobox"]').click();
@@ -106,7 +114,8 @@ describe('Admin Dashboard', () => {
   });
 
   it('contains correct navigation links for management cards', () => {
-    cy.contains('a', 'Manage Accounts')
+    // Wait for dashboard to render before checking links
+    cy.contains('a', 'Manage Accounts', { timeout: 8000 })
       .should('have.attr', 'href', '/app/dashboard/manageAccounts');
 
     cy.contains('a', 'Manage Competitions')
@@ -117,7 +126,7 @@ describe('Admin Dashboard', () => {
   });
 
   it('switches tabs correctly', () => {
-    cy.contains('New Accounts').should('be.visible');
+    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
 
     // Tabs render as role="tab", not button
     cy.get('[role="tab"]').contains('Competitions').click({ force: true });

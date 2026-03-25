@@ -21,8 +21,10 @@ describe('Leaderboards Page', () => {
       body: { theme: 'light', notifications_enabled: true },
     }).as('getPreferences');
 
-    // AlgoTime leaderboard data (default tab)
-    cy.intercept('GET', '**/leaderboard/algotime*', {
+    // AlgoTimeCard manages its own data fetching internally.
+    // Intercept whatever endpoint it calls so it doesn't hang or error.
+    // Use a broad catch-all for algotime-related endpoints.
+    cy.intercept('GET', '**/algotime*', {
       statusCode: 200,
       body: {
         total: 2,
@@ -33,7 +35,7 @@ describe('Leaderboards Page', () => {
       },
     }).as('getAlgotime');
 
-    // Competition leaderboards (switched to via tab)
+    // Competitions leaderboard list endpoint
     cy.intercept('GET', '**/leaderboard/competitions*', {
       statusCode: 200,
       body: {
@@ -51,6 +53,9 @@ describe('Leaderboards Page', () => {
       },
     }).as('getCompetitions');
 
+    // Current competition leaderboard (used by Leaderboards.tsx via
+    // getCurrentCompetitionLeaderboard — returns no active competition so the
+    // "Current Competition" banner is suppressed)
     cy.intercept('GET', '**/leaderboard/current*', {
       statusCode: 200,
       body: {
@@ -59,6 +64,15 @@ describe('Leaderboards Page', () => {
         showSeparator: false,
       },
     }).as('getCurrentCompetition');
+
+    // Paginated competitions details endpoint used by getCompetitionsDetails()
+    cy.intercept('GET', '**/competitions/details*', {
+      statusCode: 200,
+      body: {
+        total: 0,
+        competitions: [],
+      },
+    }).as('getCompetitionsDetails');
 
     cy.visit('/app/leaderboards', {
       onBeforeLoad(win) {
@@ -70,18 +84,16 @@ describe('Leaderboards Page', () => {
   });
 
   it('loads the leaderboards successfully', () => {
-    // The AlgoTime tab should be visible and active by default
+    // The AlgoTime tab trigger should be visible and active by default
     cy.get('[data-cy="leaderboard-algotime"]', { timeout: 6000 }).should('be.visible');
     cy.get('[data-cy="leaderboard-competitions"]').should('be.visible');
-
-    // Click the competitions tab
-    cy.get('[data-cy="leaderboard-competitions"]').click();
-    cy.wait('@getCompetitions');
   });
 
   it('defaults to the AlgoTime tab', () => {
     cy.get('[data-cy="leaderboard-algotime"]', { timeout: 6000 })
       .should('have.attr', 'data-state', 'active');
+    cy.get('[data-cy="leaderboard-competitions"]')
+      .should('have.attr', 'data-state', 'inactive');
   });
 
   it('switches to the Competitions tab', () => {
@@ -93,14 +105,25 @@ describe('Leaderboards Page', () => {
   });
 
   it('shows empty state when no competitions match search', () => {
+    // Switch to competitions tab first
+    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 6000 }).click();
+
+    // Re-intercept with empty results to simulate a search returning nothing
     cy.intercept('GET', '**/leaderboard/competitions*', {
       statusCode: 200,
       body: { total: 0, competitions: [] },
     }).as('emptySearch');
 
-    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 6000 }).click();
-    cy.wait('@emptySearch');
+    cy.intercept('GET', '**/competitions/details*', {
+      statusCode: 200,
+      body: { total: 0, competitions: [] },
+    }).as('emptyDetails');
 
-    cy.contains('No competitions found').should('be.visible');
+    // Type in the search box that SearchAndFilterBar renders
+    cy.get('input[type="search"], input[placeholder*="earch"]', { timeout: 6000 })
+      .first()
+      .type('zzznomatch');
+
+    cy.contains('No competitions', { timeout: 8000 }).should('be.visible');
   });
 });

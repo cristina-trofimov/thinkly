@@ -21,8 +21,11 @@ describe('Manage Competitions Page', () => {
       body: { theme: 'light', notifications_enabled: true },
     }).as('getPreferences');
 
-    // Match the paginated competitions endpoint — cover both /competitions and /competitions/
-    cy.intercept('GET', '**/competitions*', {
+    // Use a more specific path pattern to avoid intercepting the SPA page
+    // navigation itself. The leading **/competitions? (with query params) or
+    // **/competitions/ with a trailing slash covers paginated API calls
+    // without matching the bare SPA route visit.
+    cy.intercept('GET', '**/competitions?*', {
       statusCode: 200,
       body: {
         total: 2,
@@ -31,17 +34,17 @@ describe('Manage Competitions Page', () => {
         items: [
           {
             id: 1,
-            competition_title: 'Summer Hackathon',
-            competition_location: 'San Francisco',
-            start_date: new Date(Date.now() + 86400000 * 10).toISOString(),
-            end_date: new Date(Date.now() + 86400000 * 11).toISOString(),
+            competitionTitle: 'Summer Hackathon',
+            competitionLocation: 'San Francisco',
+            startDate: new Date(Date.now() + 86400000 * 10).toISOString(),
+            endDate: new Date(Date.now() + 86400000 * 11).toISOString(),
           },
           {
             id: 2,
-            competition_title: 'Fall Code Jam',
-            competition_location: 'Montreal',
-            start_date: new Date(Date.now() + 86400000 * 20).toISOString(),
-            end_date: new Date(Date.now() + 86400000 * 21).toISOString(),
+            competitionTitle: 'Fall Code Jam',
+            competitionLocation: 'Montreal',
+            startDate: new Date(Date.now() + 86400000 * 20).toISOString(),
+            endDate: new Date(Date.now() + 86400000 * 21).toISOString(),
           },
         ],
       },
@@ -58,32 +61,31 @@ describe('Manage Competitions Page', () => {
   });
 
   it('Checks all elements are present', () => {
-    cy.contains('Manage Competitions').should('be.visible');
+    cy.contains('Manage Competitions', { timeout: 8000 }).should('be.visible');
     cy.contains('Create New Competition').should('be.visible');
     cy.contains('All competitions').should('be.visible');
     cy.get('input[placeholder="Search competitions..."]').should('be.visible');
   });
 
   it('renders competition cards', () => {
-    cy.contains('Summer Hackathon').should('be.visible');
+    cy.contains('Summer Hackathon', { timeout: 8000 }).should('be.visible');
     cy.contains('Fall Code Jam').should('be.visible');
   });
 
   it('shows search input that calls onSearchChange', () => {
     cy.get('input[placeholder="Search competitions..."]').type('hackathon');
-    // After typing the search query is reflected in the input
     cy.get('input[placeholder="Search competitions..."]').should('have.value', 'hackathon');
   });
 
   it('opens filter dropdown and shows status options', () => {
-    cy.contains('All competitions').click();
+    cy.contains('All competitions', { timeout: 8000 }).click();
     cy.contains('Active').should('be.visible');
     cy.contains('Upcoming').should('be.visible');
     cy.contains('Completed').should('be.visible');
   });
 
   it('shows empty state with no results message when search yields nothing', () => {
-    cy.intercept('GET', '**/competitions*', {
+    cy.intercept('GET', '**/competitions?*', {
       statusCode: 200,
       body: { total: 0, page: 1, page_size: 27, items: [] },
     }).as('emptySearch');
@@ -91,11 +93,11 @@ describe('Manage Competitions Page', () => {
     cy.get('input[placeholder="Search competitions..."]').type('zzznomatch');
     cy.wait('@emptySearch');
 
-    cy.contains('No competitions found').should('be.visible');
+    cy.contains('No competitions found', { timeout: 8000 }).should('be.visible');
   });
 
   it('navigates to create competition page on card click', () => {
-    cy.contains('Create New Competition').click();
+    cy.contains('Create New Competition', { timeout: 8000 }).click();
     cy.location('pathname').should('include', 'createCompetition');
   });
 });

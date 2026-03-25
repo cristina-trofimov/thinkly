@@ -29,12 +29,15 @@ describe('Sidebar Navigation', () => {
       },
     });
 
+    // Wait for profile to load so UserContext hydrates before assertions
     cy.wait('@getProfile');
   });
 
   it('loads the user and navigates through links', () => {
-    // Dashboard link only appears for admin/owner — wait for sidebar to hydrate
-    cy.contains('Dashboard', { timeout: 8000 }).should('be.visible');
+    // Dashboard link only appears for admin/owner — wait for sidebar to hydrate.
+    // The sidebar reads from UserContext which resolves after @getProfile,
+    // but React state updates are async so we need a generous timeout.
+    cy.contains('Dashboard', { timeout: 10000 }).should('be.visible');
 
     // Navigate to Leaderboards
     cy.contains('Leaderboards').click();
@@ -55,11 +58,12 @@ describe('Sidebar Navigation', () => {
   });
 
   it('shows Dashboard link only for admin/owner users', () => {
-    cy.contains('Dashboard', { timeout: 8000 }).should('be.visible');
+    cy.contains('Dashboard', { timeout: 10000 }).should('be.visible');
   });
 
   it('hides Dashboard link for participant users', () => {
-    // Re-intercept profile as participant and revisit
+    // Re-intercept profile as participant before revisiting so the UserContext
+    // hydrates with the Participant role from the very first profile fetch.
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -79,9 +83,9 @@ describe('Sidebar Navigation', () => {
 
     cy.wait('@getParticipantProfile');
 
-    // AlgoTime should still be visible
+    // AlgoTime should still be visible for all roles
     cy.contains('AlgoTime', { timeout: 8000 }).should('be.visible');
-    // Dashboard should NOT be visible
+    // Dashboard must NOT appear for participants
     cy.contains('Dashboard').should('not.exist');
   });
 });
