@@ -71,7 +71,7 @@ jest.mock('../src/api/LoggerAPI', () => ({ logFrontend: jest.fn() }))
 jest.mock('../src/api/Judge0API', () => ({ submitToJudge0: jest.fn() }))
 jest.mock('../src/api/SubmitCodeAPI', () => ({ submitAttempt: jest.fn() }))
 jest.mock('../src/api/QuestionsAPI', () => ({ getQuestionByID: jest.fn() }))
-jest.mock('../src/api/BaseEventAPI', () => ({ getEventByName: jest.fn() }))
+jest.mock('../src/api/BaseEventAPI', () => ({ getEventByID: jest.fn() }))
 jest.mock('../src/api/AuthAPI', () => ({ getProfile: jest.fn() }))
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
     getQuestionInstance: jest.fn(),
@@ -265,8 +265,8 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
     setSelectedLang: jest.fn(),
     event: null,
     testcases: [],
-    // loadingMsg: '',
-    // setLoadingMsg: jest.fn(),
+    loadingMsg: '',
+    setLoadingMsg: jest.fn(),
     ...overrides,
 })
 
@@ -329,7 +329,7 @@ describe('CodingView — rendering', () => {
 
     it('shows loader when isLoading is true', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ isLoading: true }))
-        render(<CodingView />)
+        renderCodingView()
         expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
     })
 
@@ -637,7 +637,7 @@ describe('CodingView - submit code', () => {
 
 describe('mostRecentSub', () => {
     it('defaults to 2-column grid when no mostRecentSub', async () => {
-        render(<CodingView />)
+        renderCodingView()
 
         expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-2 gap-2')
     })
@@ -645,7 +645,7 @@ describe('mostRecentSub', () => {
     it('switches to 3-column grid when mostRecentSub is set', async () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: mockMostRecentSub }))
 
-        render(<CodingView />)
+        renderCodingView()
 
         await waitFor(() =>
             expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-3 gap-2')

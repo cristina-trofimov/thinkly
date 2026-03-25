@@ -3,7 +3,6 @@ import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import { getEventByID } from '../src/api/BaseEventAPI'
 import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from '../src/api/QuestionInstanceAPI'
 import { getAllLanguages } from '../src/api/LanguageAPI'
-import { getProfile } from '../src/api/AuthAPI'
 import { getUserPrefs } from '../src/api/UserPreferencesAPI'
 import { getQuestionByID } from '../src/api/QuestionsAPI'
 import { getUserInstance, putUserInstance } from '../src/api/UserQuestionInstanceAPI'
@@ -19,7 +18,16 @@ import { UserContext } from '../src/context/UserContext'
 import React from 'react'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
-
+jest.mock('../src/lib/axiosClient', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_URL: 'http://localhost:8000',
+}))
 jest.mock('../src/api/BaseEventAPI', () => ({ getEventByID: jest.fn() }))
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
   getQuestionInstance: jest.fn(),
@@ -27,7 +35,6 @@ jest.mock('../src/api/QuestionInstanceAPI', () => ({
   putQuestionInstance: jest.fn(),
 }))
 jest.mock('../src/api/LanguageAPI', () => ({ getAllLanguages: jest.fn() }))
-jest.mock('../src/api/AuthAPI', () => ({ getProfile: jest.fn() }))
 jest.mock('../src/api/UserPreferencesAPI', () => ({ getUserPrefs: jest.fn() }))
 jest.mock('../src/api/QuestionsAPI', () => ({ getQuestionByID: jest.fn() }))
 jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
@@ -68,8 +75,7 @@ const mockComp: Competition = {
 }
 
 const mockAlgo: AlgoTimeSession = {
-  id: 1,
-  eventID: 12,
+  id: 12,
   eventName: 'Spring Contest',
   startTime: new Date('2026-06-01'),
   endTime: new Date('2026-06-01'),
@@ -134,7 +140,6 @@ const mockedGetAllQIByEvent = getAllQuestionInstancesByEventID as jest.Mock
 const mockedGetQuestionInstance = getQuestionInstance as jest.Mock
 const mockedPutQuestionInstance = putQuestionInstance as jest.Mock
 const mockedGetAllLanguages = getAllLanguages as jest.Mock
-const mockedGetProfile = getProfile as jest.Mock
 const mockedGetUserPrefs = getUserPrefs as jest.Mock
 const mockedGetQuestionByID = getQuestionByID as jest.Mock
 const mockedGetUserInstance = getUserInstance as jest.Mock
@@ -157,7 +162,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 beforeEach(() => {
   jest.clearAllMocks()
   mockedUseTestcases.mockReturnValue({ testcases: [] })
-  mockedGetProfile.mockResolvedValue(mockProfile)
   mockedGetAllLanguages.mockResolvedValue(mockLanguages)
   mockedGetUserPrefs.mockResolvedValue(null)
   mockedGetUserInstance.mockResolvedValue(mockUQI)
@@ -322,7 +326,7 @@ describe('useCodingHooks — competition mode (with event)', () => {
     )
   })
 
-  it('shows toast and logs when getEventByName throws', async () => {
+  it('shows toast and logs when getEventByID throws', async () => {
     mockedGetEventByID.mockRejectedValue(new Error('event error'))
 
     renderHook(() => useCodingHooks(mockQuestion, mockComp), { wrapper })
@@ -365,7 +369,7 @@ describe('useCodingHooks — competition mode (with event)', () => {
   })
 
   it('does not fetch comp event when comp has no id', () => {
-    renderHook(() => useCodingHooks(mockQuestion, { ...mockComp, id: undefined as any }))
+    renderHook(() => useCodingHooks(mockQuestion, { ...mockComp, id: undefined as any }), { wrapper })
     expect(mockedGetEventByID).not.toHaveBeenCalled()
   })
 })
@@ -376,10 +380,10 @@ describe('useCodingHooks — algotime mode (with event)', () => {
     mockedGetEventByID.mockResolvedValue(mockEvent)
     mockedGetAllQIByEvent.mockResolvedValue([mockQI])
 
-    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
-      expect(mockedGetEventByID).toHaveBeenCalledWith(mockAlgo.eventID)
+      expect(mockedGetEventByID).toHaveBeenCalledWith(mockAlgo.id)
     )
   })
 
@@ -388,7 +392,7 @@ describe('useCodingHooks — algotime mode (with event)', () => {
     mockedGetAllQIByEvent.mockResolvedValue([mockQI, mockQI2])
     mockedGetQuestionByID.mockResolvedValue(mockQuestion)
 
-    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(result.current.questionsInstances).toHaveLength(2)
@@ -403,7 +407,7 @@ describe('useCodingHooks — algotime mode (with event)', () => {
       .mockResolvedValueOnce(mockQuestion)
       .mockResolvedValueOnce(mockQuestion2)
 
-    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(result.current.questions).toHaveLength(2)
@@ -416,17 +420,17 @@ describe('useCodingHooks — algotime mode (with event)', () => {
     mockedGetEventByID.mockResolvedValue(mockEvent)
     mockedGetAllQIByEvent.mockResolvedValue([mockQI])
 
-    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    const { result } = renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(result.current.event).toEqual(mockEvent)
     )
   })
 
-  it('shows toast and logs when getEventByName throws', async () => {
+  it('shows toast and logs when getEventByID throws', async () => {
     mockedGetEventByID.mockRejectedValue(new Error('event error'))
 
-    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Error when fetching event.')
@@ -440,7 +444,7 @@ describe('useCodingHooks — algotime mode (with event)', () => {
     mockedGetEventByID.mockResolvedValue(mockEvent)
     mockedGetAllQIByEvent.mockRejectedValue(new Error('instances error'))
 
-    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Error when fetching event's question instances.")
@@ -455,7 +459,7 @@ describe('useCodingHooks — algotime mode (with event)', () => {
     mockedGetAllQIByEvent.mockResolvedValue([mockQI, mockQI2])
     mockedGetQuestionByID.mockRejectedValue(new Error('question fetch error'))
 
-    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo))
+    renderHook(() => useCodingHooks(undefined, undefined, mockAlgo), { wrapper })
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Error when fetching questions.')
@@ -466,7 +470,7 @@ describe('useCodingHooks — algotime mode (with event)', () => {
   })
 
   it('does not fetch algo event when algotime session has no id', () => {
-    renderHook(() => useCodingHooks(undefined, undefined, { ...mockAlgo, eventID: undefined as any }))
+    renderHook(() => useCodingHooks(undefined, undefined, { ...mockAlgo, id: undefined as any }), { wrapper })
     expect(mockedGetEventByID).not.toHaveBeenCalled()
   })
 })
