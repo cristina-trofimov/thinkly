@@ -76,6 +76,7 @@ jobs:
     env:
       VITE_SUPABASE_URL: "https://placeholder.supabase.co"
       VITE_SUPABASE_ANON_KEY: "placeholder-key"
+      VITE_BACKEND_URL: "http://localhost:8080"
     steps:
       - uses: actions/checkout@v3
 
