@@ -69,7 +69,6 @@ class AlgoTimeQuestionResponse(BaseModel):
 
 class AlgoTimeSessionResponse(BaseModel):
     id: int
-    eventID: int
     eventName: str
     startTime: str
     endTime: str
@@ -82,7 +81,6 @@ class AlgoTimeSessionResponse(BaseModel):
 
 class AlgoTimeSessionCardResponse(BaseModel):
     id: int
-    eventID: int
     eventName: str
     startTime: str
     endTime: str
