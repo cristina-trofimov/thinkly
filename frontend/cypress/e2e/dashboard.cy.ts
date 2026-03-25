@@ -1,7 +1,10 @@
 describe('Admin Dashboard', () => {
+  const mockToken =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+    'eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9' +
+    '.mock';
+
   beforeEach(() => {
-    // Set up API intercepts BEFORE visiting the page
-    // Intercept auth profile check
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -9,11 +12,10 @@ describe('Admin Dashboard', () => {
         firstName: 'Admin',
         lastName: 'User',
         email: 'admin@test.com',
-        role: 'admin',
+        accountType: 'Admin',
       },
     }).as('getProfile');
 
-    // Intercept API calls to prevent real network requests
     cy.intercept('GET', '**/admin/dashboard/overview', {
       statusCode: 200,
       body: {
@@ -72,48 +74,44 @@ describe('Admin Dashboard', () => {
       ],
     }).as('getParticipation');
 
-    // Set token in localStorage before page loads
-    const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9.mock';
     cy.visit('/app/dashboard', {
       onBeforeLoad(win) {
         win.localStorage.setItem('token', mockToken);
       },
     });
+
+    cy.wait('@getProfile');
   });
 
   it('renders the main dashboard overview', () => {
-    // Check for the header
     cy.get('h1').contains('Overview').should('be.visible');
 
-    // Check that the default tab is active
-    cy.contains('button', 'Algotime').should('have.attr', 'data-state', 'active');
+    // Radix TabsTrigger renders as role="tab"
+    cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'active');
 
-    // Check that the default time range is displayed
     cy.contains('Last 3 months').should('be.visible');
   });
 
   it('updates stats when the Time Range filter is changed', () => {
     cy.contains('New Accounts').should('be.visible');
 
-    // Use the trigger button directly instead of relying on role="combobox"
-    cy.contains('Last 3 months').click({ force: true });
+    // Open the Radix Select by clicking its trigger
+    cy.get('[role="combobox"]').click();
 
-    // Wait for the popover/listbox to appear, then click the option
-    cy.contains('Last 7 days').click({ force: true });
+    // The listbox renders in a portal — use cy.get on the listbox directly
+    cy.get('[role="listbox"]').contains('Last 7 days').click();
 
-    // Verify the selection updated
-    cy.contains('Last 7 days').should('be.visible');
+    // The trigger should now display the selected value
+    cy.get('[role="combobox"]').should('contain.text', 'Last 7 days');
   });
+
   it('contains correct navigation links for management cards', () => {
-    // Verify "Manage Accounts" link
     cy.contains('a', 'Manage Accounts')
       .should('have.attr', 'href', '/app/dashboard/manageAccounts');
 
-    // Verify "Manage Competitions" link
     cy.contains('a', 'Manage Competitions')
       .should('have.attr', 'href', '/app/dashboard/competitions');
 
-    // Verify "Manage Algotime Sessions" link
     cy.contains('a', 'Manage Algotime Sessions')
       .should('have.attr', 'href', '/app/dashboard/algoTimeSessions');
   });
@@ -121,10 +119,12 @@ describe('Admin Dashboard', () => {
   it('switches tabs correctly', () => {
     cy.contains('New Accounts').should('be.visible');
 
-    // Use contains('button') like the passing test does, instead of role="tab"
-    cy.contains('button', 'Competitions').click({ force: true });
+    // Tabs render as role="tab", not button
+    cy.get('[role="tab"]').contains('Competitions').click({ force: true });
 
-    cy.contains('button', 'Competitions').should('have.attr', 'data-state', 'active');
-    cy.contains('button', 'Algotime').should('have.attr', 'data-state', 'inactive');
+    cy.get('[role="tab"]').contains('Competitions')
+      .should('have.attr', 'data-state', 'active');
+    cy.get('[role="tab"]').contains('Algotime')
+      .should('have.attr', 'data-state', 'inactive');
   });
 });
