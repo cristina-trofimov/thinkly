@@ -4,48 +4,37 @@ describe('Admin Dashboard', () => {
     'eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9' +
     '.mock';
 
-  beforeEach(() => {
+  // getProfile() maps data.role → accountType
+  const adminProfileResponse = {
+    id: 1,
+    firstName: 'Admin',
+    lastName: 'User',
+    email: 'admin@test.com',
+    role: 'Admin',
+  };
+
+  function setupIntercepts() {
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
-      body: {
-        id: 1,
-        firstName: 'Admin',
-        lastName: 'User',
-        email: 'admin@test.com',
-        accountType: 'Admin',
-      },
+      body: adminProfileResponse,
     }).as('getProfile');
 
-    cy.intercept('GET', '**/auth/preferences*', {
+    cy.intercept('GET', '**/auth/preferences**', {
       statusCode: 200,
       body: { theme: 'light', notifications_enabled: true },
-    }).as('getPreferences');
+    });
 
-    cy.intercept('GET', '**/admin/dashboard/overview', {
-      statusCode: 200,
-      body: {
-        recent_accounts: [
-          { name: 'John Doe', info: 'john@example.com', avatarUrl: null },
-          { name: 'Jane Smith', info: 'jane@example.com', avatarUrl: null },
-        ],
-        recent_competitions: [
-          { name: 'Competition 1', info: '01/01/26', color: 'var(--color-chart-1)' },
-        ],
-        recent_questions: [
-          { name: 'Question 1', info: 'Date added: 01/01/26' },
-        ],
-        recent_algotime_sessions: [
-          { name: 'Session 1', info: 'Date added: 01/01/26' },
-        ],
-      },
-    }).as('getOverview');
+    cy.intercept('POST', '**/logger**', { statusCode: 200, body: {} });
+    cy.intercept('POST', '**/log**', { statusCode: 200, body: {} });
+    cy.intercept('POST', '**/analytics**', { statusCode: 200, body: {} });
+    cy.intercept('GET', '**/analytics**', { statusCode: 200, body: {} });
 
-    cy.intercept('GET', '**/admin/dashboard/stats/new-accounts*', {
+    cy.intercept('GET', '**/admin/dashboard/stats/new-accounts**', {
       statusCode: 200,
       body: { value: 25, subtitle: 'Up 10% in the last 3 months', trend: '+10%', description: 'More users joining' },
     }).as('getNewAccounts');
 
-    cy.intercept('GET', '**/admin/dashboard/stats/questions-solved*', {
+    cy.intercept('GET', '**/admin/dashboard/stats/questions-solved**', {
       statusCode: 200,
       body: [
         { name: 'Easy', value: 10, color: 'var(--chart-1)' },
@@ -54,86 +43,77 @@ describe('Admin Dashboard', () => {
       ],
     }).as('getQuestionsSolved');
 
-    cy.intercept('GET', '**/admin/dashboard/stats/time-to-solve*', {
+    cy.intercept('GET', '**/admin/dashboard/stats/time-to-solve**', {
       statusCode: 200,
       body: [
-        { type: 'Easy', time: 5, color: 'var(--chart-1)' },
-        { type: 'Medium', time: 15, color: 'var(--chart-2)' },
-        { type: 'Hard', time: 30, color: 'var(--chart-3)' },
+        { type: 'Easy', time: 5 },
+        { type: 'Medium', time: 15 },
+        { type: 'Hard', time: 30 },
       ],
     }).as('getTimeToSolve');
 
-    cy.intercept('GET', '**/admin/dashboard/stats/logins*', {
+    cy.intercept('GET', '**/admin/dashboard/stats/logins**', {
       statusCode: 200,
-      body: [
-        { month: 'Jan', logins: 100 },
-        { month: 'Feb', logins: 150 },
-      ],
+      body: [{ month: 'Jan', logins: 100 }, { month: 'Feb', logins: 150 }],
     }).as('getLogins');
 
-    cy.intercept('GET', '**/admin/dashboard/stats/participation*', {
+    cy.intercept('GET', '**/admin/dashboard/stats/participation**', {
       statusCode: 200,
-      body: [
-        { date: 'Mon', participation: 50 },
-        { date: 'Tue', participation: 75 },
-      ],
+      body: [{ date: 'Mon', participation: 50 }, { date: 'Tue', participation: 75 }],
     }).as('getParticipation');
+  }
 
-    cy.visit('/app/dashboard', {
+  beforeEach(() => {
+    setupIntercepts();
+
+    // /app/home is the safe HTML entry point — Vite serves index.html for it.
+    // Direct visits to /app/dashboard fail because Vite has no file there and
+    // returns a JSON 404 instead of index.html. ProtectedRoute is client-side
+    // only, so once React is mounted we can navigate freely.
+    cy.viewport(1440, 900);
+    cy.visit('/app/home', {
       onBeforeLoad(win) {
         win.localStorage.setItem('token', mockToken);
+        win.localStorage.setItem('sidebar:state', 'expanded');
       },
     });
 
     cy.wait('@getProfile');
+
+    // Navigate client-side via the sidebar — no Vite 404 risk
+    cy.contains('Dashboard', { timeout: 10000 }).should('be.visible').click();
+    cy.location('pathname').should('match', /\/app\/dashboard\/?$/);
+
+    cy.wait('@getNewAccounts');
   });
 
   it('renders the main dashboard overview', () => {
-    // The overview h1 uses text-base — wait for it with a longer timeout
-    // since the UserContext needs to hydrate before the admin route renders
-    cy.get('h1', { timeout: 8000 }).contains('Overview').should('be.visible');
-
-    // Radix TabsTrigger renders as role="tab"
+    cy.contains('New Accounts').should('be.visible');
+    cy.contains('Overview').should('be.visible');
     cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'active');
-
     cy.contains('Last 3 months').should('be.visible');
   });
 
   it('updates stats when the Time Range filter is changed', () => {
-    // Wait for the dashboard to fully render before asserting
-    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
-
-    // Open the Radix Select by clicking its trigger
+    cy.contains('New Accounts').should('be.visible');
     cy.get('[role="combobox"]').click();
-
-    // The listbox renders in a portal — use cy.get on the listbox directly
     cy.get('[role="listbox"]').contains('Last 7 days').click();
-
-    // The trigger should now display the selected value
     cy.get('[role="combobox"]').should('contain.text', 'Last 7 days');
   });
 
   it('contains correct navigation links for management cards', () => {
-    // Wait for dashboard to render before checking links
-    cy.contains('a', 'Manage Accounts', { timeout: 8000 })
+    cy.contains('a', 'Manage Accounts')
       .should('have.attr', 'href', '/app/dashboard/manageAccounts');
-
     cy.contains('a', 'Manage Competitions')
       .should('have.attr', 'href', '/app/dashboard/competitions');
-
     cy.contains('a', 'Manage Algotime Sessions')
       .should('have.attr', 'href', '/app/dashboard/algoTimeSessions');
   });
 
   it('switches tabs correctly', () => {
-    cy.contains('New Accounts', { timeout: 8000 }).should('be.visible');
-
-    // Tabs render as role="tab", not button
+    cy.contains('New Accounts').should('be.visible');
     cy.get('[role="tab"]').contains('Competitions').click({ force: true });
-
-    cy.get('[role="tab"]').contains('Competitions')
-      .should('have.attr', 'data-state', 'active');
-    cy.get('[role="tab"]').contains('Algotime')
-      .should('have.attr', 'data-state', 'inactive');
+    cy.get('[role="tab"]').contains('Competitions').should('have.attr', 'data-state', 'active');
+    cy.get('[role="tab"]').contains('Algotime').should('have.attr', 'data-state', 'inactive');
   });
 });

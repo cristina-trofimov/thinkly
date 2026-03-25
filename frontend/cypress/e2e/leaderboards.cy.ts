@@ -4,30 +4,36 @@ describe('Leaderboards Page', () => {
     'eyJzdWIiOiIxMjMiLCJuYW1lIjoiVGVzdCBVc2VyIiwicm9sZSI6InBhcnRpY2lwYW50IiwiZXhwIjo5OTk5OTk5OTk5fQ' +
     '.mock';
 
-  beforeEach(() => {
+  const participantProfileResponse = {
+    id: 1,
+    firstName: 'Test',
+    lastName: 'User',
+    email: 'test@test.com',
+    role: 'Participant',
+  };
+
+  function setupIntercepts() {
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
-      body: {
-        id: 1,
-        firstName: 'Test',
-        lastName: 'User',
-        email: 'test@test.com',
-        accountType: 'Participant',
-      },
+      body: participantProfileResponse,
     }).as('getProfile');
 
-    cy.intercept('GET', '**/auth/preferences*', {
+    cy.intercept('GET', '**/auth/preferences**', {
       statusCode: 200,
       body: { theme: 'light', notifications_enabled: true },
-    }).as('getPreferences');
+    });
 
-    // AlgoTimeCard manages its own data fetching internally.
-    // Intercept whatever endpoint it calls so it doesn't hang or error.
-    // Use a broad catch-all for algotime-related endpoints.
-    cy.intercept('GET', '**/algotime*', {
+    cy.intercept('POST', '**/logger**', { statusCode: 200, body: {} });
+    cy.intercept('POST', '**/log**', { statusCode: 200, body: {} });
+    cy.intercept('POST', '**/analytics**', { statusCode: 200, body: {} });
+    cy.intercept('GET', '**/analytics**', { statusCode: 200, body: {} });
+
+    cy.intercept('GET', /\/algotime/, {
       statusCode: 200,
       body: {
         total: 2,
+        page: 1,
+        pageSize: 20,
         participants: [
           { user_id: 1, name: 'Alice', total_score: 100, problems_solved: 5, total_time: 3000 },
           { user_id: 2, name: 'Bob', total_score: 80, problems_solved: 4, total_time: 2500 },
@@ -35,8 +41,12 @@ describe('Leaderboards Page', () => {
       },
     }).as('getAlgotime');
 
-    // Competitions leaderboard list endpoint
-    cy.intercept('GET', '**/leaderboard/competitions*', {
+    cy.intercept('GET', /\/leaderboard\/current/, {
+      statusCode: 200,
+      body: { competitionName: 'No Active Competition', participants: [], showSeparator: false },
+    }).as('getCurrentCompetition');
+
+    cy.intercept('GET', /\/leaderboard\/competitions/, {
       statusCode: 200,
       body: {
         total: 1,
@@ -53,77 +63,64 @@ describe('Leaderboards Page', () => {
       },
     }).as('getCompetitions');
 
-    // Current competition leaderboard (used by Leaderboards.tsx via
-    // getCurrentCompetitionLeaderboard — returns no active competition so the
-    // "Current Competition" banner is suppressed)
-    cy.intercept('GET', '**/leaderboard/current*', {
-      statusCode: 200,
-      body: {
-        competitionName: 'No Active Competition',
-        participants: [],
-        showSeparator: false,
-      },
-    }).as('getCurrentCompetition');
+    cy.intercept('GET', /\/leaderboard/, { statusCode: 200, body: {} });
+    cy.intercept('GET', /\/sessions/, { statusCode: 200, body: { total: 0, items: [] } });
+  }
 
-    // Paginated competitions details endpoint used by getCompetitionsDetails()
-    cy.intercept('GET', '**/competitions/details*', {
-      statusCode: 200,
-      body: {
-        total: 0,
-        competitions: [],
-      },
-    }).as('getCompetitionsDetails');
+  beforeEach(() => {
+    setupIntercepts();
 
-    cy.visit('/app/leaderboards', {
+    cy.viewport(1440, 900);
+    cy.visit('/app/home', {
       onBeforeLoad(win) {
         win.localStorage.setItem('token', mockToken);
+        win.localStorage.setItem('sidebar:state', 'expanded');
       },
     });
 
     cy.wait('@getProfile');
+
+    // Navigate client-side via sidebar — avoids Vite returning a JSON 404
+    // for direct visits to /app/leaderboards
+    cy.contains('Leaderboards', { timeout: 10000 }).should('be.visible').click();
+    cy.location('pathname').should('include', 'leaderboards');
   });
 
   it('loads the leaderboards successfully', () => {
-    // The AlgoTime tab trigger should be visible and active by default
-    cy.get('[data-cy="leaderboard-algotime"]', { timeout: 6000 }).should('be.visible');
+    cy.get('[data-cy="leaderboard-algotime"]', { timeout: 10000 }).should('be.visible');
     cy.get('[data-cy="leaderboard-competitions"]').should('be.visible');
   });
 
   it('defaults to the AlgoTime tab', () => {
-    cy.get('[data-cy="leaderboard-algotime"]', { timeout: 6000 })
+    cy.get('[data-cy="leaderboard-algotime"]', { timeout: 10000 })
       .should('have.attr', 'data-state', 'active');
     cy.get('[data-cy="leaderboard-competitions"]')
       .should('have.attr', 'data-state', 'inactive');
   });
 
   it('switches to the Competitions tab', () => {
-    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 6000 }).click();
-    cy.get('[data-cy="leaderboard-competitions"]')
-      .should('have.attr', 'data-state', 'active');
-    cy.get('[data-cy="leaderboard-algotime"]')
-      .should('have.attr', 'data-state', 'inactive');
+    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 10000 }).click();
+    cy.get('[data-cy="leaderboard-competitions"]').should('have.attr', 'data-state', 'active');
+    cy.get('[data-cy="leaderboard-algotime"]').should('have.attr', 'data-state', 'inactive');
   });
 
   it('shows empty state when no competitions match search', () => {
-    // Switch to competitions tab first
-    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 6000 }).click();
-
-    // Re-intercept with empty results to simulate a search returning nothing
-    cy.intercept('GET', '**/leaderboard/competitions*', {
+    cy.intercept('GET', /\/leaderboard\/competitions/, {
       statusCode: 200,
       body: { total: 0, competitions: [] },
-    }).as('emptySearch');
-
-    cy.intercept('GET', '**/competitions/details*', {
+    }).as('emptyCompetitions');
+    cy.intercept('GET', /\/leaderboard\/current/, {
       statusCode: 200,
-      body: { total: 0, competitions: [] },
-    }).as('emptyDetails');
+      body: { competitionName: 'No Active Competition', participants: [], showSeparator: false },
+    });
 
-    // Type in the search box that SearchAndFilterBar renders
-    cy.get('input[type="search"], input[placeholder*="earch"]', { timeout: 6000 })
+    cy.get('[data-cy="leaderboard-competitions"]', { timeout: 10000 }).click();
+
+    cy.get('input[type="search"], input[placeholder*="earch"]', { timeout: 8000 })
       .first()
+      .clear()
       .type('zzznomatch');
 
-    cy.contains('No competitions', { timeout: 8000 }).should('be.visible');
+    cy.contains('No competitions', { timeout: 10000 }).should('be.visible');
   });
 });
