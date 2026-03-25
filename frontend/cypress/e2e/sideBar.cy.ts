@@ -1,6 +1,5 @@
 describe('Sidebar Navigation', () => {
   it('loads the user and navigates through links', () => {
-    // 1. Mock the API call (The sidebar needs this to populate data)
     cy.intercept('GET', '**/auth/profile', {
       statusCode: 200,
       body: {
@@ -8,40 +7,34 @@ describe('Sidebar Navigation', () => {
         firstName: 'Test',
         lastName: 'Admin',
         email: 'admin@test.com',
-        role: 'admin'
-      }
+        accountType: 'Admin', // match what UserContext actually expects
+      },
     }).as('loadUser');
 
-    // 2. A Mock Token that actually contains { "role": "admin" }
-    // Decoded payload: { "sub": "123", "name": "Test User", "role": "admin" }
-    const ADMIN_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjMiLCJuYW1lIjoiVGVzdCBVc2VyIiwicm9sZSI6ImFkbWluIn0.ZnFr";
+    // Token with a far-future exp so auth guards don't reject it
+    const ADMIN_TOKEN =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.' +
+      btoa(JSON.stringify({ sub: '1', role: 'admin', exp: 9999999999 })) +
+      '.mock';
 
-    // 3. Visit the page with the ADMIN token
     cy.visit('http://localhost:5173/app/home', {
-      onBeforeLoad: (window) => {
-        window.localStorage.setItem('token', ADMIN_TOKEN);
-      }
+      onBeforeLoad: (win) => {
+        win.localStorage.setItem('token', ADMIN_TOKEN);
+      },
     });
 
-    // 4. Verification: Ensure we stayed on Home and didn't go to /unauthorized
-    cy.location('pathname').should('include', '/app/home');
-
-    // 5. Wait for the Sidebar to fetch data
     cy.wait('@loadUser');
 
-    // 6. Navigate
+    // Wait for the sidebar to actually render before asserting
+    cy.contains('Dashboard', { timeout: 8000 }).should('be.visible');
+
     cy.contains('Leaderboards').click();
     cy.location('pathname').should('include', '/leaderboards');
-    cy.wait(2000)
-    cy.contains('Dashboard').click();
-    cy.wait(2000)
-    cy.visit('http://localhost:5173/app/home', {
-      onBeforeLoad: (window) => {
-        window.localStorage.setItem('token', ADMIN_TOKEN);
-      }
-    });
-    cy.wait(2000)
-    cy.contains('Competition').click();
 
+    cy.contains('Dashboard').click();
+    cy.location('pathname').should('include', '/app/dashboard');
+
+    cy.contains('Competition').click();
+    cy.location('pathname').should('include', '/competition');
   });
 });
