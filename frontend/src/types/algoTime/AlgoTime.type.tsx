@@ -58,6 +58,7 @@ export type AlgoTimeStatusFilter = "active" | "upcoming" | "completed";
 
 export interface AlgoTimeSessionApiItem {
   id: number;
+  eventID: number;
   eventName: string;
   startTime: string;
   endTime: string;
