@@ -84,6 +84,10 @@ describe('Admin Dashboard', () => {
         win.localStorage.setItem('token', mockToken);
       },
     });
+
+    cy.wait('@getProfile');
+    cy.wait('@getOverview');
+    cy.contains('New Accounts').should('be.visible');
   });
 
   it('renders the main dashboard overview', () => {
