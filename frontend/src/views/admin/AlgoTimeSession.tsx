@@ -14,12 +14,16 @@ export default function ManageAlgoTimePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleBackNavigation = () => {
+    navigate("/app/dashboard/algoTimeSessions");
+  };
+
   return (
     
     <div className="flex justify-center ">
       
     <div className="relative w-[95%] mt-6 justify-center  p-6 rounded-lg flex flex-col gap-4 ">
-    <Button variant="ghost" size="sm" className="absolute -top-12 left-0 text-muted-foreground" onClick={() => navigate(-1)}>
+    <Button variant="ghost" size="sm" className="absolute -top-12 left-0 text-muted-foreground" onClick={handleBackNavigation}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
       <AlgoTimeSessionForm />

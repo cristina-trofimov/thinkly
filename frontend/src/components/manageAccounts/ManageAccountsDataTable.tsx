@@ -85,6 +85,7 @@ function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
     onUserUpdate?: (updatedUser: Account) => void;
+    currentUserRole?: "Admin" | "Owner" | "Participant";
   }
 }
 
@@ -103,6 +104,7 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
+  currentUserRole?: "Admin" | "Owner" | "Participant";
 }
 
 interface SelectionActionsProps {
@@ -167,13 +169,14 @@ export function ManageAccountsDataTable<TData, TValue>({
   pageSize = 25,
   search = "",
   userTypeFilter = "all",
-  onSearchChange = () => {},
-  onUserTypeFilterChange = () => {},
+  onSearchChange = () => { },
+  onUserTypeFilterChange = () => { },
   onSortChange,
-  onPageChange = () => {},
-  onPageSizeChange = () => {},
+  onPageChange = () => { },
+  onPageSizeChange = () => { },
   onDeleteUsers,
   onUserUpdate,
+  currentUserRole,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -185,7 +188,7 @@ export function ManageAccountsDataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
-    meta: { onUserUpdate },
+    meta: { onUserUpdate, currentUserRole },
     state: { sorting, rowSelection },
   });
 
@@ -211,6 +214,19 @@ export function ManageAccountsDataTable<TData, TValue>({
     const selectedRows = table
       .getSelectedRowModel()
       .rows.map((row) => row.original as Account);
+
+    if (currentUserRole?.toLowerCase() === "admin") {
+      const hasProtectedAccounts = selectedRows.some(
+        (acc) => acc.accountType.toLowerCase() === "admin" || acc.accountType.toLowerCase() === "owner"
+      );
+
+      if (hasProtectedAccounts) {
+        toast.error("Permissions Denied", {
+          description: "Admins cannot delete other Admins or the Owner."
+        });
+        return; // Stop the deletion process entirely
+      }
+    }
 
     const userIds = selectedRows.map((row) => Number(row.id));
 
@@ -289,9 +305,9 @@ export function ManageAccountsDataTable<TData, TValue>({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>

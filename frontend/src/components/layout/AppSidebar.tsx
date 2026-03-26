@@ -15,8 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { getProfile } from "@/api/AuthAPI"
-import type { Account } from "@/types/account/Account.type"
+import { useUser } from "@/context/UserContext"
 
 // Static data definitions
 const navMain = [
@@ -49,33 +48,14 @@ const navOther = [
 ];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = React.useState<Account | null>(null);
-
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentAccount = await getProfile();
-        setUser({
-          id: currentAccount.id,
-          firstName: currentAccount.firstName,
-          lastName: currentAccount.lastName,
-          email: currentAccount.email,
-          accountType: currentAccount.accountType,
-        });
-      } catch (error) {
-        console.error("Failed to load user profile:", error);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  const { user } = useUser();
 
   // 🔒 Filter logic:
   // We recreate the 'navOther' list based on the user's role.
   const filteredOtherLinks = React.useMemo(() => {
     if (!user) return []; // Or return just public links if you prefer
 
-    const isAdminOrOwner = ['admin', 'owner'].includes(user.accountType);
+    const isAdminOrOwner = ['admin', 'owner'].includes(user?.accountType?.toLowerCase() ?? "");
 
     return navOther.filter(item => {
       // If the item requires admin and the user is NOT one, hide it.
@@ -111,7 +91,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* navMain is static for everyone */}
         <NavSection link={navMain} label="Platform" />
-        
+
         {/* 🔒 Use the filtered list here */}
         <NavSection link={filteredOtherLinks} label="Other" />
       </SidebarContent>

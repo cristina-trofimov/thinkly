@@ -3,25 +3,16 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { jest } from '@jest/globals';
 import { AppSidebar } from "../src/components/layout/AppSidebar";
-import { MemoryRouter } from 'react-router-dom';
-import { Layout } from "../src/components/layout/AppLayout";
 import '@testing-library/jest-dom';
+import { UserContext } from '../src/context/UserContext';
+import type { Account } from '../src/types/account/Account.type';
 
 const { TextEncoder, TextDecoder } = require('util');
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-// Mock the Auth API
-jest.mock("@/api/AuthAPI", () => ({
-  getProfile: jest.fn(() => Promise.resolve({
-    id: "1",
-    firstName: "shadcn",
-    lastName: "example",
-    email: "shadcn@example.com",
-    accountType: "admin"
-  })),
-}));
+
 
 // Mock the child components
 jest.mock("@/components/layout/NavSection", () => ({
@@ -36,6 +27,15 @@ jest.mock("@/components/layout/NavSection", () => ({
     </div>
   ),
 }));
+
+jest.mock('../src/lib/axiosClient', () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  }
+}))
 
 jest.mock("@/components/ui/sidebar", () => ({
   Sidebar: ({ children, collapsible, ...props }: any) => (
@@ -133,47 +133,69 @@ jest.mock("../src/components/ui/sidebar", () => ({
   ),
 }));
 
+const mockUser: Account = {
+  id: 1,
+  firstName: 'shadcn',
+  lastName: 'example',
+  email: 'shadcn@example.com',
+  accountType: 'Admin',
+}
+
+const mockContextValue = {
+  user: mockUser,
+  loading: false,
+  setUser: jest.fn(),
+  refreshUser: jest.fn() as () => Promise<void>,
+}
+
+const renderSidebar = (props = {}) =>
+  render(
+    <UserContext.Provider value={mockContextValue}>
+      <AppSidebar {...props} />
+    </UserContext.Provider>
+  )
+
 describe("AppSidebar", () => {
   test("renders sidebar with collapsible icon prop", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     const sidebar = screen.getByTestId("sidebar");
     expect(sidebar).toHaveAttribute("data-collapsible", "icon");
   });
 
   test("renders header with Thinkly branding", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByText("Thinkly")).toBeInTheDocument();
   });
 
   test("renders logo link pointing to /app/home", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     const link = screen.getByRole("link", { name: /thinkly/i });
     expect(link).toHaveAttribute("href", "/app/home");
   });
 
   test("renders avatar with correct image source", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     const avatarImage = screen.getByTestId("avatar-image");
     expect(avatarImage).toHaveAttribute("src", "/assets/thinkly_logo.png");
   });
 
   test("renders avatar fallback with 'T'", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByTestId("avatar-fallback")).toHaveTextContent("T");
   });
 
   test("renders Platform navigation section", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByText("Platform")).toBeInTheDocument();
   });
 
   test("renders Other navigation section", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByText("Other")).toBeInTheDocument();
   });
 
   test("renders all main navigation links", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByRole("link", { name: "AlgoTime" })).toHaveAttribute(
       "href",
       "/app/algotime"
@@ -185,46 +207,46 @@ describe("AppSidebar", () => {
   });
 
   test("does not render NavUser inside the sidebar", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     // NavUser is now in the top header bar, not inside the sidebar
     expect(screen.queryByTestId("nav-user")).not.toBeInTheDocument();
   });
 
   test("does not render a sidebar footer", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     // Footer was intentionally removed when NavUser moved to the header
     expect(screen.queryByTestId("sidebar-footer")).not.toBeInTheDocument();
   });
 
   test("renders correct sidebar structure: header and content only", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     expect(screen.getByTestId("sidebar-header")).toBeInTheDocument();
     expect(screen.getByTestId("sidebar-content")).toBeInTheDocument();
     expect(screen.queryByTestId("sidebar-footer")).not.toBeInTheDocument();
   });
 
   test("passes through additional props to Sidebar component", () => {
-    render(<AppSidebar data-custom="test-value" />);
+    renderSidebar({ 'data-custom': 'test-value' })
     const sidebar = screen.getByTestId("sidebar");
     expect(sidebar).toHaveAttribute("data-custom", "test-value");
   });
 
   test("renders two NavSection components", () => {
-    render(<AppSidebar />);
+    renderSidebar();
     const navSections = screen.getAllByTestId("nav-section");
     expect(navSections).toHaveLength(2);
   });
 
   describe("Role-based navigation filtering", () => {
     test("shows Dashboard link for admin users", async () => {
-      render(<AppSidebar />);
+      renderSidebar();
       await waitFor(() => {
         expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
       });
     });
 
     test("shows Leaderboards link for all authenticated users", async () => {
-      render(<AppSidebar />);
+      renderSidebar();
       await waitFor(() => {
         expect(screen.getByRole("link", { name: "Leaderboards" })).toBeInTheDocument();
       });

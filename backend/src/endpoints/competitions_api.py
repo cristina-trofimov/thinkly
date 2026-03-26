@@ -1,14 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from models.schema import Competition, BaseEvent, QuestionInstance, CompetitionEmail, UserAccount, UserPreferences, \
     CompetitionLeaderboardEntry
 from database_operations.database import get_db, _commit_or_rollback
 from endpoints.authentification_api import get_current_user
+from endpoints.event_utils import (
+    apply_event_status_filter,
+    build_event_date_order,
+    build_event_status_order,
+    parse_local_datetime_from_request,
+    validate_event_times,
+)
 from endpoints.send_email_api import send_email_via_brevo
 import logging
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, validator
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Literal, Optional
 from zoneinfo import ZoneInfo
 from services.posthog_analytics import track_custom_event
 
@@ -18,6 +26,8 @@ ERROR_COMPETITION_NOT_FOUND = "Competition not found"
 
 logger = logging.getLogger(__name__)
 competitions_router = APIRouter(tags=["Competitions"])
+DEFAULT_PAGE_SIZE = 11
+MAX_PAGE_SIZE = 100
 
 
 # ---------------- Models ----------------
@@ -112,6 +122,21 @@ class CompetitionResponse(BaseModel):
         from_attributes = True
 
 
+class CompetitionCardResponse(BaseModel):
+    id: int
+    competition_title: str
+    competition_location: Optional[str] = None
+    start_date: datetime
+    end_date: datetime
+
+
+class CompetitionCardPageResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[CompetitionCardResponse]
+
+
 class DetailedCompetitionResponse(BaseModel):
     """Response model for editing competitions - includes all necessary details"""
     id: int
@@ -132,42 +157,19 @@ class DetailedCompetitionResponse(BaseModel):
 
 # ---------------- Helper Functions ----------------
 def parse_datetime_from_request(date_str: str, time_str: str) -> datetime:
-    """
-    Combines date and time strings into a timezone-aware datetime object.
-    """
-    try:
-        dt_naive = datetime.fromisoformat(f"{date_str}T{time_str}:00")
-
-        # Attach LOCAL timezone
-        dt_local = dt_naive.replace(tzinfo=LOCAL_TZ)
-
-        # Convert to UTC
-        dt_utc = dt_local.astimezone(timezone.utc)
-
-        return dt_utc
-    except ValueError:
-        logger.error(f"Invalid date/time format: {date_str} {time_str}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date or time format."
-        )
+    """Combines date and time strings into a timezone-aware datetime object."""
+    return parse_local_datetime_from_request(date_str, time_str, LOCAL_TZ, logger)
 
 
 def validate_competition_times(start_dt: datetime, end_dt: datetime, skip_future_check: bool = False):
     """Validates that competition times are logical and in the future."""
-    if not skip_future_check:
-        now = datetime.now(timezone.utc)
-        if start_dt <= now:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Competition start time must be in the future"
-            )
-
-    if end_dt <= start_dt:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Competition end time must be after start time"
-        )
+    validate_event_times(
+        start_dt,
+        end_dt,
+        require_future_start=not skip_future_check,
+        future_start_detail="Competition start time must be in the future",
+        invalid_range_detail="Competition end time must be after start time",
+    )
 
 
 def check_competition_name_exists(db: Session, name: str, exclude_id: Optional[int] = None) -> bool:
@@ -177,6 +179,79 @@ def check_competition_name_exists(db: Session, name: str, exclude_id: Optional[i
         query = query.filter(BaseEvent.event_id != exclude_id)
     existing = query.first()
     return existing is not None
+
+
+def get_competition_or_404(db: Session, competition_id: int) -> tuple[BaseEvent, Competition]:
+    """Load a competition and its base event or raise a 404."""
+    base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
+    if not base_event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ERROR_COMPETITION_NOT_FOUND
+        )
+
+    competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
+    if not competition:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Competition details not found"
+        )
+
+    return base_event, competition
+
+
+def build_competition_response(
+        base_event: BaseEvent,
+        competition: Competition,
+        question_count: int,
+        riddle_count: int
+) -> CompetitionResponse:
+    return CompetitionResponse(
+        event_id=base_event.event_id,
+        event_name=base_event.event_name,
+        event_location=base_event.event_location,
+        event_start_date=base_event.event_start_date,
+        event_end_date=base_event.event_end_date,
+        question_cooldown=base_event.question_cooldown,
+        riddle_cooldown=competition.riddle_cooldown,
+        question_count=question_count,
+        riddle_count=riddle_count,
+        created_at=base_event.created_at
+    )
+
+
+def replace_question_instances(
+        db: Session,
+        competition_id: int,
+        selected_questions: List[int],
+        selected_riddles: List[int]
+):
+    db.query(QuestionInstance).filter(
+        QuestionInstance.event_id == competition_id
+    ).delete()
+
+    for question_id, riddle_id in zip(selected_questions, selected_riddles):
+        db.add(
+            QuestionInstance(
+                event_id=competition_id,
+                question_id=question_id,
+                riddle_id=riddle_id,
+            )
+        )
+
+
+def build_email_notification_response(competition_email: CompetitionEmail) -> EmailNotificationResponse:
+    send_at_local = None
+    if competition_email.other_time:
+        send_at_local = competition_email.other_time.strftime('%Y-%m-%dT%H:%M')
+
+    return EmailNotificationResponse(
+        to=competition_email.to,
+        subject=competition_email.subject,
+        body=competition_email.body,
+        sendInOneMinute=False,
+        sendAtLocal=send_at_local
+    )
 
 
 def create_competition_emails(
@@ -294,23 +369,66 @@ def send_competition_emails(
 
 
 # ---------------- Routes ----------------
-@competitions_router.get("/")
-def get_all_competitions(db: Annotated[Session, Depends(get_db)]):
-    """Get all competitions (existing endpoint kept for compatibility)"""
+@competitions_router.get("/", response_model=CompetitionCardPageResponse)
+def get_all_competitions(
+        db: Annotated[Session, Depends(get_db)],
+        page: Annotated[int, Query(ge=1)] = 1,
+        page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
+        search: Optional[str] = None,
+        status_filter: Annotated[Optional[Literal["active", "upcoming", "completed"]], Query(alias="status")] = None,
+        sort: Annotated[Literal["asc", "desc"], Query()] = "desc",
+):
+    """Get competitions with pagination, optional search, and optional status filtering."""
     try:
-        competitions = db.query(Competition).join(BaseEvent).all()
-        logger.info(f"Fetched {len(competitions)} competitions from the database.")
+        now = datetime.now(timezone.utc)
+        query = db.query(Competition).join(BaseEvent)
 
-        return [
-            {
-                "id": comp.event_id,
-                "competition_title": comp.base_event.event_name,
-                "competition_location": comp.base_event.event_location,
-                "start_date": comp.base_event.event_start_date,
-                "end_date": comp.base_event.event_end_date,
-            }
-            for comp in competitions
-        ]
+        if search and search.strip():
+            search_term = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    BaseEvent.event_name.ilike(search_term),
+                    BaseEvent.event_location.ilike(search_term),
+                )
+            )
+
+        query = apply_event_status_filter(query, BaseEvent, status_filter, now)
+
+        total = query.count()
+
+        status_order = build_event_status_order(BaseEvent, now)
+        date_order = build_event_date_order(BaseEvent, sort)
+        competitions = (
+            query
+            .order_by(status_order.asc(), date_order)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        logger.info(
+            "Fetched %s competitions for page=%s page_size=%s has_search=%s has_status_filter=%s",
+            len(competitions),
+            page,
+            page_size,
+            bool(search and search.strip()),
+            bool(status_filter),
+        )
+
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": [
+                {
+                    "id": comp.event_id,
+                    "competition_title": comp.base_event.event_name,
+                    "competition_location": comp.base_event.event_location,
+                    "start_date": comp.base_event.event_start_date,
+                    "end_date": comp.base_event.event_end_date,
+                }
+                for comp in competitions
+            ],
+        }
     except Exception as e:
         logger.error(f"Error fetching competitions: {e}")
         raise HTTPException(
@@ -351,18 +469,14 @@ async def list_competitions(
                 QuestionInstance.riddle_id.isnot(None)
             ).count()
 
-            result.append(CompetitionResponse(
-                event_id=base_event.event_id,
-                event_name=base_event.event_name,
-                event_location=base_event.event_location,
-                event_start_date=base_event.event_start_date,
-                event_end_date=base_event.event_end_date,
-                question_cooldown=base_event.question_cooldown,
-                riddle_cooldown=competition.riddle_cooldown,
-                question_count=question_count,
-                riddle_count=riddle_count,
-                created_at=base_event.created_at
-            ))
+            result.append(
+                build_competition_response(
+                    base_event,
+                    competition,
+                    question_count,
+                    riddle_count,
+                )
+            )
 
         logger.info(f"Retrieved {len(result)} competitions for user '{user_email}'")
         return result
@@ -416,15 +530,12 @@ async def create_competition(
 
         logger.info(f"Competition created with event_id: {competition.event_id}")
 
-        for index, (question_id, riddle_id) in enumerate(
-                zip(request.selectedQuestions, request.selectedRiddles)
-        ):
-            question_instance = QuestionInstance(
-                event_id=base_event.event_id,
-                question_id=question_id,
-                riddle_id=riddle_id,
-            )
-            db.add(question_instance)
+        replace_question_instances(
+            db,
+            base_event.event_id,
+            request.selectedQuestions,
+            request.selectedRiddles,
+        )
 
         _commit_or_rollback(db)
         logger.info(f"Added {len(request.selectedQuestions)} question+riddle pairs")
@@ -461,17 +572,11 @@ async def create_competition(
             }
         )
 
-        return CompetitionResponse(
-            event_id=base_event.event_id,
-            event_name=base_event.event_name,
-            event_location=base_event.event_location,
-            event_start_date=base_event.event_start_date,
-            event_end_date=base_event.event_end_date,
-            question_cooldown=base_event.question_cooldown,
-            riddle_cooldown=competition.riddle_cooldown,
-            question_count=len(request.selectedQuestions),
-            riddle_count=len(request.selectedRiddles),
-            created_at=base_event.created_at
+        return build_competition_response(
+            base_event,
+            competition,
+            len(request.selectedQuestions),
+            len(request.selectedRiddles),
         )
 
     except HTTPException:
@@ -497,19 +602,7 @@ async def get_competition_detailed(
     logger.info(f"User '{user_email}' requesting detailed competition ID: {competition_id}")
 
     try:
-        base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
-        if not base_event:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ERROR_COMPETITION_NOT_FOUND
-            )
-
-        competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
-        if not competition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Competition details not found"
-            )
+        base_event, competition = get_competition_or_404(db, competition_id)
 
         # Get ordered question instances
         question_instances = (
@@ -546,21 +639,7 @@ async def get_competition_detailed(
             logger.info(f"  - time_5min_before: {competition_email.time_5min_before}")
             logger.info(f"  - other_time: {competition_email.other_time}")
 
-            send_in_one_minute = False
-            send_at_local = None
-
-            if competition_email.other_time:
-                # Format datetime for datetime-local input (YYYY-MM-DDTHH:mm)
-                send_at_local = competition_email.other_time.strftime('%Y-%m-%dT%H:%M')
-                logger.info(f"  - Formatted send_at_local: {send_at_local}")
-
-            email_notification = EmailNotificationResponse(
-                to=competition_email.to,
-                subject=competition_email.subject,
-                body=competition_email.body,
-                sendInOneMinute=send_in_one_minute,
-                sendAtLocal=send_at_local
-            )
+            email_notification = build_email_notification_response(competition_email)
 
             logger.info("Email notification response created successfully")
         else:
@@ -601,19 +680,7 @@ async def update_competition(
     logger.info(f"User attempting to update competition ID: {competition_id}")
 
     try:
-        base_event = db.query(BaseEvent).filter(BaseEvent.event_id == competition_id).first()
-        if not base_event:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=ERROR_COMPETITION_NOT_FOUND
-            )
-
-        competition = db.query(Competition).filter(Competition.event_id == competition_id).first()
-        if not competition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Competition details not found"
-            )
+        base_event, competition = get_competition_or_404(db, competition_id)
 
         # Check if new name conflicts with another competition
         if request.name != base_event.event_name:
@@ -639,19 +706,12 @@ async def update_competition(
         # Update Competition
         competition.riddle_cooldown = request.riddleCooldownTime
 
-        # Delete existing question instances
-        db.query(QuestionInstance).filter(
-            QuestionInstance.event_id == competition_id
-        ).delete()
-
-        # Create new question instances
-        for question_id, riddle_id in zip(request.selectedQuestions, request.selectedRiddles):
-            question_instance = QuestionInstance(
-                event_id=competition_id,
-                question_id=question_id,
-                riddle_id=riddle_id,
-            )
-            db.add(question_instance)
+        replace_question_instances(
+            db,
+            competition_id,
+            request.selectedQuestions,
+            request.selectedRiddles,
+        )
 
         # Update or delete email notifications
         db.query(CompetitionEmail).filter(
@@ -695,17 +755,11 @@ async def update_competition(
             }
         )
 
-        return CompetitionResponse(
-            event_id=base_event.event_id,
-            event_name=base_event.event_name,
-            event_location=base_event.event_location,
-            event_start_date=base_event.event_start_date,
-            event_end_date=base_event.event_end_date,
-            question_cooldown=base_event.question_cooldown,
-            riddle_cooldown=competition.riddle_cooldown,
-            question_count=len(request.selectedQuestions),
-            riddle_count=len(request.selectedRiddles),
-            created_at=base_event.created_at
+        return build_competition_response(
+            base_event,
+            competition,
+            len(request.selectedQuestions),
+            len(request.selectedRiddles),
         )
 
     except HTTPException:

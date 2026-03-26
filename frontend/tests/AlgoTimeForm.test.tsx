@@ -184,8 +184,8 @@ const mockQuestions = [
     created_at: new Date('2024-01-01'),
     question_description: 'Test',
     media: '',
-    preset_code: '',
-    template_solution: '',
+    preset_functions: '',
+    template_code: '',
   },
   {
     question_id: 2,
@@ -194,8 +194,8 @@ const mockQuestions = [
     created_at: new Date('2024-01-02'),
     question_description: 'Test',
     media: '',
-    preset_code: '',
-    template_solution: '',
+    preset_functions: '',
+    template_code: '',
   },
 ];
 
@@ -320,8 +320,8 @@ describe('AlgoTimeSessionForm', () => {
         created_at: new Date('2024-01-01'),
         question_description: 'Test',
         media: '',
-        preset_code: '',
-        template_solution: '',
+        preset_functions: '',
+        template_code: '',
       }));
 
       (getQuestions as jest.Mock).mockResolvedValue(manyQuestions);
@@ -409,7 +409,7 @@ describe('AlgoTimeSessionForm', () => {
 
       await waitFor(() => {
         expect(createAlgotime).toHaveBeenCalled();
-        expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/algoTimeSessions');
         expect(toast.success).toHaveBeenCalledWith('AlgoTime Session created successfully!');
       });
     });

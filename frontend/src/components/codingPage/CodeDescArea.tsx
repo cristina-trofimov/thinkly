@@ -52,7 +52,7 @@ const CodeDescArea = (
     const baseTabs = [
         { "id": "description", "label": "Description", "icon": <FileText /> },
         { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck /> },
+        { "id": "result", "label": "Result", "icon": <ClipboardCheck /> },
     ]
 
     // Only expose the Leaderboard tab when the question belongs to an event
@@ -101,7 +101,7 @@ const CodeDescArea = (
         const fetchRiddle = async () => {
             try {
                 await getRiddleById(question_instance.riddle_id)
-                    .then((resp) => setRiddle(resp) )
+                    .then((resp) => setRiddle(resp))
             } catch (error) {
                 toast.error("Failed to load riddle...")
                 logFrontend({
@@ -110,7 +110,7 @@ const CodeDescArea = (
                     component: "CodeDescArea",
                     url: globalThis.location.href,
                     stack: (error as Error).stack,
-                  })
+                })
             } finally {
                 setIsLoadingRiddle(false)
             }
@@ -218,7 +218,7 @@ const CodeDescArea = (
                     <h1 className='font-bold mb-3'>
                         {question.question_name}
                     </h1>
-                    <p className='max-h-125 text-left leading-6 wrap-break-word whitespace-pre'>
+                    <p className='text-left leading-6 break-words whitespace-pre-wrap overflow-y-auto max-h-96'>
                         {question.question_description}
                     </p>
                     {testcases?.map((t, idx) => {
@@ -250,7 +250,7 @@ const CodeDescArea = (
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
-                        </div> )}
+                        </div>)}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
                         <Table data-testid="table">
@@ -266,8 +266,8 @@ const CodeDescArea = (
                                 {submissions?.map((s, idx) => {
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
-                                    return <TableRow key={`submission ${idx+1}`} data-testid={`submission-${idx+1}`}
-                                    onClick={() => setSelectedSubmission(s)}
+                                    return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
+                                        onClick={() => setSelectedSubmission(s)}
                                     >
                                         <TableCell className='grid grid-rows-2' >
                                             <span className={`${status_color}`} >{s.status}</span>

@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { AppBreadcrumbs } from './AppBreadcrumb';
 import { NavUser } from './NavUser'
 import { MobileBanner } from "./MobileBanner";
+import { useUser } from '@/context/UserContext';
 
 // Define the shape of route handle data
 interface RouteHandle {
@@ -20,6 +21,7 @@ function getSidebarCookie(): boolean {
 export function Layout() {
   // Get all active routes
   const routes = useMatches();
+  const { loading } = useUser();
 
   // Build breadcrumb items from routes
   const breadcrumbItems = routes
@@ -31,6 +33,14 @@ export function Layout() {
       title: (match.handle as RouteHandle).crumb!.title,
       href: match.pathname,
     }));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <span className="text-lg font-medium">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <SidebarProvider defaultOpen={getSidebarCookie()}>
