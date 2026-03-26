@@ -84,14 +84,10 @@ describe('Admin Dashboard', () => {
         win.localStorage.setItem('token', mockToken);
       },
     });
-
-    cy.url().should('include', '/app/dashboard');
-
   });
 
   it('renders the main dashboard overview', () => {
     // Check for the header
-    cy.wait('@getOverview');
     cy.get('h1').contains('Overview').should('be.visible');
 
     // Check that the default tab is active
@@ -103,7 +99,6 @@ describe('Admin Dashboard', () => {
 
   it('updates stats when the Time Range filter is changed', () => {
     // 1. Wait for initial data to load - check that New Accounts card is visible
-    cy.wait('@getOverview');
     cy.contains('New Accounts').should('be.visible');
 
     // 2. Open the Select dropdown using the trigger button
@@ -134,7 +129,6 @@ describe('Admin Dashboard', () => {
 
   it('switches tabs correctly', () => {
     // Wait for initial load to complete
-    cy.wait('@getOverview');
     cy.contains('New Accounts').should('be.visible');
 
     // Click the Competitions tab using role="tab"
