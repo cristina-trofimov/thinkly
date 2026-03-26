@@ -357,8 +357,8 @@ const CodingView = () => {
           <CodeDescArea
               question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
-            eventId={event?.event_id}
-            eventName={event?.event_name}
+            eventId={event?.event_id ?? (algo ? 0 : undefined)}
+            eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
             isCompetitionEvent={!!comp}
             currentUserId={user?.id}
             submissionState={submissionState}
