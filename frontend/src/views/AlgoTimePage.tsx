@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getAlgotimeSessionsPage } from "@/api/AlgotimeAPI";
+import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
-import { useNavigate } from "react-router-dom";
-import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
-import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
-import { getPageItems } from "@/utils/paginationUtils";
+
+const formatSessionDate = (d: Date) => {
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return "TBD";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const getSessionStatus = (
   startTime: Date | string,
@@ -57,29 +64,15 @@ const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
 
 export default function AlgoTimePage() {
   const [sessions, setSessions] = useState<AlgoTimeSession[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const nav = useNavigate();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(24);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       try {
-        const data = await getAlgotimeSessionsPage({
-          page,
-          pageSize,
-          sort: "asc",
-        });
-        if (!cancelled) {
-          setSessions(data.items);
-          setTotal(data.total);
-          if (data.items.length === 0 && data.total > 0 && page > 1) {
-            setPage(page - 1);
-          }
-        }
+        const data = await getAllAlgotimeSessions();
+        if (!cancelled) setSessions(data);
       } catch (err) {
         logFrontend({
           level: "ERROR",
@@ -96,10 +89,7 @@ export default function AlgoTimePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize]);
-
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const pageItems = getPageItems(page, pageCount);
+  }, []);
 
   const sessionsWithStatus = [...sessions]
     .map((s) => ({ session: s, status: getSessionStatus(s.startTime, s.endTime) }))
@@ -147,7 +137,6 @@ export default function AlgoTimePage() {
                   </div>
                 </div>
               </div>
-            </div>
 
               {/* Card body */}
               <CardContent className="p-4 pb-0 flex flex-col gap-2">
@@ -189,22 +178,7 @@ export default function AlgoTimePage() {
         </div>
       )}
 
-      {total > 0 && (
-        <CardPaginationControls
-          page={page}
-          pageCount={pageCount}
-          pageItems={pageItems}
-          pageSize={pageSize}
-          pageSizeOptions={PUBLIC_CARD_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
-          onPageSizeChange={(value) => {
-            setPage(1);
-            setPageSize(value);
-          }}
-        />
-      )}
-
-      {total === 0 && !loading && (
+      {sessions.length === 0 && !loading && (
         <div className="text-center py-16">
           <h3 className="text-lg font-semibold mb-2">No AlgoTime sessions</h3>
           <p className="text-muted-foreground">Create a session from the admin dashboard.</p>
