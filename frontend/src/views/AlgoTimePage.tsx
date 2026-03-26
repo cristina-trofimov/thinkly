@@ -116,6 +116,7 @@ export default function AlgoTimePage() {
           {sessionsWithStatus.map(({ session: s, status }) => (
             <Card
               key={s.id}
+              role="article"
               className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getCardBorder(status)}`}
             >
               {/* Card header banner */}
