@@ -409,7 +409,7 @@ describe('AlgoTimeSessionForm', () => {
 
       await waitFor(() => {
         expect(createAlgotime).toHaveBeenCalled();
-        expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard');
+        expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard/algoTimeSessions');
         expect(toast.success).toHaveBeenCalledWith('AlgoTime Session created successfully!');
       });
     });
