@@ -59,6 +59,14 @@ jest.mock("@/api/LeaderboardsAPI", () => ({
   resetAlgoTimeLeaderboard: jest.fn(),
 }));
 
+jest.mock("@/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackAdminAlgotimeSessionsViewed: jest.fn(),
+    trackAdminAlgotimeSearched: jest.fn(),
+    trackAdminAlgotimeCreateNavigated: jest.fn(),
+  }),
+}));
+
 const mockSessions = [
   {
     id: 1,
@@ -92,6 +100,19 @@ const makePage = (items = mockSessions, total = items.length) => ({
 });
 
 describe("ManageAlgotimeSessionsPage", () => {
+  beforeAll(() => {
+    global.scrollTo = jest.fn();
+    Object.defineProperty(document, "scrollingElement", {
+      configurable: true,
+      value: { scrollTo: jest.fn() },
+    });
+    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    global.cancelAnimationFrame = jest.fn();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());

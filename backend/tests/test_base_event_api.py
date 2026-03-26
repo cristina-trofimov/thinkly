@@ -18,7 +18,6 @@ from src.endpoints.base_event_api import base_event_router
 
 @pytest.fixture
 def mock_db():
-    """Creates a mock database session."""
     return MagicMock()
 
 @pytest.fixture
@@ -63,7 +62,6 @@ def test_get_event_by_id_success(client, mock_db):
     assert data["data"]["question_cooldown"] == 5
 
 def test_get_event_by_id_empty(client, mock_db):
-    """Test fetching an event that doesn't exist."""
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     response = client.get("/find?event_id=999")
@@ -74,7 +72,6 @@ def test_get_event_by_id_empty(client, mock_db):
     assert data["data"] is None
 
 def test_get_event_by_id_db_error(client, mock_db):
-    """Test that a database error returns 500."""
     mock_db.query.return_value.filter_by.side_effect = Exception("DB Connection Lost")
 
     response = client.get("/find?event_id=5")
@@ -111,7 +108,6 @@ def test_get_event_by_name_success(client, mock_db):
     assert data["data"]["question_cooldown"] == 5
 
 def test_get_event_by_name_empty(client, mock_db):
-    """Test fetching an event that doesn't exist."""
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     response = client.get("/get?event_name='Competition 10'")
@@ -122,7 +118,6 @@ def test_get_event_by_name_empty(client, mock_db):
     assert data["data"] is None
 
 def test_get_event_by_name_db_error(client, mock_db):
-    """Test that a database error returns 500."""
     mock_db.query.return_value.filter_by.side_effect = Exception("DB Connection Lost")
 
     response = client.get("/get?event_name=Comp")
@@ -134,7 +129,6 @@ def test_get_event_by_name_db_error(client, mock_db):
 # --- POST /update TESTS ---
 
 def test_create_new_event(client, mock_db):
-    """Test creating a new event when one doesn't exist yet."""
     payload = {
         'event_id': 10,
         'event_name': "Competition 10",
@@ -145,9 +139,7 @@ def test_create_new_event(client, mock_db):
         'created_at': '2026-01-27 03:54:26.585121+00',
         'updated_at': '2026-01-27 03:54:26.585121+00',
     }
-
     mock_db.query.return_value.filter_by.return_value.first.return_value = None
-
     mock_db.refresh.side_effect = None
 
     response = client.post("/update", json=payload)
@@ -157,7 +149,6 @@ def test_create_new_event(client, mock_db):
     mock_db.commit.assert_called_once()
 
 def test_update_existing_event(client, mock_db):
-    """Test updating an existing event when event_id is provided."""
     payload = {
         'event_id': 1,
         'event_name': "Competition 10",
@@ -168,20 +159,17 @@ def test_update_existing_event(client, mock_db):
         'created_at': '2026-01-27 03:54:26.585121+00',
         'updated_at': '2026-01-27 03:54:26.585121+00',
     }
-
     existing = SimpleNamespace(
-        event_id = 1,
-        event_name = "Competition 10",
-        event_location = None,
-        question_cooldown = 15,
-        event_start_date = '2026-01-13 03:54:26.585121+00',
-        event_end_date = '2026-01-15 05:54:26.585121+00',
-        created_at = '2026-01-27 03:54:26.585121+00',
-        updated_at = '2026-01-27 03:54:26.585121+00',
+        event_id=1,
+        event_name="Competition 10",
+        event_location=None,
+        question_cooldown=15,
+        event_start_date='2026-01-13 03:54:26.585121+00',
+        event_end_date='2026-01-15 05:54:26.585121+00',
+        created_at='2026-01-27 03:54:26.585121+00',
+        updated_at='2026-01-27 03:54:26.585121+00',
     )
-
     mock_db.query.return_value.filter_by.return_value.first.return_value = existing
-
     mock_db.refresh.side_effect = lambda instance: None
 
     response = client.post("/update", json=payload)
@@ -191,7 +179,6 @@ def test_update_existing_event(client, mock_db):
     mock_db.commit.assert_called_once()
 
 def test_create_event_db_error(client, mock_db):
-    """Test that a commit failure rolls back and returns 500."""
     payload = {
         'event_id': 1,
         'event_name': "Competition 10",
@@ -202,7 +189,6 @@ def test_create_event_db_error(client, mock_db):
         'created_at': '2026-01-27 03:54:26.585121+00',
         'updated_at': '2026-01-27 03:54:26.585121+00',
     }
-
     mock_db.commit.side_effect = Exception("Commit Failed")
 
     response = client.post("/update", json=payload)
@@ -212,6 +198,5 @@ def test_create_event_db_error(client, mock_db):
     mock_db.rollback.assert_called_once()
 
 def test_create_event_missing_fields(client):
-    """Test that a malformed request body returns 422 or 500."""
     response = client.post("/update", json={"bad_field": "value"})
     assert response.status_code in (422, 500)

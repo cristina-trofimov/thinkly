@@ -58,27 +58,3 @@ export async function getEventByID(event_id: number): Promise<BaseEvent> {
     throw err;
   }
 }
-
-export async function getEventByName(event_name: string): Promise<BaseEvent> {
-  try {
-    const response = await axiosClient.get<{
-      status_code: number
-      data: BaseEvent
-    }>(`/events/get`, {
-          params: {
-            event_name: event_name,
-          }
-      })
-
-    return response['data']['data']
-  } catch (err) {
-    logFrontend({
-      level: "ERROR",
-      message: `Failed to fetch event by id. Reason: ${err}`,
-      component: "BaseEventAPI",
-      url: globalThis.location.href,
-      stack: (err as Error).stack,
-    })
-    throw err;
-  }
-}

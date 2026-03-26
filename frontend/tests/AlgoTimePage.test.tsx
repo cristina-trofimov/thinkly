@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 
 import AlgoTimePage from "../src/views/AlgoTimePage";
 import { getAlgotimeSessionsPage } from "../src/api/AlgotimeAPI";
+import { MemoryRouter } from "react-router-dom";
+import React from "react";
 
 jest.mock("@/lib/axiosClient", () => ({
   default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
@@ -46,13 +48,13 @@ describe("AlgoTimePage", () => {
 
   it("shows loading state initially", () => {
     (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(new Promise(() => {}));
-    render(<AlgoTimePage />);
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
     expect(screen.getByText(/loading sessions/i)).toBeInTheDocument();
   });
 
   it("renders sessions after loading", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage(mockSessions));
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText("Session Alpha")).toBeInTheDocument();
@@ -61,8 +63,8 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders session question count", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage(mockSessions));
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText("Questions: 2")).toBeInTheDocument();
@@ -71,8 +73,8 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders series name when present", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage(mockSessions));
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText("Series A")).toBeInTheDocument();
@@ -80,8 +82,8 @@ describe("AlgoTimePage", () => {
   });
 
   it("renders Details and Join buttons for each session", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage(mockSessions));
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getAllByRole("button", { name: /details/i })).toHaveLength(2);
@@ -89,20 +91,22 @@ describe("AlgoTimePage", () => {
     });
   });
 
-  it("sorts sessions by startTime ascending", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([mockSessions[1], mockSessions[0]]));
-    render(<AlgoTimePage />);
+  it("requests sessions with ascending sort", async () => {
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage(mockSessions));
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
-      const cards = screen.getAllByText(/Session (Alpha|Beta)/);
-      expect(cards[0].textContent).toBe("Session Beta");
-      expect(cards[1].textContent).toBe("Session Alpha");
+      expect(getAlgotimeSessionsPage).toHaveBeenCalledWith({
+        page: 1,
+        pageSize: 24,
+        sort: "asc",
+      });
     });
   });
 
   it("shows empty state when no sessions", async () => {
     (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([], 0));
-    render(<AlgoTimePage />);
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();
@@ -111,7 +115,7 @@ describe("AlgoTimePage", () => {
 
   it("handles API errors gracefully", async () => {
     (getAlgotimeSessionsPage as jest.Mock).mockRejectedValue(new Error("Network error"));
-    render(<AlgoTimePage />);
+    render(<MemoryRouter><AlgoTimePage /></MemoryRouter>);
 
     await waitFor(() => {
       expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();

@@ -1,6 +1,6 @@
 import axiosClient from "../src/lib/axiosClient"
 import type { BaseEvent } from "../src/types/BaseEvent.type"
-import { getEventByID, getEventByName, updateEvent } from "../src/api/BaseEventAPI"
+import { getEventByID, updateEvent } from "../src/api/BaseEventAPI"
 import { logFrontend } from "../src/api/LoggerAPI"
 
 beforeAll(() => {
@@ -75,27 +75,6 @@ describe("Base events", () => {
                     .rejects.toThrow("Error fetching event by id")
 
         expect(mockedAxios.get).toHaveBeenCalled()
-    })
-
-    it("getEventByName: returns event associated to an event_name", async () => {
-        mockedAxios.get.mockImplementation(async () => ({ data: mockResponse }))
-
-        await getEventByName(mockEvent.event_name)
-
-        expect(mockedAxios.get).toHaveBeenCalledTimes(1)
-        expect(mockedAxios.get).toHaveBeenCalledWith(
-            "/events/get", {"params": {"event_name": mockEvent.event_name }}
-        )
-    })
-
-    it("handles errors from getEventByName", async () => {
-        mockedAxios.get.mockRejectedValueOnce(new Error("Error fetching event by name"))
-
-        await expect(getEventByName(mockEvent.event_name))
-                    .rejects.toThrow("Error fetching event by name")
-
-        expect(mockedAxios.get).toHaveBeenCalled()
-        expect(mockedLogger).toHaveBeenCalled()
     })
 
     it("updateEvent: updates event", async () => {
