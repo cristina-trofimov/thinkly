@@ -1,12 +1,12 @@
-import { Card, CardContent, CardFooter} from "@/components/ui/card";
-import { Input} from "@/components/ui/input";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Eye, Trash, Filter} from "lucide-react";
+import { Plus, Search, Eye, Filter, Trash2, Eraser } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useNavigate } from "react-router-dom";
-import { getAlgotimeSessionsPage, deleteAlgotime} from "@/api/AlgotimeAPI";
+import { getAlgotimeSessionsPage, deleteAlgotime } from "@/api/AlgotimeAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import {
@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {EditAlgoTimeSessionDialog} from "@/components/algotime/EditAlgotimeDialog"
+import { EditAlgoTimeSessionDialog } from "@/components/algotime/EditAlgotimeDialog"
 import { resetAlgoTimeLeaderboard } from "@/api/LeaderboardsAPI";
 import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
 import { ADMIN_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
@@ -40,6 +40,7 @@ import {
   getAdminStatusBadgeClasses,
   getEventStatus,
 } from "@/utils/eventDisplay";
+import { useUser } from "@/context/UserContext";
 
 export default function ManageAlgotimeSessionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +56,7 @@ export default function ManageAlgotimeSessionsPage() {
   const pendingScrollRef = useRef(false);
   const scrollFrameRef = useRef<number | null>(null);
   const latestRequestId = useRef(0);
+  const { user } = useUser();
 
   const {
     trackAdminAlgotimeSessionsViewed,
@@ -177,52 +179,54 @@ export default function ManageAlgotimeSessionsPage() {
             className="pl-9 w-full"
           />
         </div>
-      
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="gap-2 sm:w-auto w-full">
-            <Filter className="h-4 w-4 text-primary" />
-            <span>{statusFilter === "all" ? "All Sessions" : statusFilter}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-48">
-          <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => {
-            setStatusFilter("all");
-            setPage(1);
-          }}>
-            All Sessions
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            setStatusFilter("Active");
-            setPage(1);
-          }}>
-            Active
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            setStatusFilter("Upcoming");
-            setPage(1);
-          }}>
-            Upcoming
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            setStatusFilter("Completed");
-            setPage(1);
-          }}>
-            Completed
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2 sm:w-auto w-full">
+              <Filter className="h-4 w-4 text-primary" />
+              <span>{statusFilter === "all" ? "All Sessions" : statusFilter}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => {
+              setStatusFilter("all");
+              setPage(1);
+            }}>
+              All Sessions
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setStatusFilter("Active");
+              setPage(1);
+            }}>
+              Active
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setStatusFilter("Upcoming");
+              setPage(1);
+            }}>
+              Upcoming
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              setStatusFilter("Completed");
+              setPage(1);
+            }}>
+              Completed
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="sm:ml-auto">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button  className="gap-2 bg-destructive text-white font-bold hover:bg-destructive/40 sm:w-auto w-full">
-                <Trash className="h-4 w-4" />
-                Reset Leaderboard
-              </Button>
+              {user?.accountType.toLowerCase() === "owner" && (
+                <Button className="gap-2 bg-destructive/10 text-destructive hover:bg-destructive/40 sm:w-auto w-full">
+                  <Eraser className="h-4 w-4" />
+                  Reset Leaderboard
+                </Button>
+              )}
             </AlertDialogTrigger>
 
             <AlertDialogContent>
@@ -264,20 +268,20 @@ export default function ManageAlgotimeSessionsPage() {
             className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-102 border-2 border-dashed border-primary/40 hover:border-primary group"
             onClick={handleCreateNavigation}
           >
-              <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
-                <Plus
-                  className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
-                  strokeWidth={1.5}
-                />
-              </div>
-              <CardContent className="p-4 bg-card text-center">
-                <h3 className="font-semibold text-base text-primary">
-                  Create a New Algotime Session!
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Setup a new event
-                </p>
-              </CardContent>
+            <div className="aspect-4/3 bg-muted/20 flex items-center justify-center group-hover:bg-primary/5 transition-colors">
+              <Plus
+                className="w-16 h-16 text-primary/60 group-hover:text-primary transition-colors"
+                strokeWidth={1.5}
+              />
+            </div>
+            <CardContent className="p-4 bg-card text-center">
+              <h3 className="font-semibold text-base text-primary">
+                Create a New Algotime Session!
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Setup a new event
+              </p>
+            </CardContent>
           </Card>
 
           {algotimesSessions.map((ATsession, index) => (
@@ -288,106 +292,106 @@ export default function ManageAlgotimeSessionsPage() {
                 : "translate-y-2 opacity-0";
 
               return (
-            <Card
-              key={ATsession.id}
-              className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full opacity-100 ${enterClass} motion-safe:duration-700 motion-safe:ease-out`}
-              style={{
-                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
-              }}
-            >
-              <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                  <div className="absolute top-3 right-3 z-20">
-                    {(() => {
-                      const status = getEventStatus(ATsession.startTime, ATsession.endTime);
-                      return (
-                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}>
-                          {status}
-                        </span>
-                      );
-                    })()}
+                <Card
+                  key={ATsession.id}
+                  className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full opacity-100 ${enterClass} motion-safe:duration-700 motion-safe:ease-out`}
+                  style={{
+                    transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                  }}
+                >
+                  <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                    <div className="absolute top-3 right-3 z-20">
+                      {(() => {
+                        const status = getEventStatus(ATsession.startTime, ATsession.endTime);
+                        return (
+                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}>
+                            {status}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="relative z-10 text-center w-full">
+                      <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                        {ATsession.eventName || "no event"}
+                      </div>
+                    </div>
                   </div>
-                <div className="relative z-10 text-center w-full">
-                  <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
-                    {ATsession.eventName || "no event"}
-                  </div>
-                </div>
-              </div>
-              <CardContent className="p-0 flex-1 flex flex-col">
-                <div className="px-4 py-1.0">
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                    Date
-                  </h4>
-                  <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                    {formatEventDate(ATsession.startTime)}
-                  </p>
-                </div>
-              </CardContent>
-                <CardFooter>
-                <div className="flex justify-end gap-2 pt-3 border-t w-full">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="hover:text-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSessionId(ATsession.id);
-                      setEditDialogOpen(true);
-                    }}
-                  >
-                    View 
-                    <Eye className="h-4 w-4 " />
-                  </Button>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  <CardContent className="p-0 flex-1 flex flex-col">
+                    <div className="px-4 py-1.0">
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                        Date
+                      </h4>
+                      <p className="font-medium text-sm line-clamp-3 leading-relaxed">
+                        {formatEventDate(ATsession.startTime)}
+                      </p>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <div className="flex justify-end gap-2 pt-3 border-t w-full">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => e.stopPropagation()}
+                        className="hover:text-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSessionId(ATsession.id);
+                          setEditDialogOpen(true);
+                        }}
                       >
-                        <Trash className="h-4 w-4 " />
+                        View
+                        <Eye className="h-4 w-4 " />
                       </Button>
-                    </AlertDialogTrigger>
 
-                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>
-                          Delete "{ATsession.eventName}"?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete
-                          this algotime session.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-4 w-4 " />
+                          </Button>
+                        </AlertDialogTrigger>
 
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete "{ATsession.eventName}"?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete
+                              this algotime session.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
 
-                        <AlertDialogAction
-                          className="bg-destructive text-white hover:bg-destructive/90"
-                          onClick={async () => {
-                             try {
-                              pendingScrollRef.current = true;
-                              setLoading(true);
-                              await deleteAlgotime(ATsession.id);
-                              toast.success("Session deleted successfully");
-                              await loadATsessions();
-                            } catch {
-                              pendingScrollRef.current = false;
-                              setLoading(false);
-                              toast.error("Failed to delete session");
-                            }
-                          }}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-                </CardFooter>
-            </Card>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+                            <AlertDialogAction
+                              className="bg-destructive text-white hover:bg-destructive/90"
+                              onClick={async () => {
+                                try {
+                                  pendingScrollRef.current = true;
+                                  setLoading(true);
+                                  await deleteAlgotime(ATsession.id);
+                                  toast.success("Session deleted successfully");
+                                  await loadATsessions();
+                                } catch {
+                                  pendingScrollRef.current = false;
+                                  setLoading(false);
+                                  toast.error("Failed to delete session");
+                                }
+                              }}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardFooter>
+                </Card>
               );
             })()
           ))}

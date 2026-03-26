@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
 import { resetAlgoTimeLeaderboard } from "../src/api/LeaderboardsAPI";
 
+jest.mock("@/context/UserContext", () => ({
+  useUser: () => ({
+    user: { accountType: "Owner" },
+  }),
+}));
+
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => jest.fn(),
+}));
+
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
@@ -149,7 +160,7 @@ describe("ManageAlgotimeSessionsPage", () => {
 
   test("shows the skeleton on initial unresolved load", () => {
     (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(
-      new Promise(() => {})
+      new Promise(() => { })
     );
 
     const { container } = render(<ManageAlgotimeSessionsPage />);
