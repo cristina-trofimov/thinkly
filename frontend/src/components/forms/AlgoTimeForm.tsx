@@ -382,7 +382,7 @@ export const AlgoTimeSessionForm = ({
   
         await createAlgotime(payload);
         toast.success("AlgoTime Session created successfully!");
-        navigate("/app/dashboard");
+        navigate("/app/dashboard/algoTimeSessions");
         handleReset();
       }
   
