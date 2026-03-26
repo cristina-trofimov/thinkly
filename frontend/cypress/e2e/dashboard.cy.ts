@@ -72,11 +72,6 @@ describe('Admin Dashboard', () => {
       ],
     }).as('getParticipation');
 
-    cy.intercept('GET', '**/algotime/sessions**', {
-      statusCode: 200,
-      body: [],
-    }).as('getAlgoTimeSessions');
-
     // Set token in localStorage before page loads
     const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsInJvbGUiOiJhZG1pbiIsImlkIjoxLCJleHAiOjk5OTk5OTk5OTl9.mock';
     cy.visit('/app/dashboard', {
@@ -106,8 +101,8 @@ describe('Admin Dashboard', () => {
 
     // 3. Click the "Last 7 days" option
     // shadcn/ui Select renders options with role="option" in a portal
-    cy.get('body').get('[role="listbox"]').should('be.visible');
-    cy.get('body').get('[role="option"]').contains('Last 7 days').click({ force: true });
+    cy.get('[role="listbox"]').should('be.visible');
+    cy.get('[role="option"]').contains('Last 7 days').click({ force: true });
 
     // 4. Verify the time range changed
     cy.get('[role="combobox"]').first().should('contain.text', 'Last 7 days');
