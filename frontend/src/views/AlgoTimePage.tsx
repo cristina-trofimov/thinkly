@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getAlgotimeSessionsPage } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
+import { useNavigate } from "react-router-dom";
 import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
 import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
@@ -13,6 +14,7 @@ export default function AlgoTimePage() {
   const [sessions, setSessions] = useState<AlgoTimeSession[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const nav = useNavigate();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(24);
 
@@ -78,14 +80,24 @@ export default function AlgoTimePage() {
                 <p className="text-sm font-medium">Questions: {session.questionCount ?? session.questions.length}</p>
                 <p className="text-xs text-muted-foreground mt-1">{formatEventDateTime(session.startTime)} - {formatEventDateTime(session.endTime)}</p>
               </div>
-
-              <div className="flex items-center justify-between pt-2 border-t">
-                <Button variant="ghost" size="sm" className="h-8">Details</Button>
-                <Button size="sm" className="h-8">Join</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <Button variant="ghost" size="sm" className="h-8">Details</Button>
+                  <Button size="sm" className="h-8"
+                    onClick={() => {
+                      nav(`/app/algo/${session.eventName}`, {
+                        state: {
+                          fromFeed: true,
+                          algo_sess: session,
+                        },
+                      })
+                    }}
+                  >
+                    Join
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
       </div>
 
       {total > 0 && (

@@ -46,7 +46,7 @@ const renderCompetitionButton = (
               fromFeed: true,
               comp: comp,
             },
-          });
+          })
         }}
       >
         Join Now
