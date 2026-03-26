@@ -18,6 +18,25 @@ import { UserContext } from '../src/context/UserContext'
 import React from 'react'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
+import { Language } from '../src/types/questions/Language.type'
+import { getMostRecentSub } from '../src/api/MostRecentSubAPI'
+import { getAllSubmissions } from '../src/api/SubmissionAPI'
+import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
+import { MostRecentSub } from '../src/types/submissions/MostRecentSub.type'
+
+// ─── Mocks ───────────────────────────────────────────────────────────────────
+beforeAll(() => {
+  Object.defineProperty(global, 'import', {
+    value: {
+      meta: {
+        env: {
+          VITE_BACKEND_URL: 'http://localhost:8000'
+        }
+      }
+    }
+  });
+});
+
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
   default: {
@@ -28,6 +47,7 @@ jest.mock('../src/lib/axiosClient', () => ({
   },
   API_URL: 'http://localhost:8000',
 }))
+
 jest.mock('../src/api/BaseEventAPI', () => ({ getEventByID: jest.fn() }))
 jest.mock('../src/api/QuestionInstanceAPI', () => ({
   getQuestionInstance: jest.fn(),
@@ -48,6 +68,8 @@ jest.mock('sonner', () => ({
 jest.mock('../src/components/helpers/useTestcases', () => ({
   useTestcases: jest.fn(),
 }))
+jest.mock('../src/api/MostRecentSubAPI', () => ({ getMostRecentSub: jest.fn() }))
+jest.mock('../src/api/SubmissionAPI', () => ({ getAllSubmissions: jest.fn() }))
 
 // ─── Test data ────────────────────────────────────────────────────────────────
 
@@ -110,10 +132,59 @@ const mockQI2: QuestionInstance = {
   riddle_id: null,
 }
 
-const mockLanguages = [
-  { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
-  { lang_judge_id: 62, display_name: 'Java', monaco_id: 'java', active: true },
+const mockLanguages: Language[] = [
+  {
+    row_id: 1,
+    lang_judge_id: 71,
+    monaco_id: "python",
+    display_name: "Python",
+    active: true,
+  },
+  {
+    row_id: 2,
+    lang_judge_id: 51,
+    monaco_id: "java",
+    display_name: "Java",
+    active: false,
+  },
 ]
+
+const mockSubmissions: SubmissionType[] = [
+  {
+    submission_id: 123,
+    user_question_instance_id: 55,
+    lang_judge_id: 71,
+    compile_output: "Hello world",
+    status: "Accepted",
+    runtime: 1234,
+    memory: null,
+    submitted_on: new Date(),
+    stdout: null,
+    stderr: null,
+    message: null
+  },
+  {
+    submission_id: 153,
+    user_question_instance_id: 55,
+    lang_judge_id: 71,
+    compile_output: "Hello world",
+    status: "Accepted",
+    runtime: 124,
+    memory: null,
+    submitted_on: new Date(),
+    stdout: null,
+    stderr: null,
+    message: null
+  }
+]
+
+const mockMostRecentSub: MostRecentSub = {
+  row_id: 1,
+  user_question_instance_id: 55,
+  code: "print('hello world')",
+  submitted_on: new Date(),
+  lang_judge_id: 71
+}
 
 const mockProfile = { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@test.com', accountType: 'Participant' }
 
@@ -135,6 +206,7 @@ const mockUQI = {
   attempts: null,
 }
 
+const mockedLogger = logFrontend as jest.Mock
 const mockedGetEventByID = getEventByID as jest.Mock
 const mockedGetAllQIByEvent = getAllQuestionInstancesByEventID as jest.Mock
 const mockedGetQuestionInstance = getQuestionInstance as jest.Mock
@@ -145,6 +217,8 @@ const mockedGetQuestionByID = getQuestionByID as jest.Mock
 const mockedGetUserInstance = getUserInstance as jest.Mock
 const mockedPutUserInstance = putUserInstance as jest.Mock
 const mockedUseTestcases = useTestcases as jest.Mock
+const mockedGetMostRecentSub = getMostRecentSub as jest.Mock
+const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <UserContext.Provider value={{
@@ -167,6 +241,15 @@ beforeEach(() => {
   mockedGetUserInstance.mockResolvedValue(mockUQI)
   mockedPutUserInstance.mockResolvedValue(mockUQI)
   mockedGetQuestionByID.mockResolvedValue(mockQuestion)
+
+    // jest.clearAllMocks()
+    // mockedUseTestcases.mockReturnValue({ testcases: [] })
+    // mockedGetProfile.mockResolvedValue(mockProfile)
+    // mockedGetUserPrefs.mockResolvedValue(null)
+    // mockedGetUserInstance.mockResolvedValue(mockUQI)
+    // mockedPutUserInstance.mockResolvedValue(mockUQI)
+    // mockedGetQuestionByID.mockResolvedValue(mockQuestion)  // ← add
+
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -476,14 +559,15 @@ describe('useCodingHooks — algotime mode (with event)', () => {
 })
 
 describe('useCodingHooks — language and preferences', () => {
-  it('loads languages and user preferences', async () => {
+  it('loads active languages and user preferences', async () => {
     mockedGetQuestionInstance.mockResolvedValue(mockQI)
     mockedGetUserPrefs.mockResolvedValue(mockUserPrefs)
+    mockedGetAllLanguages.mockResolvedValue([mockLanguages[0]])
 
     const { result } = renderHook(() => useCodingHooks(mockQuestion), { wrapper })
 
     await waitFor(() =>
-      expect(result.current.languages).toEqual(mockLanguages)
+      expect(result.current.languages).toEqual([mockLanguages[0]])
     )
     expect(mockedGetAllLanguages).toHaveBeenCalledWith(true)
     expect(mockedGetUserPrefs).toHaveBeenCalledWith(mockProfile.id)
@@ -513,12 +597,14 @@ describe('useCodingHooks — language and preferences', () => {
 
   it('falls back to first language when preferred lang_judge_id not found', async () => {
     mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetAllLanguages.mockResolvedValue([mockLanguages[0]])
     mockedGetUserPrefs.mockResolvedValue({ ...mockUserPrefs, last_used_programming_language: 999 })
 
     const { result } = renderHook(() => useCodingHooks(mockQuestion), { wrapper })
 
     await waitFor(() =>
-      expect(result.current.languages).toEqual(mockLanguages)
+      // 999 not in languages, so selectedLang stays undefined (no match)
+      expect(result.current.languages).toEqual([mockLanguages[0]])
     )
   })
 
@@ -571,8 +657,26 @@ describe('useCodingHooks — user question instance', () => {
   })
 })
 
+describe('useCodingHooks — LastSteps', () => {
+  it("fetches user's last submission if there's any, all submissions and all languages when UserQuestionInstance is set", async () => {
+    mockedGetQuestionInstance.mockResolvedValue(mockQI)
+    mockedGetUserInstance.mockResolvedValue(mockUQI)
+    mockedGetAllLanguages.mockResolvedValue([mockLanguages[1]])
+    mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
+    mockedGetMostRecentSub.mockResolvedValue(mockMostRecentSub)
+
+    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+
+    await waitFor(() => {
+      expect(result.current.allLanguages).toEqual([mockLanguages[1]])
+      expect(result.current.allSubmissions).toEqual(mockSubmissions)
+      expect(result.current.mostRecentSub).toEqual(mockMostRecentSub)
+    })
+  })
+})
+
 describe('useCodingHooks — setters work correctly', () => {
-  it('setIsAsyncLoading updates state', async () => {
+  it('setIsLoading updates state', async () => {
     mockedGetQuestionInstance.mockResolvedValue(mockQI)
     const { result } = renderHook(() => useCodingHooks(mockQuestion), { wrapper })
 
