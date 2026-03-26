@@ -1,219 +1,307 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ManageAlgotimeSessionsPage from '../src/views/admin/ManageAlgotimeSessionsPage';
-import { getAllAlgotimeSessions,deleteAlgotime } from '../src/api/AlgotimeAPI';
-import { toast } from 'sonner';
-import { logFrontend } from '../src/api/LoggerAPI';
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
+import ManageAlgotimeSessionsPage from "../src/views/admin/ManageAlgotimeSessionsPage";
+import {
+  getAlgotimeSessionsPage,
+  deleteAlgotime,
+} from "../src/api/AlgotimeAPI";
+import { toast } from "sonner";
+import { logFrontend } from "../src/api/LoggerAPI";
+import { resetAlgoTimeLeaderboard } from "../src/api/LeaderboardsAPI";
 
-const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
-  useOutlet: () => null,
+jest.mock("@/context/UserContext", () => ({
+  useUser: () => ({
+    user: { accountType: "Owner" },
+  }),
 }));
 
-// Mock toast
-jest.mock('sonner', () => ({
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => jest.fn(),
+}));
+
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
+jest.mock("sonner", () => ({
   toast: {
     error: jest.fn(),
+    success: jest.fn(),
   },
 }));
 
-// Mock logFrontend
-jest.mock('@/api/LoggerAPI', () => ({
+jest.mock("@/api/LoggerAPI", () => ({
   logFrontend: jest.fn(),
 }));
 
-// Mock the API calls
-jest.mock('@/api/AlgotimeAPI', () => ({
-  getAllAlgotimeSessions: jest.fn(),
-}));
-
-jest.mock('@/api/AlgotimeAPI', () => ({
-  getAllAlgotimeSessions: jest.fn(),
+jest.mock("@/api/AlgotimeAPI", () => ({
+  getAlgotimeSessionsPage: jest.fn(),
   deleteAlgotime: jest.fn(),
 }));
 
-jest.mock('@/api/AlgotimeAPI', () => ({
-  getAllAlgotimeSessions: jest.fn(),
-  deleteAlgotime: jest.fn(),
+jest.mock("@/components/algotime/EditAlgotimeDialog", () => ({
+  EditAlgoTimeSessionDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="edit-dialog">Edit Dialog</div> : null,
 }));
 
-jest.mock('@/components/algotime/EditAlgotimeDialog', () => ({
-  EditAlgoTimeSessionDialog: () => null,
+jest.mock("@/lib/axiosClient", () => ({
+  default: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+jest.mock("@/api/LeaderboardsAPI", () => ({
+  resetAlgoTimeLeaderboard: jest.fn(),
+}));
+
+jest.mock("@/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackAdminAlgotimeSessionsViewed: jest.fn(),
+    trackAdminAlgotimeSearched: jest.fn(),
+    trackAdminAlgotimeCreateNavigated: jest.fn(),
+  }),
 }));
 
 const mockSessions = [
   {
     id: 1,
-    eventName: 'Winter AlgoTime 2025',
-    startTime: new Date('2025-12-28T20:00:00'),
-    endTime: new Date('2025-12-28T21:00:00'),
+    eventName: "Winter AlgoTime 2025",
+    startTime: new Date("2025-12-28T20:00:00"),
+    endTime: new Date("2025-12-28T21:00:00"),
+    questionCooldown: 30,
     seriesId: 1,
-    seriesName: 'Winter Series',
+    seriesName: "Winter Series",
+    questions: [],
+    questionCount: 4,
   },
   {
     id: 2,
-    eventName: 'Spring AlgoTime 2025',
-    startTime: new Date('2025-03-15T18:00:00'),
-    endTime: new Date('2025-03-15T19:00:00'),
+    eventName: "Spring AlgoTime 2025",
+    startTime: new Date("2025-03-15T18:00:00"),
+    endTime: new Date("2025-03-15T19:00:00"),
+    questionCooldown: 30,
     seriesId: 2,
-    seriesName: 'Spring Series',
+    seriesName: "Spring Series",
+    questions: [],
+    questionCount: 2,
   },
 ];
 
-describe('ManageAlgotimeSessionsPage', () => {
+const makePage = (items = mockSessions, total = items.length) => ({
+  total,
+  page: 1,
+  pageSize: 27,
+  items,
+});
+
+describe("ManageAlgotimeSessionsPage", () => {
+  beforeAll(() => {
+    global.scrollTo = jest.fn();
+    Object.defineProperty(document, "scrollingElement", {
+      configurable: true,
+      value: { scrollTo: jest.fn() },
+    });
+    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    global.cancelAnimationFrame = jest.fn();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (getAllAlgotimeSessions as jest.Mock).mockResolvedValue(mockSessions);
+    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
+    (deleteAlgotime as jest.Mock).mockResolvedValue(undefined);
   });
 
-  test('renders page title and description', async () => {
+  test("renders page title and description after loading", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Manage Algotime Sessions')).toBeInTheDocument();
-      expect(screen.getByText('Create and view all algotime sessions.')).toBeInTheDocument();
+      expect(screen.getByText("Manage Algotime Sessions")).toBeInTheDocument();
+      expect(
+        screen.getByText("Create and view all algotime sessions.")
+      ).toBeInTheDocument();
     });
   });
 
-  test('renders search input', async () => {
+  test("renders search input", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Search algotime session name')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("Search algotime session name")
+      ).toBeInTheDocument();
     });
   });
 
-  test('renders create new session card', async () => {
+  test("renders create new session card", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
-      expect(screen.getByText('Setup a new event')).toBeInTheDocument();
+      expect(screen.getByText("Create a New Algotime Session!")).toBeInTheDocument();
     });
   });
 
-  test('loads and displays algotime sessions', async () => {
+  test("loads and displays algotime sessions", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(getAllAlgotimeSessions).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-      expect(screen.getByText('Spring AlgoTime 2025')).toBeInTheDocument();
+      expect(getAlgotimeSessionsPage).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Winter AlgoTime 2025")).toBeInTheDocument();
+      expect(screen.getByText("Spring AlgoTime 2025")).toBeInTheDocument();
     });
   });
 
-  test('shows loading state while fetching sessions', async () => {
-    (getAllAlgotimeSessions as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve(mockSessions), 100))
+  test("shows the skeleton on initial unresolved load", () => {
+    (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(
+      new Promise(() => { })
+    );
+
+    const { container } = render(<ManageAlgotimeSessionsPage />);
+
+    expect(container.querySelector('[aria-busy="true"]')).toBeTruthy();
+  });
+
+  test("filters sessions based on search query through the paged API", async () => {
+    (getAlgotimeSessionsPage as jest.Mock)
+      .mockResolvedValueOnce(makePage())
+      .mockResolvedValueOnce(makePage([mockSessions[0]]));
+
+    render(<ManageAlgotimeSessionsPage />);
+    await waitFor(() => screen.getByText("Winter AlgoTime 2025"));
+
+    fireEvent.change(screen.getByPlaceholderText("Search algotime session name"), {
+      target: { value: "winter" },
+    });
+
+    await waitFor(() => {
+      expect(getAlgotimeSessionsPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          search: "winter",
+          page: 1,
+        })
+      );
+      expect(screen.getByText("Winter AlgoTime 2025")).toBeInTheDocument();
+    });
+  });
+
+  test("shows error toast when API call fails", async () => {
+    const errorMessage = "Network error";
+    (getAlgotimeSessionsPage as jest.Mock).mockRejectedValue(
+      new Error(errorMessage)
     );
 
     render(<ManageAlgotimeSessionsPage />);
 
-    expect(screen.getByText('Loading algotime sessions...')).toBeInTheDocument();
-
     await waitFor(() => {
-      expect(screen.queryByText('Loading algotime sessions...')).not.toBeInTheDocument();
-    });
-  });
-
-  test('filters sessions based on search query', async () => {
-    render(<ManageAlgotimeSessionsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText('Search algotime session name');
-    fireEvent.change(searchInput, { target: { value: 'winter' } });
-
-    expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    expect(screen.queryByText('Spring AlgoTime 2025')).not.toBeInTheDocument();
-  });
-
-  test('search is case insensitive', async () => {
-    render(<ManageAlgotimeSessionsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText('Search algotime session name');
-    fireEvent.change(searchInput, { target: { value: 'WINTER' } });
-
-    expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-  });
-
-  test('shows error toast when API call fails', async () => {
-    const errorMessage = 'Network error';
-    (getAllAlgotimeSessions as jest.Mock).mockRejectedValue(new Error(errorMessage));
-
-    render(<ManageAlgotimeSessionsPage />);
-
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to load algotime sessions');
+      expect(toast.error).toHaveBeenCalledWith(
+        "Failed to load algotime sessions"
+      );
       expect(logFrontend).toHaveBeenCalledWith({
-        level: 'ERROR',
+        level: "ERROR",
         message: `Failed to load algotime sessions: ${errorMessage}`,
-        component: 'ManageAlgotimeSessionsPage.tsx',
+        component: "ManageAlgotimeSessionsPage.tsx",
         url: window.location.href,
       });
     });
   });
 
-  test('navigates to create page when create card is clicked', async () => {
+  test("navigates to create page when create card is clicked", async () => {
+    render(<ManageAlgotimeSessionsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Create a New Algotime Session!")).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByText("Create a New Algotime Session!"));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/app/dashboard/algoTimeSessions/algoTimeSessionsManagement"
+    );
+  });
+
+  test("shows no sessions when filtered search returns empty", async () => {
+    (getAlgotimeSessionsPage as jest.Mock)
+      .mockResolvedValueOnce(makePage())
+      .mockResolvedValueOnce(makePage([], 0));
+
+    render(<ManageAlgotimeSessionsPage />);
+    await waitFor(() => screen.getByText("Winter AlgoTime 2025"));
+
+    fireEvent.change(screen.getByPlaceholderText("Search algotime session name"), {
+      target: { value: "nonexistent session" },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("No sessions found")).toBeInTheDocument();
+    });
+  });
+
+  test("renders view button for each session", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Create a New Algotime Session!')).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /view/i })).toHaveLength(2);
     });
-
-    const createCard = screen.getByText('Create a New Algotime Session!').closest('div')?.parentElement;
-    if (createCard) {
-      fireEvent.click(createCard);
-    }
-
-    expect(mockNavigate).toHaveBeenCalledWith('algoTimeSessionsManagement');
   });
 
-  test('displays no sessions when filtered search returns empty', async () => {
+  test("opens edit dialog when view button is clicked", async () => {
+    render(<ManageAlgotimeSessionsPage />);
+
+    await waitFor(() => screen.getAllByRole("button", { name: /view/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /view/i })[0]);
+
+    expect(screen.getByTestId("edit-dialog")).toBeInTheDocument();
+  });
+
+  test("deletes a session when confirmed", async () => {
+    render(<ManageAlgotimeSessionsPage />);
+
+    await waitFor(() => screen.getByText("Winter AlgoTime 2025"));
+    const sessionCard = screen
+      .getByText("Winter AlgoTime 2025")
+      .closest('[data-slot="card"]') as HTMLElement;
+    fireEvent.click(within(sessionCard).getAllByRole("button")[1]);
+    const dialog = screen.getByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^delete$/i }));
+
+    await waitFor(() => {
+      expect(deleteAlgotime).toHaveBeenCalledWith(1);
+      expect(toast.success).toHaveBeenCalledWith("Session deleted successfully");
+    });
+  });
+
+  test("renders reset leaderboard button", async () => {
     render(<ManageAlgotimeSessionsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
+      expect(screen.getByText("Reset Leaderboard")).toBeInTheDocument();
     });
-
-    const searchInput = screen.getByPlaceholderText('Search algotime session name');
-    fireEvent.change(searchInput, { target: { value: 'nonexistent session' } });
-
-    expect(screen.queryByText('Winter AlgoTime 2025')).not.toBeInTheDocument();
-    expect(screen.queryByText('Spring AlgoTime 2025')).not.toBeInTheDocument();
   });
 
-  //View testing
-  test('renders view button for each session', async () => {
+  test("calls resetAlgoTimeLeaderboard and shows success toast on confirm", async () => {
+    (resetAlgoTimeLeaderboard as jest.Mock).mockResolvedValue({
+      entriesDeleted: 5,
+      message: "success",
+    });
+
     render(<ManageAlgotimeSessionsPage />);
-  
-    await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    });
-  
-    const viewButtons = screen.getAllByRole('button', { name: /view/i });
-    expect(viewButtons.length).toBe(2); 
-  });
+    await waitFor(() => screen.getByText("Reset Leaderboard"));
 
-  //Delete testing
-  test('opens edit dialog when view button is clicked', async () => {
-    render(<ManageAlgotimeSessionsPage />);
-  
-    await waitFor(() => {
-      expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-    });
-  
-    const viewButtons = screen.getAllByRole('button', { name: /view/i });
-    fireEvent.click(viewButtons[0]);
-  
-    expect(screen.getByText('Winter AlgoTime 2025')).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByText("Reset Leaderboard"));
+    fireEvent.click(screen.getByRole("button", { name: /^reset$/i }));
 
+    await waitFor(() => {
+      expect(resetAlgoTimeLeaderboard).toHaveBeenCalledTimes(1);
+      expect(toast.success).toHaveBeenCalledWith(
+        "Leaderboard reset successfully - 5 entries deleted."
+      );
+    });
+  });
 });

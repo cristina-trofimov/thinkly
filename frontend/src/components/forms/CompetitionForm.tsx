@@ -15,6 +15,7 @@ import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
 import type { CompetitionFormPayload } from "@/types/competition/Competition.type";
+import { getDiffColor } from "@/utils/difficultyBadge";
 
 
 interface CompetitionFormProps {
@@ -71,6 +72,12 @@ const calculateNewList = <T,>(
 
     return currentOrdered;
 };
+
+function getFormTitle(isReadOnly: boolean, hasInitialData: boolean): string {
+    if (isReadOnly) return "View Competition";
+    if (hasInitialData) return "Edit Competition";
+    return "Create New Competition";
+}
 
 export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, isReadOnly = false }: Readonly<CompetitionFormProps>) {
     const [formData, setFormData] = useState({
@@ -253,21 +260,16 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, 
         }
     };
 
-    const getDiffColor = (d: string) => {
-        switch (d.toLowerCase()) {
-            case "easy": return "difficulty-easy";
-            case "medium": return "difficulty-medium";
-            case "hard": return "difficulty-hard";
-            default: return "difficulty-unknown";
-        }
-    };
+
+
+    const formTitle = getFormTitle(isReadOnly, !!initialData);
 
     return (
         <div className="flex flex-col h-full">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-primary">
-                        {isReadOnly ? "View Competition" : initialData ? "Edit Competition" : "Create New Competition"}
+                        {formTitle}
                     </h2>
                     <p className="text-muted-foreground text-sm">
                         {isReadOnly ? "This competition is read-only." : "Configure logic, timeline, and content."}

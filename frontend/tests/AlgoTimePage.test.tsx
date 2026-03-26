@@ -52,6 +52,13 @@ const mockedLogFrontend = logFrontend as jest.MockedFunction<typeof logFrontend>
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+const makePage = (items = mockSessions, total = items.length) => ({
+  total,
+  page: 1,
+  pageSize: 12,
+  items,
+});
+
 describe("AlgoTimePage", () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -284,7 +284,7 @@ export const AlgoTimeSessionForm = ({
       toast.error(`Session ${sessionsWithTooMany[0].sessionNumber} has too many questions. Maximum is 6.`);
       return false;
     }
-    toast.error('');
+
     return true;
   };
 
@@ -382,7 +382,7 @@ export const AlgoTimeSessionForm = ({
   
         await createAlgotime(payload);
         toast.success("AlgoTime Session created successfully!");
-        navigate("/app/dashboard");
+        navigate("/app/dashboard/algoTimeSessions");
         handleReset();
       }
   

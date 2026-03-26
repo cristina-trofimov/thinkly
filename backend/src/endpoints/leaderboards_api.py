@@ -640,7 +640,6 @@ def get_algotime_leaderboard(
         result = [
             {
                 "entryId": entry.algotime_leaderboard_entry_id,
-                "algoTimeSeriesId": entry.algotime_series_id,
                 "name": display_name(entry),
                 "userId": entry.user_id,
                 "totalScore": entry.total_score,
@@ -667,7 +666,7 @@ def get_algotime_leaderboard(
                 "page": page,
                 "search": search,
                 "is_authenticated": current_user_id is not None,
-                "unique_series": len({e.algotime_series_id for e in all_entries}),
+                
             }
         )
 
@@ -730,4 +729,39 @@ def get_all_algotime_entries_export(response: Response, db: Annotated[Session, D
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export AlgoTime leaderboard entries."
+        )
+
+
+@leaderboards_router.delete("/algotime/reset")
+def reset_algotime_leaderboard(
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
+):
+    logger.info("=== DELETE /leaderboards/algotime/reset ===")
+    _set_no_cache_headers(response)
+
+    try:
+        deleted = db.query(AlgoTimeLeaderboardEntry).delete(synchronize_session=False)
+        db.commit()
+
+        logger.info(f"Reset AlgoTime leaderboard: deleted {deleted} entries.")
+
+        track_custom_event(
+            user_id="anonymous",
+            event_name="algotime_leaderboard_reset",
+            properties={"entries_deleted": deleted}
+        )
+
+        return {
+            "message": "AlgoTime leaderboard successfully cleared.",
+            "entriesDeleted": deleted,
+        }
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("FATAL error while resetting AlgoTime leaderboard.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset AlgoTime leaderboard."
         )

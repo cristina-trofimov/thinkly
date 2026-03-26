@@ -6,7 +6,7 @@ warnings.filterwarnings("ignore", message=".*class-based `config` is deprecated.
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
 
 import pytest
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from datetime import datetime, timezone, timedelta
@@ -24,11 +24,9 @@ from src.endpoints.competitions_api import (
     resolve_email_recipients,
     check_competition_name_exists,
     validate_competition_times,
-    parse_datetime_from_request,
     create_competition_emails,
     send_competition_emails,
 )
-from src.endpoints import authentification_api
 
 
 # ---------------------------------------------------------------------------
@@ -103,16 +101,22 @@ def test_get_all_competitions_success(client, mock_db):
     response = client.get("/competitions/")
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == 101
-    assert data[0]["competition_title"] == "Winter Hackathon"
+    assert data["total"] == 1
+    assert data["page"] == 1
+    assert data["items"][0]["id"] == 101
+    assert data["items"][0]["competition_title"] == "Winter Hackathon"
 
 
 def test_get_all_competitions_empty(client, mock_db):
     mock_db.query.return_value = create_mock_query([])
     response = client.get("/competitions/")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {
+        "total": 0,
+        "page": 1,
+        "page_size": 11,
+        "items": [],
+    }
 
 
 def test_get_all_competitions_db_error(client, mock_db):
@@ -209,7 +213,7 @@ def test_create_competition_success(mock_commit, mock_send_emails, mock_datetime
 
     payload = {
         "name": "New Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "location": "Test Location",
@@ -230,7 +234,7 @@ def test_create_competition_duplicate_name(client, mock_db):
 
     payload = {
         "name": "Existing Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -247,7 +251,7 @@ def test_create_competition_duplicate_name(client, mock_db):
 def test_create_competition_empty_name(client, mock_db):
     payload = {
         "name": "   ",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -262,7 +266,7 @@ def test_create_competition_empty_name(client, mock_db):
 def test_create_competition_no_questions(client, mock_db):
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -277,7 +281,7 @@ def test_create_competition_no_questions(client, mock_db):
 def test_create_competition_mismatched_lengths(client, mock_db):
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -292,7 +296,7 @@ def test_create_competition_mismatched_lengths(client, mock_db):
 def test_create_competition_negative_cooldown(client, mock_db):
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": -100,
@@ -358,7 +362,7 @@ def test_create_competition_with_email(mock_commit, mock_send_emails, mock_datet
 
     payload = {
         "name": "Email Competition",
-        "date": "2026-03-15",
+        "date": "2099-03-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -433,7 +437,7 @@ def test_create_competition_email_failure_does_not_block_201(
 
     payload = {
         "name": "Email Fail Comp",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -469,7 +473,7 @@ def test_create_competition_db_rollback_on_error(mock_commit, mock_datetime, cli
 
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
@@ -614,7 +618,7 @@ def test_update_competition_not_found(client, mock_db):
     mock_db.query.return_value = create_mock_query([])
     payload = {
         "name": "Updated Name",
-        "date": "2026-03-15",
+        "date": "2099-03-15",
         "startTime": "11:00",
         "endTime": "19:00",
         "questionCooldownTime": 400,
@@ -647,7 +651,7 @@ def test_update_competition_duplicate_name(client, mock_db):
 
     payload = {
         "name": "Existing Name",
-        "date": "2026-03-15",
+        "date": "2099-03-15",
         "startTime": "11:00",
         "endTime": "19:00",
         "questionCooldownTime": 400,
@@ -687,7 +691,7 @@ def test_update_competition_keeps_same_name(mock_commit, client, mock_db):
 
     payload = {
         "name": "Same Name",
-        "date": "2026-03-15",
+        "date": "2099-03-15",
         "startTime": "11:00",
         "endTime": "19:00",
         "location": "New Location",
@@ -1153,7 +1157,7 @@ def test_parse_datetime_invalid_format(client, mock_db):
 def test_email_notification_invalid_datetime(client, mock_db):
     payload = {
         "name": "Test Competition",
-        "date": "2026-02-15",
+        "date": "2099-02-15",
         "startTime": "10:00",
         "endTime": "18:00",
         "questionCooldownTime": 300,
