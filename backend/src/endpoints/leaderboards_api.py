@@ -784,8 +784,11 @@ def upsert_algotime_leaderboard_entry(
         )
 
         if entry:
-            entry.total_score = total_score
-            entry.problems_solved = problems_solved
+            # Never let the score decrease — guards against UQI rows being
+            # temporarily absent (e.g. race condition, cleanup lag) causing a
+            # stale recalculation to overwrite a legitimately higher score.
+            entry.total_score = max(total_score, entry.total_score)
+            entry.problems_solved = max(problems_solved, entry.problems_solved)
             entry.total_time = total_time
             entry.last_updated = datetime.now(timezone.utc)
         else:
