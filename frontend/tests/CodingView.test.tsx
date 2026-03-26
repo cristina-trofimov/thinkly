@@ -577,9 +577,10 @@ describe('CodingView - submit code', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
         // expect.anything() does NOT match null, and the default hook mock has
-        // userQuestionInstance=null and event=null. Check just the last arg (userId).
+        // userQuestionInstance=null and event=null. Check userId and isAlgoTime args.
         const callArgs = mockedSubmitAttempt.mock.calls[0]
-        expect(callArgs[callArgs.length - 1]).toBe(user_id)
+        expect(callArgs[callArgs.length - 2]).toBe(user_id)   // userId
+        expect(callArgs[callArgs.length - 1]).toBe(false)      // isAlgoTime (no algo session)
     })
 
     it('shows submission result inline (not toast) when Accepted', async () => {
