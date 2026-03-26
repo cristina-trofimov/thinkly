@@ -2,14 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Circle, Hourglass } from "lucide-react";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router-dom";
-
-interface Competition {
-  id: number;
-  competitionTitle: string;
-  competitionLocation: string;
-  startDate: Date;
-  endDate: Date;
-}
+import type { Competition } from "@/types/competition/Competition.type";
 
 interface HomePageBannerProps {
   competitions: Competition[];
@@ -93,7 +86,6 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
   }
 
   const { competition, status } = competitionData;
-
   // Active competition
   if (status === "active") {
     return (

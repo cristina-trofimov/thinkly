@@ -25,7 +25,7 @@ export async function submitAttempt(
         throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
       }
 
-      if (event && !userQuestionInstance.riddle_complete) {
+      if (event && questionInstance.riddle_id && !userQuestionInstance.riddle_complete) {
         throw new Error("SubmitAttempt: riddle needs to be completed")
       }
 
@@ -49,7 +49,9 @@ export async function submitAttempt(
       // 4. Save most recent submission
       const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
 
-      // 5. Save submission's output details
+      // 5. Updates leaderboard (Leave this here for now)
+
+      // 6. Save submission's output details
       let runtime: number | null = null
       let memory: number | null = null
 
