@@ -144,7 +144,6 @@ const CodeDescArea = (
             setContainerWidth(width)
             if (initialWidth === null) setInitialWidth(width)
         })
-
         observer.observe(containerRef.current)
         return () => observer.disconnect()
     }, [initialWidth, setContainerWidth])
