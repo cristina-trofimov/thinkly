@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 const getApiUrl = (): string => {
   // retrieve .env VITE_BACKEND_URL variable if exists (for development)
@@ -54,11 +55,25 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // ─── 429 Rate limit ───────────────────────────────────────────────────────
+    if (error.response?.status === 429) {
+      const retryAfter = error.response.headers["retry-after"];
+      const seconds = retryAfter ? Number.parseInt(retryAfter, 10) : null;
+      const message = seconds
+        ? `Too many requests — please wait ${seconds}s before trying again.`
+        : "Too many requests — please slow down and try again in 1 minute.";
+      toast.warning(message, {
+        id: "rate-limit", // deduplicates: replaces any existing rate-limit toast
+        duration: seconds ? seconds * 1000 : 8000,
+      });
+      return Promise.reject(error);
+    }
+
     // Check if error is 401 and not already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
 
       if (isRefreshing) {
-        // 1. If refresh is already happening, return a promise that 
+        // 1. If refresh is already happening, return a promise that
         // resolves when the refresh finishes
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
