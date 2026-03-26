@@ -43,8 +43,8 @@ const CodingView = () => {
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
-    selectedLang, setSelectedLang, event,
-    testcases, loadingMsg, isLoading,
+    selectedLang, setSelectedLang, event, testcases,
+    loadingMsg, setLoadingMsg, isLoading, setIsLoading,
     allSubmissions, setAllSubmissions, allLanguages
   } = useCodingHooks(question, comp, algo)
 
@@ -178,9 +178,8 @@ const CodingView = () => {
     }
 
     try {
-      setSubmissionState('loading')
-      // setIsLoading(true)
-      // setLoadingMsg("Running")
+      setIsLoading(true)
+      setLoadingMsg("Running")
 
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
         code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
@@ -205,9 +204,8 @@ const CodingView = () => {
         stack: (err as Error).stack,
       });
     } finally {
-      setSubmissionState('done')
-      // setIsLoading(false)
-      // setLoadingMsg("")
+      setIsLoading(false)
+      setLoadingMsg("")
     }
   }
 

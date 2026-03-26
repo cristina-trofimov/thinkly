@@ -255,11 +255,11 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         getOrCreateUserQuestionInstance()
     }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance])
 
-    // Get user's last submission if there's any
+    // Get user's last submission if there's any, all submissions and all languages
     useEffect(() => {
         if (!userQuestionInstance?.user_question_instance_id) return
 
-        const lastSubmission = async () => {
+        const lastSteps = async () => {
             try {
                 const [subs, lastSub, langs] = await Promise.all([
                     getAllSubmissions(userQuestionInstance.user_question_instance_id),
@@ -280,7 +280,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
                 })
             }
         }
-        lastSubmission()
+        lastSteps()
     }, [userQuestionInstance?.user_question_instance_id])
 
     return {

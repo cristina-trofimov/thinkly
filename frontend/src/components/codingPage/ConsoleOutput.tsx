@@ -1,6 +1,7 @@
 import type { Judge0Response } from '@/types/questions/Judge0Response'
 
 const ConsoleOutput = ({logs}: {logs: Judge0Response[]}) => {
+    console.log("logs", logs)
   return (
     <div data-testid="ConsoleOutput" className='w-full h-full flex flex-col-reverse gap-2 overflow-y-scroll overscroll-x-contain' >
         {logs.map((log, idx) => {

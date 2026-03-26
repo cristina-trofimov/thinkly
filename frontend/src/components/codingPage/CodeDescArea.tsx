@@ -262,7 +262,7 @@ const CodeDescArea = (
                                     <TableHead className="text-right">Runtime</TableHead>
                                 </TableRow>
                             </TableHeader>
-                            <TableBody className='h-11/12 overflow-scroll'>
+                            <TableBody className='h-11/12 overflow-auto overflow-scroll'>
                                 {submissions?.map((s, idx) => {
                                     const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
 
