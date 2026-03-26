@@ -101,6 +101,17 @@ def calculate_rank(entries: List) -> List:
     return sorted_entries
 
 
+def _aggregate_uqi_stats(uqi_rows: List) -> tuple[int, int, int]:
+    """
+    Compute (total_score, problems_solved, total_time) from a list of
+    UserQuestionInstance rows.  Shared by both competition and AlgoTime upserts.
+    """
+    total_score = sum(row.points for row in uqi_rows if row.points is not None)
+    problems_solved = sum(1 for row in uqi_rows if row.points is not None and row.points > 0)
+    total_time = sum(row.lapse_time for row in uqi_rows if row.lapse_time is not None)
+    return total_score, problems_solved, total_time
+
+
 def get_filtered_leaderboard_entries(entries: List, current_user_id: Optional[int]) -> tuple:
     """
     Returns top 10 entries, or top 10 + current user (±1 position) if user is not in top 10.
@@ -782,9 +793,7 @@ def upsert_competition_leaderboard_entry(
             .all()
         )
 
-        total_score = sum(row.points for row in uqi_rows if row.points is not None)
-        problems_solved = sum(1 for row in uqi_rows if row.points is not None and row.points > 0)
-        total_time = sum(row.lapse_time for row in uqi_rows if row.lapse_time is not None)
+        total_score, problems_solved, total_time = _aggregate_uqi_stats(uqi_rows)
 
         # Upsert: update existing entry or create a new one
         entry = (
@@ -870,9 +879,7 @@ def upsert_algotime_leaderboard_entry(
             .all()
         )
 
-        total_score = sum(row.points for row in uqi_rows if row.points is not None)
-        problems_solved = sum(1 for row in uqi_rows if row.points is not None and row.points > 0)
-        total_time = sum(row.lapse_time for row in uqi_rows if row.lapse_time is not None)
+        total_score, problems_solved, total_time = _aggregate_uqi_stats(uqi_rows)
 
         # Upsert: update existing entry or create a new one
         entry = (
