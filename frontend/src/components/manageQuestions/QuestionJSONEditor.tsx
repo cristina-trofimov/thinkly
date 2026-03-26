@@ -100,6 +100,16 @@ const QuestionJSONEditor: FC = () => {
     loadQuestion();
   }, [parsedQuestionId]);
 
+  const handleBeautify = useCallback(() => {
+    try {
+      const parsedPayload = JSON.parse(value) as unknown;
+      const beautified = JSON.stringify(parsedPayload, null, 2);
+      setState((prev) => ({ ...prev, value: beautified }));
+    } catch {
+      toast.error("Invalid JSON format");
+    }
+  }, [value]);
+
   const handleSubmit = useCallback(async () => {
     if (!Number.isFinite(parsedQuestionId)) {
       toast.error("Invalid question id");
@@ -182,6 +192,7 @@ const QuestionJSONEditor: FC = () => {
         <h1 className="text-xl font-semibold">Edit Question (id: {questionId ?? "-"})</h1>
         <div className="flex gap-2">
         <Button variant="outline" onClick={handleBackClick}><IconArrowBack/>Back</Button>
+        <Button variant="outline" onClick={handleBeautify}>Beautify JSON</Button>
         <Button onClick={handleSubmit} disabled={!canSubmit}>
           {isSubmitting ? "Submitting..." : "Submit"}
         </Button>
