@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from pydantic import BaseModel
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
@@ -7,11 +8,19 @@ from database_operations.database import get_db
 from models.schema import (
     CompetitionLeaderboardEntry,
     AlgoTimeLeaderboardEntry,
+    AlgoTimeSession,
     Competition,
-    BaseEvent
+    BaseEvent,
+    UserAccount,
+    UserQuestionInstance,
+    QuestionInstance,
 )
 import logging
 from services.posthog_analytics import track_custom_event
+
+
+class AlgoTimeEntryUpsertRequest(BaseModel):
+    user_id: int
 
 leaderboards_router = APIRouter(tags=["Leaderboards"])
 logger = logging.getLogger(__name__)
@@ -729,6 +738,92 @@ def get_all_algotime_entries_export(response: Response, db: Annotated[Session, D
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to export AlgoTime leaderboard entries."
+        )
+
+
+@leaderboards_router.put("/algotime/entry")
+def upsert_algotime_leaderboard_entry(
+        request: AlgoTimeEntryUpsertRequest,
+        response: Response,
+        db: Annotated[Session, Depends(get_db)],
+):
+    """
+    Recalculates and upserts the AlgoTime leaderboard entry for a given user.
+    Aggregates all points and lapse_time from the user's UserQuestionInstance rows
+    that belong to AlgoTime sessions (not competitions).
+    Called after each accepted submission during an AlgoTime session.
+    """
+    logger.info(f"=== PUT /leaderboards/algotime/entry, user_id={request.user_id} ===")
+    _set_no_cache_headers(response)
+
+    try:
+        user = db.query(UserAccount).filter(UserAccount.user_id == request.user_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+        # Aggregate all points/time for this user across all AlgoTime sessions
+        uqi_rows = (
+            db.query(UserQuestionInstance)
+            .join(QuestionInstance,
+                  UserQuestionInstance.question_instance_id == QuestionInstance.question_instance_id)
+            .join(AlgoTimeSession,
+                  QuestionInstance.event_id == AlgoTimeSession.event_id)
+            .filter(UserQuestionInstance.user_id == request.user_id)
+            .all()
+        )
+
+        total_score = sum(row.points for row in uqi_rows if row.points is not None)
+        problems_solved = sum(1 for row in uqi_rows if row.points is not None and row.points > 0)
+        total_time = sum(row.lapse_time for row in uqi_rows if row.lapse_time is not None)
+
+        # Upsert: update existing entry or create a new one
+        entry = (
+            db.query(AlgoTimeLeaderboardEntry)
+            .filter(AlgoTimeLeaderboardEntry.user_id == request.user_id)
+            .first()
+        )
+
+        if entry:
+            entry.total_score = total_score
+            entry.problems_solved = problems_solved
+            entry.total_time = total_time
+            entry.last_updated = datetime.now(timezone.utc)
+        else:
+            entry = AlgoTimeLeaderboardEntry(
+                name=f"{user.first_name} {user.last_name}",
+                user_id=request.user_id,
+                total_score=total_score,
+                problems_solved=problems_solved,
+                total_time=total_time,
+                last_updated=datetime.now(timezone.utc),
+            )
+            db.add(entry)
+
+        db.commit()
+        db.refresh(entry)
+
+        logger.info(
+            f"Upserted AlgoTime entry for user {request.user_id}: "
+            f"score={total_score}, problems={problems_solved}, time={total_time}"
+        )
+
+        return {
+            "entryId": entry.algotime_leaderboard_entry_id,
+            "userId": entry.user_id,
+            "name": f"{user.first_name} {user.last_name}",
+            "totalScore": entry.total_score,
+            "problemsSolved": entry.problems_solved,
+            "totalTime": entry.total_time,
+            "lastUpdated": entry.last_updated.isoformat(),
+        }
+
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception(f"FATAL error while upserting AlgoTime entry for user {request.user_id}.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update AlgoTime leaderboard entry."
         )
 
 
