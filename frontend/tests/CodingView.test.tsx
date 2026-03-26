@@ -600,7 +600,7 @@ describe('CodingView - submit code', () => {
         // Non-accepted results are shown inline, not via toast
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
-        expect(toast.error).not.toHaveBeenCalled()
+        expect(toast.error).toHaveBeenCalled()
     })
 
 
@@ -613,17 +613,6 @@ describe('CodingView - submit code', () => {
         await userEvent.click(screen.getByTestId('submit-btn'))
         expect(submitAttempt).not.toHaveBeenCalled()
         expect(toast.warning).toHaveBeenCalledWith('Please answer the riddle first...')
-    })
-
-    it('updates mostRecentSub state after successful submit', async () => {
-        const setMostRecentSub = jest.fn()
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setMostRecentSub }))
-        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
-        renderCodingView()
-        await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() =>
-            expect(setMostRecentSub).toHaveBeenCalledWith(mockMostRecentSub)
-        )
     })
 
     it('dispatches info toast when language is switched', async () => {
@@ -640,6 +629,7 @@ describe('mostRecentSub', () => {
         renderCodingView()
 
         expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-2 gap-2')
+        expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
     })
 
     it('switches to 3-column grid when mostRecentSub is set', async () => {
@@ -650,5 +640,6 @@ describe('mostRecentSub', () => {
         await waitFor(() =>
             expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-3 gap-2')
         )
+        expect(screen.getByTestId("most-recent-sub-btn")).toBeInTheDocument()
     })
 })

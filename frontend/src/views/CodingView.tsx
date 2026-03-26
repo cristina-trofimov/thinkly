@@ -141,7 +141,7 @@ const CodingView = () => {
         } = await submitAttempt(
           activeQuestion, activeQuestionInstance,
           userQuestionInstance, event,
-          code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+          code, selectedLang?.lang_judge_id, testcases, user!.id)
 
         await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
           .then((response) => setAllSubmissions(response))
