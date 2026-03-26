@@ -9,7 +9,7 @@ import { logFrontend } from "./LoggerAPI"
 import { updateMostRecentSub } from "./MostRecentSubAPI"
 import { saveSubmission } from "./SubmissionAPI"
 import { putUserInstance } from "./UserQuestionInstanceAPI"
-import { upsertAlgoTimeLeaderboardEntry } from "./LeaderboardsAPI"
+import { upsertAlgoTimeLeaderboardEntry, upsertCompetitionLeaderboardEntry } from "./LeaderboardsAPI"
 
 export async function submitAttempt(
     question: Question | undefined,
@@ -51,9 +51,11 @@ export async function submitAttempt(
       // 4. Save most recent submission
       const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
 
-      // 5. Update AlgoTime leaderboard if this is an AlgoTime session
+      // 5. Update leaderboard based on session type
       if (isAlgoTime && event) {
         await upsertAlgoTimeLeaderboardEntry(userId)
+      } else if (!isAlgoTime && event) {
+        await upsertCompetitionLeaderboardEntry(userId, event.event_id)
       }
 
       // 6. Save submission's output details
