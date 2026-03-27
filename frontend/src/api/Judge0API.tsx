@@ -25,8 +25,6 @@ export function parse_input_output(testcases: TestCase[]) {
         expected_output = null
     }
 
-    console.log("THIS IS THE STDIN", stdin)
-
     if (!stdin) {
         stdin = "Judge0"
     }
