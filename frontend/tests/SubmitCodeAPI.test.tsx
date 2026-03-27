@@ -82,26 +82,6 @@ const event: BaseEvent = {
   created_at: new Date(),
   updated_at: new Date(),
 }
-const testcases: TestCase[] = [
-  {
-    test_case_id: 1,
-    question_id: 1,
-    input_data: {
-      "nums": [2, 7, 11, 15],
-      "target": 19
-    },
-    expected_output: "[1,2]",
-  },
-  {
-    test_case_id: 2,
-    question_id: 1,
-    input_data: {
-      "nums": [2, 7],
-      "target": 9
-    },
-    expected_output: "[0,1]",
-  },
-]
 
 const mostRecentSubResponse: MostRecentSub = {
   row_id: user_id,
@@ -213,10 +193,10 @@ describe("Code Submission", () => {
       // userId is now the 8th argument
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_not_complete, undefined,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(userQuestionInstance_riddle_not_complete)
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -237,10 +217,10 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -261,10 +241,10 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_not_complete, event,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -285,10 +265,10 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[1],
         userQuestionInstance_riddle_complete, event,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -304,7 +284,7 @@ describe("Code Submission", () => {
     it("fails if submission linked to an event without completing riddle", async () => {
       await expect(submitAttempt(question, questionInstances[1],
               userQuestionInstance_riddle_not_complete,
-              event, source_code, language_id, testcases, user_id))
+              event, source_code, language_id, user_id))
             .rejects.toThrow("SubmitAttempt: riddle needs to be completed")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -322,7 +302,7 @@ describe("Code Submission", () => {
     it("throws an error if the given question is undefined", async () => {
       await expect(
         submitAttempt(undefined, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -340,7 +320,7 @@ describe("Code Submission", () => {
     it("throws an error if the given question instance is undefined", async () => {
       await expect(
         submitAttempt(question, undefined, userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -358,7 +338,7 @@ describe("Code Submission", () => {
     it("throws an error if the given user question instance is undefined", async () => {
       await expect(
         submitAttempt(question, questionInstances[0], undefined,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -376,7 +356,7 @@ describe("Code Submission", () => {
     it("throws an error if the given language is undefined", async () => {
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, undefined, testcases, user_id))
+                    event, source_code, undefined, user_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -396,7 +376,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedPutUserInstance).not.toHaveBeenCalled()
@@ -416,7 +396,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()
@@ -437,7 +417,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()
@@ -459,7 +439,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, source_code, language_id, testcases, user_id))
+                    event, source_code, language_id, user_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()

@@ -102,6 +102,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
             }
             InitializeQuestionInstances()
         } else if(question?.question_id) {
+
             const initQuestion = async () => {
                 setIsLoading(true)
                 try {
@@ -197,7 +198,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
             }
         }
         loadLanguagesAndPrefs()
-    }, [questions, questionsInstances, activeQuestion, activeQuestionInstance])
+    }, [questions, questionsInstances, activeQuestion, activeQuestionInstance, user])
 
     useEffect(() => {
         if (!languages || languages.length < 1) return
@@ -206,7 +207,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
 
         setSelectedLang(savedLang || languages[0])
         prevLangRef.current = savedLang || languages[0]
-    }, [languages, userPreferences])
+    }, [languages, userPreferences, user])
 
 
     // switches current userQuestionInstance and lapse time when the user switches questions
@@ -248,7 +249,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         }
         setStartTime(new Date())
         getOrCreateUserQuestionInstance()
-    }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance])
+    }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance, user])
 
     return {
         startTime, mostRecentSub, setMostRecentSub,

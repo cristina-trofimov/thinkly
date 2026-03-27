@@ -1,6 +1,6 @@
 import type { BaseEvent } from "@/types/BaseEvent.type"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Question } from "@/types/questions/QuestionPagination.type"
 import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -18,7 +18,6 @@ export async function submitAttempt(
     event: BaseEvent | undefined | null,
     source_code: string,
     language_id: number | undefined,
-    testcases: TestCase[],
     userId: number,
     isAlgoTime: boolean = false,
   ): Promise<SubmitAttemptResponse> {
@@ -32,7 +31,7 @@ export async function submitAttempt(
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id,source_code, language_id, userId)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {

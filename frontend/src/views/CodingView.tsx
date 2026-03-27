@@ -126,7 +126,6 @@ const CodingView = () => {
       return
     }
 
-    // Drive the left-panel Result tab instead of a full-page loader
     setSubmissionState('loading')
 
     try {
@@ -140,6 +139,8 @@ const CodingView = () => {
           : Date.now() - startTime!.getTime()
       }
 
+      const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
       const {
         codeRunResponse,
         submissionResponse,
@@ -147,7 +148,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0, !!algo)
+        codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
 
       setLatestSubmissionResult(submissionResponse)
 
@@ -182,8 +183,9 @@ const CodingView = () => {
     try {
       setSubmissionState('loading')
 
-      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
+      const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
+        codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
 
@@ -221,19 +223,28 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: composed starter fields -> template_code -> generic fallback comment
+  // The user only sees template_code when entering a question.
+  // All other fields (imports, preset_classes, preset_functions, main_function)
+  // are composed separately and injected at submission/run time — not shown in the editor.
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
-  const composedStarterCode = [
+
+  const presetCode = activeLangProps?.template_code || fallbackComment
+
+  // Full code sent to Judge0: hidden boilerplate wrapped around the user's visible code
+  const composedBoilerplateBefore = [
     activeLangProps?.imports,
     activeLangProps?.preset_classes,
-    activeLangProps?.preset_functions,
-    activeLangProps?.main_function,
+    activeLangProps?.preset_functions
   ]
     .filter((section): section is string => Boolean(section?.trim()))
     .join('\n\n')
 
-  const presetCode = composedStarterCode || activeLangProps?.template_code || fallbackComment
+  const composedBoilerplateAfter = [
+    activeLangProps?.main_function
+  ]
+    .filter((section): section is string => Boolean(section?.trim()))
+    .join('\n\n')
 
   const [code, setCode] = useState<string>('')
 
