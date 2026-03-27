@@ -162,9 +162,6 @@ const CodingView = () => {
         activeQuestion!.question_id,
         selectedLang!,
       )
-
-      // Switch to 'Results' tab after submission
-      setCurrentOutputTab('results');
     } catch (err) {
       toast.error("Error when submitting the code.")
       setSubmissionState('idle')
@@ -189,11 +186,9 @@ const CodingView = () => {
     try {
       setSubmissionState('loading')
 
-      
-
       const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
-        codeToRun, selectedLang?.lang_judge_id, currentUserId ?? 0)
+        codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
 

@@ -46,18 +46,9 @@ export async function submitToJudge0(
             throw new Error("RunCode: Question instance or language cannot be undefined");
         }
 
-        // console.log("this is the question ID:", question_id)
-        console.log("JJFREJKNFKJRNEFJNRFJENSKDFNF:", question_id)
         const testcases = await getTestCasesByQuestionId(question_id);
-        // const testcases = await getTestCasesByQuestionId(question_instance_id);
-
         const code_before = await findCodeBefore(question_id, language_id)
-        console.log("THIS IS THE CODE BEFORE", code_before)
-
         const code_after = await findCodeAfter(question_id, language_id)
-        console.log("THIS IS THE CODE AFTER", code_after)
-
-        console.log("THIS IS THE SOURCE CODE", source_code)
 
         source_code = `${code_before}\n${source_code.trim()}\n${code_after}`
 
@@ -82,9 +73,6 @@ export async function submitToJudge0(
                 expected_output: expected_output,
             };
         });
-
-        // Log submissions to the browser console
-        console.log("Submissions:", submissions);
 
         const response = await axiosClient.post(
             "/judge0",

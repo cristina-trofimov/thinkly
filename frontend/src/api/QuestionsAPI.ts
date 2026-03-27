@@ -126,7 +126,6 @@ export async function getQuestions(): Promise<Question[]> {
 
 export async function getQuestionByID(questionId: number): Promise<Question> {
   try {
-    console.log(`Fetching question with ID: ${questionId}`);
     const response = await axiosClient.get<Question>(
       `/questions/get-question-by-id/${questionId}`,
     );
@@ -213,7 +212,6 @@ export async function updateQuestion(
 }
 
 export async function getTestCasesByQuestionId(questionId: number | undefined): Promise<TestCase[]> {
-  console.log(`Fetching test cases for question ID: ${questionId}`);
   try {
     if (questionId === undefined) {
       throw new Error("Question ID is undefined");
