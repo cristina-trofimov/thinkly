@@ -19,7 +19,8 @@ export const SubmissionDetail = ({ submission, goBack }:
                         </Button>
                         <div className="flex items-center gap-3">
                             <h2 className="text-2xl font-semibold">Submission Details</h2>
-                            <span className={`ml-12 px-3 py-1 rounded-full text-sm font-medium ${badgeColor}`}>
+                            <span data-testid="status-badge"
+                                className={`ml-12 px-3 py-1 rounded-full text-sm font-medium ${badgeColor}`}>
                                 {submission.status}
                             </span>
                         </div>

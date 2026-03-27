@@ -314,7 +314,7 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('submit-btn')).toBeInTheDocument()
         expect(screen.getByTestId('coding-btns')).toBeInTheDocument()
         expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
-        expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-182.5')
+        expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-162.5')
     })
 
     it('renders the monaco editor', () => {
