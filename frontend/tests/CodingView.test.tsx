@@ -13,11 +13,13 @@ import { UserPreferences } from '../src/types/account/UserPreferences.type'
 import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/SubmitCodeAPI'
+import { putUserInstance } from '../src/api/UserQuestionInstanceAPI'
 import { toast } from 'sonner'
 import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import type { Language } from '../src/types/questions/Language.type'
 import { UserContext } from '../src/context/UserContext'
 import type { Account } from '../src/types/account/Account.type'
+import type { UserQuestionInstance } from '../src/types/submissions/UserQuestionInstance.type'
 
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
@@ -103,9 +105,14 @@ jest.mock('react-router-dom', () => ({
     useLocation: jest.fn(),
 }))
 
+// CodeDescArea is mocked but captures onRiddleSolved so tests can invoke it
+let capturedOnRiddleSolved: (() => void) | undefined
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     __esModule: true,
-    default: () => <div data-testid="desc-area" />,
+    default: ({ onRiddleSolved }: any) => {
+        capturedOnRiddleSolved = onRiddleSolved
+        return <div data-testid="desc-area" />
+    },
 }))
 
 jest.mock('../src/components/codingPage/Testcases', () => ({
@@ -240,6 +247,21 @@ const mockSubmitFail: SubmitAttemptResponse = {
     mostRecentSubResponse: mockMostRecentSub,
 }
 
+const mockUqi: UserQuestionInstance = {
+    user_question_instance_id: 55,
+    user_id: 1,
+    question_instance_id: 1,
+    riddle_complete: false,
+    attempts: 0,
+    lapse_time: null,
+    points: null,
+}
+
+const mockUqiRiddleComplete: UserQuestionInstance = {
+    ...mockUqi,
+    riddle_complete: true,
+}
+
 // ─── Hook mock factory ────────────────────────────────────────────────────────
 
 const makeMockHook = (overrides: Record<string, any> = {}) => ({
@@ -273,6 +295,7 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
 const mockedUseCodingHooks = useCodingHooks as jest.Mock
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
+const mockedPutUserInstance = putUserInstance as jest.MockedFunction<typeof putUserInstance>
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -280,12 +303,14 @@ const { getProfile } = require('../src/api/AuthAPI')
 
 beforeEach(() => {
     jest.clearAllMocks()
+    capturedOnRiddleSolved = undefined
         ; (useLocation as jest.Mock).mockReturnValue({
             pathname: '/code/1',
             state: { problem: mockProblem },
         })
     mockedUseCodingHooks.mockReturnValue(makeMockHook())
         ; (getProfile as jest.Mock).mockResolvedValue({ id: 1 })
+    mockedPutUserInstance.mockResolvedValue(mockUqiRiddleComplete)
 })
 
 const mockUser: Account = {
@@ -632,6 +657,80 @@ describe('CodingView - submit code', () => {
         fireEvent.click(screen.getByTestId('languageItem-Python'))
         expect(toast.info).toHaveBeenCalledWith(
             expect.stringContaining('Code saved in this session')
+        )
+    })
+})
+
+describe('CodingView — handleRiddleSolved', () => {
+    it('calls putUserInstance with riddle_complete:true when onRiddleSolved is invoked', async () => {
+        const setUserQuestionInstance = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            userQuestionInstance: mockUqi,
+            setUserQuestionInstance,
+            activeQuestionInstance: mockQuestionInstanceWithRiddle,
+        }))
+        mockedPutUserInstance.mockResolvedValue(mockUqiRiddleComplete)
+
+        renderCodingView()
+
+        // Invoke the handler that was passed as onRiddleSolved to CodeDescArea
+        await waitFor(() => expect(capturedOnRiddleSolved).toBeDefined())
+        await capturedOnRiddleSolved!()
+
+        expect(mockedPutUserInstance).toHaveBeenCalledWith(
+            expect.objectContaining({ riddle_complete: true })
+        )
+    })
+
+    it('calls setUserQuestionInstance with the API response after riddle solved', async () => {
+        const setUserQuestionInstance = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            userQuestionInstance: mockUqi,
+            setUserQuestionInstance,
+            activeQuestionInstance: mockQuestionInstanceWithRiddle,
+        }))
+        mockedPutUserInstance.mockResolvedValue(mockUqiRiddleComplete)
+
+        renderCodingView()
+
+        await waitFor(() => expect(capturedOnRiddleSolved).toBeDefined())
+        await capturedOnRiddleSolved!()
+
+        await waitFor(() =>
+            expect(setUserQuestionInstance).toHaveBeenCalledWith(mockUqiRiddleComplete)
+        )
+    })
+
+    it('does nothing when userQuestionInstance is null', async () => {
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            userQuestionInstance: null,
+        }))
+
+        renderCodingView()
+
+        await waitFor(() => expect(capturedOnRiddleSolved).toBeDefined())
+        await capturedOnRiddleSolved!()
+
+        expect(mockedPutUserInstance).not.toHaveBeenCalled()
+    })
+
+    it('logs error when putUserInstance throws during riddle solve', async () => {
+        const { logFrontend } = require('../src/api/LoggerAPI')
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            userQuestionInstance: mockUqi,
+            activeQuestionInstance: mockQuestionInstanceWithRiddle,
+        }))
+        mockedPutUserInstance.mockRejectedValue(new Error('network error'))
+
+        renderCodingView()
+
+        await waitFor(() => expect(capturedOnRiddleSolved).toBeDefined())
+        await capturedOnRiddleSolved!()
+
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'CodingView' })
+            )
         )
     })
 })
