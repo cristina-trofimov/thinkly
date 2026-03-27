@@ -3,7 +3,7 @@ import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
-import { getTestCasesByQuestionId } from "./QuestionsAPI";
+import { findCodeBefore, findCodeAfter, getTestCasesByQuestionId } from "./QuestionsAPI";
 
 export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
@@ -36,7 +36,7 @@ export function parse_input_output(testcases: TestCase[]) {
 
 export async function submitToJudge0(
     question_instance_id: number | undefined,
-    question_id: number, 
+    question_id: number,
     source_code: string,
     language_id: number | undefined,
     userId: number,
@@ -46,9 +46,21 @@ export async function submitToJudge0(
             throw new Error("RunCode: Question instance or language cannot be undefined");
         }
 
-        console.log("this is the question ID:", question_id)
+        // console.log("this is the question ID:", question_id)
         const testcases = await getTestCasesByQuestionId(question_id);
         // const testcases = await getTestCasesByQuestionId(question_instance_id);
+
+        const code_before = await findCodeBefore(question_id, language_id)
+        console.log("THIS IS THE CODE BEFORE", code_before)
+
+        const code_after = await findCodeAfter(question_id, language_id)
+        console.log("THIS IS THE CODE AFTER", code_after)
+
+        console.log("THIS IS THE SOURCE CODE", source_code)
+
+        source_code = `${code_before}\n${source_code.trim()}\n${code_after}`
+
+        // console.log("THIS IS THE FINAL SOURCE CODE", source_code)
 
 
         // Create submissions array for batch processing

@@ -226,3 +226,37 @@ export async function getTestCasesByQuestionId(questionId: number): Promise<Test
     throw err;
   }
 }
+
+export async function findCodeBefore(questionId: number, languageId: number): Promise<String> {
+  try {
+    const question = await getQuestionByID(questionId);
+    const properties = question.language_specific_properties.find((prop) => prop.language_id === languageId);
+    return properties ? `${properties.imports}\n\n${properties.preset_classes}\n\n${properties.preset_functions}` : "";
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching backend code for question ${questionId} and language ${languageId}. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    });
+    throw err;
+  }
+}
+
+export async function findCodeAfter(questionId: number, languageId: number): Promise<String> {
+  try {
+    const question = await getQuestionByID(questionId);
+    const properties = question.language_specific_properties.find((prop) => prop.language_id === languageId);
+    return properties ? `${properties.main_function}` : "";
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching backend code for question ${questionId} and language ${languageId}. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    });
+    throw err;
+  }
+}

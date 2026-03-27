@@ -135,6 +135,10 @@ const CodingView = () => {
           : Date.now() - startTime!.getTime()
       }
 
+      // const codeToSubmit = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
+      const codeToSubmit = code
+      console.log("Submitting code to Judge0:", codeToSubmit)
+      console.log("COMPOSED BOILERPLATE:", composedBoilerplate)
       const {
         codeRunResponse,
         submissionResponse,
@@ -142,7 +146,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, currentUserId ?? 0)
+        codeToSubmit, selectedLang?.lang_judge_id, currentUserId ?? 0)
 
       setLatestSubmissionResult(submissionResponse)
       setSubmissionState('done')
@@ -177,8 +181,9 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
+      const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+        codeToRun, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")
@@ -218,10 +223,16 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: composed starter fields -> template_code -> generic fallback comment
+  // The user only sees template_code when entering a question.
+  // All other fields (imports, preset_classes, preset_functions, main_function)
+  // are composed separately and injected at submission/run time — not shown in the editor.
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
-  const composedStarterCode = [
+
+  const presetCode = activeLangProps?.template_code || fallbackComment
+
+  // Full code sent to Judge0: hidden boilerplate wrapped around the user's visible code
+  const composedBoilerplate = [
     activeLangProps?.imports,
     activeLangProps?.preset_classes,
     activeLangProps?.preset_functions,
@@ -229,8 +240,6 @@ const CodingView = () => {
   ]
     .filter((section): section is string => Boolean(section?.trim()))
     .join('\n\n')
-
-  const presetCode = composedStarterCode || activeLangProps?.template_code || fallbackComment
 
   const [code, setCode] = useState<string>('')
 
