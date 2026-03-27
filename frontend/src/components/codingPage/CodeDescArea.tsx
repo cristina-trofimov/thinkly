@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { FileText, History, Trophy, Loader2, ClipboardCheck } from 'lucide-react'
+import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
@@ -15,12 +15,13 @@ import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
 import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
-import SubmissionDetail from './SubmissionDetail'
 import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
 import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
-import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
+import { SubmissionSkeleton } from './SubmissionSkeleton'
+import { SubmissionDetail } from './SubmissionDetail'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -196,7 +197,6 @@ const CodeDescArea = (
                         data-[state=active]:border-primary
                         data-[state=active]:text-primary
                         data-[state=active]:bg-muted
-                        data-[state=active]:shadow-none
                         data-[state=active]:border-b-[2.5px]
                         data-[state=active]:border-x-0
                         data-[state=active]:border-t-0
@@ -214,37 +214,43 @@ const CodeDescArea = (
 
             {/* Description */}
             <TabsContent value='description' data-testid="tabs-content-description">
-                <div className='h-full p-6'>
-                    <h1 className='font-bold mb-3'>
-                        {question.question_name}
-                    </h1>
-                    <p className='text-left leading-6 break-words whitespace-pre-wrap overflow-y-auto max-h-96'>
-                        {question.question_description}
-                    </p>
-                    {testcases?.map((t, idx) => {
-                        return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
-                            <p className='font-bold'>Example {idx + 1}:</p>
-                            <div className='ml-4 flex flex-col gap-1'>
-                                <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
-                                        const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
-                                        return `${key} = ${JSON.stringify(val)}${separator}`
-                                    })}
-                                </span></p>
-                                <p className='font-bold'>Outputs: <span className='font-normal'>
-                                    {JSON.stringify(t.expected_output, undefined, 2)}</span>
-                                </p>
+                <div className='h-full p-4'>
+                    <div className='border-b-2 pb-2' >
+                        <h1 className='font-bold mb-3'>
+                            {question.question_name}
+                        </h1>
+                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-110'>
+                            {question.question_description}
+                        </p>
+                    </div>
+                    <div className='max-h-50 mt-2 px-2 border rounded-xl bg-muted
+                            wrap-break-word whitespace-pre-wrap overflow-y-auto'
+                    >
+                        {testcases?.map((t, idx) => {
+                            return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
+                                <p className='font-bold'>Example {idx + 1}:</p>
+                                <div className='ml-4 flex flex-col gap-1'>
+                                    <p className='font-bold'>Inputs <span className='font-normal'>
+                                        {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
+                                            const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
+                                            return `${key} = ${JSON.stringify(val)}${separator}`
+                                        })}
+                                    </span></p>
+                                    <p className='font-bold'>Outputs: <span className='font-normal'>
+                                        {JSON.stringify(t.expected_output, undefined, 2)}</span>
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    })}
+                        })}
+                    </div>
                 </div>
             </TabsContent>
 
             {/* Submissions */}
-            <TabsContent value='submissions' data-testid="tabs-content-submissions">
+            <TabsContent value='submissions' data-testid="tabs-content-submissions" className='flex-1 min-h-0' >
                 <div className='h-full p-6'>
                     {selectedSubmission && (
-                        <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
+                        <SubmissionDetail submission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
                     )}
 
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
@@ -253,40 +259,64 @@ const CodeDescArea = (
                         </div>)}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
-                        <Table data-testid="table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Language</TableHead>
-                                    <TableHead className="text-right">Memory</TableHead>
-                                    <TableHead className="text-right">Runtime</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className='h-11/12 overflow-auto overflow-scroll'>
-                                {submissions?.map((s, idx) => {
-                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
-
-                                    return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
-                                        onClick={() => setSelectedSubmission(s)}
+                        <div className="h-full flex flex-col" >
+                            <div className='shrink-0 right-0 translate-0' >
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info size={18} />
+                                    </TooltipTrigger>
+                                    <TooltipContent side='left'
+                                        className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl shadow'
                                     >
-                                        <TableCell className='grid grid-rows-2' >
-                                            <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-muted-foreground' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
-                                        </TableCell>
-                                        <TableCell className="" >
-                                            {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
-                                        </TableCell>
-                                        <TableCell className="text-right" >{s?.memory ? s.memory : "N/A"}</TableCell>
-                                        <TableCell className="text-right" >{s?.runtime ? s.runtime : "N/A"}</TableCell>
+                                        Click on any submission to see more details
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                            <div className='shrink-0 overflow-hidden'>
+                                <Table>
+                                    <TableHeader className='sticky top-0' >
+                                        <TableRow>
+                                            <TableHead className='text-center w-40'>Status</TableHead>
+                                            <TableHead className='text-center w-30'>Language</TableHead>
+                                            <TableHead className="text-center w-30">Memory</TableHead>
+                                            <TableHead className="text-center w-30">Runtime</TableHead>
                                         </TableRow>
-                                })}
-                            </TableBody>
-                            <TableFooter className='mt-3' >
-                                <TableRow>
-                                    <TableCell colSpan={4} className='text-muted-foreground' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
+                                    </TableHeader>
+                                </Table>
+                            </div>
+                            <div className='flex-1 min-h-0 overflow-y-auto'>
+                                <Table>
+                                    <TableBody>
+                                        {submissions?.map((s, idx) => {
+                                            const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+
+                                            return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
+                                                onClick={() => setSelectedSubmission(s)}
+                                            >
+                                                <TableCell className='grid grid-rows-2 w-40' >
+                                                    <span className={`${status_color}`} >{s.status}</span>
+                                                    <span className='text-muted-foreground' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
+                                                </TableCell>
+                                                <TableCell className="w-30" >
+                                                    {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                                </TableCell>
+                                                <TableCell className="text-center w-30" >{s?.memory ? s.memory : "N/A"}</TableCell>
+                                                <TableCell className="text-center w-30" >{s?.runtime ? s.runtime : "N/A"}</TableCell>
+                                            </TableRow>
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className='shrink-0' >
+                                <Table>
+                                    <TableFooter>
+                                        <TableRow>
+                                            <TableCell colSpan={4} className='text-muted-foreground' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                        </TableRow>
+                                    </TableFooter>
+                                </Table>
+                            </div>
+                        </div>
                     )}
                 </div>
             </TabsContent>
@@ -294,10 +324,10 @@ const CodeDescArea = (
             {/* Result — live submission feedback */}
             <TabsContent value='result' data-testid="tabs-content-result">
                 <div className='h-full p-6 overflow-y-auto'>
-                    {submissionState === 'loading' && <SubmissionResultSkeleton />}
+                    {submissionState === 'loading' && <SubmissionSkeleton />}
 
                     {submissionState === 'done' && latestSubmissionResult && (
-                        <SubmissionResult result={latestSubmissionResult} />
+                        <SubmissionDetail submission={latestSubmissionResult} goBack={undefined} />
                     )}
 
                     {(submissionState === 'idle' || submissionState === undefined) && (
