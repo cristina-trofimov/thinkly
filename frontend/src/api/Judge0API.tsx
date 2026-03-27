@@ -3,7 +3,7 @@ import type { CodeRunResponse } from "@/types/submissions/CodeRunResponse.type";
 import { updateLastProgLang } from "./UserPreferencesAPI";
 import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
-import { findCodeBefore, findCodeAfter, getTestCasesByQuestionId } from "./QuestionsAPI";
+import { getTestCasesByQuestionId } from "./QuestionsAPI";
 
 export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
@@ -47,13 +47,6 @@ export async function submitToJudge0(
         }
 
         const testcases = await getTestCasesByQuestionId(question_id);
-        const code_before = await findCodeBefore(question_id, language_id)
-        const code_after = await findCodeAfter(question_id, language_id)
-
-        // source_code = `${code_before}\n${source_code.trim()}\n${code_after}`
-
-        // console.log("THIS IS THE FINAL SOURCE CODE", source_code)
-
 
         // Create submissions array for batch processing
         const submissions = testcases.map((testcase) => {
