@@ -147,8 +147,17 @@ def test_judge0_route_success(mock_oauth, mock_auth, mock_logger, mock_post, moc
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
 @patch('src.endpoints.judge0_api.requests.post')
-def test_judge0_rate_limit(mock_post, mock_get):
+@patch('main.logger')
+@patch('endpoints.authentification_api.get_current_user', return_value={"id": "test-user"})
+@patch('endpoints.authentification_api.oauth2_scheme', new_callable=AsyncMock, return_value="fake-token")
+def test_judge0_rate_limit(mock_oauth, mock_auth, mock_logger, mock_post, mock_get, mock_track):
     """Hitting the endpoint 6 times should trigger a 429 on the last request (limit is 5/minute)."""
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+
+    # Reset the limiter state to avoid bleed from other tests
+    app.state.limiter = Limiter(key_func=get_remote_address)
+
     mock_post.return_value = Mock(
         status_code=201,
         json=lambda: [{"token": "abc123"}],
