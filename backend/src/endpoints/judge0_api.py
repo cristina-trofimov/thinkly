@@ -242,7 +242,7 @@ def judge0_run_code(request: Request, body: dict = None):
         # print the fianl response
         logger.debug(f"Final Judge0 response: {response}")
 
-        return {"ok": True, "status_code": 200, "results": response}
+        return {"ok": True, "status_code": 200, **response}
     except Exception:
         # Error is already tracked in submit_to_judge0, just raise HTTP exception
         raise HTTPException(status_code=400, detail="Failed to run code.")
