@@ -95,6 +95,25 @@ const CodingView = () => {
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Called by CodeDescArea when the user solves the riddle.
+  // Runs in CodingView so it updates the real userQuestionInstance state that
+  // flows back down as a prop — fixing the "riddle stays stuck" bug.
+  const handleRiddleSolved = async () => {
+    if (!userQuestionInstance) return
+    try {
+      const updated = { ...userQuestionInstance, riddle_complete: true }
+      const resp = await putUserInstance(updated)
+      setUserQuestionInstance(resp)
+    } catch (error) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when marking riddle as complete. Reason: ${error}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (error as Error).stack,
+      })
+    }
+  }
 
   const submitCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
@@ -363,6 +382,7 @@ const CodingView = () => {
             currentUserId={user?.id}
             submissionState={submissionState}
             latestSubmissionResult={latestSubmissionResult}
+            onRiddleSolved={handleRiddleSolved}
           />
         </Panel>
 
