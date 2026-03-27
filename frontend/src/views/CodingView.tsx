@@ -127,8 +127,6 @@ const CodingView = () => {
     }
 
     setSubmissionState('loading')
-    console.log('Testcases:', activeQuestion?.test_cases)
-    console.log('Active Question:', activeQuestion)
 
     try {
       if (userQuestionInstance) {
@@ -141,9 +139,15 @@ const CodingView = () => {
           : Date.now() - startTime!.getTime()
       }
 
-      const codeToSubmit = code
+      // append boilerplate before + code + boilerplate after
+      const codeToSubmit = composedBoilerplateBefore
+        ? `${composedBoilerplateBefore}\n\n${code}\n\n${composedBoilerplateAfter}`
+        : `${code}\n\n${composedBoilerplateAfter}`
+
       console.log("Submitting code to Judge0:", codeToSubmit)
-      console.log("COMPOSED BOILERPLATE:", composedBoilerplate)
+
+      // console.log("Submitting code to Judge0:", codeToSubmit)
+      // console.log("COMPOSED BOILERPLATE:", composedBoilerplate)
       const {
         codeRunResponse,
         submissionResponse,
@@ -151,7 +155,7 @@ const CodingView = () => {
       } = await submitAttempt(
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+        codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
 
       setLatestSubmissionResult(submissionResponse)
 
@@ -186,7 +190,10 @@ const CodingView = () => {
     try {
       setSubmissionState('loading')
 
-      const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
+      // append composedBoilerplatebefore + code + composedBoilerplateafter
+      const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+      console.log("THIS IS THE CODETORUN", codeToRun)
+      // const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
         codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
@@ -235,11 +242,16 @@ const CodingView = () => {
   const presetCode = activeLangProps?.template_code || fallbackComment
 
   // Full code sent to Judge0: hidden boilerplate wrapped around the user's visible code
-  const composedBoilerplate = [
+  const composedBoilerplateBefore = [
     activeLangProps?.imports,
     activeLangProps?.preset_classes,
-    activeLangProps?.preset_functions,
-    activeLangProps?.main_function,
+    activeLangProps?.preset_functions
+  ]
+    .filter((section): section is string => Boolean(section?.trim()))
+    .join('\n\n')
+
+  const composedBoilerplateAfter = [
+    activeLangProps?.main_function
   ]
     .filter((section): section is string => Boolean(section?.trim()))
     .join('\n\n')

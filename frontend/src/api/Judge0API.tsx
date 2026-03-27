@@ -50,7 +50,7 @@ export async function submitToJudge0(
         const code_before = await findCodeBefore(question_id, language_id)
         const code_after = await findCodeAfter(question_id, language_id)
 
-        source_code = `${code_before}\n${source_code.trim()}\n${code_after}`
+        // source_code = `${code_before}\n${source_code.trim()}\n${code_after}`
 
         // console.log("THIS IS THE FINAL SOURCE CODE", source_code)
 
