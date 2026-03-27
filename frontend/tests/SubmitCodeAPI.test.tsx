@@ -196,7 +196,7 @@ describe("Code Submission", () => {
         source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(userQuestionInstance_riddle_not_complete)
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -220,7 +220,7 @@ describe("Code Submission", () => {
         source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -241,10 +241,10 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_not_complete, event,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()
@@ -265,10 +265,10 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[1],
         userQuestionInstance_riddle_complete, event,
-        source_code, language_id, testcases, user_id)
+        source_code, language_id, user_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
-        question_instance_id, source_code, language_id, testcases, user_id)
+        question_instance_id, question_id, source_code, language_id, user_id)
       expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
       expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
       expect(saveSubmission).toHaveBeenCalled()

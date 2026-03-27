@@ -486,7 +486,7 @@ describe('CodingView — editor', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: mockProblemWithPreset }))
         renderCodingView()
         await waitFor(() =>
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
     })
 
@@ -503,7 +503,7 @@ describe('CodingView — editor', () => {
         renderCodingView()
 
         await waitFor(() =>
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
 
         const editor = screen.getByTestId('monaco-editor')
@@ -523,7 +523,7 @@ describe('CodingView — editor', () => {
         renderCodingView()
 
         await waitFor(() =>
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
 
         const editor = screen.getByTestId('monaco-editor')
@@ -542,7 +542,7 @@ describe('CodingView — editor', () => {
         renderCodingView()
 
         await waitFor(() =>
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
 
         const editor = screen.getByTestId('monaco-editor')
@@ -557,7 +557,7 @@ describe('CodingView — editor', () => {
         await userEvent.click(screen.getByTestId('reset-btn'))
 
         await waitFor(() =>
-            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java preset')
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
     })
 })
