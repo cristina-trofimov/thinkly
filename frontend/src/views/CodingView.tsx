@@ -324,50 +324,53 @@ const CodingView = () => {
 
   return (
     <div data-testid="sandbox" key="sandbox"
-      className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+      className='flex flex-col px-2 h-162.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       {/* Loading modal */}
       <Loader isOpen={isLoading} msg={loadingMsg} />
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
-      <div className='flex items-center justify-center mb-2 w-full'>
-        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
-          <CloudUpload size={16} />Submit
-        </Button>
-      </div>
-      {questionsInstances.length > 1 && (
-        <div className='flex items-end-safe justify-end mb-2 w-full'>
-          <DropdownMenu data-testid='questions-dropdown'>
-            <DropdownMenuTrigger
-              data-testid='questions-btn'
-              className="bg-background text-muted-foreground text-base font-bold h-7
-                flex items-center gap-2 rounded-md p-2
-                hover:bg-primary/20 focus:bg-primary/55"
-            >
-              {activeDisplayQuestionName}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className='z-999' asChild>
-              <div data-testid='questions-menu'
-                className="z-10 text-sm bg-muted w-26 border rounded-lg"
-              >
-                {questions.map((q, idx) => (
-                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
-                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                    onSelect={() => handleQuestionChange(q)}
+      <div className='sticky top-0 z-10 bg-background'>
+        <div className='w-full h-10 mb-2 flex relative shrink-0'>
+          <div className='absolute left-1/2 -translate-x-1/2'>
+            <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
+              <CloudUpload size={16} />Submit
+            </Button>
+          </div>
+          {questionsInstances.length > 1 && (
+            <div className='absolute right-0'>
+              <DropdownMenu data-testid='questions-dropdown'>
+                <DropdownMenuTrigger
+                  data-testid='questions-btn'
+                  className="h-9 bg-background text-muted-foreground text-base font-bold
+                    flex items-center gap-2 rounded-md p-2
+                    hover:bg-primary/20 focus:bg-primary/55"
+                >
+                  {activeDisplayQuestionName}
+                  <ChevronDown />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className='z-999' asChild>
+                  <div data-testid='questions-menu'
+                    className="z-10 text-sm bg-muted w-26 border rounded-lg"
                   >
-                    {`Question ${idx + 1}`}
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    {questions.map((q, idx) => (
+                      <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                        className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                        onSelect={() => handleQuestionChange(q)}
+                      >
+                        {`Question ${idx + 1}`}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
-        className='h-full w-full'
-      >
+        className='flex-1' >
         {/* Description panel */}
         <Panel data-testid="resizable-panel" key="desc-area"
           defaultSize={50} minSize={5}
@@ -512,7 +515,7 @@ const CodingView = () => {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent side='left' >
-                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl' >
+                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl shadow' >
                             Go back to the most recently ran code
                           </p>
                         </TooltipContent>
