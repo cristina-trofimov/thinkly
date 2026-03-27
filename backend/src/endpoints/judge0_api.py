@@ -35,7 +35,6 @@ def judge0_get_output(
     _validate_judge0_url()
     for _ in range(max_attempts):
         try:
-            logger.debug("Getting Judge0 submission output...")
             resp = requests.get(f"{JUDGE0_URL}/submissions/{token}")
             resp.raise_for_status()
 
@@ -75,7 +74,6 @@ def judge0_get_outputs(
     token_str = ",".join(tokens)
     for _ in range(max_attempts):
         try:
-            logger.debug("Getting Judge0 batch submission outputs...")
             resp = requests.get(f"{JUDGE0_URL}/submissions/batch?tokens={token_str}")
             resp.raise_for_status()
 
@@ -91,11 +89,9 @@ def judge0_get_outputs(
             # All done — find the first non-accepted result
             for submission in submissions:
                 if submission["status"]["description"] != "Accepted":
-                    logger.debug(f"Found failing submission: {submission['token']} - {submission['status']['description']}")
                     return submission
 
             # All accepted — return the last one as the representative result
-            logger.debug("All submissions accepted.")
             return submissions[-1]
 
         except Exception as e:
@@ -109,10 +105,6 @@ def submit_to_judge0(
         submissions: list[dict],
         user_id: str = "anonymous",
 ):
-
-    # print the submissions for debugging
-    logger.debug(f"Submitting to Judge0 with {len(submissions)} submissions: {submissions}")
-    logger.debug(f"LENGTH: {len(submissions)}")
 
     _validate_judge0_url()
 
@@ -137,11 +129,7 @@ def submit_to_judge0(
         }
         batch_payload["submissions"].append(payload)
 
-    # Log the batch payload as a JSON string
-    logger.debug(f"BATCH PAYLOAD: {json.dumps(batch_payload)}")
-
     try:
-        logger.debug("Posting batch submissions to Judge0...")
 
         # Track batch submission event
         track_custom_event(
@@ -162,8 +150,6 @@ def submit_to_judge0(
 
         # Extract all tokens from the response
         tokens = [item['token'] for item in post_resp.json()]
-
-        logger.debug(f"RTOKENS ARE HERE: {tokens}")
 
         # Retrieve results for all tokens
         # After
@@ -238,9 +224,6 @@ def judge0_run_code(request: Request, body: dict = None):
             submissions=submissions,
             user_id=user_id,
         )
-
-        # print the fianl response
-        logger.debug(f"Final Judge0 response: {response}")
 
         return {"ok": True, "status_code": 200, **response}
     except Exception:

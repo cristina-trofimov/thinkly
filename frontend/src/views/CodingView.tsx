@@ -139,15 +139,8 @@ const CodingView = () => {
           : Date.now() - startTime!.getTime()
       }
 
-      // append boilerplate before + code + boilerplate after
-      const codeToSubmit = composedBoilerplateBefore
-        ? `${composedBoilerplateBefore}\n\n${code}\n\n${composedBoilerplateAfter}`
-        : `${code}\n\n${composedBoilerplateAfter}`
+      const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
 
-      console.log("Submitting code to Judge0:", codeToSubmit)
-
-      // console.log("Submitting code to Judge0:", codeToSubmit)
-      // console.log("COMPOSED BOILERPLATE:", composedBoilerplate)
       const {
         codeRunResponse,
         submissionResponse,
@@ -190,10 +183,7 @@ const CodingView = () => {
     try {
       setSubmissionState('loading')
 
-      // append composedBoilerplatebefore + code + composedBoilerplateafter
       const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
-      console.log("THIS IS THE CODETORUN", codeToRun)
-      // const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
         codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
