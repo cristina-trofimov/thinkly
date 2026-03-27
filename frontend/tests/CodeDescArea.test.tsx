@@ -7,7 +7,6 @@ import { Question, TagResponse, TestCase } from '../src/types/questions/Question
 import { QuestionInstance } from '../src/types/questions/QuestionInstance.type'
 import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
 import { UserQuestionInstance } from '../src/types/submissions/UserQuestionInstance.type'
-import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import { getAllSubmissions } from '../src/api/SubmissionAPI'
 import { getRiddleById } from '../src/api/RiddlesAPI'
 import { getAllLanguages } from '../src/api/LanguageAPI'
@@ -15,10 +14,6 @@ import { toast } from 'sonner'
 import { logFrontend } from '../src/api/LoggerAPI'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
-
-jest.mock('../src/components/helpers/CodingHooks', () => ({
-  useCodingHooks: jest.fn(),
-}))
 
 jest.mock('../src/api/SubmissionAPI', () => ({
   getAllSubmissions: jest.fn(),
@@ -53,10 +48,6 @@ jest.mock('../src/components/forms/RiddleForm', () => ({
       <button data-testid="solve-riddle-btn" onClick={onSolved}>Solve</button>
     </div>
   ),
-}))
-
-jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
-  putUserInstance: jest.fn(),
 }))
 
 // SubmissionResult and its skeleton are tested in SubmissionResult_test.tsx.
@@ -172,14 +163,8 @@ const mockLanguages = [
   { lang_judge_id: 71, display_name: 'Python', monaco_id: 'python', active: true },
 ]
 
-// ─── Hook mock factory ────────────────────────────────────────────────────────
+// ─── Typed mock references ────────────────────────────────────────────────────
 
-const makeMockHook = (overrides: Record<string, any> = {}) => ({
-  setUserQuestionInstance: jest.fn(),
-  ...overrides,
-})
-
-const mockedUseCodingHooks = useCodingHooks as jest.Mock
 const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
 const mockedGetRiddleById = getRiddleById as jest.Mock
 const mockedGetAllLanguages = getAllLanguages as jest.Mock
@@ -187,8 +172,6 @@ const mockedGetAllLanguages = getAllLanguages as jest.Mock
 // ─── Helper to render with default props ─────────────────────────────────────
 
 // Use a unique symbol so callers can explicitly pass `undefined` as a prop value.
-// Without this, the ternary `overrides.x !== undefined ? overrides.x : default`
-// can never be distinguished from "caller didn't provide x at all".
 const UNDEFINED = Symbol('undefined') as unknown as undefined
 
 type RenderOverrides = {
@@ -202,6 +185,7 @@ type RenderOverrides = {
   currentUserId: number | undefined
   submissionState: 'idle' | 'loading' | 'done'
   latestSubmissionResult: SubmissionType | null
+  onRiddleSolved: (() => void) | undefined
 }
 
 const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
@@ -215,6 +199,7 @@ const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
   const currentUserId  = overrides.currentUserId
   const subState       = overrides.submissionState ?? 'idle'
   const latestResult   = overrides.latestSubmissionResult ?? null
+  const onRiddleSolved = 'onRiddleSolved'  in overrides ? overrides.onRiddleSolved                            : undefined
 
   return render(
     <CodeDescArea
@@ -228,6 +213,7 @@ const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
       currentUserId={currentUserId}
       submissionState={subState}
       latestSubmissionResult={latestResult}
+      onRiddleSolved={onRiddleSolved}
     />
   )
 }
@@ -236,7 +222,6 @@ const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  mockedUseCodingHooks.mockReturnValue(makeMockHook())
   mockedGetRiddleById.mockResolvedValue(null)
   mockedGetAllSubmissions.mockResolvedValue([])
   mockedGetAllLanguages.mockResolvedValue(mockLanguages)
@@ -478,6 +463,31 @@ describe('CodeDescArea - riddle gate', () => {
     })
     await waitFor(() => expect(toast.error).toHaveBeenCalled())
     expect(screen.queryByTestId('riddle-form')).not.toBeInTheDocument()
+  })
+
+  it('calls onRiddleSolved prop when the solve button is clicked', async () => {
+    const onRiddleSolved = jest.fn()
+    mockedGetRiddleById.mockResolvedValue(mockRiddle)
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+      onRiddleSolved,
+    })
+    await waitFor(() => expect(screen.getByTestId('solve-riddle-btn')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('solve-riddle-btn'))
+    expect(onRiddleSolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not throw when onRiddleSolved is not provided and solve is clicked', async () => {
+    mockedGetRiddleById.mockResolvedValue(mockRiddle)
+    // No onRiddleSolved prop — should not crash
+    renderCodeDescArea({
+      question_instance: mockQuestionInstanceWithRiddle,
+      uqi: mockUqiRiddleIncomplete,
+    })
+    await waitFor(() => expect(screen.getByTestId('solve-riddle-btn')).toBeInTheDocument())
+    // Click should not throw even with no handler
+    await userEvent.click(screen.getByTestId('solve-riddle-btn'))
   })
 })
 
