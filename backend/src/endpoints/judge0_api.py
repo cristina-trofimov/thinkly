@@ -1,7 +1,6 @@
 import os
 import time
 import requests
-import json  # Add this at the top of the file
 from fastapi import APIRouter, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
