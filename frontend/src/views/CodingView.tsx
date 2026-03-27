@@ -119,7 +119,6 @@ const CodingView = () => {
       return
     }
 
-    // Drive the left-panel Result tab instead of a full-page loader
     setSubmissionState('loading')
     console.log('Testcases:', activeQuestion?.test_cases)
     console.log('Active Question:', activeQuestion)
@@ -135,7 +134,6 @@ const CodingView = () => {
           : Date.now() - startTime!.getTime()
       }
 
-      // const codeToSubmit = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
       const codeToSubmit = code
       console.log("Submitting code to Judge0:", codeToSubmit)
       console.log("COMPOSED BOILERPLATE:", composedBoilerplate)
@@ -158,6 +156,9 @@ const CodingView = () => {
         activeQuestion!.question_id,
         selectedLang!,
       )
+
+      // Switch to 'Results' tab after submission
+      setCurrentOutputTab('results');
     } catch (err) {
       toast.error("Error when submitting the code.")
       setSubmissionState('idle')
