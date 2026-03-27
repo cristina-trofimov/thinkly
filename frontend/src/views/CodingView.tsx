@@ -182,9 +182,11 @@ const CodingView = () => {
       setIsAsyncLoading(true)
       setLoadingMsg("Running")
 
+      
+
       const codeToRun = composedBoilerplate ? `${composedBoilerplate}\n\n${code}` : code
-      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        codeToRun, selectedLang?.lang_judge_id, testcases, currentUserId ?? 0)
+      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
+        codeToRun, selectedLang?.lang_judge_id, currentUserId ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
       setCurrentOutputTab("results")

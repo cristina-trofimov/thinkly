@@ -36,7 +36,7 @@ export function parse_input_output(testcases: TestCase[]) {
 
 export async function submitToJudge0(
     question_instance_id: number | undefined,
-    question_id: number,
+    question_id: number | undefined,
     source_code: string,
     language_id: number | undefined,
     userId: number,
@@ -47,6 +47,7 @@ export async function submitToJudge0(
         }
 
         // console.log("this is the question ID:", question_id)
+        console.log("JJFREJKNFKJRNEFJNRFJENSKDFNF:", question_id)
         const testcases = await getTestCasesByQuestionId(question_id);
         // const testcases = await getTestCasesByQuestionId(question_instance_id);
 

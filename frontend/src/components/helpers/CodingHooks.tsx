@@ -97,6 +97,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             }
             InitializeQuestionInstances()
         } else if(question?.question_id) {
+
             const initQuestion = async () => {
                 setIsQuestionLoading(true)
                 try {

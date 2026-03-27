@@ -126,6 +126,7 @@ export async function getQuestions(): Promise<Question[]> {
 
 export async function getQuestionByID(questionId: number): Promise<Question> {
   try {
+    console.log(`Fetching question with ID: ${questionId}`);
     const response = await axiosClient.get<Question>(
       `/questions/get-question-by-id/${questionId}`,
     );
@@ -211,8 +212,12 @@ export async function updateQuestion(
   }
 }
 
-export async function getTestCasesByQuestionId(questionId: number): Promise<TestCase[]> {
+export async function getTestCasesByQuestionId(questionId: number | undefined): Promise<TestCase[]> {
+  console.log(`Fetching test cases for question ID: ${questionId}`);
   try {
+    if (questionId === undefined) {
+      throw new Error("Question ID is undefined");
+    }
     const question = await getQuestionByID(questionId);
     return question.test_cases;
   } catch (err) {
@@ -227,8 +232,11 @@ export async function getTestCasesByQuestionId(questionId: number): Promise<Test
   }
 }
 
-export async function findCodeBefore(questionId: number, languageId: number): Promise<String> {
+export async function findCodeBefore(questionId: number | undefined, languageId: number): Promise<String> {
   try {
+    if (questionId === undefined) {
+      throw new Error("Question ID is undefined");
+    }
     const question = await getQuestionByID(questionId);
     const properties = question.language_specific_properties.find((prop) => prop.language_id === languageId);
     return properties ? `${properties.imports}\n\n${properties.preset_classes}\n\n${properties.preset_functions}` : "";
@@ -244,8 +252,11 @@ export async function findCodeBefore(questionId: number, languageId: number): Pr
   }
 }
 
-export async function findCodeAfter(questionId: number, languageId: number): Promise<String> {
+export async function findCodeAfter(questionId: number | undefined, languageId: number): Promise<String> {
   try {
+    if (questionId === undefined) {
+      throw new Error("Question ID is undefined");
+    }
     const question = await getQuestionByID(questionId);
     const properties = question.language_specific_properties.find((prop) => prop.language_id === languageId);
     return properties ? `${properties.main_function}` : "";
