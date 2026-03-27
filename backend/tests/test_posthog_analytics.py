@@ -1,7 +1,7 @@
 import asyncio
 import pytest
-from unittest.mock import Mock, patch, MagicMock, AsyncMock, call
-from datetime import datetime, timezone
+from unittest.mock import Mock, patch, AsyncMock
+from datetime import datetime
 from fastapi import Request
 
 

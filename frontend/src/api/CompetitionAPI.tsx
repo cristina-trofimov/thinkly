@@ -1,28 +1,45 @@
 import axiosClient from "@/lib/axiosClient";
-import type { Competition, CompetitionFormPayload } from "@/types/competition/Competition.type";
+import type {
+  Competition,
+  CompetitionApiItem,
+  CompetitionApiPage,
+  CompetitionFormPayload,
+  CompetitionsPage,
+  CompetitionsPageParams,
+} from "@/types/competition/Competition.type";
 import type { CompetitionWithParticipants } from "@/types/competition/CompetitionWithParticipants.type";
 import { logFrontend } from "./LoggerAPI";
 
-// ============= Existing Functions =============
-export async function getCompetitions(): Promise<Competition[]> {
+const mapCompetition = (competition: CompetitionApiItem): Competition => ({
+  id: competition.id,
+  competitionTitle: competition.competition_title,
+  competitionLocation: competition.competition_location ?? "",
+  startDate: new Date(competition.start_date),
+  endDate: new Date(competition.end_date),
+});
+
+export async function getCompetitionsPage(
+  params: CompetitionsPageParams = {}
+): Promise<CompetitionsPage> {
+  const { page = 1, pageSize = 12, search, status, sort = "desc" } = params;
+
   try {
-    const response = await axiosClient.get<{
-      id: number;
-      competition_title: string;
-      competition_location: string;
-      start_date: Date;
-      end_date: Date;
-    }[]>(`/competitions/`);
-    
-    const formatted: Competition[] = response.data.map(c => ({
-      id: c.id,
-      competitionTitle: c.competition_title,
-      competitionLocation: c.competition_location,
-      startDate: new Date(c.start_date),
-      endDate: new Date(c.end_date),
-    }));
-    
-    return formatted;
+    const response = await axiosClient.get<CompetitionApiPage>("/competitions/", {
+      params: {
+        page,
+        page_size: pageSize,
+        search: search?.trim() || undefined,
+        status,
+        sort,
+      },
+    });
+
+    return {
+      total: response.data.total,
+      page: response.data.page,
+      pageSize: response.data.page_size,
+      items: response.data.items.map(mapCompetition),
+    };
   } catch (err) {
     logFrontend({
       level: "ERROR",
@@ -30,7 +47,34 @@ export async function getCompetitions(): Promise<Competition[]> {
       component: "CompetitionAPI",
       url: globalThis.location.href,
       stack: (err as Error).stack,
-    })
+    });
+    throw err;
+  }
+}
+
+export async function getCompetitions(): Promise<Competition[]> {
+  try {
+    const firstPage = await getCompetitionsPage();
+    let items = [...firstPage.items];
+    const totalPages = Math.ceil(firstPage.total / firstPage.pageSize);
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const nextPage = await getCompetitionsPage({
+        page,
+        pageSize: firstPage.pageSize,
+      });
+      items = [...items, ...nextPage.items];
+    }
+
+    return items;
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching competitions. Reason: ${err}`,
+      component: "CompetitionAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    });
     throw err;
   }
 }

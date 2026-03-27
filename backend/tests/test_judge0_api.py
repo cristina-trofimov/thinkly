@@ -1,5 +1,6 @@
-import pytest, sys
-from unittest.mock import Mock, patch
+import pytest
+import sys
+from unittest.mock import AsyncMock, Mock, patch
 from pathlib import Path
 from fastapi.testclient import TestClient
 
@@ -8,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.endpoints.judge0_api import (
     judge0_get_output,
     submit_to_judge0,
-    judge0_run_code,
 )
 
 # Import app after sys.path is set — raise_server_exceptions=False lets the
@@ -111,10 +111,14 @@ def test_judge0_network_error(mock_post):
         submit_to_judge0(submissions=SINGLE_SUBMISSION)
 
 
+@patch('src.endpoints.judge0_api.track_custom_event')
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
 @patch('src.endpoints.judge0_api.requests.post')
-def test_judge0_route_success(mock_post, mock_get):
+@patch('main.logger')
+@patch('endpoints.authentification_api.get_current_user', return_value={"id": "test-user"})
+@patch('endpoints.authentification_api.oauth2_scheme', new_callable=AsyncMock, return_value="fake-token")
+def test_judge0_route_success(mock_oauth, mock_auth, mock_logger, mock_post, mock_get, mock_track):
     mock_post.return_value = Mock(
         status_code=201,
         json=lambda: [{"token": "abc123"}],
@@ -139,6 +143,7 @@ def test_judge0_route_success(mock_post, mock_get):
     assert response.json()["ok"] is True
 
 
+@patch('src.endpoints.judge0_api.track_custom_event')
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
 @patch('src.endpoints.judge0_api.requests.get')
 @patch('src.endpoints.judge0_api.requests.post')

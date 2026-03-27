@@ -181,32 +181,24 @@ describe("Question Columns", () => {
       expect(sortingFn(rowUnknown, rowHard, "difficulty")).toBeGreaterThan(0);
     });
 
-    it("renders medium difficulty with yellow style", () => {
-      const row = createMockRow({ getValue: () => "Medium" });
-      const Cell = difficultyColumn.cell as Function;
-      const { container } = render(<>{Cell({ row })}</>);
-
-      expect(screen.getByText("Medium")).toBeInTheDocument();
-      expect(container.querySelector(".text-yellow-500")).toBeInTheDocument();
-    });
 
     it("toggles sorting from not sorted to ascending", () => {
-          const column = createMockColumn();
-          const Header = difficultyColumn.header as Function;
-          render(<>{Header({ column })}</>);
-    
-          fireEvent.click(screen.getByRole("button"));
-          expect(column.toggleSorting).toHaveBeenCalledWith(false);
-        });
-    
-        it("toggles sorting from ascending to descending", () => {
-          const column = createMockColumn({ getIsSorted: () => "asc" });
-          const Header = difficultyColumn.header as Function;
-          render(<>{Header({ column })}</>);
-    
-          fireEvent.click(screen.getByRole("button"));
-          expect(column.toggleSorting).toHaveBeenCalledWith(true);
-        });
-    
+      const column = createMockColumn();
+      const Header = difficultyColumn.header as Function;
+      render(<>{Header({ column })}</>);
+
+      fireEvent.click(screen.getByRole("button"));
+      expect(column.toggleSorting).toHaveBeenCalledWith(false);
+    });
+
+    it("toggles sorting from ascending to descending", () => {
+      const column = createMockColumn({ getIsSorted: () => "asc" });
+      const Header = difficultyColumn.header as Function;
+      render(<>{Header({ column })}</>);
+
+      fireEvent.click(screen.getByRole("button"));
+      expect(column.toggleSorting).toHaveBeenCalledWith(true);
+    });
+
   });
 });

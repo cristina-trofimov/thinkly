@@ -150,12 +150,20 @@ const userQuestionInstance_riddle_complete: UserQuestionInstance = {
   attempts: 3
 }
 
-const questionInstances: QuestionInstance[] = [{
-  question_instance_id: question_instance_id,
-  question_id: question_id,
-  event_id: event_id,
-  riddle_id: null
-}]
+const questionInstances: QuestionInstance[] = [
+  {
+    question_instance_id: question_instance_id,
+    question_id: question_id,
+    event_id: event_id,
+    riddle_id: null
+  },
+  {
+    question_instance_id: question_instance_id,
+    question_id: question_id,
+    event_id: event_id,
+    riddle_id: 4
+  }
+]
 
 const submission: SubmissionType = {
   submission_id: 456,
@@ -201,7 +209,7 @@ describe("Code Submission", () => {
       )
     })
 
-    it("processes submission linked to an event after completing riddle", async () => {
+    it("processes submission linked to an event without a riddle", async () => {
       mockedSubmitToJudge0.mockResolvedValue(judge0Response)
       mockedPutUserInstance.mockResolvedValue(userQuestionInstance_riddle_complete)
       mockedUpdateMostRecentSub.mockResolvedValue(mostRecentSubResponse)
@@ -225,8 +233,56 @@ describe("Code Submission", () => {
       )
     })
 
-    it("processes submission linked to an event without completing riddle", async () => {
-      await expect(submitAttempt(question, questionInstances[0],
+    it("processes submission not linked to an event without completing riddle", async () => {
+      mockedSubmitToJudge0.mockResolvedValue(judge0Response)
+      mockedPutUserInstance.mockResolvedValue(userQuestionInstance_riddle_not_complete)
+      mockedUpdateMostRecentSub.mockResolvedValue(mostRecentSubResponse)
+      mockedSaveSubmission.mockResolvedValue(submission)
+
+      await submitAttempt(question, questionInstances[0],
+        userQuestionInstance_riddle_not_complete, event,
+        source_code, language_id, testcases, user_id)
+
+      expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
+        question_instance_id, source_code, language_id, testcases, user_id)
+      expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
+      expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
+      expect(saveSubmission).toHaveBeenCalled()
+      expect(saveSubmission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_question_instance_id: user_question_instance_id,
+          lang_judge_id: language_id,
+          status: judge0Response.judge0Response.status.description
+        })
+      )
+    })
+
+    it("processes submission linked to an event after completing riddle", async () => {
+      mockedSubmitToJudge0.mockResolvedValue(judge0Response)
+      mockedPutUserInstance.mockResolvedValue(userQuestionInstance_riddle_complete)
+      mockedUpdateMostRecentSub.mockResolvedValue(mostRecentSubResponse)
+      mockedSaveSubmission.mockResolvedValue(submission)
+
+      await submitAttempt(question, questionInstances[1],
+        userQuestionInstance_riddle_complete, event,
+        source_code, language_id, testcases, user_id)
+
+      expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
+        question_instance_id, source_code, language_id, testcases, user_id)
+      expect(mockedPutUserInstance).toHaveBeenCalledWith(expect.objectContaining({ points: 100 }))
+      expect(mockedUpdateMostRecentSub).toHaveBeenCalledWith(user_question_instance_id, source_code, language_id)
+      expect(saveSubmission).toHaveBeenCalled()
+      expect(saveSubmission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_question_instance_id: user_question_instance_id,
+          lang_judge_id: language_id,
+          status: judge0Response.judge0Response.status.description
+        })
+      )
+    })
+
+    it("fails if submission linked to an event without completing riddle", async () => {
+      await expect(submitAttempt(question, questionInstances[1],
               userQuestionInstance_riddle_not_complete,
               event, source_code, language_id, user_id))
             .rejects.toThrow("SubmitAttempt: riddle needs to be completed")

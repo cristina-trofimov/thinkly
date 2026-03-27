@@ -9,6 +9,7 @@ import { logFrontend } from "./LoggerAPI"
 import { updateMostRecentSub } from "./MostRecentSubAPI"
 import { saveSubmission } from "./SubmissionAPI"
 import { putUserInstance } from "./UserQuestionInstanceAPI"
+import { upsertAlgoTimeLeaderboardEntry, upsertCompetitionLeaderboardEntry } from "./LeaderboardsAPI"
 
 export async function submitAttempt(
     question: Question | undefined,
@@ -18,13 +19,14 @@ export async function submitAttempt(
     source_code: string,
     language_id: number | undefined,
     userId: number,
+    isAlgoTime: boolean = false,
   ): Promise<SubmitAttemptResponse> {
     try {
       if (!questionInstance || !userQuestionInstance || !question || !language_id) {
         throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
       }
 
-      if (event && !userQuestionInstance.riddle_complete) {
+      if (event && questionInstance.riddle_id && !userQuestionInstance.riddle_complete) {
         throw new Error("SubmitAttempt: riddle needs to be completed")
       }
 
@@ -48,7 +50,14 @@ export async function submitAttempt(
       // 4. Save most recent submission
       const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
 
-      // 5. Save submission's output details
+      // 5. Update leaderboard based on session type
+      if (isAlgoTime && event) {
+        await upsertAlgoTimeLeaderboardEntry(userId)
+      } else if (!isAlgoTime && event) {
+        await upsertCompetitionLeaderboardEntry(userId, event.event_id)
+      }
+
+      // 6. Save submission's output details
       let runtime: number | null = null
       let memory: number | null = null
 

@@ -1,5 +1,6 @@
 import {
   createAlgotime,
+  getAlgotimeSessionsPage,
   getAllAlgotimeSessions,
 } from "../src/api/AlgotimeAPI";
 
@@ -70,41 +71,48 @@ describe("AlgotimeAPI", () => {
     });
   });
 
-  describe("getAllAlgotimeSessions", () => {
-    it("fetches and formats algotime sessions", async () => {
-      const backendResponse = [
-        {
-          id: 1,
-          eventName: "Algo 101",
-          startTime: "2026-01-01T10:00:00Z",
-          endTime: "2026-01-01T11:00:00Z",
-          questionCooldown: 60,
-          seriesId: null,
-          seriesName: null,
-          questions: [
-            {
-              questionId: 10,
-              questionName: "Two Sum",
-              questionDescription: "Find two numbers",
-              difficulty: "easy",
-              tags: null,
-              points: null,
-            },
-          ],
-        },
-      ];
+  describe("getAlgotimeSessionsPage", () => {
+    it("fetches and formats a paginated algotime response", async () => {
+      const backendResponse = {
+        total: 1,
+        page: 1,
+        page_size: 12,
+        items: [
+          {
+            id: 1,
+            eventName: "Algo 101",
+            startTime: "2026-01-01T10:00:00Z",
+            endTime: "2026-01-01T11:00:00Z",
+            questionCooldown: 60,
+            location: null,
+            seriesId: null,
+            seriesName: null,
+            questionCount: 1,
+          },
+        ],
+      };
 
       mockedAxios.get.mockResolvedValueOnce({
         data: backendResponse,
       } as any);
 
-      const result = await getAllAlgotimeSessions();
+      const result = await getAlgotimeSessionsPage();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/");
+      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/", {
+        params: {
+          page: 1,
+          page_size: 12,
+          search: undefined,
+          sort: "desc",
+          status: undefined,
+        },
+      });
 
-      expect(result).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(12);
 
-      const session = result[0];
+      const session = result.items[0];
 
       expect(session.id).toBe(1);
       expect(session.eventName).toBe("Algo 101");
@@ -112,22 +120,150 @@ describe("AlgotimeAPI", () => {
       expect(session.endTime).toBeInstanceOf(Date);
       expect(session.seriesId).toBeNull();
       expect(session.seriesName).toBeNull();
+      expect(session.questionCount).toBe(1);
+      expect(session.questions).toEqual([]);
+    });
 
-      expect(session.questions).toEqual([
-        {
-          questionId: 10,
-          questionName: "Two Sum",
-          questionDescription: "Find two numbers",
-          difficulty: "easy",
-          tags: [],
-          points: 0,
+    it("passes through page params correctly", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 2,
+          page_size: 24,
+          items: [],
         },
-      ]);
+      } as any);
+
+      const result = await getAlgotimeSessionsPage({
+        page: 2,
+        pageSize: 24,
+        search: "algo",
+        sort: "asc",
+        status: "upcoming",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/algotime/", {
+        params: {
+          page: 2,
+          page_size: 24,
+          search: "algo",
+          sort: "asc",
+          status: "upcoming",
+        },
+      });
+
+      expect(result).toEqual({
+        total: 0,
+        page: 2,
+        pageSize: 24,
+        items: [],
+      });
+    });
+
+    it("logs and rethrows error on failure", async () => {
+      const error = new Error("Fetch failed");
+
+      mockedAxios.get.mockRejectedValueOnce(error);
+
+      await expect(getAlgotimeSessionsPage()).rejects.toThrow("Fetch failed");
+
+      expect(mockedLogger).toHaveBeenCalledWith(
+        expect.objectContaining({
+          level: "ERROR",
+          component: "AlgotimeAPI",
+        })
+      );
+    });
+  });
+
+  describe("getAllAlgotimeSessions", () => {
+    it("aggregates all pages of algotime sessions", async () => {
+      mockedAxios.get
+        .mockResolvedValueOnce({
+          data: {
+            total: 3,
+            page: 1,
+            page_size: 2,
+            items: [
+              {
+                id: 1,
+                eventName: "Algo 101",
+                startTime: "2026-01-01T10:00:00Z",
+                endTime: "2026-01-01T11:00:00Z",
+                questionCooldown: 60,
+                location: null,
+                seriesId: null,
+                seriesName: null,
+                questionCount: 1,
+              },
+              {
+                id: 2,
+                eventName: "Algo 102",
+                startTime: "2026-01-02T10:00:00Z",
+                endTime: "2026-01-02T11:00:00Z",
+                questionCooldown: 60,
+                location: null,
+                seriesId: null,
+                seriesName: null,
+                questionCount: 2,
+              },
+            ],
+          },
+        } as any)
+        .mockResolvedValueOnce({
+          data: {
+            total: 3,
+            page: 2,
+            page_size: 2,
+            items: [
+              {
+                id: 3,
+                eventName: "Algo 103",
+                startTime: "2026-01-03T10:00:00Z",
+                endTime: "2026-01-03T11:00:00Z",
+                questionCooldown: 60,
+                location: null,
+                seriesId: null,
+                seriesName: null,
+                questionCount: 3,
+              },
+            ],
+          },
+        } as any);
+
+      const result = await getAllAlgotimeSessions();
+
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(1, "/algotime/", {
+        params: {
+          page: 1,
+          page_size: 12,
+          search: undefined,
+          sort: "desc",
+          status: undefined,
+        },
+      });
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, "/algotime/", {
+        params: {
+          page: 2,
+          page_size: 2,
+          search: undefined,
+          sort: "desc",
+          status: undefined,
+        },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.map((session) => session.id)).toEqual([1, 2, 3]);
     });
 
     it("handles empty response safely", async () => {
       mockedAxios.get.mockResolvedValueOnce({
-        data: null,
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 12,
+          items: [],
+        },
       } as any);
 
       const result = await getAllAlgotimeSessions();

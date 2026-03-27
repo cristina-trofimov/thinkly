@@ -6,6 +6,7 @@ import { LoginForm } from '../src/components/forms/LogInForm';
 import * as authApi from '../src/api/AuthAPI';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
+import { UserContext } from '../src/context/UserContext';
 
 // Polyfill for TextEncoder/TextDecoder
 import { TextEncoder, TextDecoder } from 'util';
@@ -14,14 +15,14 @@ global.TextDecoder = TextDecoder as any;
 
 // Mock dependencies
 jest.mock('../src/lib/axiosClient', () => ({
-  __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
-  API_URL: 'http://localhost:8000',
+    __esModule: true,
+    default: {
+        get: jest.fn(),
+        post: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+    },
+    API_URL: 'http://localhost:8000',
 }))
 jest.mock('../src/api/AuthAPI');
 jest.mock('../src/api/LoggerAPI', () => ({
@@ -55,16 +56,34 @@ jest.mock('@react-oauth/google', () => ({
     ),
 }));
 
+jest.mock('../src/api/AccountsAPI', () => ({
+    getUserPreferences: jest.fn().mockResolvedValue({ theme: 'light' }),
+}));
+
+jest.mock('../src/hooks/useAnalytics', () => ({
+    useAnalytics: () => ({
+        identifyUser: jest.fn(),
+        trackLoginAttempt: jest.fn(),
+        trackLoginSuccess: jest.fn(),
+        trackLoginFailed: jest.fn(),
+    }),
+}));
+
+// add to the top of the file alongside other mocks
+const mockGetProfile = authApi.getProfile as jest.MockedFunction<typeof authApi.getProfile>;
+
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
 const mockGoogleLogin = authApi.googleLogin as jest.MockedFunction<typeof authApi.googleLogin>;
-const mockLogout = authApi.logout as jest.MockedFunction<typeof authApi.logout>;
 const mockJwtDecode = jwtDecode as jest.MockedFunction<typeof jwtDecode>;
 
-// Wrapper component with required providers
+const mockSetUser = jest.fn();
+
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <GoogleOAuthProvider clientId="test-client-id">
         <BrowserRouter>
-            {children}
+            <UserContext.Provider value={{ user: null, loading: false, setUser: mockSetUser, refreshUser: jest.fn() }}>
+                {children}
+            </UserContext.Provider>
         </BrowserRouter>
     </GoogleOAuthProvider>
 );
@@ -73,6 +92,7 @@ describe('LoginForm', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         localStorage.clear();
+        mockGetProfile.mockResolvedValue({ id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User', accountType: 'Participant' as const });
     });
 
     describe('Rendering', () => {

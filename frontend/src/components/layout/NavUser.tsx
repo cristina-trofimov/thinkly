@@ -20,25 +20,63 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu"
-import { logout, getProfile } from "@/api/AuthAPI"
+import { logout } from "@/api/AuthAPI"
 import { useNavigate } from "react-router-dom"
 import { AvatarInitials } from "../helpers/AvatarInitials"
-import type { Account } from "@/types/account/Account.type"
 import { logFrontend } from '../../api/LoggerAPI';
+import { useUser } from "@/context/UserContext"
 import { getUserPreferences, updateUserPreferences } from "@/api/AccountsAPI";
 
-interface NavUserProps {
-  user?: Account | null;
-}
 
-export function NavUser({ user }: Readonly<NavUserProps>) {
+export function NavUser() {
   const navigate = useNavigate();
-  const [localUser, setLocalUser] = React.useState<Account | null>(user ?? null)
 
-  // Initialize theme state from localStorage
+  const { user } = useUser();
+
+
   const [theme, setTheme] = React.useState<"light" | "dark">(() => {
     return (localStorage.getItem("theme") as "light" | "dark") ?? "light";
   });
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    const fetchPrefs = async () => {
+      try {
+        if (user) {
+          const prefs = await getUserPreferences(user.id);
+
+          // Check if the component is still mounted before updating state
+          if (!mounted) return;
+
+          if (prefs.theme) {
+            setTheme(prefs.theme);
+            localStorage.setItem("theme", prefs.theme);
+
+            if (prefs.theme === "dark") {
+              document.documentElement.classList.add("dark");
+            } else {
+              document.documentElement.classList.remove("dark");
+            }
+          }
+        }
+      } catch (err) {
+        if (!mounted) return; // Don't log if component unmounted
+        logFrontend({
+          level: 'ERROR',
+          message: `Error finding user profile: ${(err as Error).message}`,
+          component: 'NavUser',
+          url: globalThis.location.href,
+        });
+      }
+    }
+
+    fetchPrefs();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   React.useEffect(() => {
     const syncTheme = () => {
@@ -54,6 +92,8 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
 
     globalThis.addEventListener("storage", syncTheme);
     globalThis.addEventListener("storage_sync", syncTheme);
+
+
 
     return () => {
       globalThis.removeEventListener("storage", syncTheme);
@@ -74,9 +114,9 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
     // Tell other components (like ProfilePage) to update their buttons
     globalThis.dispatchEvent(new Event("storage_sync"));
 
-    if (localUser?.id) {
+    if (user?.id) {
       try {
-        await updateUserPreferences(localUser.id, {
+        await updateUserPreferences(user.id, {
           theme: newTheme,
           notifications_enabled: true,
         });
@@ -91,41 +131,8 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
     }
   };
 
-  React.useEffect(() => {
-    if (user) return
-    let mounted = true
 
-    const fetch = async () => {
-      try {
-      const profile = await getProfile();
-      if (!mounted) return;
-      
-      setLocalUser(profile);
 
-      // Fetch preferences from DB and sync them to the UI/Storage
-      const prefs = await getUserPreferences(profile.id);
-      if (prefs.theme) {
-        setTheme(prefs.theme);
-        localStorage.setItem("theme", prefs.theme);
-        if (prefs.theme === "dark") {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-      }
-          
-      } catch (err) {
-        logFrontend({
-          level: 'ERROR',
-          message: `Error finding user profile: ${(err as Error).message}`,
-          component: 'NavUser',
-          url: globalThis.location.href,
-        });
-      }
-    }
-    fetch()
-    return () => { mounted = false }
-  }, [user])
 
   const handleLogout = async () => {
     try {
@@ -152,11 +159,11 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
       <DropdownMenuTrigger asChild>
         <button className="cursor-pointer flex items-center gap-2 rounded-xl hover:bg-muted/80 outline-none p-1">
           <div className="hidden sm:grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium ml-2">{localUser?.firstName} {localUser?.lastName}</span>
+            <span className="truncate font-medium ml-2">{user?.firstName} {user?.lastName}</span>
           </div>
-          <AvatarInitials
-            firstName={localUser?.firstName ?? ""}
-            lastName={localUser?.lastName ?? ""}
+          <AvatarInitials className=""
+            firstName={user?.firstName ?? ""}
+            lastName={user?.lastName ?? ""}
             size="ml"
           />
         </button>
@@ -170,13 +177,13 @@ export function NavUser({ user }: Readonly<NavUserProps>) {
         <DropdownMenuLabel className="p-0 font-normal">
           <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
             <AvatarInitials
-              firstName={localUser?.firstName ?? ""}
-              lastName={localUser?.lastName ?? ""}
+              firstName={user?.firstName ?? ""}
+              lastName={user?.lastName ?? ""}
               size="md"
             />
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold">{localUser?.firstName}</span>
-              <span className="truncate text-xs text-muted-foreground">{localUser?.email}</span>
+              <span className="truncate font-semibold">{user?.firstName}</span>
+              <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
             </div>
           </div>
         </DropdownMenuLabel>

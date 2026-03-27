@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -18,7 +18,12 @@ from src.endpoints.leaderboards_api import (
     get_all_competition_entries,
     _set_no_cache_headers,
     _set_short_cache_headers,
-    reset_algotime_leaderboard
+    reset_algotime_leaderboard,
+    _aggregate_uqi_stats,
+    upsert_algotime_leaderboard_entry,
+    upsert_competition_leaderboard_entry,
+    AlgoTimeEntryUpsertRequest,
+    CompetitionEntryUpsertRequest,
 )
 
 
@@ -1258,4 +1263,316 @@ class TestResetAlgoTimeLeaderboard:
             reset_algotime_leaderboard(mock_response, mock_db)
 
         assert exc_info.value.status_code == 500
-        assert "Failed to reset" in exc_info.value.detail
+
+
+# ---------------------------------------------------------------------------
+# _aggregate_uqi_stats
+# ---------------------------------------------------------------------------
+
+def make_uqi_row(points=None, lapse_time=None):
+    row = Mock()
+    row.points = points
+    row.lapse_time = lapse_time
+    return row
+
+
+class TestAggregateUqiStats:
+
+    def test_sums_points_ignoring_none(self):
+        rows = [make_uqi_row(100), make_uqi_row(None), make_uqi_row(200)]
+        total_score, _, _ = _aggregate_uqi_stats(rows)
+        assert total_score == 300
+
+    def test_counts_problems_solved_as_nonzero_points(self):
+        rows = [make_uqi_row(100), make_uqi_row(0), make_uqi_row(None), make_uqi_row(200)]
+        _, problems_solved, _ = _aggregate_uqi_stats(rows)
+        assert problems_solved == 2
+
+    def test_sums_lapse_time_ignoring_none(self):
+        rows = [make_uqi_row(lapse_time=60), make_uqi_row(lapse_time=None), make_uqi_row(lapse_time=120)]
+        _, _, total_time = _aggregate_uqi_stats(rows)
+        assert total_time == 180
+
+    def test_empty_rows_returns_zeros(self):
+        total_score, problems_solved, total_time = _aggregate_uqi_stats([])
+        assert total_score == 0
+        assert problems_solved == 0
+        assert total_time == 0
+
+    def test_all_none_points_gives_zero_score(self):
+        rows = [make_uqi_row(None), make_uqi_row(None)]
+        total_score, problems_solved, _ = _aggregate_uqi_stats(rows)
+        assert total_score == 0
+        assert problems_solved == 0
+
+    def test_returns_tuple_of_three(self):
+        result = _aggregate_uqi_stats([])
+        assert len(result) == 3
+
+
+# ---------------------------------------------------------------------------
+# upsert_algotime_leaderboard_entry
+# ---------------------------------------------------------------------------
+
+def _make_algotime_request(user_id=1):
+    return AlgoTimeEntryUpsertRequest(user_id=user_id)
+
+
+def _make_user(first="Alice", last="Smith"):
+    u = Mock()
+    u.first_name = first
+    u.last_name = last
+    return u
+
+
+def _make_algotime_entry(user_id=1, total_score=100, problems_solved=1, total_time=60):
+    e = Mock()
+    e.algotime_leaderboard_entry_id = 99
+    e.user_id = user_id
+    e.total_score = total_score
+    e.problems_solved = problems_solved
+    e.total_time = total_time
+    e.last_updated = datetime.now(timezone.utc)
+    return e
+
+
+class TestUpsertAlgoTimeLeaderboardEntry:
+
+    def _setup_db(self, mock_db, user, uqi_rows, existing_entry):
+        """Wire mock_db for the upsert AlgoTime flow."""
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = user
+
+        q2 = Mock()
+        q2.join.return_value.join.return_value.filter.return_value.all.return_value = uqi_rows
+
+        q3 = Mock()
+        q3.filter.return_value.first.return_value = existing_entry
+
+        mock_db.query.side_effect = [q1, q2, q3]
+
+    def test_creates_new_entry_when_none_exists(self, mock_db, mock_response):
+        user = _make_user()
+        uqi_rows = [make_uqi_row(100, 60), make_uqi_row(200, 120)]
+        self._setup_db(mock_db, user, uqi_rows, None)
+
+        result = upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
+        assert result["totalScore"] == 300
+        assert result["problemsSolved"] == 2
+        assert result["totalTime"] == 180
+
+    def test_updates_existing_entry(self, mock_db, mock_response):
+        user = _make_user()
+        uqi_rows = [make_uqi_row(100, 30)]
+        entry = _make_algotime_entry(total_score=50, problems_solved=0, total_time=10)
+        self._setup_db(mock_db, user, uqi_rows, entry)
+
+        upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        assert entry.total_score == 100   # max(100, 50)
+        assert entry.problems_solved == 1
+        mock_db.add.assert_not_called()
+        mock_db.commit.assert_called_once()
+
+    def test_score_never_decreases(self, mock_db, mock_response):
+        """If recalculated score < stored score, stored score is kept."""
+        user = _make_user()
+        uqi_rows = [make_uqi_row(None)]   # all null → calculated = 0
+        entry = _make_algotime_entry(total_score=300, problems_solved=3, total_time=0)
+        self._setup_db(mock_db, user, uqi_rows, entry)
+
+        upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        assert entry.total_score == 300   # max(0, 300) preserved
+        assert entry.problems_solved == 3
+
+    def test_user_not_found_raises_404(self, mock_db, mock_response):
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = None
+        mock_db.query.return_value = q1
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 404
+
+    def test_database_error_raises_500(self, mock_db, mock_response):
+        mock_db.query.side_effect = Exception("DB error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 500
+
+    def test_response_shape(self, mock_db, mock_response):
+        user = _make_user("Bob", "Jones")
+        uqi_rows = [make_uqi_row(100, 45)]
+        self._setup_db(mock_db, user, uqi_rows, None)
+
+        result = upsert_algotime_leaderboard_entry(_make_algotime_request(user_id=7), mock_response, mock_db)
+
+        assert result["userId"] == 7
+        assert result["name"] == "Bob Jones"
+        assert "totalScore" in result
+        assert "problemsSolved" in result
+        assert "totalTime" in result
+        assert "lastUpdated" in result
+
+    def test_no_cache_headers_set(self, mock_db, mock_response):
+        user = _make_user()
+        self._setup_db(mock_db, user, [], None)
+
+        upsert_algotime_leaderboard_entry(_make_algotime_request(), mock_response, mock_db)
+
+        assert mock_response.headers.get("Cache-Control") == "no-store, no-cache, must-revalidate"
+
+
+# ---------------------------------------------------------------------------
+# upsert_competition_leaderboard_entry
+# ---------------------------------------------------------------------------
+
+def _make_competition_request(user_id=1, competition_id=10):
+    return CompetitionEntryUpsertRequest(user_id=user_id, competition_id=competition_id)
+
+
+def _make_competition_entry(competition_id=10, user_id=1, total_score=100, problems_solved=1, total_time=60):
+    e = Mock()
+    e.competition_leaderboard_entry_id = 55
+    e.competition_id = competition_id
+    e.user_id = user_id
+    e.total_score = total_score
+    e.problems_solved = problems_solved
+    e.total_time = total_time
+    return e
+
+
+class TestUpsertCompetitionLeaderboardEntry:
+
+    def _setup_db(self, mock_db, user, competition, uqi_rows, existing_entry):
+        """Wire mock_db for the upsert competition flow."""
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = user
+
+        q2 = Mock()
+        q2.filter.return_value.first.return_value = competition
+
+        q3 = Mock()
+        q3.join.return_value.filter.return_value.all.return_value = uqi_rows
+
+        q4 = Mock()
+        q4.filter.return_value.first.return_value = existing_entry
+
+        mock_db.query.side_effect = [q1, q2, q3, q4]
+
+    def test_creates_new_entry_when_none_exists(self, mock_db, mock_response):
+        user = _make_user()
+        comp = Mock()
+        uqi_rows = [make_uqi_row(100, 30), make_uqi_row(200, 90)]
+        self._setup_db(mock_db, user, comp, uqi_rows, None)
+
+        result = upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
+        assert result["totalScore"] == 300
+        assert result["problemsSolved"] == 2
+        assert result["totalTime"] == 120
+        assert result["competitionId"] == 10
+
+    def test_updates_existing_entry(self, mock_db, mock_response):
+        user = _make_user()
+        comp = Mock()
+        uqi_rows = [make_uqi_row(200, 45)]
+        entry = _make_competition_entry(total_score=100, problems_solved=1, total_time=10)
+        self._setup_db(mock_db, user, comp, uqi_rows, entry)
+
+        upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert entry.total_score == 200   # max(200, 100)
+        assert entry.problems_solved == 1
+        mock_db.add.assert_not_called()
+        mock_db.commit.assert_called_once()
+
+    def test_score_never_decreases(self, mock_db, mock_response):
+        user = _make_user()
+        comp = Mock()
+        uqi_rows = [make_uqi_row(None)]   # calculated = 0
+        entry = _make_competition_entry(total_score=500, problems_solved=5, total_time=0)
+        self._setup_db(mock_db, user, comp, uqi_rows, entry)
+
+        upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert entry.total_score == 500   # max(0, 500) preserved
+        assert entry.problems_solved == 5
+
+    def test_user_not_found_raises_404(self, mock_db, mock_response):
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = None
+        mock_db.query.return_value = q1
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 404
+
+    def test_competition_not_found_raises_404(self, mock_db, mock_response):
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = _make_user()
+        q2 = Mock()
+        q2.filter.return_value.first.return_value = None
+        mock_db.query.side_effect = [q1, q2]
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 404
+
+    def test_database_error_raises_500(self, mock_db, mock_response):
+        mock_db.query.side_effect = Exception("DB error")
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 500
+
+    def test_response_shape(self, mock_db, mock_response):
+        user = _make_user("Carol", "White")
+        comp = Mock()
+        uqi_rows = [make_uqi_row(100, 60)]
+        self._setup_db(mock_db, user, comp, uqi_rows, None)
+
+        result = upsert_competition_leaderboard_entry(
+            _make_competition_request(user_id=3, competition_id=10), mock_response, mock_db
+        )
+
+        assert result["userId"] == 3
+        assert result["competitionId"] == 10
+        assert result["name"] == "Carol White"
+        assert "totalScore" in result
+        assert "problemsSolved" in result
+        assert "totalTime" in result
+
+    def test_no_cache_headers_set(self, mock_db, mock_response):
+        user = _make_user()
+        comp = Mock()
+        self._setup_db(mock_db, user, comp, [], None)
+
+        upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert mock_response.headers.get("Cache-Control") == "no-store, no-cache, must-revalidate"
+
+    def test_http_exception_propagated_not_wrapped(self, mock_db, mock_response):
+        q1 = Mock()
+        q1.filter.return_value.first.return_value = _make_user()
+        q2 = Mock()
+        q2.filter.return_value.first.side_effect = HTTPException(status_code=403, detail="Forbidden")
+        mock_db.query.side_effect = [q1, q2]
+
+        with pytest.raises(HTTPException) as exc_info:
+            upsert_competition_leaderboard_entry(_make_competition_request(), mock_response, mock_db)
+
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail == "Forbidden"

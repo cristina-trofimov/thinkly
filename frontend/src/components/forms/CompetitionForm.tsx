@@ -15,6 +15,7 @@ import { GeneralInfoCard } from "@/components/createActivity/GeneralInfoCard";
 import { GameplayLogicCard } from "@/components/createActivity/GameplayLogicCard";
 import { NotificationsCard } from "@/components/createActivity/NotificationsCard";
 import type { CompetitionFormPayload } from "@/types/competition/Competition.type";
+import { getDiffColor } from "@/utils/difficultyBadge";
 
 
 interface CompetitionFormProps {
@@ -259,14 +260,7 @@ export function CompetitionForm({ initialData, onSubmit, onCancel, submitLabel, 
         }
     };
 
-    const getDiffColor = (d: string) => {
-        switch (d.toLowerCase()) {
-            case "easy": return "difficulty-easy";
-            case "medium": return "difficulty-medium";
-            case "hard": return "difficulty-hard";
-            default: return "difficulty-unknown";
-        }
-    };
+
 
     const formTitle = getFormTitle(isReadOnly, !!initialData);
 

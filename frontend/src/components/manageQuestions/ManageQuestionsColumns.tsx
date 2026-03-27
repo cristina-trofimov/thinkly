@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { EditableQuestionFields, Question } from "@/types/questions/QuestionPagination.type";
 import ActionsCell from "./QuestionActionsCell";
+import { getDiffColor } from "@/utils/difficultyBadge";
 
 const difficultyOrder: Record<string, number> = {
   "easy": 1,
@@ -16,6 +17,7 @@ const difficultyOrder: Record<string, number> = {
   "hard": 3,
   "Hard": 3,
 }
+
 
 interface TableMeta {
   handleQuestionUpdate?: (questionId: number, updatedQuestionFields: EditableQuestionFields) => boolean;
@@ -70,19 +72,19 @@ export const columns: ColumnDef<Question>[] = [
         </div>
       );
     },
-     cell: ({ row }) => {
+    cell: ({ row }) => {
       const id: number = row.original.question_id;
 
       return (
         <div className="text-center font-medium">
-            {id}
+          {id}
         </div>
       );
     }
   },
   {
-      accessorKey: "question_name",
-      header: ({ column }) => {
+    accessorKey: "question_name",
+    header: ({ column }) => {
       return (
         <div className="text-center">
           <Button
@@ -95,13 +97,13 @@ export const columns: ColumnDef<Question>[] = [
         </div>
       );
     },
-    
+
     cell: ({ row }) => {
       const name: string = row.original.question_name;
 
       return (
         <div className="text-left font-medium italic">
-            {name}
+          {name}
         </div>
       );
     },
@@ -142,20 +144,13 @@ export const columns: ColumnDef<Question>[] = [
     },
     cell: ({ row }) => {
       const difficulty = row.getValue<string>("difficulty");
-      const normalizedDifficulty = difficulty.toLowerCase();
-      let tagColorClass = "text-muted-foreground";
 
-      if (normalizedDifficulty === "hard") {
-        tagColorClass = "text-red-500";
-      } else if (normalizedDifficulty === "medium") {
-        tagColorClass = "text-yellow-500";
-      } else if (normalizedDifficulty === "easy") {
-        tagColorClass = "text-green-500";
-      }
 
       return (
-        <div className={`flex items-center gap-2 justify-center ${tagColorClass}`} >
-          {difficulty.replace(/^\w/, (c) => c.toUpperCase())}
+        <div className={`flex items-center gap-2 justify-center  `} >
+          <span className={`text-[14px] w-fit px-2 py-1 rounded-full ${getDiffColor(difficulty)}`}>
+            {difficulty.replace(/^\w/, (c) => c.toUpperCase())}
+          </span>
         </div>
       );
     },
@@ -194,17 +189,17 @@ export const columns: ColumnDef<Question>[] = [
     enableSorting: false,
   },
   {
-      id: "actions",
-      cell: ({ row, table }) => {
-        const question = row.original;
-        const meta = table.options.meta as TableMeta;
-        const { handleQuestionDelete } = meta;
-  
-        return (
-          <div className="flex justify-center">
-            <ActionsCell question={question} onDelete={handleQuestionDelete} />
-          </div>
-        );
-      },
+    id: "actions",
+    cell: ({ row, table }) => {
+      const question = row.original;
+      const meta = table.options.meta as TableMeta;
+      const { handleQuestionDelete } = meta;
+
+      return (
+        <div className="flex justify-center">
+          <ActionsCell question={question} onDelete={handleQuestionDelete} />
+        </div>
+      );
     },
+  },
 ];

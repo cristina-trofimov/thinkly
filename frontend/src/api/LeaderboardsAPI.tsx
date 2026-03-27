@@ -374,6 +374,24 @@ export async function getAllAlgoTimeEntriesForExport(): Promise<AlgoTimeEntry[]>
     }
 }
 
+export async function upsertCompetitionLeaderboardEntry(userId: number, competitionId: number): Promise<void> {
+    try {
+        await axiosClient.put("/leaderboards/competitions/entry", { user_id: userId, competition_id: competitionId });
+    } catch (err) {
+        console.error("Error upserting competition leaderboard entry:", err);
+        throw err;
+    }
+}
+
+export async function upsertAlgoTimeLeaderboardEntry(userId: number): Promise<void> {
+    try {
+        await axiosClient.put("/leaderboards/algotime/entry", { user_id: userId });
+    } catch (err) {
+        console.error("Error upserting AlgoTime leaderboard entry:", err);
+        throw err;
+    }
+}
+
 export async function resetAlgoTimeLeaderboard(): Promise<{ message: string; entriesDeleted: number }> {
     try {
         const response = await axiosClient.delete<{ message: string; entriesDeleted: number }>(

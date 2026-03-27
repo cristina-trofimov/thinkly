@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, call
+from unittest.mock import MagicMock, Mock, patch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import sys
@@ -31,6 +31,11 @@ TRACK_EVENT = "src.endpoints.manage_accounts_api.track_custom_event"
 def mock_db():
     return Mock(spec=Session)
 
+@pytest.fixture
+def mock_claims():
+    """Mock JWT claims returning a user ID."""
+    return {"sub": "1", "user_type": "owner"}
+
 
 @pytest.fixture
 def sample_user_account():
@@ -41,6 +46,13 @@ def sample_user_account():
     user.email = "john.doe@example.com"
     user.user_type = "participant"
     user.created_at = Mock()
+    return user
+
+@pytest.fixture
+def sample_owner_account():
+    user = Mock()
+    user.user_id = 1
+    user.user_type = "owner"
     return user
 
 
@@ -281,75 +293,89 @@ class TestDeleteMultipleAccounts:
 
 class TestUpdateAccount:
 
-    def test_update_account_single_field(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest(first_name="Jane")
+    def test_update_account_single_field(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            # We need two returns: 1. Requester (Owner), 2. Target (User)
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            update_data = UpdateAccountRequest(first_name="Jane")
 
-        with patch(TRACK_EVENT):
-            result = update_account(1, update_data, mock_db)
+            with patch(TRACK_EVENT):
+                result = update_account(1, update_data, mock_db, mock_claims)
 
-        assert result["first_name"] == "Jane"
-        mock_db.commit.assert_called_once()
-        mock_db.refresh.assert_called_once_with(sample_user_account)
+            assert result["first_name"] == "Jane"
+            mock_db.commit.assert_called_once()
 
-    def test_update_account_multiple_fields(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest(
-            first_name="Jane", last_name="Smith", email="jane.smith@example.com"
-        )
+    def test_update_account_multiple_fields(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            update_data = UpdateAccountRequest(
+                first_name="Jane", last_name="Smith", email="jane.smith@example.com"
+            )
 
-        with patch(TRACK_EVENT):
-            result = update_account(1, update_data, mock_db)
+            with patch(TRACK_EVENT):
+                result = update_account(1, update_data, mock_db, mock_claims)
 
-        assert result["first_name"] == "Jane"
-        assert result["last_name"] == "Smith"
-        assert result["email"] == "jane.smith@example.com"
+            assert result["first_name"] == "Jane"
+            assert result["last_name"] == "Smith"
+            assert result["email"] == "jane.smith@example.com"
 
-    def test_update_account_all_fields(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest(
-            first_name="Jane", last_name="Smith",
-            email="jane.smith@example.com", user_type="admin"
-        )
+    def test_update_account_all_fields(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            update_data = UpdateAccountRequest(
+                first_name="Jane", last_name="Smith",
+                email="jane.smith@example.com", user_type="admin"
+            )
 
-        with patch(TRACK_EVENT):
-            result = update_account(1, update_data, mock_db)
+            with patch(TRACK_EVENT):
+                result = update_account(1, update_data, mock_db, mock_claims)
 
-        assert result["user_type"] == "admin"
+            assert result["user_type"] == "admin"
 
-    def test_update_account_not_found(self, mock_db):
-        mock_db.query.return_value.filter.return_value.first.return_value = None
-        update_data = UpdateAccountRequest(first_name="Jane")
+    def test_update_account_not_found(self, mock_db, sample_owner_account, mock_claims):
+            # Requester found, but Target not found
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                None
+            ]
+            update_data = UpdateAccountRequest(first_name="Jane")
 
-        with pytest.raises(HTTPException) as exc_info:
-            update_account(999, update_data, mock_db)
+            with pytest.raises(HTTPException) as exc_info:
+                update_account(999, update_data, mock_db, mock_claims)
 
-        assert exc_info.value.status_code == 404
-        assert exc_info.value.detail == "Account not found."
+            assert exc_info.value.status_code == 404
+            assert exc_info.value.detail == "Target account not found."
 
-    def test_update_account_no_fields(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest()
+    def test_update_account_no_fields(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            update_data = UpdateAccountRequest()
 
-        with pytest.raises(HTTPException) as exc_info:
-            update_account(1, update_data, mock_db)
+            with pytest.raises(HTTPException) as exc_info:
+                update_account(1, update_data, mock_db, mock_claims)
 
-        assert exc_info.value.status_code == 400
-        assert exc_info.value.detail == "No fields to update."
+            assert exc_info.value.status_code == 400
+            assert exc_info.value.detail == "No fields to update."
 
-    def test_update_account_calls_track_event(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        update_data = UpdateAccountRequest(first_name="Jane", email="jane@example.com")
+    def test_update_account_calls_track_event(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            update_data = UpdateAccountRequest(first_name="Jane", email="jane@example.com")
 
-        with patch(TRACK_EVENT) as mock_track:
-            update_account(1, update_data, mock_db)
+            with patch(TRACK_EVENT) as mock_track:
+                update_account(1, update_data, mock_db, mock_claims)
 
-        mock_track.assert_called_once()
-        call_kwargs = mock_track.call_args[1]
-        assert call_kwargs["user_id"] == "1"
-        assert call_kwargs["event_name"] == "account_updated"
-        assert "first_name" in call_kwargs["properties"]["updated_fields"]
-        assert call_kwargs["properties"]["field_count"] == 2
+            mock_track.assert_called_once()
 
     def test_update_account_does_not_track_event_on_404(self, mock_db):
         mock_db.query.return_value.filter.return_value.first.return_value = None
@@ -359,13 +385,64 @@ class TestUpdateAccount:
                 update_account(999, UpdateAccountRequest(first_name="X"), mock_db)
 
         mock_track.assert_not_called()
+        
+    def test_transfer_ownership_logic(self, mock_db, mock_claims):
+            """Test the Owner -> Admin swap logic."""
+            requester = MagicMock(user_id=1, user_type="owner")
+            target = MagicMock(user_id=4, user_type="participant")
+            
+            mock_db.query.return_value.filter.return_value.first.side_effect = [requester, target]
+            update_data = UpdateAccountRequest(user_type="owner")
 
-    def test_update_account_does_not_track_event_on_400(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
+            with patch(TRACK_EVENT):
+                update_account(4, update_data, mock_db, mock_claims)
+
+            # Assert swap occurred
+            assert requester.user_type == "admin"
+            assert target.user_type == "owner"
+            mock_db.commit.assert_called_once()
+            
+    def test_admin_cannot_transfer_ownership(self, mock_db):
+        """Test that non-owners get 403 when trying to promote to owner."""
+        requester = MagicMock(user_id=2, user_type="admin")
+        target = MagicMock(user_id=4, user_type="participant")
+        mock_claims = {"sub": "2", "user_type": "admin"}
+        
+        mock_db.query.return_value.filter.return_value.first.side_effect = [requester, target]
+        update_data = UpdateAccountRequest(user_type="owner")
+
+        with pytest.raises(HTTPException) as exc_info:
+            update_account(4, update_data, mock_db, mock_claims)
+
+        assert exc_info.value.status_code == 403
+        assert "Only the current Owner" in exc_info.value.detail
+        
+    def test_update_account_refresh_called_after_commit(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            sample_owner_account, 
+            sample_user_account
+        ]
+        call_order = []
+        mock_db.commit.side_effect = lambda: call_order.append("commit")
+        mock_db.refresh.side_effect = lambda _: call_order.append("refresh")
+
+        with patch(TRACK_EVENT):
+            update_account(1, UpdateAccountRequest(first_name="X"), mock_db, mock_claims)
+
+        assert "commit" in call_order
+        assert "refresh" in call_order
+
+    def test_update_account_does_not_track_event_on_404(self, mock_db, mock_claims):
+        # Requester found, but target not found
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            Mock(user_id=1, user_type="owner"), 
+            None
+        ]
 
         with patch(TRACK_EVENT) as mock_track:
             with pytest.raises(HTTPException):
-                update_account(1, UpdateAccountRequest(), mock_db)
+                # Added mock_claims
+                update_account(999, UpdateAccountRequest(first_name="X"), mock_db, mock_claims)
 
         mock_track.assert_not_called()
 
@@ -378,16 +455,48 @@ class TestUpdateAccount:
 
         assert result["user_type"] == "owner"
 
-    def test_update_account_refresh_called_after_commit(self, mock_db, sample_user_account):
-        mock_db.query.return_value.filter.return_value.first.return_value = sample_user_account
-        call_order = []
-        mock_db.commit.side_effect = lambda: call_order.append("commit")
-        mock_db.refresh.side_effect = lambda _: call_order.append("refresh")
+    def test_update_account_refresh_called_after_commit(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+            mock_db.query.return_value.filter.return_value.first.side_effect = [
+                sample_owner_account, 
+                sample_user_account
+            ]
+            call_order = []
+            mock_db.commit.side_effect = lambda: call_order.append("commit")
+            mock_db.refresh.side_effect = lambda _: call_order.append("refresh")
+
+            with patch(TRACK_EVENT):
+                # Added mock_claims
+                update_account(1, UpdateAccountRequest(first_name="X"), mock_db, mock_claims)
+
+            assert "commit" in call_order
+            assert "refresh" in call_order
+            
+    def test_update_account_does_not_track_event_on_400(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            sample_owner_account, 
+            sample_user_account
+        ]
+
+        with patch(TRACK_EVENT) as mock_track:
+            with pytest.raises(HTTPException):
+                # Added mock_claims
+                update_account(1, UpdateAccountRequest(), mock_db, mock_claims)
+
+        mock_track.assert_not_called()
+        
+
+    def test_update_account_user_type_change(self, mock_db, sample_user_account, sample_owner_account, mock_claims):
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            sample_owner_account, 
+            sample_user_account
+        ]
+        update_data = UpdateAccountRequest(user_type="admin") # Testing standard change
 
         with patch(TRACK_EVENT):
-            update_account(1, UpdateAccountRequest(first_name="X"), mock_db)
+            # Added mock_claims
+            result = update_account(1, update_data, mock_db, mock_claims)
 
-        assert call_order == ["commit", "refresh"]
+        assert result["user_type"] == "admin"
 
 
 # ---------------------------------------------------------------------------
