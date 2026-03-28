@@ -125,7 +125,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             observer.observe(codeDescAreaContainerRef.current)
             return () => observer.disconnect()
         }
-    }, [initialWidth, setContainerWidth])
+    }, [initialWidth, setContainerWidth, codeDescAreaContainerRef])
 
     if (!question || !question_instance || !uqi) return
 
