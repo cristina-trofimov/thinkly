@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, forwardRef, useState } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -23,29 +23,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const CodeDescArea = (
-    { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-      submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved }:
-    { question: Question | undefined,
-       question_instance: QuestionInstance | undefined | null,
-       uqi: UserQuestionInstance | undefined | null,
-       testcases: TestCase[] | undefined | null,
-        /** The ID of the active competition/event, if the question was opened from one. */
-      eventId: number | undefined,
-      /** The display name of the active event. */
-      eventName: string | undefined,
-      /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
-      isCompetitionEvent: boolean,
-      currentUserId?: number,
-      /** Driven by the parent when the user hits Submit. */
-      submissionState?: 'idle' | 'loading' | 'done',
-      /** The latest submission returned by the API once submissionState === 'done'. */
-      latestSubmissionResult?: SubmissionType | null,
-      allLanguages: Language[] | undefined,
-      submissions: SubmissionType[] | undefined,
-      onRiddleSolved?: () => void
-    }
-) => {
+type DescProp = {
+    question: Question | undefined,
+    question_instance: QuestionInstance | undefined | null,
+    uqi: UserQuestionInstance | undefined | null,
+    testcases: TestCase[] | undefined | null,
+    eventId: number | undefined,
+    eventName: string | undefined,
+    isCompetitionEvent: boolean,
+    currentUserId?: number,
+    submissionState?: 'idle' | 'loading' | 'done',
+    latestSubmissionResult?: SubmissionType | null,
+    allLanguages: Language[] | undefined,
+    submissions: SubmissionType[] | undefined,
+    onRiddleSolved?: () => void
+    codeDescAreaContainerRef: React.Ref<HTMLDivElement>
+}
+
+const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
+({ question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
+    submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved
+}, codeDescAreaContainerRef) => {
 
     const hasEvent = eventId !== undefined
 
@@ -64,7 +62,6 @@ const CodeDescArea = (
 
     const [activeTab, setActiveTab] = useState("description")
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(0)
     const [initialWidth, setInitialWidth] = useState<number | null>(null)
 
@@ -117,21 +114,28 @@ const CodeDescArea = (
     }, [question_instance, uqi?.riddle_complete])
 
     useEffect(() => {
-        if (!containerRef.current) return
-        const observer = new ResizeObserver(entries => {
-            if (entries.length === 0) return
-            const width = entries[0].contentRect.width
-            setContainerWidth(width)
-            if (initialWidth === null) setInitialWidth(width)
-        })
-        observer.observe(containerRef.current)
-        return () => observer.disconnect()
+        if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
+            && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current) {
+            const observer = new ResizeObserver(entries => {
+                if (entries.length === 0) return
+                const width = entries[0].contentRect.width
+                setContainerWidth(width)
+                if (initialWidth === null) setInitialWidth(width)
+            })
+            observer.observe(codeDescAreaContainerRef.current)
+            return () => observer.disconnect()
+        }
     }, [initialWidth, setContainerWidth])
 
     if (!question || !question_instance || !uqi) return
 
-    const fullSize = containerRef.current?.offsetWidth
+    let fullSize: number | undefined = undefined
     let halfSize = 0, quarterSize = 0
+
+    if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object' && "current" in codeDescAreaContainerRef) {
+        fullSize = codeDescAreaContainerRef?.current?.offsetWidth
+    }
+
     if (fullSize) {
         halfSize = fullSize / 2
         quarterSize = fullSize / 4
@@ -172,7 +176,7 @@ const CodeDescArea = (
         <Tabs data-testid="tabs" defaultValue='description'
             value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
         >
-            <TabsList data-testid="tabs-list" ref={containerRef}
+            <TabsList data-testid="tabs-list" ref={codeDescAreaContainerRef}
                 className={`w-full h-10 py-0 px-4 bg-muted rounded-none
                         border-b border-border/75 dark:border-border/50`}
             >
@@ -349,6 +353,6 @@ const CodeDescArea = (
             )}
         </Tabs>
     )
-}
+})
 
 export default CodeDescArea

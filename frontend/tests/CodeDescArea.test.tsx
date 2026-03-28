@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { createRef, MutableRefObject } from 'react'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -170,6 +170,11 @@ const mockLanguages: Language[] = [
   { row_id: 2, lang_judge_id: 51, monaco_id: 'java', display_name: 'Java', active: false },
 ]
 
+const mockRef = createRef<HTMLDivElement>()
+// const mockRef = (instance: HTMLDivElement | null) => {
+//   current = instance
+// }
+
 // ─── Typed mock references ────────────────────────────────────────────────────
 
 const mockedGetRiddleById = getRiddleById as jest.Mock
@@ -208,6 +213,7 @@ const renderCodeDescArea = (opts: RenderOpts = {}) => render(
       allLanguages={opts.allLanguages ?? mockLanguages}
       submissions={opts.submissions ?? mockSubmissions}
       onRiddleSolved={opts.onRiddleSolved}
+      codeDescAreaContainerRef={mockRef}
     />
   </TooltipProvider>
 )
@@ -361,6 +367,7 @@ describe('CodeDescArea — result tab', () => {
       isCompetitionEvent: true,
       allLanguages: mockLanguages,
       submissions: mockSubmissions,
+      codeDescAreaContainerRef: mockRef
     }
 
     const { rerender } = render(

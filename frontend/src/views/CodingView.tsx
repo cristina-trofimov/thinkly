@@ -27,7 +27,6 @@ import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
-import { getAllSubmissions } from '@/api/SubmissionAPI';
 
 
 const CodingView = () => {
@@ -45,8 +44,10 @@ const CodingView = () => {
     questions, questionsInstances, languages, prevLangRef,
     selectedLang, setSelectedLang, event, testcases,
     loadingMsg, setLoadingMsg, isLoading, setIsLoading,
-    allSubmissions, setAllSubmissions, allLanguages
+    allSubmissions, allLanguages
   } = useCodingHooks(question, comp, algo)
+
+  const codeDescAreaContainerRef = useRef<HTMLDivElement>(null)
 
   const {
     trackLanguageChanged,
@@ -173,28 +174,6 @@ const CodingView = () => {
           activeQuestion!.question_id,
           selectedLang!,
         )
-
-        // const {
-        //   codeRunResponse,
-        //   submissionResponse,
-        //   mostRecentSubResponse
-        // } = await submitAttempt(
-        //   activeQuestion, activeQuestionInstance,
-        //   userQuestionInstance, event,
-        //   code, selectedLang?.lang_judge_id, testcases, user!.id)
-
-        // await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
-        //   .then((response) => setAllSubmissions(response))
-
-        // setLatestSubmissionResult(submissionResponse)
-
-        // setLogs(prev => [...prev, codeRunResponse.judge0Response])
-        // setMostRecentSub(mostRecentSubResponse)
-
-        // trackCodeSubmitted(
-        //   activeQuestion!.question_id,
-        //   selectedLang!,
-        // )
       } catch (err) {
         toast.error("Error when submitting the code.")
         setSubmissionState('idle')
@@ -442,6 +421,7 @@ const CodingView = () => {
             submissions={allSubmissions}
             allLanguages={allLanguages}
             onRiddleSolved={handleRiddleSolved}
+            codeDescAreaContainerRef={codeDescAreaContainerRef}
           />
         </Panel>
 
