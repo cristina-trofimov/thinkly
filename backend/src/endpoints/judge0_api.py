@@ -7,6 +7,8 @@ from slowapi.util import get_remote_address
 from dotenv import load_dotenv
 import logging
 from services.posthog_analytics import track_custom_event
+from fastapi.responses import JSONResponse
+
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -91,7 +93,30 @@ def judge0_get_outputs(
                     return submission
 
             # All accepted — return the last one as the representative result
-            return submissions[-1]
+            # Calculate average time and memory
+            total_time = sum(float(submission.get("time", 0) or 0) for submission in submissions)
+            total_memory = sum(float(submission.get("memory", 0) or 0) for submission in submissions)
+            num_submissions = len(submissions)
+
+            average_time = total_time / num_submissions if num_submissions > 0 else 0
+            average_memory = total_memory / num_submissions if num_submissions > 0 else 0
+
+            average_submission = {
+                "stdout": "All testcases passed.",
+                "time": f"{average_time:.2f}",
+                "memory": f"{average_memory:.2f}",
+                "stderr": None,
+                "token": None,
+                "compile_output": None,
+                "message": None,
+                "status": {
+                    "id": submissions[0].get("status").get("id"),
+                    "description": "Accepted"
+                }
+            }
+
+            # return JSONResponse(content=average_submission, status_code=200)
+            return average_submission
 
         except Exception as e:
             logger.exception("Network error when getting Judge0 batch outputs")
