@@ -14,6 +14,7 @@ import { getAllLanguages } from '../src/api/LanguageAPI'
 import { toast } from 'sonner'
 import { logFrontend } from '../src/api/LoggerAPI'
 import { Language } from '../src/types/questions/Language.type'
+import { TooltipProvider } from '@radix-ui/react-tooltip'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
@@ -62,15 +63,17 @@ jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
 
 // SubmissionResult and its skeleton are tested in SubmissionResult_test.tsx.
 // Mock them here so CodeDescArea tests focus only on wiring/state logic.
-jest.mock('../src/components/codingPage/SubmissionResult', () => ({
-  SubmissionResult: ({ result }: any) => (
-    <div data-testid="mock-submission-result" data-status={result.status}>
-      Submission Result
-    </div>
-  ),
+jest.mock('../src/components/codingPage/SubmissionSkeleton', () => ({
   SubmissionResultSkeleton: () => (
     <div data-testid="mock-submission-result-skeleton">Loading skeleton</div>
   ),
+}))
+jest.mock('../src/components/codingPage/SubmissionDetail', () => ({
+  SubmissionDetail: ({ submission, goBack }: any) => (
+    <div data-testid="mock-submission-result" data-status={submission.status} onClick={goBack}>
+      Submission Result
+    </div>
+  )
 }))
 
 // Mock CodingPageLeaderboard at both possible import paths
@@ -231,20 +234,22 @@ const renderCodeDescArea = (overrides: Partial<RenderOverrides> = {}) => {
   const latestResult   = overrides.latestSubmissionResult ?? null
 
   return render(
-    <CodeDescArea
-      question={question}
-      question_instance={questionInst}
-      uqi={uqi}
-      testcases={testcases}
-      eventId={eventId}
-      eventName={eventName}
-      isCompetitionEvent={isComp}
-      currentUserId={currentUserId}
-      submissionState={subState}
-      latestSubmissionResult={latestResult}
-      allLanguages={mockLanguages} 
-      submissions={mockSubmissions}
-    />
+    <TooltipProvider>
+      <CodeDescArea
+        question={question}
+        question_instance={questionInst}
+        uqi={uqi}
+        testcases={testcases}
+        eventId={eventId}
+        eventName={eventName}
+        isCompetitionEvent={isComp}
+        currentUserId={currentUserId}
+        submissionState={subState}
+        latestSubmissionResult={latestResult}
+        allLanguages={mockLanguages} 
+        submissions={mockSubmissions}
+      />
+    </TooltipProvider>
   )
 }
 
@@ -398,36 +403,40 @@ describe('CodeDescArea - result tab wiring', () => {
 
   it('auto-switches to result tab when submissionState becomes done', async () => {
     const { rerender } = render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="idle"
-        latestSubmissionResult={null} 
-        allLanguages={mockLanguages} 
-        submissions={mockSubmissions}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="idle"
+          latestSubmissionResult={null} 
+          allLanguages={mockLanguages} 
+          submissions={mockSubmissions}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Description')).toBeInTheDocument())
 
     rerender(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={mockSubmissions}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={mockSubmissions}
+        />
+      </TooltipProvider>
     )
     await waitFor(() =>
       expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
@@ -504,19 +513,21 @@ describe('CodeDescArea - riddle gate', () => {
 describe('CodeDescArea - submissions tab', () => {
   it('shows empty state when no submissions', async () => {
     render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={[]}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[]}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -562,19 +573,21 @@ describe('CodeDescArea - submissions tab', () => {
 
   it('shows singular "attempt" for one submission', async () => {
     render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={[mockSubmissions[0]]}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[mockSubmissions[0]]}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -593,7 +606,27 @@ describe('CodeDescArea - submissions tab', () => {
   })
 })
 
-describe('CodeDescArea - submission detail view', () => {
+describe('CodeDescArea - submission detail view with submission', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    render(
+    <TooltipProvider>
+      <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[mockSubmissions[0]]}
+        />
+    </TooltipProvider>
+  )
+  })
   it('opens submission detail when a row is clicked', async () => {
     renderCodeDescArea()
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
@@ -616,19 +649,21 @@ describe('CodeDescArea - submission detail view', () => {
 
   it('shows stdout when present in detail view', async () => {
     render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={[mockSubmissions[0]]}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[mockSubmissions[0]]}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -639,19 +674,21 @@ describe('CodeDescArea - submission detail view', () => {
 
   it('shows stderr and compile_output when present', async () => {
     render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={[mockSubmissions[1]]}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[mockSubmissions[1]]}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -669,19 +706,21 @@ describe('CodeDescArea - submission detail view', () => {
     }
 
     render(
-      <CodeDescArea
-        question={mockQuestion}
-        question_instance={mockQuestionInstance}
-        uqi={mockUqi}
-        testcases={mockTestcases}
-        eventId={1}
-        eventName="Test Event"
-        isCompetitionEvent={true}
-        submissionState="done"
-        latestSubmissionResult={mockSubmissions[0]}
-        allLanguages={mockLanguages}
-        submissions={[minimalSub]}
-      />
+      <TooltipProvider>
+        <CodeDescArea
+          question={mockQuestion}
+          question_instance={mockQuestionInstance}
+          uqi={mockUqi}
+          testcases={mockTestcases}
+          eventId={1}
+          eventName="Test Event"
+          isCompetitionEvent={true}
+          submissionState="done"
+          latestSubmissionResult={mockSubmissions[0]}
+          allLanguages={mockLanguages}
+          submissions={[minimalSub]}
+        />
+      </TooltipProvider>
     )
     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
     await userEvent.click(screen.getByText('Submissions'))
@@ -701,3 +740,118 @@ describe('CodeDescArea - submission detail view', () => {
     expect(screen.getByTestId('submission-1')).toBeInTheDocument()
   })
 })
+
+// describe('CodeDescArea - submission detail view', () => {
+//   it('opens submission detail when a row is clicked', async () => {
+//     renderCodeDescArea()
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     expect(screen.getByText('Submission Details')).toBeInTheDocument()
+//     expect(screen.getByTestId('back-btn')).toBeInTheDocument()
+//   })
+
+//   it('shows runtime and memory in detail view', async () => {
+//     renderCodeDescArea()
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     expect(screen.getByText(/42 ms/)).toBeInTheDocument()
+//     expect(screen.getByText(/1024 KB/)).toBeInTheDocument()
+//   })
+
+//   it('shows stdout when present in detail view', async () => {
+//     render(
+//       <TooltipProvider>
+//         <CodeDescArea
+//           question={mockQuestion}
+//           question_instance={mockQuestionInstance}
+//           uqi={mockUqi}
+//           testcases={mockTestcases}
+//           eventId={1}
+//           eventName="Test Event"
+//           isCompetitionEvent={true}
+//           submissionState="done"
+//           latestSubmissionResult={mockSubmissions[0]}
+//           allLanguages={mockLanguages}
+//           submissions={[mockSubmissions[0]]}
+//         />
+//       </TooltipProvider>
+//     )
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     expect(screen.getByText('Hello')).toBeInTheDocument()
+//   })
+
+//   it('shows stderr and compile_output when present', async () => {
+//     render(
+//       <TooltipProvider>
+//         <CodeDescArea
+//           question={mockQuestion}
+//           question_instance={mockQuestionInstance}
+//           uqi={mockUqi}
+//           testcases={mockTestcases}
+//           eventId={1}
+//           eventName="Test Event"
+//           isCompetitionEvent={true}
+//           submissionState="done"
+//           latestSubmissionResult={mockSubmissions[0]}
+//           allLanguages={mockLanguages}
+//           submissions={[mockSubmissions[1]]}
+//         />
+//       </TooltipProvider>
+//     )
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     expect(screen.getByText('Traceback...')).toBeInTheDocument()
+//     expect(screen.getByText('error: syntax')).toBeInTheDocument()
+//     expect(screen.getByText('Wrong answer on test 1')).toBeInTheDocument()
+//   })
+
+//   it('shows "no additional output" message when no output fields', async () => {
+//     const minimalSub: SubmissionType = {
+//       ...mockSubmissions[0],
+//       stdout: null, stderr: null, compile_output: null, message: null,
+//     }
+
+//     render(
+//       <TooltipProvider>
+//         <CodeDescArea
+//           question={mockQuestion}
+//           question_instance={mockQuestionInstance}
+//           uqi={mockUqi}
+//           testcases={mockTestcases}
+//           eventId={1}
+//           eventName="Test Event"
+//           isCompetitionEvent={true}
+//           submissionState="done"
+//           latestSubmissionResult={mockSubmissions[0]}
+//           allLanguages={mockLanguages}
+//           submissions={[minimalSub]}
+//         />
+//       </TooltipProvider>
+//     )
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     expect(screen.getByText(/no additional output/i)).toBeInTheDocument()
+//   })
+
+//   it('goes back to submissions list when back button is clicked', async () => {
+//     // renderCodeDescArea()
+//     await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
+//     await userEvent.click(screen.getByText('Submissions'))
+//     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
+//     await userEvent.click(screen.getByTestId('submission-1'))
+//     await userEvent.click(screen.getByTestId('back-btn'))
+//     expect(screen.queryByText('Submission Details')).not.toBeInTheDocument()
+//     expect(screen.getByTestId('submission-1')).toBeInTheDocument()
+//   })
+// })

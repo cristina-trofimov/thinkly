@@ -215,7 +215,7 @@ const CodeDescArea = (
             {/* Description */}
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-4'>
-                    <div className='border-b-2 pb-2' >
+                    <div className='border-b-2 pb-2 h-2/3' >
                         <h1 className='font-bold mb-3'>
                             {question.question_name}
                         </h1>
@@ -223,7 +223,7 @@ const CodeDescArea = (
                             {question.question_description}
                         </p>
                     </div>
-                    <div className='max-h-50 mt-2 px-2 border rounded-xl bg-muted
+                    <div className='max-h-1/3 mt-2 px-2 border rounded-xl bg-muted/65
                             wrap-break-word whitespace-pre-wrap overflow-y-auto'
                     >
                         {testcases?.map((t, idx) => {

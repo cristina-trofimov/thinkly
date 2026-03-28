@@ -540,7 +540,7 @@ const CodingView = () => {
                   </Button>
                 </div>
               </div>
-              <div data-testid="code-output-tab" className='max-h-full p-1.5 flex flex-col'>
+              <div data-testid="code-output-tab" className='h-full p-2.5 flex flex-col'>
                 <ConsoleOutput logs={logs} />
               </div>
             </Panel>
