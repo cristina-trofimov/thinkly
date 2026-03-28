@@ -237,7 +237,7 @@ const CodeDescArea = (
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-6'>
                     <div className='mb-3 flex flex-col items-start gap-2'>
-                        <h1 className='text-xl font-bold'>
+                        <h1 className='text-2xl font-bold'>
                             {question.question_name}
                         </h1>
                         <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>

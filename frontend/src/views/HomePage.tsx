@@ -39,8 +39,6 @@ function HomePage() {
   const [bannerVisible, setBannerVisible] = useState(false);
   const [questionsVisible, setQuestionsVisible] = useState(false);
   const latestQuestionRequestId = useRef(0);
-  const BANNER_REVEAL_DELAY_MS = 700;
-  const QUESTION_REVEAL_DELAY_MS = 120;
 
   const {
     trackHomepageViewed,
@@ -169,11 +167,11 @@ function HomePage() {
       return;
     }
 
-    const timeout = globalThis.setTimeout(() => {
+    const frame = globalThis.requestAnimationFrame(() => {
       setQuestionsVisible(true);
-    }, QUESTION_REVEAL_DELAY_MS);
+    });
 
-    return () => globalThis.clearTimeout(timeout);
+    return () => globalThis.cancelAnimationFrame(frame);
   }, [bannerVisible, isCompLoading, isLoading]);
 
   const shouldShowQuestionSkeleton =
