@@ -144,6 +144,11 @@ const paginatedRiddles = (items = sampleRiddles, page = 1, pageSize = 23, total 
     items,
 });
 
+const expectRiddleSkeletonsToRender = () => {
+    expect(screen.getByText(/Create New Riddle/i)).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
+};
+
 beforeEach(() => {
     jest.clearAllMocks();
     window.history.pushState({}, "Test", "/test");
@@ -180,7 +185,7 @@ describe("ManageRiddles", () => {
 
         render(<ManageRiddles />);
 
-        expect(screen.getByText(/Loading riddles/i)).toBeInTheDocument();
+        expectRiddleSkeletonsToRender();
 
         resolveFn(paginatedRiddles([]));
         await waitFor(() => expect(getRiddlesPage).toHaveBeenCalled());
