@@ -4,13 +4,7 @@ export default function ManageAccountsTableSkeleton() {
   const bodyRows = 8;
 
   return (
-    <div className="container mx-auto p-6" aria-busy="true" aria-live="polite">
-      <div className="flex items-center py-4 gap-3">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-44" />
-        <div className="ml-auto" />
-      </div>
-
+    <div aria-busy="true" aria-live="polite">
       <div className="overflow-hidden rounded-md border">
         <div className="border-b px-4 py-3">
           <div className="grid grid-cols-12 gap-4">

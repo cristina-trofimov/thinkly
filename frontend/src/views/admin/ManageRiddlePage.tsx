@@ -41,6 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ManageRiddlesSkeleton from "@/components/manageRiddles/ManageRiddlesSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
 
 export default function ManageRiddles() {
   const pageSizeOptions = [11, 23, 47, 95] as const;
@@ -49,7 +51,7 @@ export default function ManageRiddles() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(23);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingRiddle, setEditingRiddle] = useState<Riddle | null>(null);
@@ -130,6 +132,7 @@ export default function ManageRiddles() {
   };
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const cardsVisible = useCardReveal(loading, riddles.length);
   const pageItems = useMemo(() => {
     if (pageCount <= 3) {
       return Array.from({ length: pageCount }, (_, index) => index + 1);
@@ -215,131 +218,139 @@ export default function ManageRiddles() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Create New Riddle Card */}
-        <Dialog
-          open={isCreateOpen}
-          onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (open) trackAdminRiddleCreateOpened();
-          }}
-        >
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-50">
-              <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <Plus className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
-                </div>
-                <h3 className="font-semibold text-lg text-primary">
-                  Create New Riddle
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Add a brain teaser
-                </p>
-              </div>
-            </Card>
-          </DialogTrigger>
-
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Riddle</DialogTitle>
-            </DialogHeader>
-            <RiddleForm mode="create" onSuccess={handleRiddleCreated} />
-          </DialogContent>
-        </Dialog>
-
-        {loading && riddles.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
-            Loading riddles...
-          </div>
-        )}
-
-        {riddles.map((riddle) => (
-          <Card
-            key={riddle.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
+      {loading ? (
+        <ManageRiddlesSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Create New Riddle Card */}
+          <Dialog
+            open={isCreateOpen}
+            onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (open) trackAdminRiddleCreateOpened();
+            }}
           >
-            <CardHeader className="bg-muted/30 pb-4">
-              <div className="flex justify-between items-start gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Puzzle className="w-5 h-5 text-primary" />
+            <DialogTrigger asChild>
+              <Card className="cursor-pointer overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] border-2 border-dashed border-primary/40 hover:border-primary group h-full min-h-50">
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <Plus className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
+                  </div>
+                  <h3 className="font-semibold text-lg text-primary">
+                    Create New Riddle
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Add a brain teaser
+                  </p>
                 </div>
+              </Card>
+            </DialogTrigger>
 
-                <div className="flex items-center gap-2">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Riddle</DialogTitle>
+              </DialogHeader>
+              <RiddleForm mode="create" onSuccess={handleRiddleCreated} />
+            </DialogContent>
+          </Dialog>
+
+          {riddles.map((riddle, index) => {
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-2 opacity-0";
+
+            return (
+              <Card
+                key={riddle.id}
+                className={`overflow-hidden hover:shadow-lg transition-all bg-card flex flex-col h-full ${enterClass} motion-safe:duration-700 motion-safe:ease-out`}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
+              >
+                <CardHeader className="bg-muted/30 pb-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Puzzle className="w-5 h-5 text-primary" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {riddle.file && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Has Media
+                        </span>
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(riddle)}
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClick(riddle.id)}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-4 flex-1 flex flex-col gap-4">
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                      Question
+                    </h4>
+                    <p className="font-medium text-sm line-clamp-3 leading-relaxed">
+                      {riddle.question}
+                    </p>
+                  </div>
+
+                  <div className="mt-auto pt-4 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                      Answer
+                    </h4>
+                    <p className="text-sm text-gray-700 italic">{riddle.answer}</p>
+                  </div>
+
                   {riddle.file && (
-                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3" /> Has Media
-                    </span>
+                    <div className="pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs gap-2"
+                        asChild
+                      >
+                        <a
+                          href={riddle.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FileText className="w-3 h-3" /> View Attachment
+                        </a>
+                      </Button>
+                    </div>
                   )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => openEdit(riddle)}
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDeleteClick(riddle.id)}
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-4 flex-1 flex flex-col gap-4">
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Question
-                </h4>
-                <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                  {riddle.question}
-                </p>
-              </div>
-
-              <div className="mt-auto pt-4 border-t">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Answer
-                </h4>
-                <p className="text-sm text-gray-700 italic">{riddle.answer}</p>
-              </div>
-
-              {riddle.file && (
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs gap-2"
-                    asChild
-                  >
-                    <a
-                      href={riddle.file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FileText className="w-3 h-3" /> View Attachment
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-
-        {!loading && riddles.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground">
-            No results.
-          </div>
-        )}
-      </div>
+      {!loading && riddles.length === 0 && (
+        <div className="py-10 text-center text-muted-foreground">
+          No results.
+        </div>
+      )}
 
       <div className="flex flex-row items-center justify-between gap-3 py-6">
         <div className="flex items-center gap-3">

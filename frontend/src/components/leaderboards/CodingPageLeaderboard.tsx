@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { EventLeaderboardSkeleton } from "@/components/leaderboards/EventLeaderboardSkeleton";
 import { ScoreboardDataTable } from "@/components/leaderboards/ScoreboardDataTable";
 import {
   getCompetitionLiveLeaderboard,
@@ -57,11 +58,7 @@ export function EventLeaderboard({ eventId, eventName, isCompetitionEvent, curre
   }, [fetchStandings]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Loading leaderboard…
-      </div>
-    );
+    return <EventLeaderboardSkeleton />;
   }
 
   if (error) {
@@ -82,7 +79,7 @@ export function EventLeaderboard({ eventId, eventName, isCompetitionEvent, curre
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold text-primary">{standings.competitionName}</h2>
         <span className="text-xs text-muted-foreground">Refreshes every minute</span>
       </div>
