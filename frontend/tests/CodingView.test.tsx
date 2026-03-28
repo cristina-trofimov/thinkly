@@ -46,17 +46,15 @@ jest.mock('../src/lib/axiosClient', () => ({
     API_URL: 'http://localhost:8000',
 }))
 
-jest.mock('../src/components/helpers/Loader.tsx', () => {
-    return function Loader({ isOpen }: any) {
-        return <div data-testid="Loader" data-open={String(isOpen)} />
-    }
-})
-
 jest.mock('../src/components/codingPage/ConsoleOutput.tsx', () => {
     return function ConsoleOutput() {
         return <div data-testid="ConsoleOutput" />
     }
 })
+
+jest.mock('../src/components/ui/skeleton', () => ({
+    Skeleton: ({ className }: any) => <div data-testid="skeleton" className={className} />,
+}))
 
 jest.mock('../src/components/helpers/ConfirmCodeReset', () => ({
     __esModule: true,
@@ -265,10 +263,10 @@ const mockUqiRiddleComplete: UserQuestionInstance = {
 // ─── Hook mock factory ────────────────────────────────────────────────────────
 
 const makeMockHook = (overrides: Record<string, any> = {}) => ({
-    startTime: null,
+    startTime: new Date('2025-10-28T10:00:00Z'),
     mostRecentSub: null,
     setMostRecentSub: jest.fn(),
-    userQuestionInstance: null,
+    userQuestionInstance: mockUqi,
     setUserQuestionInstance: jest.fn(),
     isLoading: false,
     setIsLoading: jest.fn(),
@@ -339,7 +337,7 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('submit-btn')).toBeInTheDocument()
         expect(screen.getByTestId('coding-btns')).toBeInTheDocument()
         expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
-        expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-182.5')
+        expect(screen.getByTestId('sandbox')).toHaveClass('h-[calc(100%-2.75rem)]')
     })
 
     it('renders the monaco editor', () => {
@@ -352,15 +350,18 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('language-btn')).toHaveTextContent('Java')
     })
 
-    it('shows loader when isLoading is true', () => {
+    it('shows coding skeleton when isLoading is true', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ isLoading: true }))
         renderCodingView()
-        expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
+        expect(screen.getByTestId('coding-view-skeleton')).toBeInTheDocument()
+        expect(screen.getByTestId('submit-btn')).toBeDisabled()
     })
 
-    it('loader is not open when both loading flags are false', () => {
+    it('does not show coding skeleton when loading is false', async () => {
         renderCodingView()
-        expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'false')
+        await waitFor(() =>
+            expect(screen.queryByTestId('coding-view-skeleton')).not.toBeInTheDocument()
+        )
     })
 
     it('shows fallback message when activeQuestion is null', () => {

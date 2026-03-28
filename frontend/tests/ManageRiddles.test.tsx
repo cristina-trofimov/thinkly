@@ -90,6 +90,10 @@ jest.mock("@/components/ui/input", () => ({
   Input: (props: any) => <input {...props} />,
 }));
 
+jest.mock("@/components/ui/skeleton", () => ({
+  Skeleton: ({ className }: any) => <div data-testid="skeleton" className={className} />,
+}));
+
 jest.mock("@/components/ui/label", () => ({
   Label: ({ children }: any) => <label>{children}</label>,
 }));
@@ -177,7 +181,7 @@ describe("ManageRiddles", () => {
       expect(screen.getByPlaceholderText("Search question or answer...")).toBeInTheDocument();
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading riddles...")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
       });
     });
 
@@ -186,7 +190,7 @@ describe("ManageRiddles", () => {
 
       render(<ManageRiddles />);
 
-      expect(screen.getByText("Loading riddles...")).toBeInTheDocument();
+      expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
     });
   });
 
@@ -308,7 +312,7 @@ describe("ManageRiddles", () => {
       render(<ManageRiddles />);
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading riddles...")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
       });
 
       consoleSpy.mockRestore();

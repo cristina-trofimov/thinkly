@@ -180,7 +180,7 @@ describe("ManageRiddles", () => {
 
         render(<ManageRiddles />);
 
-        expect(screen.getByText(/Loading riddles/i)).toBeInTheDocument();
+        expect(screen.getByRole("generic", { busy: true })).toBeInTheDocument();
 
         resolveFn(paginatedRiddles([]));
         await waitFor(() => expect(getRiddlesPage).toHaveBeenCalled());

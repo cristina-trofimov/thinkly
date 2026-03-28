@@ -84,21 +84,21 @@ describe('EventLeaderboard', () => {
   // ─── Loading state ────────────────────────────────────────────────────────
 
   describe('Loading state', () => {
-    it('shows a loading indicator on the initial fetch', () => {
+    it('shows a leaderboard skeleton on the initial fetch', () => {
       mockedGetCompetitionLive.mockReturnValue(new Promise(() => {})) // never resolves
 
       render(<EventLeaderboard {...competitionProps} />)
 
-      expect(screen.getByText(/loading leaderboard/i)).toBeInTheDocument()
+      expect(screen.getByTestId('event-leaderboard-skeleton')).toBeInTheDocument()
     })
 
-    it('removes the loading indicator once data arrives', async () => {
+    it('removes the leaderboard skeleton once data arrives', async () => {
       mockedGetCompetitionLive.mockResolvedValue(mockStandingsCompetition)
 
       render(<EventLeaderboard {...competitionProps} />)
 
       await waitFor(() =>
-        expect(screen.queryByText(/loading leaderboard/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('event-leaderboard-skeleton')).not.toBeInTheDocument()
       )
     })
   })
@@ -232,7 +232,7 @@ describe('EventLeaderboard', () => {
   // ─── Auto-refresh ─────────────────────────────────────────────────────────
 
   describe('Auto-refresh', () => {
-    it('does not show a loading spinner on background refreshes', async () => {
+    it('does not show a loading skeleton on background refreshes', async () => {
       jest.useFakeTimers()
       mockedGetCompetitionLive.mockResolvedValue(mockStandingsCompetition)
 
@@ -244,8 +244,8 @@ describe('EventLeaderboard', () => {
       // Advance clock to trigger the 60s interval
       act(() => { jest.advanceTimersByTime(60_000) })
 
-      // Loading spinner must NOT appear on the background refresh
-      expect(screen.queryByText(/loading leaderboard/i)).not.toBeInTheDocument()
+      // Loading skeleton must NOT appear on the background refresh
+      expect(screen.queryByTestId('event-leaderboard-skeleton')).not.toBeInTheDocument()
       // Table must remain visible
       expect(screen.getByTestId('scoreboard-table')).toBeInTheDocument()
     })
