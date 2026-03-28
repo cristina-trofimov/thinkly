@@ -618,7 +618,7 @@ describe('CodingView - submit code', () => {
         expect(toast.warning).not.toHaveBeenCalled()
     })
 
-    it('shows warning toast when status is not Accepted', async () => {
+    it('shows result inline (not toast) when status is not Accepted', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
@@ -626,7 +626,7 @@ describe('CodingView - submit code', () => {
         // Non-accepted results are shown inline, not via toast
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
-        expect(toast.error).toHaveBeenCalled()
+        expect(toast.error).not.toHaveBeenCalled()
     })
 
 

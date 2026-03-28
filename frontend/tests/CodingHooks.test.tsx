@@ -665,7 +665,7 @@ describe('useCodingHooks — LastSteps', () => {
     mockedGetAllSubmissions.mockResolvedValue(mockSubmissions)
     mockedGetMostRecentSub.mockResolvedValue(mockMostRecentSub)
 
-    const { result } = renderHook(() => useCodingHooks(mockQuestion))
+    const { result } = renderHook(() => useCodingHooks(mockQuestion), { wrapper })
 
     await waitFor(() => {
       expect(result.current.allLanguages).toEqual([mockLanguages[1]])
