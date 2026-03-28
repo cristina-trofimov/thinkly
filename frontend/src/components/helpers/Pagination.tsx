@@ -15,6 +15,7 @@ export interface TablePaginationProps {
   pageCount: number;
   pageItems: readonly PaginationItemValue[];
   onPageChange: (page: number) => void;
+  disabled?: boolean;
 }
 
 export function TablePagination({
@@ -22,9 +23,14 @@ export function TablePagination({
   pageCount,
   pageItems,
   onPageChange,
+  disabled = false,
 }: Readonly<TablePaginationProps>) {
   const createPageClickHandler =
     (targetPage: number) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+      if (disabled) {
+        event.preventDefault();
+        return;
+      }
       event.preventDefault();
       onPageChange(targetPage);
     };
@@ -37,7 +43,9 @@ export function TablePagination({
             href="#"
             onClick={createPageClickHandler(Math.max(1, page - 1))}
             className={
-              page > 1 ? "cursor-pointer" : "pointer-events-none opacity-50"
+              page > 1 && !disabled
+                ? "cursor-pointer"
+                : "pointer-events-none opacity-50"
             }
           />
         </PaginationItem>
@@ -51,7 +59,7 @@ export function TablePagination({
                 href="#"
                 isActive={page === item}
                 onClick={createPageClickHandler(item)}
-                className="cursor-pointer"
+                className={disabled ? "pointer-events-none opacity-50" : "cursor-pointer"}
               >
                 {item}
               </PaginationLink>
@@ -65,7 +73,9 @@ export function TablePagination({
             href="#"
             onClick={createPageClickHandler(Math.min(pageCount, page + 1))}
             className={
-              page < pageCount ? "cursor-pointer" : "pointer-events-none opacity-50"
+              page < pageCount && !disabled
+                ? "cursor-pointer"
+                : "pointer-events-none opacity-50"
             }
           />
         </PaginationItem>

@@ -25,6 +25,8 @@ import RiddleForm from "@/components/forms/FileUpload";
 import { getRiddlesPage, deleteRiddle } from "@/api/RiddlesAPI";
 import type { Riddle } from "@/types/riddle/Riddle.type";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import ManageRiddlesSkeleton from "@/components/manageRiddles/ManageRiddlesSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
 import {
   Pagination,
   PaginationContent,
@@ -49,12 +51,13 @@ export default function ManageRiddles() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(23);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingRiddle, setEditingRiddle] = useState<Riddle | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const cardsVisible = useCardReveal(loading, riddles.length);
 
   const {
     trackAdminRiddlesViewed,
@@ -248,91 +251,98 @@ export default function ManageRiddles() {
           </DialogContent>
         </Dialog>
 
-        {loading && riddles.length === 0 && (
-          <div className="col-span-full py-10 text-center text-muted-foreground animate-pulse">
-            Loading riddles...
-          </div>
-        )}
+        {loading && <ManageRiddlesSkeleton />}
 
-        {riddles.map((riddle) => (
-          <Card
-            key={riddle.id}
-            className="overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col h-full"
-          >
-            <CardHeader className="bg-muted/30 pb-4">
-              <div className="flex justify-between items-start gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Puzzle className="w-5 h-5 text-primary" />
-                </div>
+        {!loading &&
+          riddles.map((riddle, index) => {
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0"
+              : "translate-y-2 opacity-0";
 
-                <div className="flex items-center gap-2">
+            return (
+              <Card
+                key={riddle.id}
+                className={`overflow-hidden bg-card flex flex-col h-full hover:shadow-lg ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
+              >
+                <CardHeader className="bg-muted/30 pb-4">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Puzzle className="w-5 h-5 text-primary" />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {riddle.file && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" /> Has Media
+                        </span>
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openEdit(riddle)}
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteClick(riddle.id)}
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="p-4 flex-1 flex flex-col gap-4">
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                      Question
+                    </h4>
+                    <p className="font-medium text-sm line-clamp-3 leading-relaxed">
+                      {riddle.question}
+                    </p>
+                  </div>
+
+                  <div className="mt-auto pt-4 border-t">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                      Answer
+                    </h4>
+                    <p className="text-sm text-gray-700 italic">{riddle.answer}</p>
+                  </div>
+
                   {riddle.file && (
-                    <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3" /> Has Media
-                    </span>
+                    <div className="pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-xs gap-2"
+                        asChild
+                      >
+                        <a
+                          href={riddle.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FileText className="w-3 h-3" /> View Attachment
+                        </a>
+                      </Button>
+                    </div>
                   )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => openEdit(riddle)}
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => handleDeleteClick(riddle.id)}
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-4 flex-1 flex flex-col gap-4">
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Question
-                </h4>
-                <p className="font-medium text-sm line-clamp-3 leading-relaxed">
-                  {riddle.question}
-                </p>
-              </div>
-
-              <div className="mt-auto pt-4 border-t">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Answer
-                </h4>
-                <p className="text-sm text-gray-700 italic">{riddle.answer}</p>
-              </div>
-
-              {riddle.file && (
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs gap-2"
-                    asChild
-                  >
-                    <a
-                      href={riddle.file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <FileText className="w-3 h-3" /> View Attachment
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                </CardContent>
+              </Card>
+            );
+          })}
 
         {!loading && riddles.length === 0 && (
           <div className="col-span-full py-10 text-center text-muted-foreground">
