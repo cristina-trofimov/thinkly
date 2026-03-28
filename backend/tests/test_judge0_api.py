@@ -35,7 +35,7 @@ def test_judge0_get_output_success(mock_get):
         status_code=200,
         json=lambda: {
             "status": {"description": "Accepted"},
-            "stdout": "Hello\n",
+            "stdout": "All testcases passed.\n",
             "token": "abc123",
         },
         raise_for_status=lambda: None,
@@ -62,7 +62,7 @@ def test_judge0_submit_success(mock_post, mock_get):
             "submissions": [
                 {
                     "status": {"description": "Accepted"},
-                    "stdout": "Hello\n",
+                    "stdout": "All testcases passed.",
                     "token": "abc123",
                 }
             ]
@@ -73,7 +73,7 @@ def test_judge0_submit_success(mock_post, mock_get):
     result = submit_to_judge0(submissions=SINGLE_SUBMISSION)
 
     assert result["status"]["description"] == "Accepted"
-    assert result["stdout"] == "Hello\n"
+    assert result["stdout"] == "All testcases passed."
 
 
 @patch('src.endpoints.judge0_api.JUDGE0_URL', 'http://localhost:2358')
