@@ -7,6 +7,33 @@ import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
 import { useUser } from "@/context/UserContext";
+import { useCardReveal } from "@/hooks/useCardReveal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Filter, Search } from "lucide-react";
+
+type UserTypeFilter = "all" | "owner" | "admin" | "participant";
+
+const USER_TYPE_OPTIONS: Array<{ value: UserTypeFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "participant", label: "Participant" },
+  { value: "admin", label: "Admin" },
+  { value: "owner", label: "Owner" },
+];
+
+function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
+  return userTypeFilter === "all"
+    ? "All Account Types"
+    : userTypeFilter.charAt(0).toUpperCase() + userTypeFilter.slice(1);
+}
 
 export default function ManageAccountsPage() {
   const [data, setData] = useState<Account[]>([]);
@@ -14,15 +41,15 @@ export default function ManageAccountsPage() {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
   const [search, setSearch] = useState<string>("");
-  const [userTypeFilter, setUserTypeFilter] = useState<
-    "all" | "owner" | "admin" | "participant"
-  >("all");
+  const [userTypeFilter, setUserTypeFilter] = useState<UserTypeFilter>("all");
   const [sort, setSort] = useState<AccountsSort | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<number>(0);
   const { user: currentUser } = useUser();
+  const tableVisible = useCardReveal(loading && !hasLoadedOnce, 1);
+  const showTableSkeleton = loading && !hasLoadedOnce;
 
   const {
     trackAdminAccountsViewed,
@@ -99,9 +126,6 @@ export default function ManageAccountsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search, sort, userTypeFilter, refreshToken]);
 
-  if (loading && !hasLoadedOnce) {
-    return <ManageAccountsTableSkeleton />;
-  }
   if (error) {
     return <div>Something went wrong. Please try again.</div>;
   }
@@ -154,35 +178,85 @@ export default function ManageAccountsPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <ManageAccountsDataTable
-        columns={columns}
-        data={data}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        search={search}
-        userTypeFilter={userTypeFilter}
-        onSearchChange={(value) => {
-          setPage(1);
-          setSearch(value);
-        }}
-        onUserTypeFilterChange={(value) => {
-          setPage(1);
-          setUserTypeFilter(value);
-        }}
-        onSortChange={(value) => {
-          setPage(1);
-          setSort(value);
-        }}
-        onPageChange={setPage}
-        onPageSizeChange={(value) => {
-          setPage(1);
-          setPageSize(value);
-        }}
-        onDeleteUsers={handleDeleteUsers}
-        onUserUpdate={handleUserUpdate}
-        currentUserRole={currentUser?.accountType}
-      />
+      <div className="flex items-center py-4 gap-3">
+        <div className="relative items-center">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+          <Input
+            placeholder="Filter emails..."
+            value={search}
+            onChange={(event) => {
+              setPage(1);
+              setSearch(event.target.value);
+            }}
+            className="pl-9 w-xs"
+          />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-0.5">
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="ml-2 hidden md:inline-flex items-center">
+                {getUserTypeFilterLabel(userTypeFilter)}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {USER_TYPE_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                className="cursor-pointer"
+                onClick={() => {
+                  setPage(1);
+                  setUserTypeFilter(option.value);
+                }}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {showTableSkeleton ? (
+        <ManageAccountsTableSkeleton />
+      ) : (
+      <div
+        className={`${tableVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+      >
+        <ManageAccountsDataTable
+          columns={columns}
+          data={data}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          search={search}
+          userTypeFilter={userTypeFilter}
+          onSearchChange={(value) => {
+            setPage(1);
+            setSearch(value);
+          }}
+          onUserTypeFilterChange={(value) => {
+            setPage(1);
+            setUserTypeFilter(value);
+          }}
+          onSortChange={(value) => {
+            setPage(1);
+            setSort(value);
+          }}
+          onPageChange={setPage}
+          onPageSizeChange={(value) => {
+            setPage(1);
+            setPageSize(value);
+          }}
+          onDeleteUsers={handleDeleteUsers}
+          onUserUpdate={handleUserUpdate}
+          currentUserRole={currentUser?.accountType}
+          showSearchAndFilters={false}
+        />
+      </div>
+      )}
     </div>
   );
 }

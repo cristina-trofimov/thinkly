@@ -15,6 +15,7 @@ import HomePageBanner from "@/components/helpers/HomePageBanner";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useCardReveal } from "@/hooks/useCardReveal";
 
 export function DataTableSkeleton() {
   return (
@@ -167,6 +168,16 @@ function HomePage() {
   }, [date, competitions]);
 
   const competitionDates = competitions.map((c) => c.startDate);
+  const bannerVisible = useCardReveal(isCompLoading, isCompLoading ? 0 : 1);
+  const questionTableVisible = useCardReveal(
+    isLoading || !bannerVisible,
+    isLoading ? 0 : 1
+  );
+  const showQuestionSkeleton = isLoading || !questionTableVisible;
+  const competitionItemsVisible = useCardReveal(
+    isCompLoading,
+    competitionsForSelectedDate.length
+  );
 
   const handleDateSelect = (newDate: Date | undefined) => {
     setDate(newDate);
@@ -186,11 +197,27 @@ function HomePage() {
     <div className="flex flex-col w-full px-4">
       <div className="flex w-full gap-6 items-start">
         <div className="flex flex-col flex-1 min-w-0 gap-4">
-          {isCompLoading ? <BannerSkeleton /> : <HomePageBanner competitions={competitions} />}
-          <div className="flex flex-col gap-4">
-            {isLoading ? (
-              <DataTableSkeleton />
-            ) : (
+          {isCompLoading ? (
+            <BannerSkeleton />
+          ) : (
+            <div
+              className={`${bannerVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+            >
+              <HomePageBanner competitions={competitions} />
+            </div>
+          )}
+          <div className="relative flex flex-col gap-4">
+            {showQuestionSkeleton && (
+              <div className="absolute inset-0 z-10">
+                <DataTableSkeleton />
+              </div>
+            )}
+            <div
+              className={`${questionTableVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+              style={{
+                transitionDelay: questionTableVisible ? "100ms" : "0ms",
+              }}
+            >
               <DataTable
                 columns={columns}
                 data={questions}
@@ -213,7 +240,7 @@ function HomePage() {
                   setQuestionsPageSize(value);
                 }}
               />
-            )}
+            </div>
           </div>
         </div>
 
@@ -240,7 +267,7 @@ function HomePage() {
                 No competitions on this date
               </p>
             ) : (
-              competitionsForSelectedDate.map((competition) => (
+              competitionsForSelectedDate.map((competition, index) => (
                 <button
                   key={competition.id}
                   onClick={() =>
@@ -249,7 +276,10 @@ function HomePage() {
                       competition.startDate.toISOString().split("T")[0]
                     )
                   }
-                  className="w-full text-left"
+                  className={`${competitionItemsVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} w-full text-left motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                  style={{
+                    transitionDelay: competitionItemsVisible ? `${index * 50}ms` : "0ms",
+                  }}
                   type="button"
                 >
                   <CompetitionItem

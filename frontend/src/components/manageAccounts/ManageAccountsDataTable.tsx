@@ -105,6 +105,7 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
   currentUserRole?: "Admin" | "Owner" | "Participant";
+  showSearchAndFilters?: boolean;
 }
 
 interface SelectionActionsProps {
@@ -177,6 +178,7 @@ export function ManageAccountsDataTable<TData, TValue>({
   onDeleteUsers,
   onUserUpdate,
   currentUserRole,
+  showSearchAndFilters = true,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -257,38 +259,42 @@ export function ManageAccountsDataTable<TData, TValue>({
   return (
     <div>
       <div className="flex items-center py-4 gap-3">
-        <div className="relative items-center">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-          <Input
-            placeholder="Filter emails..."
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            className="pl-9 w-xs"
-          />
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-0.5">
-              <Filter className="h-4 w-4 text-primary" />
-              <span className="ml-2 hidden md:inline-flex items-center">
-                {getUserTypeFilterLabel(userTypeFilter)}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {USER_TYPE_OPTIONS.map((option) => (
-              <DropdownMenuItem
-                key={option.value}
-                className="cursor-pointer"
-                onClick={() => onUserTypeFilterChange(option.value)}
-              >
-                {option.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {showSearchAndFilters && (
+          <>
+            <div className="relative items-center">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+              <Input
+                placeholder="Filter emails..."
+                value={search}
+                onChange={(event) => onSearchChange(event.target.value)}
+                className="pl-9 w-xs"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-0.5">
+                  <Filter className="h-4 w-4 text-primary" />
+                  <span className="ml-2 hidden md:inline-flex items-center">
+                    {getUserTypeFilterLabel(userTypeFilter)}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuLabel>Filter by Account Type</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {USER_TYPE_OPTIONS.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    className="cursor-pointer"
+                    onClick={() => onUserTypeFilterChange(option.value)}
+                  >
+                    {option.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
         <SelectionActions
           selectedCount={selectedCount}
           onDelete={handleDelete}
