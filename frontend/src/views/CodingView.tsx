@@ -103,6 +103,47 @@ const QuestionSelector = ({
   </div>
 )
 
+const CodingViewInitialState = ({
+  shouldShowFallback,
+  hasActiveQuestion,
+}: {
+  shouldShowFallback: boolean
+  hasActiveQuestion: boolean
+}) => {
+  if (shouldShowFallback) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
+      </div>
+    )
+  }
+
+  if (!hasActiveQuestion) {
+    return (
+      <div className="px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]">
+        <div className='flex items-center justify-center mb-2 w-full'>
+          <Button disabled data-testid="submit-btn" key="submit-btn">
+            <CloudUpload size={16} />Submit
+          </Button>
+        </div>
+        <CodingViewSkeleton />
+      </div>
+    )
+  }
+
+  return null
+}
+
+const getCodingViewInitialState = (
+  shouldShowFallback: boolean,
+  hasActiveQuestion: boolean,
+) => (
+  <CodingViewInitialState
+    shouldShowFallback={shouldShowFallback}
+    hasActiveQuestion={hasActiveQuestion}
+  />
+)
+
 
 const CodingView = () => {
   const location = useLocation()
@@ -388,25 +429,12 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (shouldShowFallback) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
-      </div>
-    );
-  }
+  const initialState = shouldShowFallback || !activeQuestion
+    ? getCodingViewInitialState(shouldShowFallback, Boolean(activeQuestion))
+    : null
 
-  if (!activeQuestion) {
-    return (
-      <div className="px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]">
-        <div className='flex items-center justify-center mb-2 w-full'>
-          <Button disabled data-testid="submit-btn" key="submit-btn">
-            <CloudUpload size={16} />Submit
-          </Button>
-        </div>
-        <CodingViewSkeleton />
-      </div>
-    )
+  if (initialState !== null) {
+    return initialState
   }
 
   return (
