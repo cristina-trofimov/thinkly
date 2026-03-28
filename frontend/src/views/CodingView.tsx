@@ -65,6 +65,44 @@ const canInteractWithQuestion = (
   userQuestionInstance: { riddle_complete?: boolean | null } | null | undefined,
 ) => !(activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete)
 
+const QuestionSelector = ({
+  activeDisplayQuestionName,
+  questions,
+  onQuestionChange,
+}: {
+  activeDisplayQuestionName: string
+  questions: Question[]
+  onQuestionChange: (question: Question) => void
+}) => (
+  <div className='flex items-end-safe justify-end mb-2 w-full'>
+    <DropdownMenu data-testid='questions-dropdown'>
+      <DropdownMenuTrigger
+        data-testid='questions-btn'
+        className="bg-background text-muted-foreground text-base font-bold h-7
+          flex items-center gap-2 rounded-md p-2
+          hover:bg-primary/20 focus:bg-primary/55"
+      >
+        {activeDisplayQuestionName}
+        <ChevronDown />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className='z-999' asChild>
+        <div data-testid='questions-menu'
+          className="z-10 text-sm bg-muted w-26 border rounded-lg"
+        >
+          {questions.map((question, index) => (
+            <DropdownMenuItem data-testid={`questionItem-${question.question_name}`} key={question.question_name}
+              className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+              onSelect={() => onQuestionChange(question)}
+            >
+              {`Question ${index + 1}`}
+            </DropdownMenuItem>
+          ))}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+)
+
 
 const CodingView = () => {
   const location = useLocation()
@@ -386,33 +424,11 @@ const CodingView = () => {
         className={`${contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} h-[calc(100%-2.75rem)] motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
       >
       {questionsInstances.length > 1 && (
-        <div className='flex items-end-safe justify-end mb-2 w-full'>
-          <DropdownMenu data-testid='questions-dropdown'>
-            <DropdownMenuTrigger
-              data-testid='questions-btn'
-              className="bg-background text-muted-foreground text-base font-bold h-7
-                flex items-center gap-2 rounded-md p-2
-                hover:bg-primary/20 focus:bg-primary/55"
-            >
-              {activeDisplayQuestionName}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className='z-999' asChild>
-              <div data-testid='questions-menu'
-                className="z-10 text-sm bg-muted w-26 border rounded-lg"
-              >
-                {questions.map((q, idx) => (
-                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
-                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                    onSelect={() => handleQuestionChange(q)}
-                  >
-                    {`Question ${idx + 1}`}
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <QuestionSelector
+          activeDisplayQuestionName={activeDisplayQuestionName}
+          questions={questions}
+          onQuestionChange={handleQuestionChange}
+        />
       )}
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
         className='h-full w-full'
