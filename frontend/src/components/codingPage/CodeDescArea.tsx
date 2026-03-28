@@ -20,6 +20,7 @@ import type { SubmissionType } from '../../types/submissions/SubmissionType.type
 import { SubmissionSkeleton } from './SubmissionSkeleton'
 import { SubmissionDetail } from './SubmissionDetail'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
+import { getDiffColor } from '@/utils/difficultyBadge'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         )
     }
 
+    const difficultyLabel = question.difficulty.replace(/^\w/, (char) => char.toUpperCase())
+
     //Riddle Rendering Start-----------------------------------------------
     if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle || !riddle) {
@@ -162,7 +165,12 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         return (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
                 <div className="w-full max-w-md">
-                    <h2 className="text-lg font-semibold mb-4 text-center">{question.question_name}</h2>
+                    <div className="mb-4 flex flex-col items-center gap-2 text-center">
+                        <h2 className="text-lg font-semibold">{question.question_name}</h2>
+                        <span className={`text-[14px] w-fit px-2 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                            {difficultyLabel}
+                        </span>
+                    </div>
                     <RiddleUserForm
                         riddle={riddle}
                         onSolved={onRiddleSolved}
@@ -214,9 +222,14 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-4'>
                     <div className='border-b-2 pb-2 shrink-0' >
-                        <h1 className='font-bold mb-3'>
-                            {question.question_name}
-                        </h1>
+                        <div className='mb-3 flex flex-col items-start gap-2'>
+                            <h1 className='text-2xl font-bold'>
+                                {question.question_name}
+                            </h1>
+                            <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                                {difficultyLabel}
+                            </span>
+                        </div>
                         <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-100'>
                             {question.question_description}
                         </p>

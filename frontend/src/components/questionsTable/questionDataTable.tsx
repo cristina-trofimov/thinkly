@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,11 +72,18 @@ interface DataTableProps<TData, TValue> {
   pageSize: number;
   search: string;
   difficultyFilter: DifficultyFilter;
+  loading?: boolean;
+  contentVisible?: boolean;
   onSearchChange: (value: string) => void;
   onDifficultyFilterChange: (value: DifficultyFilter) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
+
+const CONTENT_ENTER_CLASS =
+  "translate-y-0 opacity-100 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2";
+const CONTENT_TRANSITION_CLASS =
+  "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out";
 
 export function DataTable<TData extends Question, TValue>({
   columns,
@@ -85,6 +93,8 @@ export function DataTable<TData extends Question, TValue>({
   pageSize,
   search,
   difficultyFilter,
+  loading = false,
+  contentVisible = true,
   onSearchChange,
   onDifficultyFilterChange,
   onPageChange,
@@ -95,6 +105,10 @@ export function DataTable<TData extends Question, TValue>({
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+  const isContentReady = !loading && contentVisible;
+  const paginationVisibilityClass = isContentReady
+    ? CONTENT_ENTER_CLASS
+    : "opacity-0 pointer-events-none";
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = React.useMemo(
     () => getPageItems(page, pageCount),
@@ -150,6 +164,80 @@ export function DataTable<TData extends Question, TValue>({
     });
   };
 
+  const renderHeader = () => (
+    <TableHeader>
+      {table.getHeaderGroups().map((headerGroup) => (
+        <TableRow key={headerGroup.id}>
+          {headerGroup.headers.map((header) => (
+            <TableHead key={header.id}>
+              {header.isPlaceholder
+                ? null
+                : flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+            </TableHead>
+          ))}
+        </TableRow>
+      ))}
+    </TableHeader>
+  );
+
+  const renderBody = () => {
+    if (loading) {
+      return (
+        <TableBody>
+          {Array.from({ length: Math.min(pageSize, 10) }, (_, rowIndex) => (
+            <TableRow key={`skeleton-row-${rowIndex}`} aria-hidden="true">
+              {columns.map((_, cellIndex) => (
+                <TableCell key={`skeleton-cell-${rowIndex}-${cellIndex}`}>
+                  <Skeleton className="h-4 w-full" />
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      );
+    }
+
+    if (table.getRowModel().rows?.length) {
+      return (
+        <TableBody>
+          {table.getRowModel().rows.map((row) => (
+            <TableRow
+              key={row.id}
+              data-state={row.getIsSelected() && "selected"}
+              onClick={() => handleQuestionClick(row.original)}
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} className="text-left cursor-pointer">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      );
+    }
+
+    return (
+      <TableBody>
+        <TableRow>
+          <TableCell colSpan={columns.length} className="h-24 text-center">
+            No results.
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    );
+  };
+
+  const renderTable = () => (
+    <Table>
+      {renderHeader()}
+      {renderBody()}
+    </Table>
+  );
+
   return (
     <div>
       <div className="flex items-center mb-3 gap-3">
@@ -183,53 +271,22 @@ export function DataTable<TData extends Question, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-                onClick={() => handleQuestionClick(row.original)}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="text-left cursor-pointer">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
-                No results.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      <div className="flex flex-row items-center justify-between gap-3 py-4">
+      {isContentReady ? (
+        <div className={`${CONTENT_TRANSITION_CLASS} ${CONTENT_ENTER_CLASS}`}>
+          {renderTable()}
+        </div>
+      ) : (
+        renderTable()
+      )}
+      <div
+        className={`flex flex-row items-center justify-between gap-3 py-4 ${CONTENT_TRANSITION_CLASS} ${paginationVisibilityClass}`}
+      >
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">Rows per page</span>
           <Select
             value={`${pageSize}`}
             onValueChange={(value) => onPageSizeChange(Number(value))}
+            disabled={!isContentReady}
           >
             <SelectTrigger className="cursor-pointer">
               <SelectValue />
@@ -248,6 +305,7 @@ export function DataTable<TData extends Question, TValue>({
           pageCount={pageCount}
           pageItems={pageItems}
           onPageChange={onPageChange}
+          disabled={!isContentReady}
         />
       </div>
     </div>
