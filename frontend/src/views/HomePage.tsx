@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { columns } from "../components/questionsTable/questionsColumns";
 import type { Question } from "@/types/questions/QuestionPagination.type";
@@ -14,34 +14,6 @@ import CompetitionItem from "@/components/helpers/CompetitionItem";
 import HomePageBanner from "@/components/helpers/HomePageBanner";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
-export function DataTableSkeleton() {
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {[...Array(5)].map((_, i) => (
-              <TableHead key={i}><Skeleton className="h-4 w-[100px]" /></TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {[...Array(10)].map((_, i) => (
-            <TableRow key={i}>
-              {[...new Array(5)].map((_, j) => (
-                <TableCell key={j}>
-                  <Skeleton className="h-4 w-full" />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
 
 export function BannerSkeleton() {
   return (
@@ -58,11 +30,17 @@ function HomePage() {
   const [totalQuestions, setTotalQuestions] = useState<number>(0);
   const [questionsPage, setQuestionsPage] = useState<number>(1);
   const [questionsPageSize, setQuestionsPageSize] = useState<number>(25);
-  const [questionSearch, setQuestionSearch] = useState<string>("");
+  const [questionSearchInput, setQuestionSearchInput] = useState<string>("");
+  const [questionSearchQuery, setQuestionSearchQuery] = useState<string>("");
   const [difficultyFilter, setDifficultyFilter] = useState<DifficultyFilter>("all");
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isCompLoading, setIsCompLoading] = useState<boolean>(true);
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [questionsVisible, setQuestionsVisible] = useState(false);
+  const latestQuestionRequestId = useRef(0);
+  const BANNER_REVEAL_DELAY_MS = 700;
+  const QUESTION_REVEAL_DELAY_MS = 120;
 
   const {
     trackHomepageViewed,
@@ -77,23 +55,35 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
+    const timeout = globalThis.setTimeout(() => {
+      setQuestionSearchQuery(questionSearchInput.trim());
+    }, 250);
+
+    return () => globalThis.clearTimeout(timeout);
+  }, [questionSearchInput]);
+
+  useEffect(() => {
     const getAllQuestions = async () => {
+      const requestId = ++latestQuestionRequestId.current;
       setIsLoading(true);
       try {
         const result = await getQuestionsPage({
           page: questionsPage,
           pageSize: questionsPageSize,
-          search: questionSearch,
+          search: questionSearchQuery,
           difficulty:
             difficultyFilter === "all" ? undefined : difficultyFilter,
           sort: "asc",
         });
+        if (requestId !== latestQuestionRequestId.current) {
+          return;
+        }
         setQuestions(result.items);
         setTotalQuestions(result.total);
 
         logFrontend({
           level: "DEBUG",
-          message: `Finished question fetch successfully for page=${questionsPage}, pageSize=${questionsPageSize}, search=${questionSearch || "none"}, difficulty=${difficultyFilter}.`,
+          message: `Finished question fetch successfully for page=${questionsPage}, pageSize=${questionsPageSize}, search=${questionSearchQuery || "none"}, difficulty=${difficultyFilter}.`,
           component: "HomePage",
           url: globalThis.location.href,
         });
@@ -113,12 +103,14 @@ function HomePage() {
           stack: isError ? err.stack : undefined,
         });
       } finally {
-        setIsLoading(false);
+        if (requestId === latestQuestionRequestId.current) {
+          setIsLoading(false);
+        }
       }
     };
 
     getAllQuestions();
-  }, [difficultyFilter, questionSearch, questionsPage, questionsPageSize]);
+  }, [difficultyFilter, questionSearchQuery, questionsPage, questionsPageSize]);
 
   useEffect(() => {
     const getAllCompetitions = async () => {
@@ -158,6 +150,35 @@ function HomePage() {
     getAllCompetitions();
   }, []);
 
+  useEffect(() => {
+    if (isCompLoading) {
+      setBannerVisible(false);
+      return;
+    }
+
+    const frame = globalThis.requestAnimationFrame(() => {
+      setBannerVisible(true);
+    });
+
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [isCompLoading]);
+
+  useEffect(() => {
+    if (isCompLoading || isLoading || !bannerVisible) {
+      setQuestionsVisible(false);
+      return;
+    }
+
+    const timeout = globalThis.setTimeout(() => {
+      setQuestionsVisible(true);
+    }, QUESTION_REVEAL_DELAY_MS);
+
+    return () => globalThis.clearTimeout(timeout);
+  }, [bannerVisible, isCompLoading, isLoading]);
+
+  const shouldShowQuestionSkeleton =
+    isLoading || isCompLoading || !bannerVisible || !questionsVisible;
+
   const competitionsForSelectedDate = useMemo(() => {
     if (!date) return [];
     return competitions.filter((c) => {
@@ -186,34 +207,42 @@ function HomePage() {
     <div className="flex flex-col w-full px-4">
       <div className="flex w-full gap-6 items-start">
         <div className="flex flex-col flex-1 min-w-0 gap-4">
-          {isCompLoading ? <BannerSkeleton /> : <HomePageBanner competitions={competitions} />}
+          {isCompLoading ? (
+            <BannerSkeleton />
+          ) : (
+            <div
+              className={`motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
+                bannerVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+              }`}
+            >
+              <HomePageBanner competitions={competitions} />
+            </div>
+          )}
           <div className="flex flex-col gap-4">
-            {isLoading ? (
-              <DataTableSkeleton />
-            ) : (
-              <DataTable
-                columns={columns}
-                data={questions}
-                total={totalQuestions}
-                page={questionsPage}
-                pageSize={questionsPageSize}
-                search={questionSearch}
-                difficultyFilter={difficultyFilter}
-                onSearchChange={(value) => {
-                  setQuestionsPage(1);
-                  setQuestionSearch(value);
-                }}
-                onDifficultyFilterChange={(value) => {
-                  setQuestionsPage(1);
-                  setDifficultyFilter(value);
-                }}
-                onPageChange={setQuestionsPage}
-                onPageSizeChange={(value) => {
-                  setQuestionsPage(1);
-                  setQuestionsPageSize(value);
-                }}
-              />
-            )}
+            <DataTable
+              columns={columns}
+              data={questions}
+              total={totalQuestions}
+              page={questionsPage}
+              pageSize={questionsPageSize}
+              search={questionSearchInput}
+              difficultyFilter={difficultyFilter}
+              loading={shouldShowQuestionSkeleton}
+              contentVisible={questionsVisible}
+              onSearchChange={(value) => {
+                setQuestionsPage(1);
+                setQuestionSearchInput(value);
+              }}
+              onDifficultyFilterChange={(value) => {
+                setQuestionsPage(1);
+                setDifficultyFilter(value);
+              }}
+              onPageChange={setQuestionsPage}
+              onPageSizeChange={(value) => {
+                setQuestionsPage(1);
+                setQuestionsPageSize(value);
+              }}
+            />
           </div>
         </div>
 
