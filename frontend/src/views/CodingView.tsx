@@ -11,7 +11,7 @@ import { Panel, type ImperativePanelGroupHandle, PanelGroup } from 'react-resiza
 import MonacoEditor from "@monaco-editor/react";
 import { submitToJudge0 } from '@/api/Judge0API';
 import { useLocation } from 'react-router-dom';
-import type { Question } from '@/types/questions/QuestionPagination.type';
+import type { Question, TestCase } from '@/types/questions/QuestionPagination.type';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
@@ -29,6 +29,9 @@ import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { useCardReveal } from '@/hooks/useCardReveal';
 import CodingViewSkeleton from '@/components/codingPage/CodingViewSkeleton';
 import { ResizableHandle } from '@/components/ui/resizable';
+import type { Language } from '@/types/questions/Language.type';
+import type { QuestionInstance } from '@/types/questions/QuestionInstance.type';
+import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type';
 
 const getPanelLayouts = ({
   fullCode,
@@ -144,6 +147,251 @@ const getCodingViewInitialState = (
   />
 )
 
+type CodingWorkspaceProps = {
+  contentVisible: boolean
+  showCodingSkeleton: boolean
+  questionsInstances: QuestionInstance[]
+  activeDisplayQuestionName: string
+  questions: Question[]
+  onQuestionChange: (question: Question) => void
+  mainPanelGroup: React.RefObject<ImperativePanelGroupHandle | null>
+  codePanelGroup: React.RefObject<ImperativePanelGroupHandle | null>
+  activeQuestion: Question
+  activeQuestionInstance: QuestionInstance | null | undefined
+  userQuestionInstance: UserQuestionInstance | null | undefined
+  testcases: TestCase[] | null | undefined
+  event?: { event_id?: number; event_name?: string } | null
+  algo?: AlgoTimeSession
+  comp?: Competition
+  currentUserId?: number
+  submissionState: 'idle' | 'loading' | 'done'
+  latestSubmissionResult: SubmissionType | null
+  onRiddleSolved: () => Promise<void>
+  runCode: () => Promise<void>
+  code: string
+  presetCode: string
+  onResetCode: () => void
+  fullCode: boolean
+  setFullCode: React.Dispatch<React.SetStateAction<boolean>>
+  closeCode: boolean
+  setCloseCode: React.Dispatch<React.SetStateAction<boolean>>
+  selectedLang: Language | null | undefined
+  languages: Language[] | null | undefined
+  onLanguageChange: (lang: Language) => void
+  theme: string
+  setCode: React.Dispatch<React.SetStateAction<string>>
+  fullOutput: boolean
+  setFullOutput: React.Dispatch<React.SetStateAction<boolean>>
+  closeOutput: boolean
+  setCloseOutput: React.Dispatch<React.SetStateAction<boolean>>
+  mostRecentSub: { code?: string | null } | null
+  logs: Judge0Response[]
+}
+
+const CodingWorkspace = ({
+  contentVisible,
+  showCodingSkeleton,
+  questionsInstances,
+  activeDisplayQuestionName,
+  questions,
+  onQuestionChange,
+  mainPanelGroup,
+  codePanelGroup,
+  activeQuestion,
+  activeQuestionInstance,
+  userQuestionInstance,
+  testcases,
+  event,
+  algo,
+  comp,
+  currentUserId,
+  submissionState,
+  latestSubmissionResult,
+  onRiddleSolved,
+  runCode,
+  code,
+  presetCode,
+  onResetCode,
+  fullCode,
+  setFullCode,
+  closeCode,
+  setCloseCode,
+  selectedLang,
+  languages,
+  onLanguageChange,
+  theme,
+  setCode,
+  fullOutput,
+  setFullOutput,
+  closeOutput,
+  setCloseOutput,
+  mostRecentSub,
+  logs,
+}: CodingWorkspaceProps) => (
+  <>
+    {showCodingSkeleton && <CodingViewSkeleton />}
+    <div data-testid="sandbox" key="sandbox"
+      className={`${contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} h-[calc(100%-2.75rem)] motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+    >
+      {questionsInstances.length > 1 && (
+        <QuestionSelector
+          activeDisplayQuestionName={activeDisplayQuestionName}
+          questions={questions}
+          onQuestionChange={onQuestionChange}
+        />
+      )}
+      <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
+        className='h-full w-full'
+      >
+        <Panel data-testid="resizable-panel" key="desc-area"
+          defaultSize={50} minSize={5}
+          className='mr-0.75 rounded-md border'
+        >
+          <CodeDescArea
+            question={activeQuestion} question_instance={activeQuestionInstance}
+            uqi={userQuestionInstance} testcases={testcases}
+            eventId={event?.event_id ?? (algo ? 0 : undefined)}
+            eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
+            isCompetitionEvent={!!comp}
+            currentUserId={currentUserId}
+            submissionState={submissionState}
+            latestSubmissionResult={latestSubmissionResult}
+            onRiddleSolved={onRiddleSolved}
+          />
+        </Panel>
+
+        <ResizableHandle data-testid="resizable-handle" />
+
+        <Panel defaultSize={50} data-testid="resizable-panel">
+          <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group">
+            <Panel defaultSize={65} data-testid="resizable-panel"
+              className="ml-0.75 rounded-md border"
+            >
+              <div data-testid="coding-area">
+                <div data-testid="coding-btns"
+                  className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+                >
+                  <span className="text-lg font-medium">Code</span>
+                  <div className="grid grid-cols-4 gap-1">
+                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
+                      onClick={runCode} data-testid="play-btn"
+                    >
+                      <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
+                    </Button>
+                    <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
+                      onClick={onResetCode}
+                    >
+                      <RotateCcw size={22} strokeWidth={2} />
+                    </Button>
+                    <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                      {fullCode
+                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
+                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
+                    </Button>
+                    <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
+                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                      {closeCode
+                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
+                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
+                  <DropdownMenu data-testid='language-dropdown'>
+                    <DropdownMenuTrigger>
+                      <div data-testid='language-btn'
+                        className="bg-background text-muted-foreground text-base font-bold h-7
+                          flex items-center gap-2 rounded-md p-2
+                          hover:bg-primary/20 focus:bg-primary/55"
+                      >
+                        {selectedLang?.display_name}
+                        <ChevronDown />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className='z-999' asChild>
+                      <div data-testid='language-menu'
+                        className="z-10 text-sm bg-muted text-foreground w-26 border rounded-lg"
+                      >
+                        {languages?.map((lang) => (
+                          <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
+                            className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                            onSelect={() => onLanguageChange(lang)}
+                          >
+                            {lang.display_name}
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+              <MonacoEditor
+                key={selectedLang?.monaco_id}
+                language={selectedLang?.monaco_id}
+                value={code}
+                theme={theme}
+                onChange={(value) => { setCode(value ?? presetCode) }}
+                options={{
+                  fontSize: 14,
+                  automaticLayout: true,
+                }}
+              />
+            </Panel>
+
+            <ResizableHandle data-testid="resizable-handle" />
+            <Panel data-testid="resizable-handle" defaultSize={35}
+              className="ml-0.75 rounded-md border"
+            >
+              <div data-testid="output-area"
+                className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                  border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+              >
+                <span className="text-lg font-medium">Output</span>
+                <div data-testid="output-btns"
+                  className={`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`} >
+                  {mostRecentSub && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
+                            className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                            <UndoDot size={22} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side='left' >
+                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl' >
+                            Go back to the most recently ran code
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
+                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                    {fullOutput
+                      ? <Minimize2 data-testid='output-area-min-icon' size={22} />
+                      : <Maximize2 data-testid='output-area-max-icon' size={22} />}
+                  </Button>
+                  <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
+                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                    {closeOutput
+                      ? <ChevronUp data-testid='output-area-up-icon' size={22} />
+                      : <ChevronDown data-testid='output-area-down-icon' size={22} />}
+                  </Button>
+                </div>
+              </div>
+              <div data-testid="code-output-tab" className='max-h-full p-2.5'>
+                <ConsoleOutput logs={logs} />
+              </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+      </PanelGroup>
+    </div>
+  </>
+)
 
 const CodingView = () => {
   const location = useLocation()
@@ -169,7 +417,7 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  const{user} = useUser();
+  const { user } = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -195,8 +443,8 @@ const CodingView = () => {
       setTheme(localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs")
     }
 
-    globalThis.addEventListener("storage", handleThemeSync)      // other tabs
-    globalThis.addEventListener("storage_sync", handleThemeSync) // same tab (NavUser)
+    globalThis.addEventListener("storage", handleThemeSync)
+    globalThis.addEventListener("storage_sync", handleThemeSync)
 
     return () => {
       globalThis.removeEventListener("storage", handleThemeSync)
@@ -204,7 +452,6 @@ const CodingView = () => {
     }
   }, [])
 
-  // Auto-select the first language that has starter content when the question changes
   useEffect(() => {
     if (!activeQuestion || !languages?.length) return
 
@@ -222,9 +469,6 @@ const CodingView = () => {
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Called by CodeDescArea when the user solves the riddle.
-  // Runs in CodingView so it updates the real userQuestionInstance state that
-  // flows back down as a prop — fixing the "riddle stays stuck" bug.
   const handleRiddleSolved = async () => {
     if (!userQuestionInstance) return
     try {
@@ -253,7 +497,6 @@ const CodingView = () => {
       return
     }
 
-    // Drive the left-panel Result tab instead of a full-page loader
     setSubmissionState('loading')
 
     try {
@@ -277,7 +520,6 @@ const CodingView = () => {
         code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0, !!algo)
 
       setLatestSubmissionResult(submissionResponse)
-
       setLogs(prev => [...prev, codeRunResponse.judge0Response])
       setMostRecentSub(mostRecentSubResponse)
 
@@ -314,12 +556,11 @@ const CodingView = () => {
 
       setLogs(prev => [...prev, judge0Response])
 
-      // Capture run result — status comes directly from Judge0 response
       trackCodeRun(
         activeQuestion?.question_id,
         selectedLang!,
         judge0Response.status.description,
-        judge0Response.status.description === "Accepted", //passed
+        judge0Response.status.description === "Accepted",
         judge0Response.time ?? undefined
       )
     } catch (err) {
@@ -336,11 +577,8 @@ const CodingView = () => {
     }
   }
 
-  // Keep a ref to the previous language so we can log "from → to" on change
-  // Per-language code buffers — key: `${questionId}_${lang}`, value: user's typed code
   const codeBuffersRef = useRef<Map<string, string>>(new Map())
 
-  // Look up the DB-stored properties for the currently selected language
   const activeLangProps = useMemo(
     () => activeQuestion?.language_specific_properties.find(
       (p) => p.language_display_name === selectedLang?.display_name
@@ -348,7 +586,6 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: composed starter fields -> template_code -> generic fallback comment
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
   const composedStarterCode = [
@@ -364,7 +601,6 @@ const CodingView = () => {
 
   const [code, setCode] = useState<string>('')
 
-  // Restore buffer or fall back to presetCode on language/question change
   useEffect(() => {
     const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
     setCode(saved ?? presetCode)
@@ -372,11 +608,28 @@ const CodingView = () => {
 
   const [clearingCode, setClearingCode] = useState<boolean>(false)
   const [confirmClearingCode, setConfirmClearingCode] = useState<boolean>(false)
+  const handleResetCode = () => {
+    if (code.trim() === presetCode.trim()) {
+      setConfirmClearingCode(true)
+      return
+    }
+
+    setClearingCode(true)
+  }
+
+  const handleLanguageSelect = (lang: Language) => {
+    codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
+    if (prevLangRef.current) {
+      trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+    }
+    prevLangRef.current = lang
+    setSelectedLang(lang)
+    toast.info("Code saved in this session — refreshing the page will lose your changes.")
+  }
 
   useEffect(() => {
     if (!confirmClearingCode) return
     trackCodeReset(activeQuestion!.question_id, selectedLang!)
-    // Clear buffer so the reset sticks if the user switches away and back
     codeBuffersRef.current.delete(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
     setConfirmClearingCode(false)
     setCode(presetCode)
@@ -447,186 +700,46 @@ const CodingView = () => {
           <CloudUpload size={16} />Submit
         </Button>
       </div>
-      {showCodingSkeleton && <CodingViewSkeleton />}
-      <div data-testid="sandbox" key="sandbox"
-        className={`${contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} h-[calc(100%-2.75rem)] motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
-      >
-      {questionsInstances.length > 1 && (
-        <QuestionSelector
-          activeDisplayQuestionName={activeDisplayQuestionName}
-          questions={questions}
-          onQuestionChange={handleQuestionChange}
-        />
-      )}
-      <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
-        className='h-full w-full'
-      >
-        {/* Description panel */}
-        <Panel data-testid="resizable-panel" key="desc-area"
-          defaultSize={50} minSize={5}
-          className='mr-0.75 rounded-md border'
-        >
-          <CodeDescArea
-              question={activeQuestion} question_instance={activeQuestionInstance}
-            uqi={userQuestionInstance} testcases={testcases}
-            eventId={event?.event_id ?? (algo ? 0 : undefined)}
-            eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
-            isCompetitionEvent={!!comp}
-            currentUserId={user?.id}
-            submissionState={submissionState}
-            latestSubmissionResult={latestSubmissionResult}
-            onRiddleSolved={handleRiddleSolved}
-          />
-        </Panel>
-
-        <ResizableHandle data-testid="resizable-handle" />
-
-        {/* Second panel */}
-        <Panel defaultSize={50} data-testid="resizable-panel">
-          <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group">
-            {/* Coding area panel */}
-            <Panel defaultSize={65} data-testid="resizable-panel"
-              className="ml-0.75 rounded-md border"
-            >
-              <div data-testid="coding-area">
-                <div data-testid="coding-btns"
-                  className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
-                >
-                  <span className="text-lg font-medium">Code</span>
-                  <div className="grid grid-cols-4 gap-1">
-                    <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
-                      onClick={runCode} data-testid="play-btn"
-                    >
-                      <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
-                    </Button>
-                    <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
-                      onClick={() => {
-                        if (code.trim() === presetCode.trim()) {
-                          setConfirmClearingCode(true)
-                        } else {
-                          setClearingCode(true)
-                        }
-                      }}
-                    >
-                      <RotateCcw size={22} strokeWidth={2} />
-                    </Button>
-                    <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
-                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {fullCode
-                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
-                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
-                    </Button>
-                    <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
-                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {closeCode
-                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
-                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
-                    </Button>
-                  </div>
-                </div>
-                <div className="w-full rounded-none h-10 border-b border-border/75 dark:border-border/50 py-1.5 px-2">
-                  <DropdownMenu data-testid='language-dropdown'>
-                    <DropdownMenuTrigger>
-                      <div data-testid='language-btn'
-                        className="bg-background text-muted-foreground text-base font-bold h-7
-                          flex items-center gap-2 rounded-md p-2
-                          hover:bg-primary/20 focus:bg-primary/55"
-                      >
-                        {selectedLang?.display_name}
-                        <ChevronDown />
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className='z-999' asChild>
-                      <div data-testid='language-menu'
-                        className="z-10 text-sm bg-muted text-foreground w-26 border rounded-lg"
-                      >
-                        {languages?.map((lang) => (
-                          <DropdownMenuItem data-testid={`languageItem-${lang.monaco_id}`} key={lang.monaco_id}
-                            className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                            onSelect={() => {
-                              // Save current code to buffer before switching
-                              codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
-                              if (prevLangRef.current) {
-                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
-                              }
-                              prevLangRef.current = lang
-                              setSelectedLang(lang)
-                              toast.info("Code saved in this session — refreshing the page will lose your changes.")
-                            }}
-                          >
-                            {lang.display_name}
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-              <MonacoEditor
-                key={selectedLang?.monaco_id}
-                language={selectedLang?.monaco_id}
-                value={code}
-                theme={theme}
-                onChange={(value) => { setCode(value ?? presetCode) }}
-                options={{
-                  fontSize: 14,
-                  automaticLayout: true,
-                }}
-              />
-            </Panel>
-
-            <ResizableHandle data-testid="resizable-handle" />
-            {/* Output panel */}
-            <Panel data-testid="resizable-handle" defaultSize={35}
-              className="ml-0.75 rounded-md border"
-            >
-              <div data-testid="output-area"
-                className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                  border-b border-border/75 dark:border-border/50 py-1.5 px-4"
-              >
-                <span className="text-lg font-medium">Output</span>
-                <div data-testid="output-btns"
-                  className={`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`} >
-                  {mostRecentSub && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
-                            className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                            <UndoDot size={22} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side='left' >
-                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl' >
-                            Go back to the most recently ran code
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
-                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                    {fullOutput
-                      ? <Minimize2 data-testid='output-area-min-icon' size={22} />
-                      : <Maximize2 data-testid='output-area-max-icon' size={22} />}
-                  </Button>
-                  <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
-                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                    {closeOutput
-                      ? <ChevronUp data-testid='output-area-up-icon' size={22} />
-                      : <ChevronDown data-testid='output-area-down-icon' size={22} />}
-                  </Button>
-                </div>
-              </div>
-              <div data-testid="code-output-tab" className='max-h-full p-2.5'>
-                <ConsoleOutput logs={logs} />
-              </div>
-            </Panel>
-          </PanelGroup>
-        </Panel>
-      </PanelGroup>
-      </div>
+      <CodingWorkspace
+        contentVisible={contentVisible}
+        showCodingSkeleton={showCodingSkeleton}
+        questionsInstances={questionsInstances}
+        activeDisplayQuestionName={activeDisplayQuestionName}
+        questions={questions}
+        onQuestionChange={handleQuestionChange}
+        mainPanelGroup={mainPanelGroup}
+        codePanelGroup={codePanelGroup}
+        activeQuestion={activeQuestion}
+        activeQuestionInstance={activeQuestionInstance}
+        userQuestionInstance={userQuestionInstance}
+        testcases={testcases}
+        event={event}
+        algo={algo}
+        comp={comp}
+        currentUserId={user?.id}
+        submissionState={submissionState}
+        latestSubmissionResult={latestSubmissionResult}
+        onRiddleSolved={handleRiddleSolved}
+        runCode={runCode}
+        code={code}
+        presetCode={presetCode}
+        onResetCode={handleResetCode}
+        fullCode={fullCode}
+        setFullCode={setFullCode}
+        closeCode={closeCode}
+        setCloseCode={setCloseCode}
+        selectedLang={selectedLang}
+        languages={languages}
+        onLanguageChange={handleLanguageSelect}
+        theme={theme}
+        setCode={setCode}
+        fullOutput={fullOutput}
+        setFullOutput={setFullOutput}
+        closeOutput={closeOutput}
+        setCloseOutput={setCloseOutput}
+        mostRecentSub={mostRecentSub}
+        logs={logs}
+      />
     </div>
   );
 };
