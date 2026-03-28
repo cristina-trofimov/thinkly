@@ -7,7 +7,6 @@ from slowapi.util import get_remote_address
 from dotenv import load_dotenv
 import logging
 from services.posthog_analytics import track_custom_event
-from fastapi.responses import JSONResponse
 
 
 limiter = Limiter(key_func=get_remote_address)
@@ -115,7 +114,6 @@ def judge0_get_outputs(
                 }
             }
 
-            # return JSONResponse(content=average_submission, status_code=200)
             return average_submission
 
         except Exception as e:
