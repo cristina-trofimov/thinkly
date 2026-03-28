@@ -91,7 +91,7 @@ def judge0_get_outputs(
                 if submission["status"]["description"] != "Accepted":
                     return submission
 
-            # All accepted — return the last one as the representative result
+            # All accepted — return the average stats of all submissions
             # Calculate average time and memory
             total_time = sum(float(submission.get("time", 0) or 0) for submission in submissions)
             total_memory = sum(float(submission.get("memory", 0) or 0) for submission in submissions)
