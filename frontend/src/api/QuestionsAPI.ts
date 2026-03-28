@@ -210,3 +210,22 @@ export async function updateQuestion(
     throw err;
   }
 }
+
+export async function getTestCasesByQuestionId(questionId: number | undefined): Promise<TestCase[]> {
+  try {
+    if (questionId === undefined) {
+      throw new Error("Question ID is undefined");
+    }
+    const question = await getQuestionByID(questionId);
+    return question.test_cases;
+  } catch (err) {
+    logFrontend({
+      level: "ERROR",
+      message: `An error occurred when fetching test cases for question ${questionId}. Reason: ${err}`,
+      component: "QuestionsAPI",
+      url: globalThis.location.href,
+      stack: (err as Error).stack,
+    });
+    throw err;
+  }
+}

@@ -76,10 +76,12 @@ def add_user_question_instance(
             db.add(query)
         else:
             print("updating")
-            # update if it exist
+            # update if it exists — never overwrite a non-null points value with null
+            # (prevents accidental score reset when the UQI is re-initialised on re-join)
             query.user_id = request['user_id']
             query.question_instance_id = request['question_instance_id']
-            query.points = request['points']
+            if request['points'] is not None:
+                query.points = request['points']
             query.riddle_complete = request['riddle_complete']
             query.lapse_time = request['lapse_time']
             query.attempts = request['attempts']

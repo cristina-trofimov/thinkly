@@ -13,9 +13,7 @@ import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
-import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
-import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
 import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
@@ -27,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip
 
 const CodeDescArea = (
     { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-      submissionState, latestSubmissionResult, allLanguages, submissions }:
+      submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved }:
     { question: Question | undefined,
        question_instance: QuestionInstance | undefined | null,
        uqi: UserQuestionInstance | undefined | null,
@@ -44,7 +42,8 @@ const CodeDescArea = (
       /** The latest submission returned by the API once submissionState === 'done'. */
       latestSubmissionResult?: SubmissionType | null,
       allLanguages: Language[] | undefined,
-      submissions: SubmissionType[] | undefined
+      submissions: SubmissionType[] | undefined,
+      onRiddleSolved?: () => void
     }
 ) => {
 
@@ -60,8 +59,6 @@ const CodeDescArea = (
     const tabs = hasEvent
         ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> }]
         : baseTabs
-
-    const { setUserQuestionInstance } = useCodingHooks(question)
 
     const { trackCodingTabSwitched } = useAnalytics()
 
@@ -148,6 +145,7 @@ const CodeDescArea = (
         )
     }
 
+    //Riddle Rendering Start-----------------------------------------------
     if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
         if (isLoadingRiddle || !riddle) {
             return (
@@ -163,11 +161,7 @@ const CodeDescArea = (
                     <h2 className="text-lg font-semibold mb-4 text-center">{question.question_name}</h2>
                     <RiddleUserForm
                         riddle={riddle}
-                        onSolved={async () => {
-                            const updated = { ...uqi, riddle_complete: true }
-                            await putUserInstance(updated)
-                                .then((resp) => setUserQuestionInstance(resp))
-                        }}
+                        onSolved={onRiddleSolved}
                     />
                 </div>
             </div>
@@ -215,15 +209,15 @@ const CodeDescArea = (
             {/* Description */}
             <TabsContent value='description' data-testid="tabs-content-description">
                 <div className='h-full p-4'>
-                    <div className='border-b-2 pb-2 h-2/3' >
+                    <div className='border-b-2 pb-2 shrink-0' >
                         <h1 className='font-bold mb-3'>
                             {question.question_name}
                         </h1>
-                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-110'>
+                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-100'>
                             {question.question_description}
                         </p>
                     </div>
-                    <div className='max-h-1/3 mt-2 px-2 border rounded-xl bg-muted/65
+                    <div className='max-h-60 mt-2 px-2 border rounded-xl bg-muted/65
                             wrap-break-word whitespace-pre-wrap overflow-y-auto'
                     >
                         {testcases?.map((t, idx) => {

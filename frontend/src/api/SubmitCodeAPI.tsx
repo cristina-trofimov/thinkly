@@ -1,6 +1,6 @@
 import type { BaseEvent } from "@/types/BaseEvent.type"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Question } from "@/types/questions/QuestionPagination.type"
 import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -9,6 +9,7 @@ import { logFrontend } from "./LoggerAPI"
 import { updateMostRecentSub } from "./MostRecentSubAPI"
 import { saveSubmission } from "./SubmissionAPI"
 import { putUserInstance } from "./UserQuestionInstanceAPI"
+import { upsertAlgoTimeLeaderboardEntry, upsertCompetitionLeaderboardEntry } from "./LeaderboardsAPI"
 
 export async function submitAttempt(
     question: Question | undefined,
@@ -17,8 +18,8 @@ export async function submitAttempt(
     event: BaseEvent | undefined | null,
     source_code: string,
     language_id: number | undefined,
-    testcases: TestCase[],
     userId: number,
+    isAlgoTime: boolean = false,
   ): Promise<SubmitAttemptResponse> {
     try {
       if (!questionInstance || !userQuestionInstance || !question || !language_id) {
@@ -30,7 +31,7 @@ export async function submitAttempt(
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id,source_code, language_id, userId)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
@@ -56,7 +57,12 @@ export async function submitAttempt(
       // 4. Save most recent submission
       const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
 
-      // 5. Updates leaderboard (Leave this here for now)
+      // 5. Update leaderboard based on session type
+      if (isAlgoTime && event) {
+        await upsertAlgoTimeLeaderboardEntry(userId)
+      } else if (!isAlgoTime && event) {
+        await upsertCompetitionLeaderboardEntry(userId, event.event_id)
+      }
 
       // 6. Save submission's output details
       let runtime: number | null = null

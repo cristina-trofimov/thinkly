@@ -97,6 +97,25 @@ const CodingView = () => {
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Called by CodeDescArea when the user solves the riddle.
+  // Runs in CodingView so it updates the real userQuestionInstance state that
+  // flows back down as a prop — fixing the "riddle stays stuck" bug.
+  const handleRiddleSolved = async () => {
+    if (!userQuestionInstance) return
+    try {
+      const updated = { ...userQuestionInstance, riddle_complete: true }
+      const resp = await putUserInstance(updated)
+      setUserQuestionInstance(resp)
+    } catch (error) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when marking riddle as complete. Reason: ${error}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (error as Error).stack,
+      })
+    }
+  }
 
   const submitCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
@@ -134,6 +153,8 @@ const CodingView = () => {
             : Date.now() - startTime!.getTime()
         }
 
+        const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
         const {
           codeRunResponse,
           submissionResponse,
@@ -141,10 +162,7 @@ const CodingView = () => {
         } = await submitAttempt(
           activeQuestion, activeQuestionInstance,
           userQuestionInstance, event,
-          code, selectedLang?.lang_judge_id, testcases, user!.id)
-
-        await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
-          .then((response) => setAllSubmissions(response))
+          codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
 
         setLatestSubmissionResult(submissionResponse)
 
@@ -155,6 +173,28 @@ const CodingView = () => {
           activeQuestion!.question_id,
           selectedLang!,
         )
+
+        // const {
+        //   codeRunResponse,
+        //   submissionResponse,
+        //   mostRecentSubResponse
+        // } = await submitAttempt(
+        //   activeQuestion, activeQuestionInstance,
+        //   userQuestionInstance, event,
+        //   code, selectedLang?.lang_judge_id, testcases, user!.id)
+
+        // await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
+        //   .then((response) => setAllSubmissions(response))
+
+        // setLatestSubmissionResult(submissionResponse)
+
+        // setLogs(prev => [...prev, codeRunResponse.judge0Response])
+        // setMostRecentSub(mostRecentSubResponse)
+
+        // trackCodeSubmitted(
+        //   activeQuestion!.question_id,
+        //   selectedLang!,
+        // )
       } catch (err) {
         toast.error("Error when submitting the code.")
         setSubmissionState('idle')
@@ -185,8 +225,9 @@ const CodingView = () => {
       setIsLoading(true)
       setLoadingMsg("Running")
 
-      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
+      const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
+        codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
 
@@ -225,19 +266,28 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: composed starter fields -> template_code -> generic fallback comment
+  // The user only sees template_code when entering a question.
+  // All other fields (imports, preset_classes, preset_functions, main_function)
+  // are composed separately and injected at submission/run time — not shown in the editor.
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
-  const composedStarterCode = [
+
+  const presetCode = activeLangProps?.template_code || fallbackComment
+
+  // Full code sent to Judge0: hidden boilerplate wrapped around the user's visible code
+  const composedBoilerplateBefore = [
     activeLangProps?.imports,
     activeLangProps?.preset_classes,
-    activeLangProps?.preset_functions,
-    activeLangProps?.main_function,
+    activeLangProps?.preset_functions
   ]
     .filter((section): section is string => Boolean(section?.trim()))
     .join('\n\n')
 
-  const presetCode = composedStarterCode || activeLangProps?.template_code || fallbackComment
+  const composedBoilerplateAfter = [
+    activeLangProps?.main_function
+  ]
+    .filter((section): section is string => Boolean(section?.trim()))
+    .join('\n\n')
 
   const [code, setCode] = useState<string>('')
 
@@ -391,6 +441,7 @@ const CodingView = () => {
             latestSubmissionResult={latestSubmissionResult}
             submissions={allSubmissions}
             allLanguages={allLanguages}
+            onRiddleSolved={handleRiddleSolved}
           />
         </Panel>
 
