@@ -30,6 +30,41 @@ import { useCardReveal } from '@/hooks/useCardReveal';
 import CodingViewSkeleton from '@/components/codingPage/CodingViewSkeleton';
 import { ResizableHandle } from '@/components/ui/resizable';
 
+const getPanelLayouts = ({
+  fullCode,
+  fullOutput,
+  closeCode,
+  closeOutput,
+}: {
+  fullCode: boolean
+  fullOutput: boolean
+  closeCode: boolean
+  closeOutput: boolean
+}) => {
+  if (fullCode) {
+    return { mainPanelSize: [0, 100], codePanelSize: [100, 0] }
+  }
+
+  if (fullOutput) {
+    return { mainPanelSize: [0, 100], codePanelSize: [0, 100] }
+  }
+
+  if (closeCode && !closeOutput) {
+    return { mainPanelSize: [50, 50], codePanelSize: [10, 90] }
+  }
+
+  if (closeOutput && !closeCode) {
+    return { mainPanelSize: [50, 50], codePanelSize: [90, 10] }
+  }
+
+  return { mainPanelSize: [50, 50], codePanelSize: [65, 35] }
+}
+
+const canInteractWithQuestion = (
+  activeQuestionInstance: { riddle_id?: number | null } | null | undefined,
+  userQuestionInstance: { riddle_complete?: boolean | null } | null | undefined,
+) => !(activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete)
+
 
 const CodingView = () => {
   const location = useLocation()
@@ -129,7 +164,7 @@ const CodingView = () => {
   }
 
   const submitCode = async () => {
-    if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
+    if (!canInteractWithQuestion(activeQuestionInstance, userQuestionInstance)) {
       toast.warning('Please answer the riddle first...')
       return
     }
@@ -187,7 +222,7 @@ const CodingView = () => {
   }
 
   const runCode = async () => {
-    if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
+    if (!canInteractWithQuestion(activeQuestionInstance, userQuestionInstance)) {
       toast.warning('Please answer the riddle first...')
       return
     }
@@ -304,24 +339,12 @@ const CodingView = () => {
   const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
   useLayoutEffect(() => {
-    let mainPanelSize: number[], codePanelSize: number[]
-
-    if (fullCode) {
-      mainPanelSize = [0, 100]
-      codePanelSize = [100, 0]
-    } else if (fullOutput) {
-      mainPanelSize = [0, 100]
-      codePanelSize = [0, 100]
-    } else if (closeCode && !closeOutput) {
-      mainPanelSize = [50, 50]
-      codePanelSize = [10, 90]
-    } else if (closeOutput && !closeCode) {
-      mainPanelSize = [50, 50]
-      codePanelSize = [90, 10]
-    } else {
-      mainPanelSize = [50, 50]
-      codePanelSize = [65, 35]
-    }
+    const { mainPanelSize, codePanelSize } = getPanelLayouts({
+      fullCode,
+      fullOutput,
+      closeCode,
+      closeOutput,
+    })
 
     mainPanelGroup.current?.setLayout(mainPanelSize)
     codePanelGroup.current?.setLayout(codePanelSize)
