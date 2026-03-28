@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 type ManageRiddlesSkeletonProps = {
-  count?: number;
+  readonly count?: number;
 };
 
 export default function ManageRiddlesSkeleton({

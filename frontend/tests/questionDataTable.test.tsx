@@ -35,6 +35,10 @@ jest.mock("../src/components/ui/input", () => ({
   Input: ({ ...props }: any) => <input {...props} />,
 }))
 
+jest.mock("../src/components/ui/skeleton", () => ({
+  Skeleton: ({ className }: any) => <div data-testid="table-skeleton" className={className} />,
+}))
+
 jest.mock("../src/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: any) => <div>{children}</div>,
   DropdownMenuTrigger: ({ children }: any) => <div>{children}</div>,
@@ -70,10 +74,19 @@ jest.mock("../src/components/ui/pagination", () => ({
 }))
 
 jest.mock("../src/components/ui/select", () => ({
-  Select: ({ children, onValueChange }: any) => (
+  Select: ({ children, onValueChange, disabled }: any) => (
     <div>
       {children}
-      <button type="button" data-testid="select-page-size-50" onClick={() => onValueChange?.("50")}>
+      <button
+        type="button"
+        data-testid="select-page-size-50"
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) {
+            onValueChange?.("50")
+          }
+        }}
+      >
         choose 50
       </button>
     </div>
@@ -163,6 +176,34 @@ describe("DataTable", () => {
       <MemoryRouter><DataTable columns={columns} data={[]} {...defaultProps} /></MemoryRouter>
     )
     expect(screen.getByText("No results.")).toBeInTheDocument()
+  })
+
+  test("renders skeleton rows while loading", () => {
+    render(
+      <MemoryRouter>
+        <DataTable columns={columns} data={data} {...defaultProps} loading pageSize={4} />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByTestId("table-skeleton")).toHaveLength(8)
+    expect(screen.queryByText("Two Sum")).not.toBeInTheDocument()
+  })
+
+  test("keeps pagination controls hidden until contentVisible is true", () => {
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          loading={false}
+          contentVisible={false}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText("Two Sum")).toBeInTheDocument()
+    expect(screen.getByText("Rows per page").parentElement?.parentElement).toHaveClass("opacity-0")
   })
 
   test("search input sends the search value to the parent", async () => {
@@ -354,6 +395,25 @@ describe("DataTable", () => {
 
     fireEvent.click(screen.getByTestId("select-page-size-50"))
     expect(onPageSizeChange).toHaveBeenCalledWith(50)
+  })
+
+  test("does not allow page size changes while content is not ready", () => {
+    const onPageSizeChange = jest.fn()
+
+    render(
+      <MemoryRouter>
+        <DataTable
+          columns={columns}
+          data={data}
+          {...defaultProps}
+          loading
+          onPageSizeChange={onPageSizeChange}
+        />
+      </MemoryRouter>
+    )
+
+    fireEvent.click(screen.getByTestId("select-page-size-50"))
+    expect(onPageSizeChange).not.toHaveBeenCalled()
   })
 
   test("renders ellipsis for middle pagination ranges", () => {
