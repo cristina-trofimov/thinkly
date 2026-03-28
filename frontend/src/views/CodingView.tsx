@@ -7,12 +7,11 @@ import {
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
-import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Panel, type ImperativePanelGroupHandle, PanelGroup } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
 import { submitToJudge0 } from '@/api/Judge0API';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
-import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
@@ -27,6 +26,9 @@ import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import { useCardReveal } from '@/hooks/useCardReveal';
+import CodingViewSkeleton from '@/components/codingPage/CodingViewSkeleton';
+import { ResizableHandle } from '@/components/ui/resizable';
 
 
 const CodingView = () => {
@@ -43,7 +45,7 @@ const CodingView = () => {
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
     selectedLang, setSelectedLang, event,
-    testcases, loadingMsg, isLoading
+    testcases, isLoading
   } = useCodingHooks(question, comp, algo)
 
   const {
@@ -62,6 +64,17 @@ const CodingView = () => {
   const [logs, setLogs] = useState<Judge0Response[]>([])
   const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
+  const shouldShowFallback = !isLoading && !activeQuestion
+  const isContentReady = Boolean(
+    activeQuestion &&
+    activeQuestionInstance &&
+    selectedLang &&
+    (!user || userQuestionInstance)
+  )
+  const isPageLoading = !shouldShowFallback && (isLoading || !isContentReady)
+  const isSubmitDisabled = isPageLoading || submissionState === 'loading'
+  const contentVisible = useCardReveal(isPageLoading, isPageLoading ? 0 : 1)
+  const showCodingSkeleton = isPageLoading || !contentVisible
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -314,7 +327,7 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!activeQuestion) {
+  if (shouldShowFallback) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
@@ -322,20 +335,33 @@ const CodingView = () => {
     );
   }
 
+  if (!activeQuestion) {
+    return (
+      <div className="px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]">
+        <div className='flex items-center justify-center mb-2 w-full'>
+          <Button disabled data-testid="submit-btn" key="submit-btn">
+            <CloudUpload size={16} />Submit
+          </Button>
+        </div>
+        <CodingViewSkeleton />
+      </div>
+    )
+  }
+
   return (
-    <div data-testid="sandbox" key="sandbox"
-      className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
-    >
-      {/* Loading modal */}
-      <Loader isOpen={isLoading} msg={loadingMsg} />
+    <div className="px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]">
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
       <div className='flex items-center justify-center mb-2 w-full'>
-        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
+        <Button onClick={submitCode} disabled={isSubmitDisabled} data-testid="submit-btn" key="submit-btn">
           <CloudUpload size={16} />Submit
         </Button>
       </div>
+      {showCodingSkeleton && <CodingViewSkeleton />}
+      <div data-testid="sandbox" key="sandbox"
+        className={`${contentVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"} h-[calc(100%-2.75rem)] motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+      >
       {questionsInstances.length > 1 && (
         <div className='flex items-end-safe justify-end mb-2 w-full'>
           <DropdownMenu data-testid='questions-dropdown'>
@@ -386,17 +412,14 @@ const CodingView = () => {
           />
         </Panel>
 
-        <PanelResizeHandle data-testid="resizable-handle"
-          className="w-[0.35px] mx-[1.5px] border-none"
-          style={{ background: "transparent" }}
-        />
+        <ResizableHandle data-testid="resizable-handle" />
 
         {/* Second panel */}
         <Panel defaultSize={50} data-testid="resizable-panel">
           <PanelGroup direction="vertical" ref={codePanelGroup} data-testid="panel-group">
             {/* Coding area panel */}
             <Panel defaultSize={65} data-testid="resizable-panel"
-              className="ml-0.75 mb-1 rounded-md border"
+              className="ml-0.75 rounded-md border"
             >
               <div data-testid="coding-area">
                 <div data-testid="coding-btns"
@@ -486,13 +509,10 @@ const CodingView = () => {
               />
             </Panel>
 
-            <PanelResizeHandle data-testid="resizable-handle"
-              className='my-[0.5px] border-none h-[0.5px]'
-              style={{ background: "transparent" }}
-            />
+            <ResizableHandle data-testid="resizable-handle" />
             {/* Output panel */}
             <Panel data-testid="resizable-handle" defaultSize={35}
-              className="ml-0.75 mt-1 rounded-md border"
+              className="ml-0.75 rounded-md border"
             >
               <div data-testid="output-area"
                 className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
@@ -539,6 +559,7 @@ const CodingView = () => {
           </PanelGroup>
         </Panel>
       </PanelGroup>
+      </div>
     </div>
   );
 };
