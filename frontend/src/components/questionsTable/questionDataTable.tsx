@@ -271,12 +271,12 @@ export function DataTable<TData extends Question, TValue>({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      {!isContentReady ? (
-        renderTable()
-      ) : (
+      {isContentReady ? (
         <div className={`${CONTENT_TRANSITION_CLASS} ${CONTENT_ENTER_CLASS}`}>
           {renderTable()}
         </div>
+      ) : (
+        renderTable()
       )}
       <div
         className={`flex flex-row items-center justify-between gap-3 py-4 ${CONTENT_TRANSITION_CLASS} ${paginationVisibilityClass}`}
