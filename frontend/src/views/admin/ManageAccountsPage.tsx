@@ -5,7 +5,6 @@ import { ManageAccountsDataTable } from "../../components/manageAccounts/ManageA
 import { getAccountsPage, type AccountsSort } from "@/api/AccountsAPI";
 import { logFrontend } from "../../api/LoggerAPI";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
 import { useUser } from "@/context/UserContext";
 
 export default function ManageAccountsPage() {
@@ -19,7 +18,6 @@ export default function ManageAccountsPage() {
   >("all");
   const [sort, setSort] = useState<AccountsSort | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<number>(0);
   const { user: currentUser } = useUser();
@@ -91,7 +89,6 @@ export default function ManageAccountsPage() {
 
         setError(errorMessage);
       } finally {
-        setHasLoadedOnce(true);
         setLoading(false);
       }
     };
@@ -99,9 +96,6 @@ export default function ManageAccountsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, search, sort, userTypeFilter, refreshToken]);
 
-  if (loading && !hasLoadedOnce) {
-    return <ManageAccountsTableSkeleton />;
-  }
   if (error) {
     return <div>Something went wrong. Please try again.</div>;
   }
@@ -162,6 +156,7 @@ export default function ManageAccountsPage() {
         pageSize={pageSize}
         search={search}
         userTypeFilter={userTypeFilter}
+        loading={loading}
         onSearchChange={(value) => {
           setPage(1);
           setSearch(value);
