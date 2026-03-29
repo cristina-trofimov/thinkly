@@ -91,27 +91,46 @@ const data: Question[] = [
   },
 ];
 
+const defaultTableProps = {
+  columns: columns as any,
+  data,
+  total: data.length,
+  page: 1,
+  pageSize: 25,
+  search: "",
+  difficultyFilter: "all" as const,
+  loading: false,
+  onSearchChange: jest.fn(),
+  onDifficultyFilterChange: jest.fn(),
+  onPageChange: jest.fn(),
+  onPageSizeChange: jest.fn(),
+  refreshTable: jest.fn(),
+};
+
+const renderTable = (overrides: Partial<typeof defaultTableProps> = {}) =>
+  render(
+    <MemoryRouter>
+      <ManageQuestionsDataTable {...defaultTableProps} {...overrides} />
+    </MemoryRouter>
+  );
+
 describe("ManageQuestionsDataTable", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders and filters rows by title", async () => {
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} />
-      </MemoryRouter>
-    );
+    const onSearchChange = jest.fn();
+    renderTable({ onSearchChange });
 
     expect(screen.getByText("Two Sum")).toBeInTheDocument();
     fireEvent.change(screen.getByPlaceholderText("Filter question titles..."), {
       target: { value: "Reverse" },
     });
 
-    await waitFor(() => {
-      expect(screen.getByText("Reverse List")).toBeInTheDocument();
-      expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
-    });
+    expect(onSearchChange).toHaveBeenCalledWith("Reverse");
+    expect(screen.getByText("Reverse List")).toBeInTheDocument();
+    expect(screen.getByText("Two Sum")).toBeInTheDocument();
   });
 
   it("deletes selected rows and calls callback", async () => {
@@ -124,15 +143,7 @@ describe("ManageQuestionsDataTable", () => {
     } as any);
 
     const refreshTable = jest.fn();
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable
-          columns={columns as any}
-          data={data}
-          refreshTable={refreshTable}
-        />
-      </MemoryRouter>
-    );
+    renderTable({ refreshTable });
 
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[1]);
@@ -156,11 +167,7 @@ describe("ManageQuestionsDataTable", () => {
     } as any);
 
     const refreshTable = jest.fn();
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} refreshTable={refreshTable} />
-      </MemoryRouter>
-    );
+    renderTable({ refreshTable });
 
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[1]);
@@ -181,11 +188,7 @@ describe("ManageQuestionsDataTable", () => {
   it("shows default batch delete error when backend detail is absent", async () => {
     mockedDeleteQuestions.mockRejectedValueOnce({ response: {} } as any);
 
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} />
-      </MemoryRouter>
-    );
+    renderTable();
 
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[1]);
@@ -202,11 +205,7 @@ describe("ManageQuestionsDataTable", () => {
     const user = userEvent.setup();
     mockedDeleteQuestion.mockResolvedValueOnce(undefined);
 
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} />
-      </MemoryRouter>
-    );
+    renderTable();
 
     await user.click(screen.getAllByRole("button", { name: /open menu/i })[0]);
     await user.click(await screen.findByRole("menuitem", { name: /delete question/i }));
@@ -221,11 +220,7 @@ describe("ManageQuestionsDataTable", () => {
     const user = userEvent.setup();
     mockedDeleteQuestion.mockRejectedValueOnce(new Error("failed"));
 
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} />
-      </MemoryRouter>
-    );
+    renderTable();
 
     await user.click(screen.getAllByRole("button", { name: /open menu/i })[0]);
     await user.click(await screen.findByRole("menuitem", { name: /delete question/i }));
@@ -237,26 +232,23 @@ describe("ManageQuestionsDataTable", () => {
 
   it("applies difficulty filters from dropdown options", async () => {
     const user = userEvent.setup();
+    const onDifficultyFilterChange = jest.fn();
 
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={data} />
-      </MemoryRouter>
-    );
+    renderTable({ onDifficultyFilterChange });
 
     await user.click(screen.getByRole("button", { name: /all difficulties/i }));
     await user.click(await screen.findByRole("menuitem", { name: "Easy" }));
-
-    await user.click(screen.getByRole("button", { name: /easy/i }));
+    await user.click(screen.getByRole("button", { name: /all difficulties/i }));
     await user.click(await screen.findByRole("menuitem", { name: "Medium" }));
-
-    await user.click(screen.getByRole("button", { name: /medium/i }));
+    await user.click(screen.getByRole("button", { name: /all difficulties/i }));
     await user.click(await screen.findByRole("menuitem", { name: "Hard" }));
-
-    await user.click(screen.getByRole("button", { name: /hard/i }));
+    await user.click(screen.getByRole("button", { name: /all difficulties/i }));
     await user.click(await screen.findByRole("menuitem", { name: "All" }));
 
-    expect(screen.getByRole("button", { name: /all difficulties/i })).toBeInTheDocument();
+    expect(onDifficultyFilterChange).toHaveBeenNthCalledWith(1, "easy");
+    expect(onDifficultyFilterChange).toHaveBeenNthCalledWith(2, "medium");
+    expect(onDifficultyFilterChange).toHaveBeenNthCalledWith(3, "hard");
+    expect(onDifficultyFilterChange).toHaveBeenNthCalledWith(4, "all");
   });
 
   it("navigates between pages", async () => {
@@ -266,32 +258,22 @@ describe("ManageQuestionsDataTable", () => {
       question_name: `Question ${idx + 1}`,
     }));
 
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable columns={columns as any} data={manyRows as any} />
-      </MemoryRouter>
-    );
+    const onPageChange = jest.fn();
+    renderTable({
+      data: manyRows as any,
+      total: manyRows.length,
+      page: 2,
+      pageSize: 10,
+      onPageChange,
+    });
 
-    const nextButton = screen.getByRole("button", { name: /next/i });
-    expect(nextButton).toBeEnabled();
-    fireEvent.click(nextButton);
-
-    const previousButton = screen.getByRole("button", { name: /previous/i });
-    expect(previousButton).toBeEnabled();
-    fireEvent.click(previousButton);
+    fireEvent.click(screen.getByRole("link", { name: "1" }));
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 
   it("handles upload callbacks", () => {
     const refreshTable = jest.fn();
-    render(
-      <MemoryRouter>
-        <ManageQuestionsDataTable
-          columns={columns as any}
-          data={data}
-          refreshTable={refreshTable}
-        />
-      </MemoryRouter>
-    );
+    renderTable({ refreshTable });
 
     fireEvent.click(screen.getByTestId("upload-json"));
 

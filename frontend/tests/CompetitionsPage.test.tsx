@@ -82,7 +82,9 @@ describe("CompetitionsPage", () => {
     (getCompetitionsPage as jest.Mock).mockReturnValue(new Promise(() => {}));
     render(<CompetitionsPage />);
     await waitFor(() => {
-      expect(screen.getByText(/loading competitions/i)).toBeInTheDocument();
+      expect(screen.getByText("Competitions")).toBeInTheDocument();
+      expect(screen.getByText(/upcoming and past competitions/i)).toBeInTheDocument();
+      expect(document.querySelectorAll("[data-slot='skeleton']").length).toBeGreaterThan(0);
     });
   });
 

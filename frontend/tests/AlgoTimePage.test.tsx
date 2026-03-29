@@ -68,11 +68,14 @@ describe("AlgoTimePage", () => {
 
       render(<AlgoTimePage />);
 
-      expect(screen.getByText(/loading sessions/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: /algotime sessions/i })
+      ).toBeInTheDocument();
+      expect(document.querySelectorAll("[data-slot='skeleton']").length).toBeGreaterThan(0);
 
       resolve!([]);
       await waitFor(() =>
-        expect(screen.queryByText(/loading sessions/i)).not.toBeInTheDocument()
+        expect(document.querySelector("[data-slot='skeleton']")).not.toBeInTheDocument()
       );
     });
   });
@@ -310,7 +313,7 @@ describe("AlgoTimePage", () => {
       render(<AlgoTimePage />);
 
       await waitFor(() =>
-        expect(screen.queryByText(/loading sessions/i)).not.toBeInTheDocument()
+        expect(document.querySelector("[data-slot='skeleton']")).not.toBeInTheDocument()
       );
     });
   });

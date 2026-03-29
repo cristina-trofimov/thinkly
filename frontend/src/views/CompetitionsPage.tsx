@@ -3,6 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   getCompetitionsPage,
 } from "@/api/CompetitionAPI";
 import { getCompetitionsDetails } from "@/api/LeaderboardsAPI";
@@ -25,6 +33,7 @@ import {
   getPublicCompetitionTitleClasses,
   type EventStatus as CompetitionStatus,
 } from "@/utils/eventDisplay";
+import { Filter } from "lucide-react";
 
 type ModalState =
   | { type: "leaderboard"; competition: Competition }
@@ -202,24 +211,32 @@ export default function CompetitionsPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        {["All", "Active", "Upcoming", "Completed"].map((filter) => (
-          <Button
-            key={filter}
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setPage(1);
-              setSelectedFilter(filter as "All" | CompetitionStatus);
-            }}
-            className={
-              selectedFilter === filter
-                ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-                : ""
-            }
-          >
-            {filter}
-          </Button>
-        ))}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-0.5 cursor-pointer">
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="ml-2 hidden md:inline-flex items-center">
+                {selectedFilter === "All" ? "All Competitions" : selectedFilter}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {["All", "Active", "Upcoming", "Completed"].map((filter) => (
+              <DropdownMenuItem
+                key={filter}
+                className="cursor-pointer"
+                onClick={() => {
+                  setPage(1);
+                  setSelectedFilter(filter as "All" | CompetitionStatus);
+                }}
+              >
+                {filter === "All" ? "All Competitions" : filter}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {loading ? (
