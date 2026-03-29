@@ -2,6 +2,7 @@ import { LineChart, Line, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { LoginsDataPoint } from "@/types/adminDashboard/Analytics.type";
 import type { NumberOfLoginsChartProps } from "@/types/adminDashboard/DashboardCharts.type";
+import { LineChartSkeleton } from "./DashboardChartSkeleton";
 
 const LOGIN_LINE_COLOR = "var(--chart-2)";
 const LOGIN_DOT_COLOR = "var(--chart-3)";
@@ -16,12 +17,16 @@ const PLACEHOLDER_DATA: LoginsDataPoint[] = [
 ];
 
 export const NumberOfLoginsChart = ({ data, loading = false }: NumberOfLoginsChartProps) => {
+  if (loading) {
+    return <LineChartSkeleton />;
+  }
+
   const displayData = data.length > 0 ? data : PLACEHOLDER_DATA;
 
   return (
     <ChartContainer
       config={{ logins: { color: LOGIN_LINE_COLOR } }}
-      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+      style={{ width: "100%", height: 180 }}
     >
       <LineChart
         data={displayData}

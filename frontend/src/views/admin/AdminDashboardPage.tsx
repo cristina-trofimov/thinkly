@@ -217,6 +217,7 @@ export function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6">
               <StatsCard
                 title="New Accounts"
+                loading={loading}
                 value={newAccountStats.value}
                 subtitle={newAccountStats.subtitle}
                 description={newAccountStats.description}

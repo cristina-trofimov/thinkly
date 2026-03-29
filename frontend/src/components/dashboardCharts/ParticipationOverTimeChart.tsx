@@ -2,12 +2,25 @@ import { BarChart, Bar, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { ParticipationDataPoint, TimeRange } from "@/types/adminDashboard/Analytics.type";
 import type { ParticipationOverTimeChartProps } from "@/types/adminDashboard/DashboardCharts.type";
+import { VerticalBarsSkeleton } from "./DashboardChartSkeleton";
 
 export const ParticipationOverTimeChart = ({
   data,
   timeRange,
   loading = false,
 }: ParticipationOverTimeChartProps) => {
+  if (loading) {
+    return (
+      <div className="w-full mt-6 px-6">
+        <h2 className="text-left text-lg font-semibold text-foreground">Participation over time</h2>
+        <p className="text-left text-sm font-normal text-muted-foreground mt-1 mb-8">
+          Number of users joining competitions or AlgoTime sessions each day
+        </p>
+        <VerticalBarsSkeleton />
+      </div>
+    );
+  }
+
   // Generate placeholder data if no data provided
   const displayData = data.length > 0 ? data : generatePlaceholderData(timeRange);
 
@@ -25,7 +38,7 @@ export const ParticipationOverTimeChart = ({
       </p>
       <ChartContainer
         config={{ participation: { color: "var(--chart-4)" } }}
-        style={{ width: "100%", height: 200, opacity: loading ? 0.5 : 1 }}
+        style={{ width: "100%", height: 200 }}
       >
         <BarChart
           data={displayData}

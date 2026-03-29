@@ -5,6 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { PieChartSkeleton } from "./DashboardChartSkeleton";
 import type {
   CenterLabelProps,
   QuestionsSolvedChartProps,
@@ -71,6 +72,10 @@ export const QuestionsSolvedChart = ({
   data,
   loading = false,
 }: QuestionsSolvedChartProps) => {
+  if (loading) {
+    return <PieChartSkeleton />;
+  }
+
   const hasData = data.length > 0;
   
   // Calculate total questions from actual data
@@ -90,7 +95,7 @@ export const QuestionsSolvedChart = ({
   return (
     <ChartContainer
       config={CHART_CONFIG}
-      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+      style={{ width: "100%", height: 180 }}
     >
       <PieChart>
         <Pie

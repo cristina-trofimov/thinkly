@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconTrendingUp, IconTrendingDown } from "@tabler/icons-react";
 import type { ReactNode } from "react";
+import { StatsCardSkeleton } from "./StatsCardSkeleton";
 
 export interface StatsCardProps {
   title: string;
@@ -10,6 +11,7 @@ export interface StatsCardProps {
   trend?: string;
   children?: ReactNode;
   dateSubtitle?: string;
+  loading?: boolean;
 }
 
 export const StatsCard = ({
@@ -20,6 +22,7 @@ export const StatsCard = ({
   trend,
   children,
   dateSubtitle,
+  loading = false,
 }: StatsCardProps) => {
   const isPositive = !trend?.trim().startsWith("-");
 
@@ -43,6 +46,10 @@ export const StatsCard = ({
   }
 
   // Metric card mode 
+  if (loading) {
+    return <StatsCardSkeleton title={title} />;
+  }
+
   return (
     <Card>
       <CardHeader className="pb-5">
