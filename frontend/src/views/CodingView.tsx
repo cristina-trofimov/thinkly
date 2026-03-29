@@ -27,6 +27,7 @@ import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 const CodingView = () => {
@@ -53,7 +54,7 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  const{user} = useUser();
+  const { user } = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -325,10 +326,59 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!activeQuestion) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
+      <div className="px-2 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)] flex flex-col gap-2">
+        {/* Submit button row */}
+        <div className="flex justify-center mb-2">
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+        {/* Main panels */}
+        <div className="flex gap-2 flex-1">
+          {/* Description panel */}
+          <div className="flex-1 rounded-md border p-4 flex flex-col gap-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+            <Skeleton className="h-4 w-full mt-4" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-24 w-full rounded-md mt-4" />
+          </div>
+          {/* Code + output panels */}
+          <div className="flex-1 flex flex-col gap-2">
+            {/* Code panel */}
+            <div className="flex-[65] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-12" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="h-10 border-b px-2 flex items-center">
+                <Skeleton className="h-6 w-24 rounded-md" />
+              </div>
+              <Skeleton className="flex-1 h-64 rounded-none" />
+            </div>
+            {/* Output panel */}
+            <div className="flex-[35] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-16" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="p-2.5 flex flex-col gap-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -385,7 +435,7 @@ const CodingView = () => {
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea
-              question={activeQuestion} question_instance={activeQuestionInstance}
+            question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
             eventId={event?.event_id ?? (algo ? 0 : undefined)}
             eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
