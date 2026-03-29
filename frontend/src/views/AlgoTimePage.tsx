@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
+import { MapPin } from "lucide-react";
 
 const formatSessionDate = (d: Date) => {
   const date = new Date(d);
@@ -34,7 +35,7 @@ const getStatusClasses = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "bg-green-100 text-green-700";
     case "Upcoming":
-      return "bg-blue-100 text-blue-700";
+      return "bg-primary-100 text-blue-700";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -45,7 +46,7 @@ const getCardBorder = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "border-2 border-green-500/50";
     case "Upcoming":
-      return "border-2 border-blue-500/50";
+      return "border-2 border-primary/50";
     default:
       return "border border-border opacity-70";
   }
@@ -56,7 +57,7 @@ const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
     case "Active":
       return "text-green-600 dark:text-green-400";
     case "Upcoming":
-      return "text-blue-600 dark:text-blue-400";
+      return "text-primary dark:text-blue-400";
     default:
       return "text-muted-foreground";
   }
@@ -143,7 +144,7 @@ export default function AlgoTimePage() {
                 <div>
                   {s.seriesName && (
                     <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
-                      {s.seriesName}
+                      <div className="flex gap-2"><div className="w-4 h-4"><MapPin strokeWidth={"1.5px"} size={18} /></div>{s.location}</div>
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -155,21 +156,20 @@ export default function AlgoTimePage() {
                 <div className="flex items-center justify-end pt-2 border-t">
                   <Button
                     size="sm"
-                    className={`h-7 text-xs ${
-                      status === "Active"
-                        ? "bg-green-600 hover:bg-green-700 text-primary-foreground"
-                        : status === "Upcoming"
-                        ? "bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+                    className={`h-7 text-xs ${status === "Active"
+                      ? "bg-green-600 hover:bg-green-700 text-primary-foreground"
+                      : status === "Upcoming"
+                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                         : ""
-                    }`}
+                      }`}
                     variant={status === "Completed" ? "outline" : "default"}
                     onClick={() => console.log(`Accessing session ${s.id}`)}
                   >
                     {status === "Active"
                       ? "Join Now"
                       : status === "Upcoming"
-                      ? "View Details"
-                      : "Access Session"}
+                        ? "View Details"
+                        : "Access Session"}
                   </Button>
                 </div>
               </CardContent>
