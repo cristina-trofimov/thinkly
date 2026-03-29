@@ -5,7 +5,7 @@ describe('Manage Competitions Page', () => {
       body: { role: 'admin', firstName: 'Admin', lastName: 'User', id: 1 }
     }).as('getProfile');
 
-    cy.intercept('GET', '**/competitions/**', {
+    cy.intercept('GET', '**/competitions*', {
       statusCode: 200,
       body: {
         total: 1,
@@ -31,7 +31,10 @@ describe('Manage Competitions Page', () => {
       },
     });
 
-    cy.wait(['@getProfile', '@getCompetitions']);
+    cy.wait('@getProfile');
+    cy.wait('@getCompetitions');
+    cy.contains('h1', 'Manage Competitions').should('be.visible');
+    cy.contains('Create New Competition').should('be.visible');
   });
 
   it('Checks all elements are present', () => {
