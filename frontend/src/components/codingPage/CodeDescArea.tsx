@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
-import { useEffect, forwardRef, useState, useCallback } from 'react'
+import { useEffect, forwardRef, useState, useRef } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -40,35 +40,57 @@ type DescProp = {
     onRiddleSolved?: () => void
 }
 
+// Below this pixel width the tab bar collapses to icon-only mode
+const ICON_ONLY_THRESHOLD = 260
+
 const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
 ({ question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
     submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved
-}, codeDescAreaContainerRef) => {
+}, _codeDescAreaContainerRef) => {
 
     const hasEvent = eventId !== undefined
 
     const baseTabs = [
-        { "id": "description", "label": "Description", "icon": <FileText /> },
-        { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "result", "label": "Result", "icon": <ClipboardCheck /> },
+        { "id": "description", "label": "Description", "icon": <FileText size={16} /> },
+        { "id": "submissions", "label": "Submissions", "icon": <History size={16} /> },
+        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck size={16} /> },
     ]
 
-    // Only expose the Leaderboard tab when the question belongs to an event
     const tabs = hasEvent
-        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> }]
+        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy size={16} /> }]
         : baseTabs
 
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
-    const [containerWidth, setContainerWidth] = useState(0)
-    const [initialWidth, setInitialWidth] = useState<number | null>(null)
+
+    // Observe the tab bar's own width so we know when to go icon-only
+    const tabsListRef = useRef<HTMLDivElement>(null)
+    const [tabBarWidth, setTabBarWidth] = useState<number>(9999)
+
+    useEffect(() => {
+        const el = tabsListRef.current
+        if (!el) return
+
+        // Seed with the actual width immediately on mount
+        setTabBarWidth(el.offsetWidth)
+
+        const ro = new ResizeObserver(entries => {
+            for (const entry of entries) {
+                setTabBarWidth(entry.contentRect.width)
+            }
+        })
+        ro.observe(el)
+        return () => ro.disconnect()
+    }, []) // stable ref — run once
+
+    const iconOnly = tabBarWidth < ICON_ONLY_THRESHOLD
 
     const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
-    // Auto-switch to the Result tab whenever a submission starts or finishes
+    // Auto-switch to Result tab on submission activity
     useEffect(() => {
         if (submissionState === 'loading' || submissionState === 'done') {
             setActiveTab('result')
@@ -82,12 +104,10 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
     }, [hasEvent, activeTab])
 
     useEffect(() => {
-        // No riddle on this question — skip fetch entirely and clear loading state
         if (!question_instance?.riddle_id) {
             setIsLoadingRiddle(false)
             return
         }
-        // Riddle already solved — no need to re-fetch
         if (uqi?.riddle_complete) {
             setIsLoadingRiddle(false)
             return
@@ -113,92 +133,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         fetchRiddle()
     }, [question_instance, uqi?.riddle_complete])
 
-    // useEffect(() => {
-    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
-    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current) {
-    //         const observer = new ResizeObserver(entries => {
-    //             if (entries.length === 0) return
-    //             const width = entries[0].contentRect.width
-    //             setContainerWidth(width)
-    //             if (initialWidth === null) setInitialWidth(width)
-    //         })
-    //         observer.observe(codeDescAreaContainerRef.current)
-    //         return () => observer.disconnect()
-    //     }
-    // }, [initialWidth, setContainerWidth, codeDescAreaContainerRef])
-
-
-
-    useEffect(() => {
-        if (
-            codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
-            && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
-        ) {
-            const resizeObserver = new ResizeObserver((entries) => {
-                for (let entry of entries) {
-                    setContainerWidth(entry.contentRect.width)
-                }
-            })
-
-            resizeObserver.observe(codeDescAreaContainerRef.current)
-            setContainerWidth(codeDescAreaContainerRef.current.offsetHeight)
-
-            return () => {
-                resizeObserver.disconnect()
-            }
-        }
-    }, [codeDescAreaContainerRef])
-
-
-
-    // const updateWidth = useCallback(() => {
-    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
-    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
-    //     ) {
-    //         setContainerWidth(codeDescAreaContainerRef.current.offsetWidth)
-    //     }
-    // }, [codeDescAreaContainerRef])
-
-    // useEffect(() => {
-    //     updateWidth()
-
-    //     const resizeObserver = new ResizeObserver(() => updateWidth())
-    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
-    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
-    //     ) {
-    //         resizeObserver.observe(codeDescAreaContainerRef.current)
-    //     }
-
-    //     window.addEventListener('resize', updateWidth)
-    //     return () => {
-    //         resizeObserver.disconnect()
-    //         window.removeEventListener('resize', updateWidth)
-    //     }
-    // }, [updateWidth, codeDescAreaContainerRef])
-
-    if (!question || !question_instance || !uqi) return
-
-    // let fullSize: number | undefined = undefined
-    let halfSize = 0, quarterSize = 0
-
-    // if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object' && "current" in codeDescAreaContainerRef) {
-    //     fullSize = codeDescAreaContainerRef?.current?.offsetWidth
-    // }
-
-    // if (fullSize) {
-    //     halfSize = fullSize / 2
-    //     quarterSize = fullSize / 4
-    // }
-
-    if (initialWidth) {
-        halfSize = initialWidth / 2
-        quarterSize = initialWidth / 4
-    }
-
-
-
-    // halfSize = containerWidth / 2
-    // quarterSize = containerWidth / 4
+    if (!question || !question_instance || !uqi) return null
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab)
@@ -211,7 +146,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
     const difficultyLabel = question.difficulty.replace(/^\w/, (char) => char.toUpperCase())
 
     //Riddle Rendering Start-----------------------------------------------
-    if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
+    if (question_instance?.riddle_id && !uqi?.riddle_complete) {
         if (isLoadingRiddle || !riddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -238,49 +173,84 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         )
     }
     //Riddle Rendering End-------------------------------------------------
+
     return (
-        <Tabs data-testid="tabs" defaultValue='description'
-            value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
+        <Tabs
+            data-testid="tabs"
+            defaultValue='description'
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className='w-full h-full flex flex-col'
         >
-            <TabsList data-testid="tabs-list" ref={codeDescAreaContainerRef}
-                className={`w-full h-10 py-0 px-4 bg-muted rounded-none
-                        border-b border-border/75 dark:border-border/50`}
+            {/*
+             * Line-variant tabs:
+             *   - No background pill, no press/scale animation
+             *   - Active state = bottom border line only (::after pseudo-element)
+             *   - When the panel is narrow (< ICON_ONLY_THRESHOLD) labels are hidden
+             *     and the native `title` attribute shows on hover as a tooltip
+             */}
+            <TabsList
+                ref={tabsListRef}
+                data-testid="tabs-list"
+                className="w-full h-10 shrink-0 rounded-none bg-muted
+                           border-b border-border/75 dark:border-border/50
+                           flex items-end px-2 gap-0 justify-start p-0"
             >
                 {tabs.map(t => {
-                    const isActive = activeTab === t.id
-                    let showText = true
-                    if (containerWidth < halfSize && !isActive) showText = false
-                    if (containerWidth < quarterSize) showText = false
-
-                    // Pulse the Result tab trigger while a submission is in flight
                     const isResultLoading = t.id === 'result' && submissionState === 'loading'
 
-                    return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
-                        className={`bg-muted rounded-none
-                        hover:border-t-2 hover:border-primary/40
-                        data-[state=active]:border-primary
-                        data-[state=active]:text-primary
-                        data-[state=active]:bg-muted
-                        data-[state=active]:border-b-[2.5px]
-                        data-[state=active]:border-x-0
-                        data-[state=active]:border-t-0
-                        dark:data-[state=active]:border-primary
-                        flex items-center gap-2 transition-all
-                            ${showText ? 'px-4' : 'px-2'}
-                            ${isResultLoading ? 'animate-pulse' : ''}
-                        `}
-                        title={showText ? undefined : t.label}
-                    >
-                        {t.icon}
-                        {showText && t.label}
-                    </TabsTrigger>
+                    return (
+                        <TabsTrigger
+                            data-testid="tabs-trigger"
+                            key={t.id}
+                            value={t.id}
+                            title={iconOnly ? t.label : undefined}
+                            className={[
+                                // Shape & spacing
+                                'relative h-full rounded-none px-3',
+                                // Layout
+                                'inline-flex items-center gap-1.5',
+                                // Typography
+                                'text-sm font-medium',
+                                // Remove ALL default Shadcn button/pill chrome
+                                'bg-transparent border-0 shadow-none',
+                                // No press / scale animation
+                                'active:scale-100 active:bg-transparent',
+                                // Colours
+                                'text-muted-foreground',
+                                'hover:text-foreground hover:bg-transparent',
+                                // Active: text colour + bottom line via ::after
+                                'data-[state=active]:bg-transparent',
+                                'data-[state=active]:text-primary',
+                                'data-[state=active]:shadow-none',
+                                // Bottom line indicator
+                                'data-[state=active]:after:absolute',
+                                'data-[state=active]:after:bottom-0',
+                                'data-[state=active]:after:left-0',
+                                'data-[state=active]:after:right-0',
+                                'data-[state=active]:after:h-[2.5px]',
+                                'data-[state=active]:after:rounded-t-sm',
+                                'data-[state=active]:after:bg-primary',
+                                'data-[state=active]:after:content-[""]',
+                                // Loading pulse on the Result tab
+                                isResultLoading ? 'animate-pulse' : '',
+                            ].join(' ')}
+                        >
+                            {t.icon}
+                            {!iconOnly && <span>{t.label}</span>}
+                        </TabsTrigger>
+                    )
                 })}
             </TabsList>
 
             {/* Description */}
-            <TabsContent value='description' data-testid="tabs-content-description">
+            <TabsContent
+                value='description'
+                data-testid="tabs-content-description"
+                className="flex-1 overflow-y-auto mt-0"
+            >
                 <div className='h-full p-4'>
-                    <div className='border-b-2 pb-2 shrink-0' >
+                    <div className='border-b-2 pb-2 shrink-0'>
                         <div className='mb-3 flex flex-col items-start gap-2'>
                             <h1 className='text-2xl font-bold'>
                                 {question.question_name}
@@ -301,8 +271,8 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                                 <p className='font-bold'>Example {idx + 1}:</p>
                                 <div className='ml-4 flex flex-col gap-1'>
                                     <p className='font-bold'>Inputs <span className='font-normal'>
-                                        {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
-                                            const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
+                                        {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], i) => {
+                                            const separator = i < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
                                             return `${key} = ${JSON.stringify(val)}${separator}`
                                         })}
                                     </span></p>
@@ -317,7 +287,11 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             </TabsContent>
 
             {/* Submissions */}
-            <TabsContent value='submissions' data-testid="tabs-content-submissions" className='flex-1 min-h-0' >
+            <TabsContent
+                value='submissions'
+                data-testid="tabs-content-submissions"
+                className='flex-1 min-h-0 mt-0'
+            >
                 <div className='h-full p-6'>
                     {selectedSubmission && (
                         <SubmissionDetail submission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
@@ -326,11 +300,12 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
-                        </div>)}
+                        </div>
+                    )}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
-                        <div className="h-full flex flex-col" >
-                            <div className='shrink-0 inline-flex items-center' >
+                        <div className="h-full flex flex-col">
+                            <div className='shrink-0 inline-flex items-center'>
                                 <Tooltip>
                                     <TooltipTrigger asChild className='z-9999999'>
                                         <Info size={18} />
@@ -342,7 +317,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                                     </TooltipContent>
                                 </Tooltip>
                                 <Table>
-                                    <TableHeader className='sticky top-0 -z-9999999' >
+                                    <TableHeader className='sticky top-0 -z-9999999'>
                                         <TableRow>
                                             <TableHead className='text-center w-40'>Status</TableHead>
                                             <TableHead className='text-center w-30'>Language</TableHead>
@@ -357,29 +332,34 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                                     <TableBody>
                                         {submissions?.map((s, idx) => {
                                             const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
-
-                                            return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
-                                                onClick={() => setSelectedSubmission(s)}
-                                            >
-                                                <TableCell className='grid grid-rows-2 w-40' >
-                                                    <span className={`${status_color}`} >{s.status}</span>
-                                                    <span className='text-muted-foreground' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
-                                                </TableCell>
-                                                <TableCell className="w-30" >
-                                                    {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
-                                                </TableCell>
-                                                <TableCell className="text-center w-30" >{s?.memory ? s.memory : "N/A"}</TableCell>
-                                                <TableCell className="text-center w-30" >{s?.runtime ? s.runtime : "N/A"}</TableCell>
-                                            </TableRow>
+                                            return (
+                                                <TableRow
+                                                    key={`submission ${idx + 1}`}
+                                                    data-testid={`submission-${idx + 1}`}
+                                                    onClick={() => setSelectedSubmission(s)}
+                                                >
+                                                    <TableCell className='grid grid-rows-2 w-40'>
+                                                        <span className={status_color}>{s.status}</span>
+                                                        <span className='text-muted-foreground'>{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
+                                                    </TableCell>
+                                                    <TableCell className="w-30">
+                                                        {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                                    </TableCell>
+                                                    <TableCell className="text-center w-30">{s?.memory ? s.memory : "N/A"}</TableCell>
+                                                    <TableCell className="text-center w-30">{s?.runtime ? s.runtime : "N/A"}</TableCell>
+                                                </TableRow>
+                                            )
                                         })}
                                     </TableBody>
                                 </Table>
                             </div>
-                            <div className='shrink-0' >
+                            <div className='shrink-0'>
                                 <Table>
                                     <TableFooter>
                                         <TableRow>
-                                            <TableCell colSpan={4} className='text-muted-foreground' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
+                                            <TableCell colSpan={4} className='text-muted-foreground'>
+                                                {submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}
+                                            </TableCell>
                                         </TableRow>
                                     </TableFooter>
                                 </Table>
@@ -390,7 +370,11 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             </TabsContent>
 
             {/* Result — live submission feedback */}
-            <TabsContent value='result' data-testid="tabs-content-result">
+            <TabsContent
+                value='result'
+                data-testid="tabs-content-result"
+                className="flex-1 overflow-y-auto mt-0"
+            >
                 <div className='h-full p-6 overflow-y-auto'>
                     {submissionState === 'loading' && <SubmissionSkeleton />}
 
@@ -402,7 +386,9 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                         <div className='flex flex-col items-center justify-center h-full py-16 text-muted-foreground gap-2'>
                             <ClipboardCheck className="w-8 h-8 opacity-30" />
                             <p className="text-base">No submission yet</p>
-                            <p className="text-sm">Hit <span className="font-semibold text-foreground">Submit</span> to see your results here</p>
+                            <p className="text-sm">
+                                Hit <span className="font-semibold text-foreground">Submit</span> to see your results here
+                            </p>
                         </div>
                     )}
                 </div>
@@ -410,7 +396,11 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
 
             {/* Leaderboard — only mounted when an event is active */}
             {eventId !== undefined && (
-                <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
+                <TabsContent
+                    value='leaderboard'
+                    data-testid="tabs-content-leaderboard"
+                    className="flex-1 overflow-y-auto mt-0"
+                >
                     <div className='h-full p-6'>
                         <EventLeaderboard
                             eventId={eventId}

@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Participant } from "../../types/account/Participant.type";
+import React from "react";
 
 interface Props {
   readonly participants: Participant[];
@@ -146,17 +147,15 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
                 const shouldShowSeparator = showSeparator && rank === 10;
 
                 return (
-                  <>
-                    <TableRow
-                      key={row.id}
-                      className={rowClass}
-                    >
+                  <React.Fragment key={row.id}>
+                    <TableRow className={rowClass}>
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
+
                     {shouldShowSeparator && (
                       <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableCell colSpan={5} className="text-center py-2 text-muted-foreground">
@@ -166,7 +165,7 @@ export function ScoreboardDataTable({ participants, currentUserId, showSeparator
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </>
