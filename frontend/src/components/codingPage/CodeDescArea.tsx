@@ -1,7 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
 import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
-import { useEffect, forwardRef, useState } from 'react'
+import { useEffect, forwardRef, useState, useCallback } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
@@ -113,33 +113,92 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         fetchRiddle()
     }, [question_instance, uqi?.riddle_complete])
 
+    // useEffect(() => {
+    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
+    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current) {
+    //         const observer = new ResizeObserver(entries => {
+    //             if (entries.length === 0) return
+    //             const width = entries[0].contentRect.width
+    //             setContainerWidth(width)
+    //             if (initialWidth === null) setInitialWidth(width)
+    //         })
+    //         observer.observe(codeDescAreaContainerRef.current)
+    //         return () => observer.disconnect()
+    //     }
+    // }, [initialWidth, setContainerWidth, codeDescAreaContainerRef])
+
+
+
     useEffect(() => {
-        if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
-            && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current) {
-            const observer = new ResizeObserver(entries => {
-                if (entries.length === 0) return
-                const width = entries[0].contentRect.width
-                setContainerWidth(width)
-                if (initialWidth === null) setInitialWidth(width)
+        if (
+            codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
+            && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
+        ) {
+            const resizeObserver = new ResizeObserver((entries) => {
+                for (let entry of entries) {
+                    setContainerWidth(entry.contentRect.width)
+                }
             })
-            observer.observe(codeDescAreaContainerRef.current)
-            return () => observer.disconnect()
+
+            resizeObserver.observe(codeDescAreaContainerRef.current)
+            setContainerWidth(codeDescAreaContainerRef.current.offsetHeight)
+
+            return () => {
+                resizeObserver.disconnect()
+            }
         }
-    }, [initialWidth, setContainerWidth, codeDescAreaContainerRef])
+    }, [codeDescAreaContainerRef])
+
+
+
+    // const updateWidth = useCallback(() => {
+    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
+    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
+    //     ) {
+    //         setContainerWidth(codeDescAreaContainerRef.current.offsetWidth)
+    //     }
+    // }, [codeDescAreaContainerRef])
+
+    // useEffect(() => {
+    //     updateWidth()
+
+    //     const resizeObserver = new ResizeObserver(() => updateWidth())
+    //     if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object'
+    //         && "current" in codeDescAreaContainerRef && codeDescAreaContainerRef.current
+    //     ) {
+    //         resizeObserver.observe(codeDescAreaContainerRef.current)
+    //     }
+
+    //     window.addEventListener('resize', updateWidth)
+    //     return () => {
+    //         resizeObserver.disconnect()
+    //         window.removeEventListener('resize', updateWidth)
+    //     }
+    // }, [updateWidth, codeDescAreaContainerRef])
 
     if (!question || !question_instance || !uqi) return
 
-    let fullSize: number | undefined = undefined
+    // let fullSize: number | undefined = undefined
     let halfSize = 0, quarterSize = 0
 
-    if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object' && "current" in codeDescAreaContainerRef) {
-        fullSize = codeDescAreaContainerRef?.current?.offsetWidth
+    // if (codeDescAreaContainerRef && typeof codeDescAreaContainerRef === 'object' && "current" in codeDescAreaContainerRef) {
+    //     fullSize = codeDescAreaContainerRef?.current?.offsetWidth
+    // }
+
+    // if (fullSize) {
+    //     halfSize = fullSize / 2
+    //     quarterSize = fullSize / 4
+    // }
+
+    if (initialWidth) {
+        halfSize = initialWidth / 2
+        quarterSize = initialWidth / 4
     }
 
-    if (fullSize) {
-        halfSize = fullSize / 2
-        quarterSize = fullSize / 4
-    }
+
+
+    // halfSize = containerWidth / 2
+    // quarterSize = containerWidth / 4
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab)
@@ -183,7 +242,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         <Tabs data-testid="tabs" defaultValue='description'
             value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
         >
-            <TabsList data-testid="tabs-list"// ref={codeDescAreaContainerRef}
+            <TabsList data-testid="tabs-list" ref={codeDescAreaContainerRef}
                 className={`w-full h-10 py-0 px-4 bg-muted rounded-none
                         border-b border-border/75 dark:border-border/50`}
             >
@@ -191,7 +250,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                     const isActive = activeTab === t.id
                     let showText = true
                     if (containerWidth < halfSize && !isActive) showText = false
-                    if (containerWidth < quarterSize && isActive) showText = false
+                    if (containerWidth < quarterSize) showText = false
 
                     // Pulse the Result tab trigger while a submission is in flight
                     const isResultLoading = t.id === 'result' && submissionState === 'loading'
@@ -210,6 +269,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                             ${showText ? 'px-4' : 'px-2'}
                             ${isResultLoading ? 'animate-pulse' : ''}
                         `}
+                        title={showText ? undefined : t.label}
                     >
                         {t.icon}
                         {showText && t.label}
