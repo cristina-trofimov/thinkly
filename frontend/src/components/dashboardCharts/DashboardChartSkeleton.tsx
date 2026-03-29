@@ -1,5 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+const VERTICAL_BAR_HEIGHTS = ["h-20", "h-28", "h-16", "h-32", "h-24", "h-14", "h-26"] as const;
+const HORIZONTAL_BAR_WIDTHS = ["w-2/5", "w-3/5", "w-4/5"] as const;
+const LINE_CHART_LABEL_KEYS = ["label-1", "label-2", "label-3", "label-4", "label-5", "label-6", "label-7"] as const;
+
 export function PieChartSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="flex h-[180px] items-center justify-center">
@@ -15,8 +19,8 @@ export function PieChartSkeleton() {
 export function VerticalBarsSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite" className="flex h-[180px] items-end gap-4 px-4 pt-4">
-      {["h-20", "h-28", "h-16", "h-32", "h-24", "h-14", "h-26"].map((height, index) => (
-        <div key={index} className="flex flex-1 flex-col items-center justify-end gap-2">
+      {VERTICAL_BAR_HEIGHTS.map((height) => (
+        <div key={height} className="flex flex-1 flex-col items-center justify-end gap-2">
           <Skeleton className={`w-full rounded-md ${height}`} />
           <Skeleton className="h-3 w-8" />
         </div>
@@ -31,10 +35,10 @@ export function HorizontalBarsSkeleton() {
       <div className="absolute bottom-6 left-18 right-4 h-px bg-border" />
       <div className="absolute bottom-6 left-18 top-4 w-px bg-border" />
       <div className="flex h-full flex-col justify-center gap-6">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="flex items-center gap-4">
+        {HORIZONTAL_BAR_WIDTHS.map((widthClass) => (
+          <div key={widthClass} className="flex items-center gap-4">
             <Skeleton className="h-4 w-12" />
-            <Skeleton className={`h-6 rounded-md ${index === 0 ? "w-2/5" : index === 1 ? "w-3/5" : "w-4/5"}`} />
+            <Skeleton className={`h-6 rounded-md ${widthClass}`} />
           </div>
         ))}
       </div>
@@ -73,8 +77,8 @@ export function LineChartSkeleton() {
         </div>
       </div>
       <div className="absolute bottom-1 left-6 right-4 flex items-end justify-between gap-2">
-        {Array.from({ length: 7 }, (_, index) => (
-          <div key={index} className="flex flex-col items-center gap-2">
+        {LINE_CHART_LABEL_KEYS.map((labelKey) => (
+          <div key={labelKey} className="flex flex-col items-center gap-2">
             <Skeleton className="h-3 w-6" />
           </div>
         ))}

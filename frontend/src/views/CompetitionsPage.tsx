@@ -40,6 +40,22 @@ type ModalState =
   | { type: "details"; competition: Competition }
   | null;
 
+const getEmptyCompetitionsHeading = (selectedFilter: "All" | CompetitionStatus) => {
+  if (selectedFilter === "All") {
+    return "No competitions available";
+  }
+
+  return `No ${selectedFilter.toLowerCase()} competitions available`;
+};
+
+const getEmptyCompetitionsMessage = (selectedFilter: "All" | CompetitionStatus) => {
+  if (selectedFilter === "All") {
+    return "Check back later for upcoming events.";
+  }
+
+  return "Try selecting a different filter.";
+};
+
 const renderCompetitionButton = (
   status: CompetitionStatus,
   comp: Competition,
@@ -309,16 +325,8 @@ export default function CompetitionsPage() {
 
       {hasNoMatchingCompetitions && (
         <div className="text-center py-16">
-          <h3 className="text-lg font-semibold mb-2">
-            {selectedFilter === "All"
-              ? "No competitions available"
-              : `No ${selectedFilter.toLowerCase()} competitions available`}
-          </h3>
-          <p className="text-muted-foreground">
-            {selectedFilter === "All"
-              ? "Check back later for upcoming events."
-              : "Try selecting a different filter."}
-          </p>
+          <h3 className="text-lg font-semibold mb-2">{getEmptyCompetitionsHeading(selectedFilter)}</h3>
+          <p className="text-muted-foreground">{getEmptyCompetitionsMessage(selectedFilter)}</p>
         </div>
       )}
 

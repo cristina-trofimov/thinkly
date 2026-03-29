@@ -64,6 +64,28 @@ const getTitleColor = (status: "Active" | "Upcoming" | "Completed") => {
   }
 };
 
+const getSessionButtonClassName = (status: "Active" | "Upcoming" | "Completed") => {
+  switch (status) {
+    case "Active":
+      return "h-7 text-xs bg-green-600 hover:bg-green-700 text-primary-foreground";
+    case "Upcoming":
+      return "h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground";
+    default:
+      return "h-7 text-xs";
+  }
+};
+
+const getSessionButtonLabel = (status: "Active" | "Upcoming" | "Completed") => {
+  switch (status) {
+    case "Active":
+      return "Join Now";
+    case "Upcoming":
+      return "View Details";
+    default:
+      return "Access Session";
+  }
+};
+
 export default function AlgoTimePage() {
   const [sessions, setSessions] = useState<AlgoTimeSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -165,21 +187,11 @@ export default function AlgoTimePage() {
                   <div className="flex items-center justify-end pt-2 border-t">
                     <Button
                       size="sm"
-                      className={`h-7 text-xs ${
-                        status === "Active"
-                          ? "bg-green-600 hover:bg-green-700 text-primary-foreground"
-                          : status === "Upcoming"
-                            ? "bg-blue-600 hover:bg-blue-700 text-primary-foreground"
-                            : ""
-                      }`}
+                      className={getSessionButtonClassName(status)}
                       variant={status === "Completed" ? "outline" : "default"}
                       onClick={() => console.log(`Accessing session ${s.id}`)}
                     >
-                      {status === "Active"
-                        ? "Join Now"
-                        : status === "Upcoming"
-                          ? "View Details"
-                          : "Access Session"}
+                      {getSessionButtonLabel(status)}
                     </Button>
                   </div>
                 </CardContent>
