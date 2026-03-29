@@ -21,7 +21,6 @@ import { SubmissionSkeleton } from './SubmissionSkeleton'
 import { SubmissionDetail } from './SubmissionDetail'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 import { getDiffColor } from '@/utils/difficultyBadge'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -307,26 +306,26 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             </TabsList>
 
             {/* Description */}
-            <TabsContent value='description' data-testid="tabs-content-description">
-                <PanelGroup direction={'vertical'} className='h-full p-4' >
-                    <div className='shrink-0 mb-3 flex flex-col items-start gap-2'>
-                        <h1 className='text-2xl font-bold'>
-                            {question.question_name}
-                        </h1>
-                        <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
-                            {difficultyLabel}
-                        </span>
+            <TabsContent
+                value='description'
+                data-testid="tabs-content-description"
+                className="flex-1 overflow-y-auto mt-0"
+            >
+                <div className='h-full p-4'>
+                    <div className='border-b-2 pb-2 shrink-0'>
+                        <div className='mb-3 flex flex-col items-start gap-2'>
+                            <h1 className='text-2xl font-bold'>
+                                {question.question_name}
+                            </h1>
+                            <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                                {difficultyLabel}
+                            </span>
+                        </div>
+                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-100'>
+                            {question.question_description}
+                        </p>
                     </div>
-                    <Panel defaultSize={75}
-                        className='max-h-full text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto'
-                    >
-                        {question.question_description}
-                    </Panel>
-                    <PanelResizeHandle data-testid="panel-resizable-handle"
-                        className='my-0.5 h-0.5 bg-primary/35 rounded-full'
-                    />
-                    <Panel defaultSize={25}
-                        className='my-2 px-2 border rounded-xl bg-muted/65
+                    <div className='max-h-60 mt-2 px-2 border rounded-xl bg-muted/65
                             wrap-break-word whitespace-pre-wrap overflow-y-auto'
                     >
                         {testcases?.map((t, idx) => {
@@ -345,8 +344,8 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                                 </div>
                             </div>
                         })}
-                    </Panel>
-                </PanelGroup>
+                    </div>
+                </div>
             </TabsContent>
 
             {/* Submissions */}
