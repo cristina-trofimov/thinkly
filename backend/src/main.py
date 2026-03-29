@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
-    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
+    scheduler.add_job(cleanup_ended_competitions, "interval", weeks=1, id="competition_cleanup")
     scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
     logger.info("✓ Email scheduler started (polling every 60s)")
@@ -208,4 +208,4 @@ except Exception:
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="0.0.0.0",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

@@ -519,7 +519,7 @@ const CodingView = () => {
                               // Save current code to buffer before switching
                               codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
                               if (prevLangRef.current) {
-                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+                                trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
                               }
                               prevLangRef.current = lang
                               setSelectedLang(lang)
