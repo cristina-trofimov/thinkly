@@ -4,6 +4,7 @@ import { logFrontend } from '../../api/LoggerAPI';
 import { getQuestions } from "@/api/QuestionsAPI";
 import type { Question } from "@/types/questions/QuestionPagination.type";
 import { ManageQuestionsDataTable } from "@/components/manageQuestions/ManageQuestionsDataTable";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ManageQuestionsPage() {
   const [data, setData] = useState<Question[]>([]);
@@ -54,7 +55,39 @@ export default function ManageQuestionsPage() {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col gap-4">
+          {/* Toolbar row */}
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-9 w-64 rounded-md" />
+            <Skeleton className="h-9 w-28 rounded-md" />
+          </div>
+          {/* Table */}
+          <div className="rounded-md border">
+            {/* Header */}
+            <div className="flex items-center gap-4 border-b px-4 py-3">
+              {[120, 200, 80, 100, 80].map((w, i) => (
+                <Skeleton key={i} className="h-4 rounded" style={{ width: w }} />
+              ))}
+            </div>
+            {/* Rows */}
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 border-b px-4 py-3 last:border-0">
+                {[120, 200, 80, 100, 80].map((w, j) => (
+                  <Skeleton key={j} className="h-4 rounded" style={{ width: w }} />
+                ))}
+              </div>
+            ))}
+          </div>
+          {/* Pagination row */}
+          <div className="flex items-center justify-end gap-2">
+            <Skeleton className="h-8 w-20 rounded-md" />
+            <Skeleton className="h-8 w-20 rounded-md" />
+          </div>
+        </div>
+      </div>
+    );
   }
   if (error) {
     return <div>Error: {error}</div>;
