@@ -5,7 +5,7 @@ describe('Manage Competitions Page', () => {
       body: { role: 'admin', firstName: 'Admin', lastName: 'User', id: 1 }
     }).as('getProfile');
 
-    cy.intercept('GET', '**/competitions*', {
+    cy.intercept({ method: 'GET', pathname: '/competitions/' }, {
       statusCode: 200,
       body: {
         total: 1,
