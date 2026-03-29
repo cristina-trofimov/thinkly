@@ -249,7 +249,7 @@ function HomePage() {
             mode="single"
             selected={date}
             onSelect={handleDateSelect}
-            className="rounded-md border shadow-sm self-end w-full"
+            className="rounded-md border shadow-sm self-end w-full [&_.rdp-day]:aspect-auto [&_.rdp-day]:h-9"
             captionLayout="dropdown"
             modifiers={{ competition: competitionDates }}
             modifiersClassNames={{
