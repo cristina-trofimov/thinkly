@@ -61,6 +61,7 @@ import { toast } from "sonner";
 import type { Question } from "@/types/questions/QuestionPagination.type";
 import { deleteQuestion, deleteQuestions, ShowQuestionOnFrontpageByID } from "@/api/QuestionsAPI";
 import UploadQuestionsJSONButton from "./UploadQuestionsJSONButton";
+import QuestionsGenerativeAITooltipButton from "./QuestionsGenerativeAITooltipButton";
 import { parseAxiosErrorMessage } from "@/lib/axiosClient";
 import { logFrontend } from "@/api/LoggerAPI";
 
@@ -270,6 +271,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <QuestionsGenerativeAITooltipButton />
           <div className="ml-auto flex gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
