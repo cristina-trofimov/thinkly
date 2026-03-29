@@ -856,9 +856,13 @@ describe('CodingView - submit code', () => {
 
     it('calls getAllSubmissions after a successful submission', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            userQuestionInstance: mockUqi,
+            startTime: new Date(Date.now() - 1000),
+        }))
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
-        await waitFor(() => expect(mockedGetAllSubmissions).toHaveBeenCalledWith(user_id))
+        await waitFor(() => expect(mockedGetAllSubmissions).toHaveBeenCalledWith(mockUqi.user_question_instance_id))
     })
 
     it('shows error toast when submitAttempt throws', async () => {
