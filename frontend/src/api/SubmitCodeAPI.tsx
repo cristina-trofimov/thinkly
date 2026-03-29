@@ -47,7 +47,6 @@ export async function submitAttempt(
             break;
           default:
             throw new Error("SubmitAttempt: This is not a valid question difficulty level");
-            break;
         }
       }
 

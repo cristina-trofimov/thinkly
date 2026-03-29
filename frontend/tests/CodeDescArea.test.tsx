@@ -213,7 +213,7 @@ const renderCodeDescArea = (opts: RenderOpts = {}) => render(
       allLanguages={opts.allLanguages ?? mockLanguages}
       submissions={opts.submissions ?? mockSubmissions}
       onRiddleSolved={opts.onRiddleSolved}
-      codeDescAreaContainerRef={mockRef}
+      ref={mockRef}
     />
   </TooltipProvider>
 )
@@ -367,7 +367,7 @@ describe('CodeDescArea — result tab', () => {
       isCompetitionEvent: true,
       allLanguages: mockLanguages,
       submissions: mockSubmissions,
-      codeDescAreaContainerRef: mockRef
+      ref: mockRef
     }
 
     const { rerender } = render(

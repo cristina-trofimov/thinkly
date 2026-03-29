@@ -38,7 +38,6 @@ type DescProp = {
     allLanguages: Language[] | undefined,
     submissions: SubmissionType[] | undefined,
     onRiddleSolved?: () => void
-    codeDescAreaContainerRef: React.Ref<HTMLDivElement>
 }
 
 const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
@@ -184,7 +183,7 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
         <Tabs data-testid="tabs" defaultValue='description'
             value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
         >
-            <TabsList data-testid="tabs-list" ref={codeDescAreaContainerRef}
+            <TabsList data-testid="tabs-list"// ref={codeDescAreaContainerRef}
                 className={`w-full h-10 py-0 px-4 bg-muted rounded-none
                         border-b border-border/75 dark:border-border/50`}
             >
@@ -271,21 +270,19 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
                         <div className="h-full flex flex-col" >
-                            <div className='shrink-0 right-0 translate-0' >
+                            <div className='shrink-0 inline-flex items-center' >
                                 <Tooltip>
-                                    <TooltipTrigger asChild>
+                                    <TooltipTrigger asChild className='z-9999999'>
                                         <Info size={18} />
                                     </TooltipTrigger>
-                                    <TooltipContent side='left'
+                                    <TooltipContent side='top'
                                         className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl shadow'
                                     >
                                         Click on any submission to see more details
                                     </TooltipContent>
                                 </Tooltip>
-                            </div>
-                            <div className='shrink-0 overflow-hidden'>
                                 <Table>
-                                    <TableHeader className='sticky top-0' >
+                                    <TableHeader className='sticky top-0 -z-9999999' >
                                         <TableRow>
                                             <TableHead className='text-center w-40'>Status</TableHead>
                                             <TableHead className='text-center w-30'>Language</TableHead>

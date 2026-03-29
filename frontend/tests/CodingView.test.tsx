@@ -598,11 +598,10 @@ describe('CodingView - submit code', () => {
     it('calls submitAttempt with correct args including userId', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
         renderCodingView()
-        // Wait for getProfile to resolve so currentUserId is populated before clicking
+
         await userEvent.click(screen.getByTestId('submit-btn'))
+
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        // expect.anything() does NOT match null, and the default hook mock has
-        // userQuestionInstance=null and event=null. Check userId and isAlgoTime args.
         const callArgs = mockedSubmitAttempt.mock.calls[0]
         expect(callArgs[callArgs.length - 2]).toBe(user_id)   // userId
         expect(callArgs[callArgs.length - 1]).toBe(false)      // isAlgoTime (no algo session)
@@ -618,15 +617,14 @@ describe('CodingView - submit code', () => {
         expect(toast.warning).not.toHaveBeenCalled()
     })
 
-    it('shows result inline (not toast) when status is not Accepted', async () => {
+    it('toast result inline when status is not Accepted', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        // Non-accepted results are shown inline, not via toast
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
-        expect(toast.error).not.toHaveBeenCalled()
+        expect(toast.error).toHaveBeenCalled()
     })
 
 

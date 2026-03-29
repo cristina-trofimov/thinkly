@@ -27,6 +27,7 @@ import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import { getAllSubmissions } from '@/api/SubmissionAPI';
 
 
 const CodingView = () => {
@@ -44,7 +45,7 @@ const CodingView = () => {
     questions, questionsInstances, languages, prevLangRef,
     selectedLang, setSelectedLang, event, testcases,
     loadingMsg, setLoadingMsg, isLoading, setIsLoading,
-    allSubmissions, allLanguages
+    allSubmissions, setAllSubmissions, allLanguages
   } = useCodingHooks(question, comp, algo)
 
   const codeDescAreaContainerRef = useRef<HTMLDivElement>(null)
@@ -126,7 +127,7 @@ const CodingView = () => {
 
     let submit = true
 
-    if (event && mostRecentSub && mostRecentSub.submitted_on) {
+    if (event && mostRecentSub?.submitted_on) {
       const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 60000)
 
       if (Date.now() < new Date(nextSubTime).getTime()) {
@@ -139,54 +140,64 @@ const CodingView = () => {
       }
     }
 
-    if (submit) {
-      // Drive the left-panel Result tab instead of a full-page loader
-      setSubmissionState('loading')
+      if (submit) {
+        // Drive the left-panel Result tab instead of a full-page loader
+        setSubmissionState('loading')
 
-      try {
-        if (userQuestionInstance) {
-          userQuestionInstance.attempts = userQuestionInstance.attempts
-            ? userQuestionInstance.attempts + 1
-            : 1
+        try {
+          if (userQuestionInstance) {
+            userQuestionInstance.attempts = userQuestionInstance.attempts
+              ? userQuestionInstance.attempts + 1
+              : 1
 
-          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-            : Date.now() - startTime!.getTime()
+            userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+              ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+              : Date.now() - startTime!.getTime()
+          }
+
+          const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
+          const {
+            codeRunResponse,
+            submissionResponse,
+            mostRecentSubResponse
+          } = await submitAttempt(
+            activeQuestion, activeQuestionInstance,
+            userQuestionInstance, event,
+            codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+
+          await getAllSubmissions(user?.id)
+            .then((response) => {
+              // if (allSubmissions) {
+              //   setAllSubmissions(prev => [...prev, response])
+              // } else {
+                console.log(response)
+                setAllSubmissions(response)
+              // }
+            })
+
+          setLatestSubmissionResult(submissionResponse)
+          setLogs(prev => [...prev, codeRunResponse.judge0Response])
+          setMostRecentSub(mostRecentSubResponse)
+
+          trackCodeSubmitted(
+            activeQuestion!.question_id,
+            selectedLang!,
+          )
+        } catch (err) {
+          toast.error("Error when submitting the code.")
+          setSubmissionState('idle')
+          logFrontend({
+            level: "ERROR",
+            message: `An error occurred when submitting code. Reason: ${err}`,
+            component: "CodingView",
+            url: globalThis.location.href,
+            stack: (err as Error).stack,
+          });
+        } finally {
+          setSubmissionState('done')
         }
-
-        const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
-
-        const {
-          codeRunResponse,
-          submissionResponse,
-          mostRecentSubResponse
-        } = await submitAttempt(
-          activeQuestion, activeQuestionInstance,
-          userQuestionInstance, event,
-          codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
-
-        setLatestSubmissionResult(submissionResponse)
-
-        setLogs(prev => [...prev, codeRunResponse.judge0Response])
-        setMostRecentSub(mostRecentSubResponse)
-
-        trackCodeSubmitted(
-          activeQuestion!.question_id,
-          selectedLang!,
-        )
-      } catch (err) {
-        toast.error("Error when submitting the code.")
-        setSubmissionState('idle')
-        logFrontend({
-          level: "ERROR",
-          message: `An error occurred when submitting code. Reason: ${err}`,
-          component: "CodingView",
-          url: globalThis.location.href,
-          stack: (err as Error).stack,
-        });
-      } finally {
-        setSubmissionState('done')
-      }
+      // }
     }
   }
 
@@ -410,7 +421,7 @@ const CodingView = () => {
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea
-              question={activeQuestion} question_instance={activeQuestionInstance}
+            question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
             eventId={event?.event_id ?? (algo ? 0 : undefined)}
             eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
@@ -421,7 +432,7 @@ const CodingView = () => {
             submissions={allSubmissions}
             allLanguages={allLanguages}
             onRiddleSolved={handleRiddleSolved}
-            codeDescAreaContainerRef={codeDescAreaContainerRef}
+            ref={codeDescAreaContainerRef}
           />
         </Panel>
 
