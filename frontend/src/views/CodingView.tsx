@@ -63,6 +63,7 @@ const CodingView = () => {
   const [logs, setLogs] = useState<Judge0Response[]>([])
   const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
+  const hasSubmittedRef = useRef(false);
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -95,6 +96,8 @@ const CodingView = () => {
       prevLangRef.current = matchedLang
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+
 
   // Called by CodeDescArea when the user solves the riddle.
   // Runs in CodingView so it updates the real userQuestionInstance state that
@@ -150,6 +153,8 @@ const CodingView = () => {
         activeQuestion, activeQuestionInstance,
         userQuestionInstance, event,
         codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+
+      hasSubmittedRef.current = true;
 
       setLatestSubmissionResult(submissionResponse)
 
@@ -248,6 +253,21 @@ const CodingView = () => {
     .join('\n\n')
 
   const [code, setCode] = useState<string>('')
+
+  // Warn before refresh/close if code has been modified
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isUnmodified =
+        hasSubmittedRef.current ||
+        code.trim() === presetCode.trim() ||
+        code.trim() === '';
+      if (isUnmodified) return;
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [code, presetCode]);
 
   // Restore buffer or fall back to presetCode on language/question change
   useEffect(() => {

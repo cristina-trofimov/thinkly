@@ -280,7 +280,7 @@ function HomePage() {
                 >
                   <CompetitionItem
                     title={competition.competitionTitle}
-                    date={competition.startDate.toLocaleDateString()}
+                    location={competition.competitionLocation}
                   />
                 </button>
               ))
