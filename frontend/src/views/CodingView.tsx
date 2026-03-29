@@ -168,12 +168,7 @@ const CodingView = () => {
 
           await getAllSubmissions(user?.id)
             .then((response) => {
-              // if (allSubmissions) {
-              //   setAllSubmissions(prev => [...prev, response])
-              // } else {
-                console.log(response)
-                setAllSubmissions(response)
-              // }
+              setAllSubmissions(response)
             })
 
           setLatestSubmissionResult(submissionResponse)
