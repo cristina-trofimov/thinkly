@@ -40,9 +40,6 @@ type DescProp = {
     onRiddleSolved?: () => void
 }
 
-// Below this pixel width the tab bar collapses to icon-only mode
-const ICON_ONLY_THRESHOLD = 260
-
 const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
 ({ question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
     submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved
@@ -65,27 +62,60 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
     const [activeTab, setActiveTab] = useState("description")
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
 
-    // Observe the tab bar's own width so we know when to go icon-only
+    // ── Icon-only detection ────────────────────────────────────────────────────
+    //
+    // WHY NOT scrollWidth > clientWidth on the TabsList?
+    // The TabsList is a flex container — flex shrinks children to fit by default,
+    // so scrollWidth never exceeds clientWidth and that check never fires.
+    //
+    // THE FIX — hidden probe element:
+    // A separate div sits off-screen (position:fixed, visibility:hidden) and
+    // always renders every tab label at its natural unconstrained width. It is
+    // never affected by flex shrinking or overflow clipping.
+    // A ResizeObserver on the real tab-list fires on every resize; we compare
+    //   probeRef.offsetWidth  (space labels truly need)
+    //   vs container.clientWidth  (space actually available)
+    // and flip iconOnly accordingly.
+    //
+    // JSDOM safety: all dimensions are 0 in tests, so `probeWidth > 0` is always
+    // false, iconOnly stays false, labels remain in the DOM, and every existing
+    // test that clicks a tab by its text label continues to work unchanged.
+    //
+    // HYSTERESIS: we only re-show labels when available ≥ probeWidth + EXPAND_BUFFER
+    // to avoid rapid flickering right at the boundary.
+
     const tabsListRef = useRef<HTMLDivElement>(null)
-    const [tabBarWidth, setTabBarWidth] = useState<number>(9999)
+    const probeRef    = useRef<HTMLDivElement>(null)
+    const [iconOnly, setIconOnly] = useState(false)
+    const iconOnlyRef = useRef(false) // stale-closure-safe mirror of state
+
+    const EXPAND_BUFFER = 16 // px of extra headroom required before re-expanding
 
     useEffect(() => {
-        const el = tabsListRef.current
-        if (!el) return
+        const container = tabsListRef.current
+        if (!container) return
 
-        // Seed with the actual width immediately on mount
-        setTabBarWidth(el.offsetWidth)
+        const check = () => {
+            const available  = container.clientWidth
+            const probeWidth = probeRef.current?.offsetWidth ?? 0
 
-        const ro = new ResizeObserver(entries => {
-            for (const entry of entries) {
-                setTabBarWidth(entry.contentRect.width)
+            if (probeWidth === 0) return // JSDOM / not yet painted — leave as-is
+
+            if (!iconOnlyRef.current && available < probeWidth) {
+                iconOnlyRef.current = true
+                setIconOnly(true)
+            } else if (iconOnlyRef.current && available >= probeWidth + EXPAND_BUFFER) {
+                iconOnlyRef.current = false
+                setIconOnly(false)
             }
-        })
-        ro.observe(el)
-        return () => ro.disconnect()
-    }, []) // stable ref — run once
+        }
 
-    const iconOnly = tabBarWidth < ICON_ONLY_THRESHOLD
+        check() // seed immediately on mount / whenever tabs change
+
+        const ro = new ResizeObserver(check)
+        ro.observe(container)
+        return () => ro.disconnect()
+    }, [tabs.length]) // re-run when tab count changes (3 vs 4)
 
     const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
@@ -183,18 +213,50 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             className='w-full h-full flex flex-col'
         >
             {/*
+             * Probe — invisible, fixed-positioned, completely unconstrained.
+             * Always renders every tab label at its natural width so we can measure
+             * how much space the full tab bar truly needs regardless of panel size.
+             * font-size mirrors text-sm; padding mirrors the real tab trigger px-3.
+             */}
+            <div
+                ref={probeRef}
+                aria-hidden
+                style={{
+                    position: 'fixed',
+                    top: -9999,
+                    left: -9999,
+                    visibility: 'hidden',
+                    pointerEvents: 'none',
+                    display: 'inline-flex',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    padding: '0 8px',
+                }}
+            >
+                {tabs.map(t => (
+                    <div
+                        key={t.id}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 12px' }}
+                    >
+                        {t.icon}
+                        <span>{t.label}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/*
              * Line-variant tabs:
              *   - No background pill, no press/scale animation
              *   - Active state = bottom border line only (::after pseudo-element)
-             *   - When the panel is narrow (< ICON_ONLY_THRESHOLD) labels are hidden
-             *     and the native `title` attribute shows on hover as a tooltip
+             *   - Collapses to icon-only the moment the probe says labels won't fit;
+             *     re-expands with a small hysteresis buffer when space returns.
              */}
             <TabsList
                 ref={tabsListRef}
                 data-testid="tabs-list"
                 className="w-full h-10 shrink-0 rounded-none bg-muted
                            border-b border-border/75 dark:border-border/50
-                           flex items-end px-2 gap-0 justify-start p-0"
+                           flex items-end gap-0 p-0"
             >
                 {tabs.map(t => {
                     const isResultLoading = t.id === 'result' && submissionState === 'loading'
@@ -204,12 +266,12 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                             data-testid="tabs-trigger"
                             key={t.id}
                             value={t.id}
-                            title={iconOnly ? t.label : undefined}
+                            title={t.label}
                             className={[
                                 // Shape & spacing
-                                'relative h-full rounded-none px-3',
+                                'relative h-full flex-1 rounded-none px-3',
                                 // Layout
-                                'inline-flex items-center gap-1.5',
+                                'inline-flex items-center justify-center gap-1.5',
                                 // Typography
                                 'text-sm font-medium',
                                 // Remove ALL default Shadcn button/pill chrome

@@ -1,6 +1,6 @@
-import React, { createRef, MutableRefObject } from 'react'
+import React, { createRef } from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodeDescArea from '../src/components/codingPage/CodeDescArea'
 import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
@@ -14,6 +14,19 @@ import { Language } from '../src/types/questions/Language.type'
 import { TooltipProvider } from '@radix-ui/react-tooltip'
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
+
+// JSDOM does not implement ResizeObserver. Provide a no-op stub so the
+// component's useEffect can attach/detach without throwing. Because all JSDOM
+// dimensions are 0, the probe check (`probeWidth > 0`) never fires, iconOnly
+// stays false, and labels remain in the DOM for all text-based assertions.
+// The effect now depends on `tabs.length` (re-runs when switching between 3/4
+// tabs) but the stub is stateless so this is safe — observe/disconnect are no-ops.
+class ResizeObserverStub {
+  observe()    {}
+  unobserve()  {}
+  disconnect() {}
+}
+global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 
 jest.mock('../src/api/RiddlesAPI', () => ({
   getRiddleById: jest.fn(),
@@ -171,9 +184,6 @@ const mockLanguages: Language[] = [
 ]
 
 const mockRef = createRef<HTMLDivElement>()
-// const mockRef = (instance: HTMLDivElement | null) => {
-//   current = instance
-// }
 
 // ─── Typed mock references ────────────────────────────────────────────────────
 
@@ -218,6 +228,17 @@ const renderCodeDescArea = (opts: RenderOpts = {}) => render(
   </TooltipProvider>
 )
 
+// ─── Tab query helpers ────────────────────────────────────────────────────────
+//
+// The component renders a hidden probe <div> (aria-hidden, fixed off-screen)
+// that duplicates every tab label so the ResizeObserver can measure natural
+// widths. This means getByText('Submissions') finds TWO <span> elements and
+// throws "Found multiple elements". Scoping queries to the visible TabsList via
+// within() avoids the probe entirely and always targets the real tab buttons.
+
+const getTabsList = () => screen.getByTestId('tabs-list')
+const withinTabs  = () => within(getTabsList())
+
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -238,20 +259,44 @@ describe('CodeDescArea — rendering', () => {
 
   it('renders all four tab labels when event is present', async () => {
     renderCodeDescArea()
-    await waitFor(() => {
-      expect(screen.getByText('Description')).toBeInTheDocument()
-      expect(screen.getByText('Submissions')).toBeInTheDocument()
-      expect(screen.getByText('Result')).toBeInTheDocument()
-      expect(screen.getByText('Leaderboard')).toBeInTheDocument()
-    })
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    const tabs = withinTabs()
+    expect(tabs.getByText('Description')).toBeInTheDocument()
+    expect(tabs.getByText('Submissions')).toBeInTheDocument()
+    expect(tabs.getByText('Result')).toBeInTheDocument()
+    expect(tabs.getByText('Leaderboard')).toBeInTheDocument()
   })
 
   it('renders only three tabs when eventId is undefined', async () => {
     renderCodeDescArea({ eventId: undefined })
     await waitFor(() => expect(screen.getByTestId('tabs')).toBeInTheDocument())
     expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(3)
-    expect(screen.queryByText('Leaderboard')).not.toBeInTheDocument()
+    expect(withinTabs().queryByText('Leaderboard')).not.toBeInTheDocument()
     expect(screen.queryByTestId('tabs-content-leaderboard')).not.toBeInTheDocument()
+  })
+
+  // Regression: 3-tab (no-event) layout previously collapsed to icon-only
+  // immediately because the useEffect ran once on mount with [] deps and never
+  // re-seeded after data loaded. Now tabs.length is a dep so the effect
+  // re-runs. In JSDOM all dimensions are 0 so iconOnly stays false and all
+  // labels must remain visible.
+  it('shows all three tab labels when eventId is undefined (no icon-only collapse)', async () => {
+    renderCodeDescArea({ eventId: undefined })
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    const tabs = withinTabs()
+    expect(tabs.getByText('Description')).toBeInTheDocument()
+    expect(tabs.getByText('Submissions')).toBeInTheDocument()
+    expect(tabs.getByText('Result')).toBeInTheDocument()
+    expect(tabs.queryByText('Leaderboard')).not.toBeInTheDocument()
+  })
+
+  // Regression: tabs must fill full bar width — each trigger carries flex-1.
+  it('each tab trigger has flex-1 class for full-width distribution', async () => {
+    renderCodeDescArea()
+    await waitFor(() => expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(4))
+    screen.getAllByTestId('tabs-trigger').forEach(trigger => {
+      expect(trigger).toHaveClass('flex-1')
+    })
   })
 
   it('shows description tab content by default', async () => {
@@ -286,36 +331,45 @@ describe('CodeDescArea — rendering', () => {
     renderCodeDescArea({ uqi: undefined })
     expect(screen.queryByTestId('tabs')).not.toBeInTheDocument()
   })
+
+  it('every tab trigger has a title attribute for tooltip/accessibility', async () => {
+    renderCodeDescArea()
+    await waitFor(() => expect(screen.getAllByTestId('tabs-trigger')).toHaveLength(4))
+    const titles = screen.getAllByTestId('tabs-trigger').map(t => t.getAttribute('title'))
+    expect(titles).toEqual(
+      expect.arrayContaining(['Description', 'Submissions', 'Result', 'Leaderboard'])
+    )
+  })
 })
 
 describe('CodeDescArea — tab switching', () => {
   it('switches to submissions tab', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     expect(screen.getByTestId('tabs-content-submissions')).toBeInTheDocument()
   })
 
   it('switches to leaderboard tab', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Leaderboard')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Leaderboard'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Leaderboard'))
     expect(screen.getByTestId('tabs-content-leaderboard')).toBeInTheDocument()
     expect(screen.getByTestId('mock-event-leaderboard')).toBeInTheDocument()
   })
 
   it('switches to result tab', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Result')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Result'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Result'))
     expect(screen.getByTestId('tabs-content-result')).toBeInTheDocument()
   })
 
   it('switches back to description after visiting another tab', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
-    await userEvent.click(screen.getByText('Description'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
+    await userEvent.click(withinTabs().getByText('Description'))
     expect(screen.getByText('Two Sum')).toBeInTheDocument()
   })
 })
@@ -323,7 +377,8 @@ describe('CodeDescArea — tab switching', () => {
 describe('CodeDescArea — result tab', () => {
   it('shows idle state message when submissionState is idle', async () => {
     renderCodeDescArea({ submissionState: 'idle' })
-    await userEvent.click(screen.getByText('Result'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Result'))
     expect(screen.getByText(/No submission yet/i)).toBeInTheDocument()
   })
 
@@ -351,8 +406,8 @@ describe('CodeDescArea — result tab', () => {
 
   it('does not show SubmissionDetail when done but result is null', async () => {
     renderCodeDescArea({ submissionState: 'done', latestSubmissionResult: null })
-    await userEvent.click(screen.getByText('Result'))
-    // No detail rendered — only the idle/empty content areas visible
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Result'))
     expect(screen.queryByTestId('submission-detail')).not.toBeInTheDocument()
   })
 
@@ -375,7 +430,7 @@ describe('CodeDescArea — result tab', () => {
         <CodeDescArea {...baseProps} submissionState="idle" latestSubmissionResult={null} />
       </TooltipProvider>
     )
-    await waitFor(() => expect(screen.getByText('Description')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
 
     rerender(
       <TooltipProvider>
@@ -467,15 +522,15 @@ describe('CodeDescArea — riddle gate', () => {
 describe('CodeDescArea — submissions tab', () => {
   it('shows empty state when submissions prop is empty', async () => {
     renderCodeDescArea({ submissions: [] })
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByText(/yet to submit/i)).toBeInTheDocument())
   })
 
   it('renders submission rows when submissions exist', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => {
       expect(screen.getByTestId('submission-1')).toBeInTheDocument()
       expect(screen.getByTestId('submission-2')).toBeInTheDocument()
@@ -484,45 +539,45 @@ describe('CodeDescArea — submissions tab', () => {
 
   it('shows Accepted status in green', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     expect(screen.getByText('Accepted')).toHaveClass('text-green-500')
   })
 
   it('shows Wrong Answer status in red', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-2')).toBeInTheDocument())
     expect(screen.getByText('Wrong Answer')).toHaveClass('text-red-500')
   })
 
   it('shows submission count in footer', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByText(/2 attempts/i)).toBeInTheDocument())
   })
 
   it('shows singular "attempt" for one submission', async () => {
     renderCodeDescArea({ submissions: [mockSubmissions[0]] })
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByText(/1 attempt$/)).toBeInTheDocument())
   })
 
   it('shows language name from allLanguages prop', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getAllByText('Python').length).toBeGreaterThan(0))
   })
 
   it('shows N/A for null memory and runtime', async () => {
-    renderCodeDescArea({ submissions: [mockSubmissions[1]] }) // null runtime/memory
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    renderCodeDescArea({ submissions: [mockSubmissions[1]] })
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     expect(screen.getAllByText('N/A').length).toBeGreaterThanOrEqual(2)
   })
@@ -531,8 +586,8 @@ describe('CodeDescArea — submissions tab', () => {
 describe('CodeDescArea — submission detail view', () => {
   it('opens submission detail when a row is clicked', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByTestId('submission-detail')).toBeInTheDocument()
@@ -541,8 +596,8 @@ describe('CodeDescArea — submission detail view', () => {
 
   it('shows back button in submissions detail view', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByTestId('back-btn')).toBeInTheDocument()
@@ -550,8 +605,8 @@ describe('CodeDescArea — submission detail view', () => {
 
   it('shows runtime and memory in detail view', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByText(/42 ms/)).toBeInTheDocument()
@@ -560,8 +615,8 @@ describe('CodeDescArea — submission detail view', () => {
 
   it('shows stdout in detail view', async () => {
     renderCodeDescArea({ submissions: [mockSubmissions[0]] })
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByText('Hello')).toBeInTheDocument()
@@ -569,8 +624,8 @@ describe('CodeDescArea — submission detail view', () => {
 
   it('shows stderr and compile_output when present', async () => {
     renderCodeDescArea({ submissions: [mockSubmissions[1]] })
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByText('Traceback...')).toBeInTheDocument()
@@ -584,8 +639,8 @@ describe('CodeDescArea — submission detail view', () => {
       stdout: null, stderr: null, compile_output: null, message: null,
     }
     renderCodeDescArea({ submissions: [minimalSub] })
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     expect(screen.getByText(/no additional output/i)).toBeInTheDocument()
@@ -593,8 +648,8 @@ describe('CodeDescArea — submission detail view', () => {
 
   it('goes back to submissions list when back button is clicked', async () => {
     renderCodeDescArea()
-    await waitFor(() => expect(screen.getByText('Submissions')).toBeInTheDocument())
-    await userEvent.click(screen.getByText('Submissions'))
+    await waitFor(() => expect(screen.getByTestId('tabs-list')).toBeInTheDocument())
+    await userEvent.click(withinTabs().getByText('Submissions'))
     await waitFor(() => expect(screen.getByTestId('submission-1')).toBeInTheDocument())
     await userEvent.click(screen.getByTestId('submission-1'))
     await userEvent.click(screen.getByTestId('back-btn'))
