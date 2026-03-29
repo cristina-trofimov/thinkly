@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -214,6 +215,62 @@ export default function CompetitionsPage() {
   const hasNoMatchingCompetitions = competitionsWithStatus.length === 0 && !loading;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
+  let competitionsContent: ReactNode = null;
+
+  if (loading) {
+    competitionsContent = <CompetitionsPageSkeleton />;
+  } else if (competitions.length > 0) {
+    competitionsContent = (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus, index) => {
+          const title = comp.competitionTitle || "Untitled Competition";
+          const rowIndex = Math.floor(index / 4);
+          const enterClass = cardsVisible
+            ? "translate-y-0 opacity-100"
+            : "translate-y-2 opacity-0";
+
+          return (
+            <Card
+              key={comp.id}
+              className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+              style={{
+                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+              }}
+            >
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                <div className="absolute inset-0 bg-grid-primary/5"></div>
+                <div className="absolute top-3 right-3 z-20">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getPublicCompetitionStatusBadgeClasses(status)}`}>
+                    {status}
+                  </span>
+                </div>
+                <div className="relative z-10 text-center w-full">
+                  <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getPublicCompetitionTitleClasses(status)}`}>
+                    {title}
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="p-4 pb-0 flex flex-col gap-2">
+                <div>
+                  <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
+                    {comp.competitionLocation || "Online"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatEventDateTime(comp.startDate)}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end pt-2 border-t">
+                  {renderCompetitionButton(status, comp, nav, setModal)}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -255,58 +312,7 @@ export default function CompetitionsPage() {
         </DropdownMenu>
       </div>
 
-      {loading ? (
-        <CompetitionsPageSkeleton />
-      ) : competitions.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus, index) => {
-            const title = comp.competitionTitle || "Untitled Competition";
-            const rowIndex = Math.floor(index / 4);
-            const enterClass = cardsVisible
-              ? "translate-y-0 opacity-100"
-              : "translate-y-2 opacity-0";
-
-            return (
-              <Card
-                key={comp.id}
-                className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
-                style={{
-                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
-                }}
-              >
-                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                  <div className="absolute inset-0 bg-grid-primary/5"></div>
-                  <div className="absolute top-3 right-3 z-20">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getPublicCompetitionStatusBadgeClasses(status)}`}>
-                      {status}
-                    </span>
-                  </div>
-                  <div className="relative z-10 text-center w-full">
-                    <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getPublicCompetitionTitleClasses(status)}`}>
-                      {title}
-                    </div>
-                  </div>
-                </div>
-
-                <CardContent className="p-4 pb-0 flex flex-col gap-2">
-                  <div>
-                    <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
-                      {comp.competitionLocation || "Online"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatEventDateTime(comp.startDate)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-end pt-2 border-t">
-                    {renderCompetitionButton(status, comp, nav, setModal)}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : null}
+      {competitionsContent}
 
       {total > 0 && (
         <CardPaginationControls

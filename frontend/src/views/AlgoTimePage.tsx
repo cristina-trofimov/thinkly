@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
@@ -127,6 +128,75 @@ export default function AlgoTimePage() {
       return new Date(a.session.startTime).getTime() - new Date(b.session.startTime).getTime();
     });
   const cardsVisible = useCardReveal(loading, sessions.length);
+  let sessionsContent: ReactNode = null;
+
+  if (loading) {
+    sessionsContent = <AlgoTimePageSkeleton />;
+  } else if (sessionsWithStatus.length > 0) {
+    sessionsContent = (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {sessionsWithStatus.map(({ session: s, status }, index) => {
+          const rowIndex = Math.floor(index / 4);
+          const enterClass = cardsVisible
+            ? "translate-y-0 opacity-100"
+            : "translate-y-2 opacity-0";
+
+          return (
+            <Card
+              key={s.id}
+              role="article"
+              className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getCardBorder(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+              style={{
+                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+              }}
+            >
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                <div className="absolute inset-0 bg-grid-primary/5" />
+                <div className="absolute top-3 right-3 z-20">
+                  <span
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
+                  >
+                    {status}
+                  </span>
+                </div>
+                <div className="relative z-10 text-center w-full">
+                  <div
+                    className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}
+                  >
+                    {s.eventName}
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="p-4 pb-0 flex flex-col gap-2">
+                <div>
+                  {s.seriesName && (
+                    <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
+                      {s.seriesName}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatSessionDate(s.startTime)} to {formatSessionDate(s.endTime)}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end pt-2 border-t">
+                  <Button
+                    size="sm"
+                    className={getSessionButtonClassName(status)}
+                    variant={status === "Completed" ? "outline" : "default"}
+                    onClick={() => console.log(`Accessing session ${s.id}`)}
+                  >
+                    {getSessionButtonLabel(status)}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -135,71 +205,7 @@ export default function AlgoTimePage() {
         <p className="text-muted-foreground">All AlgoTime sessions across series and dates.</p>
       </div>
 
-      {loading ? (
-        <AlgoTimePageSkeleton />
-      ) : sessionsWithStatus.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sessionsWithStatus.map(({ session: s, status }, index) => {
-            const rowIndex = Math.floor(index / 4);
-            const enterClass = cardsVisible
-              ? "translate-y-0 opacity-100"
-              : "translate-y-2 opacity-0";
-
-            return (
-              <Card
-                key={s.id}
-                role="article"
-                className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getCardBorder(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
-                style={{
-                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
-                }}
-              >
-                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                  <div className="absolute inset-0 bg-grid-primary/5" />
-                  <div className="absolute top-3 right-3 z-20">
-                    <span
-                      className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
-                    >
-                      {status}
-                    </span>
-                  </div>
-                  <div className="relative z-10 text-center w-full">
-                    <div
-                      className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}
-                    >
-                      {s.eventName}
-                    </div>
-                  </div>
-                </div>
-
-                <CardContent className="p-4 pb-0 flex flex-col gap-2">
-                  <div>
-                    {s.seriesName && (
-                      <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
-                        {s.seriesName}
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatSessionDate(s.startTime)} to {formatSessionDate(s.endTime)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-end pt-2 border-t">
-                    <Button
-                      size="sm"
-                      className={getSessionButtonClassName(status)}
-                      variant={status === "Completed" ? "outline" : "default"}
-                      onClick={() => console.log(`Accessing session ${s.id}`)}
-                    >
-                      {getSessionButtonLabel(status)}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      ) : null}
+      {sessionsContent}
 
       {sessions.length === 0 && !loading && (
         <div className="text-center py-16">
