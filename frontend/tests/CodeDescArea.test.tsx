@@ -28,6 +28,16 @@ class ResizeObserverStub {
 }
 global.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver
 
+jest.mock('react-resizable-panels', () => ({
+    __esModule: true,
+    PanelGroup: React.forwardRef(({ children }: any, ref: any) => {
+        React.useImperativeHandle(ref, () => ({ setLayout: jest.fn() }))
+        return <div data-testid="panel-group">{children}</div>
+    }),
+    Panel: ({ children }: any) => <div data-testid="resizable-panel">{children}</div>,
+    PanelResizeHandle: () => <div data-testid="resizable-handle" />,
+}))
+
 jest.mock('../src/api/RiddlesAPI', () => ({
   getRiddleById: jest.fn(),
 }))

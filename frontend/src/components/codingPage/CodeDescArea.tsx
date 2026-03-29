@@ -21,6 +21,7 @@ import { SubmissionSkeleton } from './SubmissionSkeleton'
 import { SubmissionDetail } from './SubmissionDetail'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 import { getDiffColor } from '@/utils/difficultyBadge'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -61,28 +62,6 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
 
     const [activeTab, setActiveTab] = useState("description")
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
-
-    // ── Icon-only detection ────────────────────────────────────────────────────
-    //
-    // WHY NOT scrollWidth > clientWidth on the TabsList?
-    // The TabsList is a flex container — flex shrinks children to fit by default,
-    // so scrollWidth never exceeds clientWidth and that check never fires.
-    //
-    // THE FIX — hidden probe element:
-    // A separate div sits off-screen (position:fixed, visibility:hidden) and
-    // always renders every tab label at its natural unconstrained width. It is
-    // never affected by flex shrinking or overflow clipping.
-    // A ResizeObserver on the real tab-list fires on every resize; we compare
-    //   probeRef.offsetWidth  (space labels truly need)
-    //   vs container.clientWidth  (space actually available)
-    // and flip iconOnly accordingly.
-    //
-    // JSDOM safety: all dimensions are 0 in tests, so `probeWidth > 0` is always
-    // false, iconOnly stays false, labels remain in the DOM, and every existing
-    // test that clicks a tab by its text label continues to work unchanged.
-    //
-    // HYSTERESIS: we only re-show labels when available ≥ probeWidth + EXPAND_BUFFER
-    // to avoid rapid flickering right at the boundary.
 
     const tabsListRef = useRef<HTMLDivElement>(null)
     const probeRef    = useRef<HTMLDivElement>(null)
@@ -212,12 +191,6 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             onValueChange={handleTabChange}
             className='w-full h-full flex flex-col'
         >
-            {/*
-             * Probe — invisible, fixed-positioned, completely unconstrained.
-             * Always renders every tab label at its natural width so we can measure
-             * how much space the full tab bar truly needs regardless of panel size.
-             * font-size mirrors text-sm; padding mirrors the real tab trigger px-3.
-             */}
             <div
                 ref={probeRef}
                 aria-hidden
@@ -244,13 +217,6 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                 ))}
             </div>
 
-            {/*
-             * Line-variant tabs:
-             *   - No background pill, no press/scale animation
-             *   - Active state = bottom border line only (::after pseudo-element)
-             *   - Collapses to icon-only the moment the probe says labels won't fit;
-             *     re-expands with a small hysteresis buffer when space returns.
-             */}
             <TabsList
                 ref={tabsListRef}
                 data-testid="tabs-list"
@@ -311,41 +277,47 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
                 data-testid="tabs-content-description"
                 className="flex-1 overflow-y-auto mt-0"
             >
-                <div className='h-full p-4'>
-                    <div className='border-b-2 pb-2 shrink-0'>
-                        <div className='mb-3 flex flex-col items-start gap-2'>
-                            <h1 className='text-2xl font-bold'>
-                                {question.question_name}
-                            </h1>
-                            <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
-                                {difficultyLabel}
-                            </span>
-                        </div>
-                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-100'>
+                <PanelGroup direction={'vertical'} className='h-full p-4'>
+                    <div className='shrink-0 mb-3 flex flex-col items-start gap-2'>
+                        <h1 className='text-2xl font-bold'>
+                            {question.question_name}
+                        </h1>
+                        <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                            {difficultyLabel}
+                        </span>
+                    </div>
+                    <Panel defaultSize={75} className='pb-1' >
+                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-full'>
                             {question.question_description}
                         </p>
-                    </div>
-                    <div className='max-h-60 mt-2 px-2 border rounded-xl bg-muted/65
-                            wrap-break-word whitespace-pre-wrap overflow-y-auto'
-                    >
-                        {testcases?.map((t, idx) => {
-                            return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
-                                <p className='font-bold'>Example {idx + 1}:</p>
-                                <div className='ml-4 flex flex-col gap-1'>
-                                    <p className='font-bold'>Inputs <span className='font-normal'>
-                                        {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], i) => {
-                                            const separator = i < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
-                                            return `${key} = ${JSON.stringify(val)}${separator}`
-                                        })}
-                                    </span></p>
-                                    <p className='font-bold'>Outputs: <span className='font-normal'>
-                                        {JSON.stringify(t.expected_output, undefined, 2)}</span>
-                                    </p>
+                    </Panel>
+                    <PanelResizeHandle data-testid="panel-resizable-handle"
+                        className='my-1 h-1 bg-muted rounded-full'
+                    />
+                    <Panel defaultSize={25} >
+                        {testcases && testcases.length > 0 && (
+                            <div className='max-h-full mt-2 px-2 border rounded-xl bg-muted/65
+                            wrap-break-word whitespace-pre-wrap overflow-y-auto' >
+                            {testcases.map((t, idx) => {
+                                return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
+                                    <p className='font-bold'>Example {idx + 1}:</p>
+                                    <div className='ml-4 flex flex-col gap-1'>
+                                        <p className='font-bold'>Inputs <span className='font-normal'>
+                                            {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], i) => {
+                                                const separator = i < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
+                                                return `${key} = ${JSON.stringify(val)}${separator}`
+                                            })}
+                                        </span></p>
+                                        <p className='font-bold'>Outputs: <span className='font-normal'>
+                                            {JSON.stringify(t.expected_output, undefined, 2)}</span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        })}
-                    </div>
-                </div>
+                            })}
+                        </div>
+                        )}
+                    </Panel>
+                </PanelGroup>
             </TabsContent>
 
             {/* Submissions */}
