@@ -12,6 +12,7 @@ export interface StatsCardProps {
   children?: ReactNode;
   dateSubtitle?: string;
   loading?: boolean;
+  contentReady?: boolean;
 }
 
 export const StatsCard = ({
@@ -23,11 +24,15 @@ export const StatsCard = ({
   children,
   dateSubtitle,
   loading = false,
+  contentReady = true,
 }: StatsCardProps) => {
   const isPositive = !trend?.trim().startsWith("-");
+  const contentEnterClass = contentReady
+    ? "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500"
+    : "";
 
   // Chart card mode (when children is provided)
-    if (children) {
+  if (children) {
     return (
       <Card>
         <CardHeader>
@@ -39,7 +44,9 @@ export const StatsCard = ({
           )}
         </CardHeader>
         <CardContent className="justify-center items-center px-2">
-          {children}
+          <div className={contentEnterClass}>
+            {children}
+          </div>
         </CardContent>
       </Card>
     );
@@ -74,24 +81,26 @@ export const StatsCard = ({
       </CardHeader>
 
       <CardContent className="text-left">
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-5xl font-semibold text-foreground">{value}</h2>
-        </div>
-
-        {subtitle && (
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-sm font-normal text-foreground">{subtitle}</span>
-            {isPositive ? (
-              <IconTrendingUp className="h-4 w-4 text-foreground" />
-            ) : (
-              <IconTrendingDown className="h-4 w-4 text-foreground" />
-            )}
+        <div className={contentEnterClass}>
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-5xl font-semibold text-foreground">{value}</h2>
           </div>
-        )}
 
-        {description && (
-          <p className="text-muted-foreground">{description}</p>
-        )}
+          {subtitle && (
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-sm font-normal text-foreground">{subtitle}</span>
+              {isPositive ? (
+                <IconTrendingUp className="h-4 w-4 text-foreground" />
+              ) : (
+                <IconTrendingDown className="h-4 w-4 text-foreground" />
+              )}
+            </div>
+          )}
+
+          {description && (
+            <p className="text-muted-foreground">{description}</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

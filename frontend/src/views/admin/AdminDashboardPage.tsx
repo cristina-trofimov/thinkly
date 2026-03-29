@@ -196,7 +196,6 @@ export function AdminDashboard() {
             {/* Tabs for Algotime/Competitions and Time Range Filter */}
             <div
               className={`flex justify-between items-center gap-2 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
-              style={{ transitionDelay: overviewVisible ? "75ms" : "0ms" }}
             >
               <div className="flex items-center">
                 <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -240,37 +239,38 @@ export function AdminDashboard() {
             {/* Stats Cards Row */}
             <div
               className={`grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
-              style={{ transitionDelay: overviewVisible ? "150ms" : "0ms" }}
             >
-              <StatsCard
-                title="New Accounts"
-                loading={loading}
-                value={newAccountStats.value}
-                subtitle={newAccountStats.subtitle}
-                description={newAccountStats.description}
+                <StatsCard
+                  title="New Accounts"
+                  loading={loading}
+                  contentReady={!loading}
+                  value={newAccountStats.value}
+                  subtitle={newAccountStats.subtitle}
+                  description={newAccountStats.description}
                 trend={newAccountStats.trend}
               />
-              <StatsCard
-                title="Questions solved"
-                dateSubtitle={getTimeRangeLabel(timeRange)}
-              >
+                <StatsCard
+                  title="Questions solved"
+                  contentReady={!loading}
+                  dateSubtitle={getTimeRangeLabel(timeRange)}
+                >
                 <QuestionsSolvedChart
                   key={`questions-${chartAnimationKey}`}
                   data={questionsSolvedData}
                   loading={loading}
                 />
               </StatsCard>
-              <StatsCard title="Avg. Question Solve Time">
-                <TimeToSolveChart
-                  key={`time-${chartAnimationKey}`}
-                  data={timeToSolveData}
+                <StatsCard title="Avg. Question Solve Time" contentReady={!loading}>
+                  <TimeToSolveChart
+                    key={`time-${chartAnimationKey}`}
+                    data={timeToSolveData}
                   loading={loading}
                 />
               </StatsCard>
-              <StatsCard title="Number of logins">
-                <NumberOfLoginsChart
-                  key={`logins-${chartAnimationKey}`}
-                  data={loginsData}
+                <StatsCard title="Number of logins" contentReady={!loading}>
+                  <NumberOfLoginsChart
+                    key={`logins-${chartAnimationKey}`}
+                    data={loginsData}
                   loading={loading}
                 />
               </StatsCard>
@@ -278,7 +278,6 @@ export function AdminDashboard() {
 
             <div
               className={`motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
-              style={{ transitionDelay: overviewVisible ? "200ms" : "0ms" }}
             >
               <ParticipationOverTimeChart
                 key={`participation-${chartAnimationKey}`}
