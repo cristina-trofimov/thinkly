@@ -41,6 +41,7 @@ export function AdminDashboard() {
   const location = useLocation();
   const [timeRange, setTimeRange] = useState<TimeRange>("3months");
   const [activeTab, setActiveTab] = useState<"algotime" | "competitions">("algotime");
+  const [overviewVisible, setOverviewVisible] = useState(false);
 
   const [newAccountStats, setNewAccountStats] = useState({
     value: 0,
@@ -122,10 +123,28 @@ export function AdminDashboard() {
     }
   }, [timeRange, activeTab, isRootDashboard]);
 
+  useEffect(() => {
+    if (!isRootDashboard) {
+      setOverviewVisible(false);
+      return;
+    }
+
+    setOverviewVisible(false);
+    const frame = requestAnimationFrame(() => {
+      setOverviewVisible(true);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [isRootDashboard]);
+
+  const sectionEnterClass = overviewVisible
+    ? "translate-y-0 opacity-100"
+    : "translate-y-2 opacity-0";
+
   return (
     <div className="flex flex-col w-full">
       {isRootDashboard ? (
-        <>
+        <div>
           <div className="border-b">
             <div className="flex justify-between items-center py-4 px-10">
               <h1 className="text-base font-semibold text-primary">Overview</h1>
@@ -133,7 +152,9 @@ export function AdminDashboard() {
           </div>
 
           {/* Management Cards Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 px-6">
+          <div
+            className={`grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+          >
             <Link
               to="/app/dashboard/competitions"
               className="xl:col-start-1 xl:row-start-1"
@@ -173,7 +194,10 @@ export function AdminDashboard() {
 
           <div className="m-6 rounded-lg shadow-md border">
             {/* Tabs for Algotime/Competitions and Time Range Filter */}
-            <div className="flex justify-between items-center gap-2 mt-6 px-6">
+            <div
+              className={`flex justify-between items-center gap-2 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+              style={{ transitionDelay: overviewVisible ? "75ms" : "0ms" }}
+            >
               <div className="flex items-center">
                 <Tabs value={activeTab} onValueChange={handleTabChange}>
                   <TabsList>
@@ -214,7 +238,10 @@ export function AdminDashboard() {
             </div>
 
             {/* Stats Cards Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6">
+            <div
+              className={`grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+              style={{ transitionDelay: overviewVisible ? "150ms" : "0ms" }}
+            >
               <StatsCard
                 title="New Accounts"
                 loading={loading}
@@ -249,14 +276,19 @@ export function AdminDashboard() {
               </StatsCard>
             </div>
 
-            <ParticipationOverTimeChart
-              key={`participation-${chartAnimationKey}`}
-              data={participationData}
-              timeRange={timeRange}
-              loading={loading}
-            />
+            <div
+              className={`motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+              style={{ transitionDelay: overviewVisible ? "200ms" : "0ms" }}
+            >
+              <ParticipationOverTimeChart
+                key={`participation-${chartAnimationKey}`}
+                data={participationData}
+                timeRange={timeRange}
+                loading={loading}
+              />
+            </div>
           </div>
-        </>
+        </div>
       ) : (
         <div className="px-6 mt-6">
           <Outlet />
