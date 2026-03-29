@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
 import { logFrontend } from "@/api/LoggerAPI";
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type";
+import AlgoTimePageSkeleton from "@/components/algotime/AlgoTimePageSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
 
 const formatSessionDate = (d: Date) => {
   const date = new Date(d);
@@ -92,13 +94,17 @@ export default function AlgoTimePage() {
   }, []);
 
   const sessionsWithStatus = [...sessions]
-    .map((s) => ({ session: s, status: getSessionStatus(s.startTime, s.endTime) }))
+    .map((s) => ({
+      session: s,
+      status: getSessionStatus(s.startTime, s.endTime),
+    }))
     .sort((a, b) => {
       const statusOrder = { Active: 0, Upcoming: 1, Completed: 2 };
       const statusDiff = statusOrder[a.status] - statusOrder[b.status];
       if (statusDiff !== 0) return statusDiff;
       return new Date(a.session.startTime).getTime() - new Date(b.session.startTime).getTime();
     });
+  const cardsVisible = useCardReveal(loading, sessions.length);
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -107,76 +113,81 @@ export default function AlgoTimePage() {
         <p className="text-muted-foreground">All AlgoTime sessions across series and dates.</p>
       </div>
 
-      {loading && (
-        <div className="py-12 text-center text-muted-foreground">Loading sessions…</div>
-      )}
-
-      {sessionsWithStatus.length > 0 && (
+      {loading ? (
+        <AlgoTimePageSkeleton />
+      ) : sessionsWithStatus.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sessionsWithStatus.map(({ session: s, status }) => (
-            <Card
-              key={s.id}
-              role="article"
-              className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getCardBorder(status)}`}
-            >
-              {/* Card header banner */}
-              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                <div className="absolute inset-0 bg-grid-primary/5" />
-                <div className="absolute top-3 right-3 z-20">
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
-                  >
-                    {status}
-                  </span>
-                </div>
-                <div className="relative z-10 text-center w-full">
-                  <div
-                    className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}
-                  >
-                    {s.eventName}
+          {sessionsWithStatus.map(({ session: s, status }, index) => {
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-2 opacity-0";
+
+            return (
+              <Card
+                key={s.id}
+                role="article"
+                className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getCardBorder(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
+              >
+                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                  <div className="absolute inset-0 bg-grid-primary/5" />
+                  <div className="absolute top-3 right-3 z-20">
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getStatusClasses(status)}`}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                  <div className="relative z-10 text-center w-full">
+                    <div
+                      className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getTitleColor(status)}`}
+                    >
+                      {s.eventName}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Card body */}
-              <CardContent className="p-4 pb-0 flex flex-col gap-2">
-                <div>
-                  {s.seriesName && (
-                    <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
-                      {s.seriesName}
+                <CardContent className="p-4 pb-0 flex flex-col gap-2">
+                  <div>
+                    {s.seriesName && (
+                      <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
+                        {s.seriesName}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {formatSessionDate(s.startTime)} to {formatSessionDate(s.endTime)}
                     </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatSessionDate(s.startTime)} → {formatSessionDate(s.endTime)}
-                  </p>
-                </div>
+                  </div>
 
-                {/* Action button */}
-                <div className="flex items-center justify-end pt-2 border-t">
-                  <Button
-                    size="sm"
-                    className={`h-7 text-xs ${
-                      status === "Active"
-                        ? "bg-green-600 hover:bg-green-700 text-primary-foreground"
+                  <div className="flex items-center justify-end pt-2 border-t">
+                    <Button
+                      size="sm"
+                      className={`h-7 text-xs ${
+                        status === "Active"
+                          ? "bg-green-600 hover:bg-green-700 text-primary-foreground"
+                          : status === "Upcoming"
+                            ? "bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+                            : ""
+                      }`}
+                      variant={status === "Completed" ? "outline" : "default"}
+                      onClick={() => console.log(`Accessing session ${s.id}`)}
+                    >
+                      {status === "Active"
+                        ? "Join Now"
                         : status === "Upcoming"
-                        ? "bg-blue-600 hover:bg-blue-700 text-primary-foreground"
-                        : ""
-                    }`}
-                    variant={status === "Completed" ? "outline" : "default"}
-                    onClick={() => console.log(`Accessing session ${s.id}`)}
-                  >
-                    {status === "Active"
-                      ? "Join Now"
-                      : status === "Upcoming"
-                      ? "View Details"
-                      : "Access Session"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                          ? "View Details"
+                          : "Access Session"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      )}
+      ) : null}
 
       {sessions.length === 0 && !loading && (
         <div className="text-center py-16">
