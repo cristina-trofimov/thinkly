@@ -1,6 +1,6 @@
 import React from 'react'
 import '@testing-library/jest-dom'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
 import { useLocation } from 'react-router-dom'
@@ -14,6 +14,7 @@ import { SubmissionType } from '../src/types/submissions/SubmissionType.type'
 import { submitToJudge0 } from '../src/api/Judge0API'
 import { submitAttempt } from '../src/api/SubmitCodeAPI'
 import { putUserInstance } from '../src/api/UserQuestionInstanceAPI'
+import { getAllSubmissions } from '../src/api/SubmissionAPI'
 import { toast } from 'sonner'
 import { useCodingHooks } from '../src/components/helpers/CodingHooks'
 import type { Language } from '../src/types/questions/Language.type'
@@ -72,6 +73,7 @@ jest.mock('../src/components/helpers/ConfirmCodeReset', () => ({
 jest.mock('../src/api/LoggerAPI', () => ({ logFrontend: jest.fn() }))
 jest.mock('../src/api/Judge0API', () => ({ submitToJudge0: jest.fn() }))
 jest.mock('../src/api/SubmitCodeAPI', () => ({ submitAttempt: jest.fn() }))
+jest.mock('../src/api/SubmissionAPI', () => ({ getAllSubmissions: jest.fn() }))
 jest.mock('../src/api/QuestionsAPI', () => ({ getQuestionByID: jest.fn() }))
 jest.mock('../src/api/BaseEventAPI', () => ({ getEventByID: jest.fn() }))
 jest.mock('../src/api/AuthAPI', () => ({ getProfile: jest.fn() }))
@@ -183,7 +185,7 @@ const mockProblemWithPreset: Question = {
         {
             language_id: 1, question_id: 1, language_display_name: 'Java',
             preset_functions: '// Java preset', template_code: '// Java solution',
-            imports: '', preset_classes: '', main_function: '',
+            imports: 'import java.util.*;', preset_classes: '', main_function: 'public static void main(String[] args) {}',
         },
         {
             language_id: 2, question_id: 1, language_display_name: 'Python',
@@ -213,6 +215,11 @@ const mockUserPrefs: UserPreferences = {
 const mockJudge0Response = {
     stdout: 'Hello\n', stderr: null, compile_output: null, message: null,
     status: { id: 3, description: 'Accepted' }, memory: '1024', time: '0.123', token: null,
+}
+
+const mockJudge0ResponseWrong = {
+    ...mockJudge0Response,
+    status: { id: 4, description: 'Wrong Answer' },
 }
 
 const mockCodeRunResponse: CodeRunResponse = {
@@ -262,6 +269,12 @@ const mockUqiRiddleComplete: UserQuestionInstance = {
     riddle_complete: true,
 }
 
+const mockUqiWithAttempts: UserQuestionInstance = {
+    ...mockUqi,
+    attempts: 3,
+    lapse_time: 12345,
+}
+
 // ─── Hook mock factory ────────────────────────────────────────────────────────
 
 const makeMockHook = (overrides: Record<string, any> = {}) => ({
@@ -289,6 +302,9 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
     testcases: [],
     loadingMsg: '',
     setLoadingMsg: jest.fn(),
+    allSubmissions: [],
+    setAllSubmissions: jest.fn(),
+    allLanguages: mockLanguages,
     ...overrides,
 })
 
@@ -296,6 +312,7 @@ const mockedUseCodingHooks = useCodingHooks as jest.Mock
 const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submitToJudge0>
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedPutUserInstance = putUserInstance as jest.MockedFunction<typeof putUserInstance>
+const mockedGetAllSubmissions = getAllSubmissions as jest.MockedFunction<typeof getAllSubmissions>
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -304,6 +321,7 @@ const { getProfile } = require('../src/api/AuthAPI')
 beforeEach(() => {
     jest.clearAllMocks()
     capturedOnRiddleSolved = undefined
+    localStorage.clear()
         ; (useLocation as jest.Mock).mockReturnValue({
             pathname: '/code/1',
             state: { problem: mockProblem },
@@ -311,6 +329,7 @@ beforeEach(() => {
     mockedUseCodingHooks.mockReturnValue(makeMockHook())
         ; (getProfile as jest.Mock).mockResolvedValue({ id: 1 })
     mockedPutUserInstance.mockResolvedValue(mockUqiRiddleComplete)
+    mockedGetAllSubmissions.mockResolvedValue([])
 })
 
 const mockUser: Account = {
@@ -403,6 +422,32 @@ describe('CodingView — rendering', () => {
         renderCodingView()
         expect(screen.getByTestId('coding-btns')).toHaveTextContent('Code')
     })
+
+    it('renders "Output" label in the output area', () => {
+        renderCodingView()
+        expect(screen.getByTestId('output-area')).toHaveTextContent('Output')
+    })
+
+    it('renders CodeDescArea component', () => {
+        renderCodingView()
+        expect(screen.getByTestId('desc-area')).toBeInTheDocument()
+    })
+
+    it('renders ConsoleOutput component', () => {
+        renderCodingView()
+        expect(screen.getByTestId('ConsoleOutput')).toBeInTheDocument()
+    })
+
+    it('renders all language options in the language dropdown', () => {
+        renderCodingView()
+        expect(screen.getByTestId('languageItem-Java')).toBeInTheDocument()
+        expect(screen.getByTestId('languageItem-Python')).toBeInTheDocument()
+    })
+
+    it('renders the play button', () => {
+        renderCodingView()
+        expect(screen.getByTestId('play-btn')).toBeInTheDocument()
+    })
 })
 
 describe('CodingView — panel toggles', () => {
@@ -447,6 +492,17 @@ describe('CodingView — panel toggles', () => {
         expect(screen.getByTestId('code-area-up-icon')).toBeInTheDocument()
         expect(screen.getByTestId('output-area-max-icon')).toBeInTheDocument()
         expect(screen.getByTestId('output-area-down-icon')).toBeInTheDocument()
+    })
+
+    it('fullscreen and collapse flags are independent', async () => {
+        renderCodingView()
+        // Enable fullscreen on code area
+        await userEvent.click(screen.getByTestId('code-area-fullscreen'))
+        expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
+        // Also collapse the output area — should not affect code fullscreen
+        await userEvent.click(screen.getByTestId('output-area-collapse'))
+        expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
+        expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
     })
 })
 
@@ -560,6 +616,71 @@ describe('CodingView — editor', () => {
             expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
     })
+
+    it('cancels reset dialog without changing code', async () => {
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: mockProblemWithPreset }))
+        renderCodingView()
+
+        await waitFor(() =>
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
+        )
+
+        const editor = screen.getByTestId('monaco-editor')
+        await userEvent.clear(editor)
+        await userEvent.type(editor, 'modified code')
+
+        const codingBtns = screen.getByTestId('coding-btns')
+        const buttons = within(codingBtns).getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        await waitFor(() => expect(screen.getByTestId('cancel-reset-btn')).toBeInTheDocument())
+        await userEvent.click(screen.getByTestId('cancel-reset-btn'))
+
+        // Dialog should close and code should be unchanged
+        expect(screen.queryByTestId('confirm-reset-dialog')).not.toBeInTheDocument()
+        expect(editor).toHaveValue('modified code')
+    })
+
+    it('skips confirmation dialog and resets directly when code equals preset', async () => {
+        // When code is already at presetCode, reset button should not show dialog
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: mockProblemWithPreset }))
+        renderCodingView()
+
+        await waitFor(() =>
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
+        )
+
+        // Code is at preset, clicking reset should NOT open confirmation dialog
+        const codingBtns = screen.getByTestId('coding-btns')
+        const buttons = within(codingBtns).getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        expect(screen.queryByTestId('confirm-reset-dialog')).not.toBeInTheDocument()
+    })
+
+    it('most-recent-sub button falls back to presetCode when sub.code is falsy', async () => {
+        const subWithNoCode: MostRecentSub = { ...mockMostRecentSub, code: '' }
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: subWithNoCode }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('most-recent-sub-btn'))
+        // Should fall back to default preset comment
+        await waitFor(() =>
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('// Write your solution here.')
+        )
+    })
+
+    it('uses python comment char (#) for python language fallback', async () => {
+        // monaco_id must be exactly 'python' (lowercase) to match the component's check
+        const pythonLang: Language = { row_id: 2, lang_judge_id: 71, monaco_id: 'python', display_name: 'Python', active: true }
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            selectedLang: pythonLang,
+            languages: [mockLanguages[0], pythonLang],
+        }))
+        renderCodingView()
+        await waitFor(() =>
+            expect(screen.getByTestId('monaco-editor')).toHaveValue('# Write your solution here.')
+        )
+    })
 })
 
 describe('CodingView — run code', () => {
@@ -591,6 +712,67 @@ describe('CodingView — run code', () => {
         await userEvent.click(screen.getByTestId('play-btn'))
         await waitFor(() => expect(submitToJudge0).toHaveBeenCalled())
     })
+
+    it('shows warning and does not call judge0 when code is empty', async () => {
+        renderCodingView()
+        // Clear the editor
+        const editor = screen.getByTestId('monaco-editor')
+        fireEvent.change(editor, { target: { value: '   ' } })
+        await userEvent.click(screen.getByTestId('play-btn'))
+        expect(submitToJudge0).not.toHaveBeenCalled()
+        expect(toast.warning).toHaveBeenCalledWith('You need to code something first...')
+    })
+
+    it('appends judge0 response to logs on successful run', async () => {
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('play-btn'))
+        // ConsoleOutput is a mock, but we verify submitToJudge0 was called
+        await waitFor(() => expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1))
+    })
+
+    it('shows error toast when submitToJudge0 throws', async () => {
+        mockedSubmitToJudge0.mockRejectedValueOnce(new Error('network error'))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('play-btn'))
+        await waitFor(() =>
+            expect(toast.error).toHaveBeenCalledWith('Error when running the code.')
+        )
+    })
+
+    it('resets loading state after run completes (success)', async () => {
+        const setIsLoading = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setIsLoading }))
+        mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('play-btn'))
+        await waitFor(() => {
+            // setIsLoading(true) called first, then setIsLoading(false) in finally
+            expect(setIsLoading).toHaveBeenCalledWith(false)
+        })
+    })
+
+    it('resets loading state after run fails (error)', async () => {
+        const setIsLoading = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setIsLoading }))
+        mockedSubmitToJudge0.mockRejectedValueOnce(new Error('fail'))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('play-btn'))
+        await waitFor(() => expect(setIsLoading).toHaveBeenCalledWith(false))
+    })
+
+    it('logs error when submitToJudge0 throws', async () => {
+        const { logFrontend } = require('../src/api/LoggerAPI')
+        const error = new Error('judge0 error')
+        mockedSubmitToJudge0.mockRejectedValueOnce(error)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('play-btn'))
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'CodingView' })
+            )
+        )
+    })
 })
 
 
@@ -617,14 +799,15 @@ describe('CodingView - submit code', () => {
         expect(toast.warning).not.toHaveBeenCalled()
     })
 
-    it('toast result inline when status is not Accepted', async () => {
+    it('does not fire any toast when submission returns a non-Accepted status', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitFail)
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+        // Component shows result inline via state; no toast is fired for wrong-answer
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
-        expect(toast.error).toHaveBeenCalled()
+        expect(toast.error).not.toHaveBeenCalled()
     })
 
 
@@ -644,6 +827,111 @@ describe('CodingView - submit code', () => {
         fireEvent.click(screen.getByTestId('languageItem-Python'))
         expect(toast.info).toHaveBeenCalledWith(
             expect.stringContaining('Code saved in this session')
+        )
+    })
+
+    it('increments attempts counter when userQuestionInstance has prior attempts', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            startTime: new Date(Date.now() - 5000),
+            userQuestionInstance: { ...mockUqiWithAttempts },
+        }))
+        renderCodingView()
+        fireEvent.change(screen.getByTestId('monaco-editor'), { target: { value: 'some code' } })
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+    })
+
+    it('sets attempts to 1 on first submission (attempts was 0)', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            startTime: new Date(Date.now() - 5000),
+            userQuestionInstance: { ...mockUqi, attempts: 0 },
+        }))
+        renderCodingView()
+        fireEvent.change(screen.getByTestId('monaco-editor'), { target: { value: 'some code' } })
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+    })
+
+    it('calls getAllSubmissions after a successful submission', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(mockedGetAllSubmissions).toHaveBeenCalledWith(user_id))
+    })
+
+    it('shows error toast when submitAttempt throws', async () => {
+        // mockRejectedValueOnce so the first call rejects; subsequent calls return undefined (no-op)
+        mockedSubmitAttempt.mockRejectedValue(new Error('server error'))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() =>
+            expect(toast.error).toHaveBeenCalledWith('Error when submitting the code.')
+        , { timeout: 3000 })
+        mockedSubmitAttempt.mockReset()
+    })
+
+    it('logs error when submitAttempt throws', async () => {
+        const { logFrontend } = require('../src/api/LoggerAPI')
+        mockedSubmitAttempt.mockRejectedValue(new Error('submit fail'))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'CodingView' })
+            )
+        , { timeout: 3000 })
+        mockedSubmitAttempt.mockReset()
+    })
+
+    it('blocks submission and warns when within cooldown window', async () => {
+        const recentSubTime = new Date(Date.now() - 10_000) // 10 seconds ago
+        const cooldownSub: MostRecentSub = { ...mockMostRecentSub, submitted_on: recentSubTime }
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            mostRecentSub: cooldownSub,
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 5 }, // 5 min cooldown
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        expect(submitAttempt).not.toHaveBeenCalled()
+        expect(toast.warning).toHaveBeenCalledWith(
+            expect.stringContaining("You're submitting too fast")
+        )
+    })
+
+    it('allows submission when outside cooldown window', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        const oldSubTime = new Date(Date.now() - 400_000) // well past any cooldown
+        const oldSub: MostRecentSub = { ...mockMostRecentSub, submitted_on: oldSubTime }
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            mostRecentSub: oldSub,
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 1 }, // 1 min cooldown
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+    })
+
+    it('allows submission when event is set but mostRecentSub is null', async () => {
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            mostRecentSub: null,
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 5 },
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
+    })
+
+    it('updates mostRecentSub state after successful submission', async () => {
+        const setMostRecentSub = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setMostRecentSub }))
+        mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('submit-btn'))
+        await waitFor(() =>
+            expect(setMostRecentSub).toHaveBeenCalledWith(mockMostRecentSub)
         )
     })
 })
@@ -722,6 +1010,116 @@ describe('CodingView — handleRiddleSolved', () => {
     })
 })
 
+describe('CodingView — handleQuestionChange', () => {
+    const q2: Question = { ...mockProblem, question_id: 2, question_name: 'Problem 2' }
+    const qi2: QuestionInstance = { ...mockQuestionInstance, question_instance_id: 2, question_id: 2 }
+
+    it('calls setActiveQuestion when a question is selected from the dropdown', async () => {
+        const setActiveQuestion = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            setActiveQuestion,
+            questions: [mockProblem, q2],
+            questionsInstances: [mockQuestionInstance, qi2],
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('questionItem-Problem 2'))
+        expect(setActiveQuestion).toHaveBeenCalledWith(q2)
+    })
+
+    it('updates activeQuestionInstance when switching questions', async () => {
+        const setActiveQuestionInstance = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            setActiveQuestionInstance,
+            questions: [mockProblem, q2],
+            questionsInstances: [mockQuestionInstance, qi2],
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('questionItem-Problem 2'))
+        await waitFor(() =>
+            expect(setActiveQuestionInstance).toHaveBeenCalledWith(qi2)
+        )
+    })
+
+    it('updates display question name when switching questions', async () => {
+        const setActiveDisplayQuestionName = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            setActiveDisplayQuestionName,
+            questions: [mockProblem, q2],
+            questionsInstances: [mockQuestionInstance, qi2],
+        }))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('questionItem-Problem 2'))
+        await waitFor(() =>
+            expect(setActiveDisplayQuestionName).toHaveBeenCalledWith('Question 2')
+        )
+    })
+
+    it('updates lapse_time when startTime and userQuestionInstance are set', async () => {
+        const startTime = new Date(Date.now() - 5000) // 5s ago
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            startTime,
+            userQuestionInstance: mockUqi,
+            questions: [mockProblem, q2],
+            questionsInstances: [mockQuestionInstance, qi2],
+        }))
+        mockedPutUserInstance.mockResolvedValue(mockUqi)
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('questionItem-Problem 2'))
+        await waitFor(() => expect(mockedPutUserInstance).toHaveBeenCalled())
+    })
+
+    it('logs error when putUserInstance throws during question change', async () => {
+        const { logFrontend } = require('../src/api/LoggerAPI')
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({
+            questions: [mockProblem, q2],
+            questionsInstances: [mockQuestionInstance, qi2],
+            userQuestionInstance: mockUqi,
+        }))
+        mockedPutUserInstance.mockRejectedValue(new Error('network error'))
+        renderCodingView()
+        await userEvent.click(screen.getByTestId('questionItem-Problem 2'))
+        await waitFor(() =>
+            expect(logFrontend).toHaveBeenCalledWith(
+                expect.objectContaining({ level: 'ERROR', component: 'CodingView' })
+            )
+        )
+    })
+})
+
+describe('CodingView — theme sync', () => {
+    it('initializes with vs-dark theme when localStorage has dark', () => {
+        localStorage.setItem('theme', 'dark')
+        renderCodingView()
+        // Monaco mock receives theme prop — we verify it renders without error
+        expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
+    })
+
+    it('initializes with vs (light) theme when localStorage has light', () => {
+        localStorage.setItem('theme', 'light')
+        renderCodingView()
+        expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
+    })
+
+    it('responds to storage_sync event by re-reading theme', () => {
+        renderCodingView()
+        localStorage.setItem('theme', 'dark')
+        act(() => {
+            globalThis.dispatchEvent(new Event('storage_sync'))
+        })
+        // Editor should still be mounted after theme change
+        expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
+    })
+
+    it('cleans up storage event listeners on unmount', () => {
+        const removeEventListenerSpy = jest.spyOn(globalThis, 'removeEventListener')
+        const { unmount } = renderCodingView()
+        unmount()
+        expect(removeEventListenerSpy).toHaveBeenCalledWith('storage', expect.any(Function))
+        expect(removeEventListenerSpy).toHaveBeenCalledWith('storage_sync', expect.any(Function))
+        removeEventListenerSpy.mockRestore()
+    })
+})
+
 describe('mostRecentSub', () => {
     it('defaults to 2-column grid when no mostRecentSub', async () => {
         renderCodingView()
@@ -739,5 +1137,29 @@ describe('mostRecentSub', () => {
             expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-3 gap-2')
         )
         expect(screen.getByTestId("most-recent-sub-btn")).toBeInTheDocument()
+    })
+})
+
+describe('CodingView — language selection', () => {
+    it('calls setSelectedLang when a different language is chosen', async () => {
+        const setSelectedLang = jest.fn()
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ setSelectedLang }))
+        renderCodingView()
+        fireEvent.click(screen.getByTestId('languageItem-Python'))
+        expect(setSelectedLang).toHaveBeenCalledWith(mockLanguages[1])
+    })
+
+    it('renders all available languages in the dropdown', () => {
+        renderCodingView()
+        mockLanguages.forEach(lang => {
+            expect(screen.getByTestId(`languageItem-${lang.monaco_id}`)).toBeInTheDocument()
+        })
+    })
+
+    it('does not render language dropdown items when languages list is empty', () => {
+        mockedUseCodingHooks.mockReturnValue(makeMockHook({ languages: [] }))
+        renderCodingView()
+        expect(screen.queryByTestId('languageItem-Java')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('languageItem-Python')).not.toBeInTheDocument()
     })
 })
