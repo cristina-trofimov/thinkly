@@ -14,6 +14,8 @@ import { logFrontend } from "../api/LoggerAPI";
 import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
 import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
+import CompetitionsPageSkeleton from "@/components/competitions/CompetitionsPageSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
 import {
   formatEventDateTime,
   formatEventDateTimeLong,
@@ -183,6 +185,7 @@ export default function CompetitionsPage() {
     comp: c,
     status: getEventStatus(c.startDate, c.endDate),
   }));
+  const cardsVisible = useCardReveal(loading, competitions.length);
   const hasNoMatchingCompetitions = competitionsWithStatus.length === 0 && !loading;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
@@ -198,38 +201,45 @@ export default function CompetitionsPage() {
         </p>
       </div>
 
-      {loading && (
-        <div className="py-12 text-center text-muted-foreground">Loading competitions...</div>
-      )}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {["All", "Active", "Upcoming", "Completed"].map((filter) => (
+          <Button
+            key={filter}
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setPage(1);
+              setSelectedFilter(filter as "All" | CompetitionStatus);
+            }}
+            className={
+              selectedFilter === filter
+                ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                : ""
+            }
+          >
+            {filter}
+          </Button>
+        ))}
+      </div>
 
-      {!loading && total > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {["All", "Active", "Upcoming", "Completed"].map((filter) => (
-            <Button
-              key={filter}
-              variant={selectedFilter === filter ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setPage(1);
-                setSelectedFilter(filter as "All" | CompetitionStatus);
-              }}
-              className={selectedFilter === filter ? "bg-primary text-primary-foreground" : ""}
-            >
-              {filter}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {competitions.length > 0 && (
+      {loading ? (
+        <CompetitionsPageSkeleton />
+      ) : competitions.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus) => {
+          {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus, index) => {
             const title = comp.competitionTitle || "Untitled Competition";
+            const rowIndex = Math.floor(index / 4);
+            const enterClass = cardsVisible
+              ? "translate-y-0 opacity-100"
+              : "translate-y-2 opacity-0";
 
             return (
               <Card
                 key={comp.id}
-                className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)}`}
+                className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+                style={{
+                  transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+                }}
               >
                 <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                   <div className="absolute inset-0 bg-grid-primary/5"></div>
@@ -263,7 +273,7 @@ export default function CompetitionsPage() {
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {total > 0 && (
         <CardPaginationControls
