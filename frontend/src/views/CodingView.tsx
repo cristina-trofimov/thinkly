@@ -412,7 +412,7 @@ const CodingView = () => {
         className='flex-1' >
         {/* Description panel */}
         <Panel data-testid="resizable-panel" key="desc-area"
-          defaultSize={50} minSize={5}
+          defaultSize={50} minSize={0}
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea
