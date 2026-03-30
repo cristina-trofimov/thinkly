@@ -98,7 +98,7 @@ const renderCompetitionButton = (
   return (
     <Button
       size="sm"
-      className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+      className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
       onClick={() => setModal({ type: "details", competition: comp })}
     >
       View details

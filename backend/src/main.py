@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
-    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
+    scheduler.add_job(cleanup_ended_competitions, "interval", weeks=1, id="competition_cleanup")
     scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
     logger.info("✓ Email scheduler started (polling every 60s)")

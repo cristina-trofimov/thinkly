@@ -1,4 +1,3 @@
-import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ManageQuestionsPage from "../src/views/admin/ManageQuestionsPage";
 import { getQuestionsPage } from "../src/api/QuestionsAPI";
@@ -12,10 +11,9 @@ jest.mock("../src/api/QuestionsAPI", () => ({
 }));
 
 jest.mock("../src/components/manageQuestions/ManageQuestionsDataTable", () => ({
-  ManageQuestionsDataTable: ({ data, loading, refreshTable }: any) => (
+  ManageQuestionsDataTable: ({ data, refreshTable }: any) => (
     <div>
       <div data-testid="manage-table">rows:{data.length}</div>
-      <div data-testid="manage-table-loading">{String(Boolean(loading))}</div>
       <button onClick={() => refreshTable?.()}>simulate-refresh</button>
     </div>
   ),
@@ -55,13 +53,13 @@ describe("ManageQuestionsPage", () => {
 
     render(<ManageQuestionsPage />);
 
-    expect(screen.getByTestId("manage-table-loading")).toHaveTextContent("true");
+    // Skeleton renders while loading — data table is not mounted yet
+    expect(screen.queryByTestId("manage-table")).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByTestId("manage-table")).toHaveTextContent("rows:1");
     });
 
-    expect(screen.getByTestId("manage-table-loading")).toHaveTextContent("false");
     expect(mockedGetQuestionsPage).toHaveBeenCalledWith({
       page: 1,
       pageSize: 25,

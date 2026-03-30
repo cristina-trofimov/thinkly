@@ -1,4 +1,3 @@
-import React from 'react'
 import '@testing-library/jest-dom'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import { EventLeaderboard } from '../src/components/leaderboards/CodingPageLeaderboard'
@@ -32,7 +31,7 @@ jest.mock('../src/components/leaderboards/ScoreboardDataTable', () => ({
 
 const mockParticipants = [
   { name: 'Alice', user_id: 1, total_score: 120, problems_solved: 5, rank: 1, total_time: '01:00:00' },
-  { name: 'Bob',   user_id: 2, total_score:  80, problems_solved: 3, rank: 2, total_time: '00:45:00' },
+  { name: 'Bob', user_id: 2, total_score: 80, problems_solved: 3, rank: 2, total_time: '00:45:00' },
 ]
 
 const mockStandingsCompetition = {
@@ -47,8 +46,8 @@ const mockStandingsAlgoTime = {
   showSeparator: true,
 }
 
-const mockedGetCompetitionLive   = getCompetitionLiveLeaderboard   as jest.Mock
-const mockedGetCurrentAlgoTime   = getCurrentAlgoTimeLeaderboard   as jest.Mock
+const mockedGetCompetitionLive = getCompetitionLiveLeaderboard as jest.Mock
+const mockedGetCurrentAlgoTime = getCurrentAlgoTimeLeaderboard as jest.Mock
 
 // -------------------- HELPERS --------------------
 
@@ -70,7 +69,7 @@ const algoTimeProps = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  jest.spyOn(console, 'error').mockImplementation(() => {})
+  jest.spyOn(console, 'error').mockImplementation(() => { })
 })
 
 afterEach(() => {
@@ -82,25 +81,23 @@ afterEach(() => {
 describe('EventLeaderboard', () => {
 
   // ─── Loading state ────────────────────────────────────────────────────────
+  it('shows a loading indicator on the initial fetch', () => {
+    mockedGetCompetitionLive.mockReturnValue(new Promise(() => { })) // never resolves
 
-  describe('Loading state', () => {
-    it('shows a loading indicator on the initial fetch', () => {
-      mockedGetCompetitionLive.mockReturnValue(new Promise(() => {})) // never resolves
+    render(<EventLeaderboard {...competitionProps} />)
 
-      render(<EventLeaderboard {...competitionProps} />)
+    // Skeleton renders instead of text — check for its presence via data-slot
+    expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument()
+  })
 
-      expect(screen.getByText(/loading leaderboard/i)).toBeInTheDocument()
-    })
+  it('removes the loading indicator once data arrives', async () => {
+    mockedGetCompetitionLive.mockResolvedValue(mockStandingsCompetition)
 
-    it('removes the loading indicator once data arrives', async () => {
-      mockedGetCompetitionLive.mockResolvedValue(mockStandingsCompetition)
+    render(<EventLeaderboard {...competitionProps} />)
 
-      render(<EventLeaderboard {...competitionProps} />)
-
-      await waitFor(() =>
-        expect(screen.queryByText(/loading leaderboard/i)).not.toBeInTheDocument()
-      )
-    })
+    await waitFor(() =>
+      expect(document.querySelector('[data-slot="skeleton"]')).not.toBeInTheDocument()
+    )
   })
 
   // ─── Error state ──────────────────────────────────────────────────────────

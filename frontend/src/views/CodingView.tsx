@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
-  Minimize2, ChevronUp, CloudUpload, UndoDot
+  Minimize2, ChevronUp, CloudUpload, Undo
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
@@ -15,7 +15,6 @@ import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
@@ -27,6 +26,8 @@ import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getAllSubmissions } from '@/api/SubmissionAPI';
 
 
@@ -57,7 +58,7 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  const{user} = useUser();
+  const { user } = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -66,6 +67,7 @@ const CodingView = () => {
   const [logs, setLogs] = useState<Judge0Response[]>([])
   const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
+  const hasSubmittedRef = useRef(false);
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -98,6 +100,8 @@ const CodingView = () => {
       prevLangRef.current = matchedLang
     }
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
+
+
 
   // Called by CodeDescArea when the user solves the riddle.
   // Runs in CodingView so it updates the real userQuestionInstance state that
@@ -140,58 +144,61 @@ const CodingView = () => {
       }
     }
 
-      if (submit) {
-        // Drive the left-panel Result tab instead of a full-page loader
-        setSubmissionState('loading')
+    if (submit) {
+      // Drive the left-panel Result tab instead of a full-page loader
+      setSubmissionState('loading')
 
-        try {
-          if (userQuestionInstance) {
-            userQuestionInstance.attempts = userQuestionInstance.attempts
-              ? userQuestionInstance.attempts + 1
-              : 1
+      try {
+        if (userQuestionInstance) {
+          userQuestionInstance.attempts = userQuestionInstance.attempts
+            ? userQuestionInstance.attempts + 1
+            : 1
 
-            userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-              ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-              : Date.now() - startTime!.getTime()
-          }
-
-          const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
-
-          const {
-            codeRunResponse,
-            submissionResponse,
-            mostRecentSubResponse
-          } = await submitAttempt(
-            activeQuestion, activeQuestionInstance,
-            userQuestionInstance, event,
-            codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
-
-          await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
-            .then((response) => {
-              setAllSubmissions(response)
-            })
-
-          setLatestSubmissionResult(submissionResponse)
-          setLogs(prev => [...prev, codeRunResponse.judge0Response])
-          setMostRecentSub(mostRecentSubResponse)
-
-          trackCodeSubmitted(
-            activeQuestion!.question_id,
-            selectedLang!,
-          )
-        } catch (err) {
-          toast.error("Error when submitting the code.")
-          setSubmissionState('idle')
-          logFrontend({
-            level: "ERROR",
-            message: `An error occurred when submitting code. Reason: ${err}`,
-            component: "CodingView",
-            url: globalThis.location.href,
-            stack: (err as Error).stack,
-          });
-        } finally {
-          setSubmissionState('done')
+          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+            : Date.now() - startTime!.getTime()
         }
+
+        const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
+        const {
+          codeRunResponse,
+          submissionResponse,
+          mostRecentSubResponse
+        } = await submitAttempt(
+          activeQuestion, activeQuestionInstance,
+          userQuestionInstance, event,
+          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+
+        hasSubmittedRef.current = true;
+
+        setLatestSubmissionResult(submissionResponse)
+        await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
+          .then((response) => {
+            setAllSubmissions(response)
+          })
+
+        setLatestSubmissionResult(submissionResponse)
+        setLogs(prev => [...prev, codeRunResponse.judge0Response])
+        setMostRecentSub(mostRecentSubResponse)
+
+        trackCodeSubmitted(
+          activeQuestion!.question_id,
+          selectedLang!,
+        )
+      } catch (err) {
+        toast.error("Error when submitting the code.")
+        setSubmissionState('idle')
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when submitting code. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
+      } finally {
+        setSubmissionState('done')
+      }
       // }
     }
   }
@@ -276,6 +283,21 @@ const CodingView = () => {
 
   const [code, setCode] = useState<string>('')
 
+  // Warn before refresh/close if code has been modified
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isUnmodified =
+        hasSubmittedRef.current ||
+        code.trim() === presetCode.trim() ||
+        code.trim() === '';
+      if (isUnmodified) return;
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [code, presetCode]);
+
   // Restore buffer or fall back to presetCode on language/question change
   useEffect(() => {
     const saved = codeBuffersRef.current.get(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`)
@@ -353,10 +375,59 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!activeQuestion) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
+      <div className="px-2 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)] flex flex-col gap-2">
+        {/* Submit button row */}
+        <div className="flex justify-center mb-2">
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+        {/* Main panels */}
+        <div className="flex gap-2 flex-1">
+          {/* Description panel */}
+          <div className="flex-1 rounded-md border p-4 flex flex-col gap-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+            <Skeleton className="h-4 w-full mt-4" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-24 w-full rounded-md mt-4" />
+          </div>
+          {/* Code + output panels */}
+          <div className="flex-1 flex flex-col gap-2">
+            {/* Code panel */}
+            <div className="flex-[65] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-12" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="h-10 border-b px-2 flex items-center">
+                <Skeleton className="h-6 w-24 rounded-md" />
+              </div>
+              <Skeleton className="flex-1 h-64 rounded-none" />
+            </div>
+            {/* Output panel */}
+            <div className="flex-[35] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-16" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="p-2.5 flex flex-col gap-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -446,15 +517,34 @@ const CodingView = () => {
               <div data-testid="coding-area">
                 <div data-testid="coding-btns"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium">Code</span>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className={`grid ${mostRecentSub ? 'grid-cols-5' : 'grid-cols-4'} gap-1`}>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
                       onClick={runCode} data-testid="play-btn"
                     >
                       <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
                     </Button>
+
+                    {/* Most recent sub — only shown when available */}
+                    {mostRecentSub && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button data-testid='most-recent-sub-btn'
+                              onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
+                              className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                              <Undo size={22} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Go back to the most recently submitted code
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
                     <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={() => {
                         if (code.trim() === presetCode.trim()) {
@@ -468,15 +558,11 @@ const CodingView = () => {
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {fullCode
-                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
-                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
+                      {fullCode ? <Minimize2 data-testid='code-area-min-icon' size={22} /> : <Maximize2 data-testid='code-area-max-icon' size={22} />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {closeCode
-                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
-                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
+                      {closeCode ? <ChevronDown data-testid='code-area-down-icon' size={22} /> : <ChevronUp data-testid='code-area-up-icon' size={22} />}
                     </Button>
                   </div>
                 </div>
@@ -503,7 +589,7 @@ const CodingView = () => {
                               // Save current code to buffer before switching
                               codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
                               if (prevLangRef.current) {
-                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+                                trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
                               }
                               prevLangRef.current = lang
                               setSelectedLang(lang)
@@ -545,24 +631,8 @@ const CodingView = () => {
               >
                 <span className="text-lg font-medium">Output</span>
                 <div data-testid="output-btns"
-                  className={`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`} >
-                  {mostRecentSub && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
-                            className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                            <UndoDot size={22} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side='left' >
-                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl shadow' >
-                            Go back to the most recently ran code
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  className="flex items-center gap-1">
+
                   <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                     className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                     {fullOutput

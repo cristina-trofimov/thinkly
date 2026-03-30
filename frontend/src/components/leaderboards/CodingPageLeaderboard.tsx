@@ -7,6 +7,7 @@ import {
   getCurrentAlgoTimeLeaderboard,
 } from "@/api/LeaderboardsAPI";
 import type { CurrentStandings } from "@/types/leaderboards/CurrentStandings.type";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const REFRESH_INTERVAL_MS = 60_000;
 
@@ -58,8 +59,26 @@ export function EventLeaderboard({ eventId, eventName, isCompetitionEvent, curre
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Loading leaderboard…
+      <div className="flex flex-col gap-3">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-1">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+        {/* Table header */}
+        <div className="flex items-center gap-4 border-b pb-2">
+          {[24, 140, 80, 60].map((w, i) => (
+            <Skeleton key={i} className="h-3 rounded" style={{ width: w }} />
+          ))}
+        </div>
+        {/* Rows */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-1">
+            {[24, 140, 80, 60].map((w, j) => (
+              <Skeleton key={j} className="h-4 rounded" style={{ width: w }} />
+            ))}
+          </div>
+        ))}
       </div>
     );
   }

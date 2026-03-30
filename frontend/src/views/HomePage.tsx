@@ -209,9 +209,8 @@ function HomePage() {
             <BannerSkeleton />
           ) : (
             <div
-              className={`motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
-                bannerVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
-              }`}
+              className={`motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${bannerVisible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+                }`}
             >
               <HomePageBanner competitions={competitions} />
             </div>
@@ -258,9 +257,9 @@ function HomePage() {
             }}
           />
 
-          <div className="w-75 flex flex-col gap-2 rounded-lg p-4 bg-primary/10">
+          <div className="w-75 flex flex-col gap-2 rounded-lg p-4 bg-background border shadow-md">
             <p className="text-left text-lg font-semibold mb-1">
-              Competitions on {date?.toLocaleDateString() ?? "—"}
+              Events starting on {date?.toLocaleDateString() ?? "—"}
             </p>
             {competitionsForSelectedDate.length === 0 ? (
               <p className="text-center text-gray-500 italic">
@@ -281,7 +280,7 @@ function HomePage() {
                 >
                   <CompetitionItem
                     title={competition.competitionTitle}
-                    date={competition.startDate.toLocaleDateString()}
+                    location={competition.competitionLocation}
                   />
                 </button>
               ))
