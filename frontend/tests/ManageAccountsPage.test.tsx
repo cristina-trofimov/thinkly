@@ -45,6 +45,7 @@ jest.mock('../src/components/manageAccounts/ManageAccountsColumns', () => ({
 jest.mock('../src/components/manageAccounts/ManageAccountsDataTable', () => ({
   ManageAccountsDataTable: ({
     data,
+    loading,
     onDeleteUsers,
     onUserUpdate,
     onSearchChange,
@@ -53,6 +54,9 @@ jest.mock('../src/components/manageAccounts/ManageAccountsDataTable', () => ({
     onPageSizeChange,
     onSortChange,
   }: any) => (
+    loading ? (
+      <div data-testid="skeleton" />
+    ) : (
     <div data-testid="data-table">
       {data.map((a: Account) => (
         <div key={a.id} data-testid={`account-row-${a.id}`}>
@@ -69,12 +73,8 @@ jest.mock('../src/components/manageAccounts/ManageAccountsDataTable', () => ({
       <button data-testid="next-page" onClick={() => onPageChange(2)}>Next</button>
       <button data-testid="change-size" onClick={() => onPageSizeChange(50)}>Resize</button>
     </div>
+    )
   ),
-}));
-
-jest.mock('../src/components/manageAccounts/ManageAccountsSkeleton', () => ({
-  __esModule: true,
-  default: () => <div role="generic" aria-busy="true" data-testid="skeleton" />,
 }));
 
 const paginatedAccounts = (items: Account[], page = 1, pageSize = 25, total?: number) => ({
@@ -115,8 +115,14 @@ describe('ManageAccountsPage Full Coverage', () => {
       await screen.findByTestId('data-table');
 
       fireEvent.click(screen.getByTestId('change-search'));
+      await screen.findByTestId('data-table');
+
       fireEvent.click(screen.getByTestId('change-filter'));
+      await screen.findByTestId('data-table');
+
       fireEvent.click(screen.getByTestId('change-sort'));
+      await screen.findByTestId('data-table');
+
       fireEvent.click(screen.getByTestId('change-size'));
 
       await waitFor(() => {

@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function ManageAccountsTableSkeleton() {
+export default function ManageQuestionsTableSkeleton() {
   const bodyRows = 8;
 
   return (
@@ -9,21 +9,25 @@ export default function ManageAccountsTableSkeleton() {
         <div className="border-b px-4 py-3">
           <div className="grid grid-cols-12 gap-4">
             <Skeleton className="h-4 col-span-1" />
-            <Skeleton className="h-4 col-span-3" />
+            <Skeleton className="h-4 col-span-1" />
+            <Skeleton className="h-4 col-span-2" />
             <Skeleton className="h-4 col-span-4" />
             <Skeleton className="h-4 col-span-2" />
-            <Skeleton className="h-4 col-span-2" />
+            <Skeleton className="h-4 col-span-1" />
+            <Skeleton className="h-4 col-span-1" />
           </div>
         </div>
 
         <div className="p-4 space-y-4">
           {Array.from({ length: bodyRows }, (_, index) => (
-            <div key={index} className="grid grid-cols-12 gap-4 items-center">
+            <div key={index} className="grid grid-cols-12 items-center gap-4">
               <Skeleton className="h-4 col-span-1" />
-              <Skeleton className="h-4 col-span-3" />
-              <Skeleton className="h-4 col-span-4" />
+              <Skeleton className="h-4 col-span-1" />
               <Skeleton className="h-4 col-span-2" />
-              <Skeleton className="h-8 col-span-2" />
+              <Skeleton className="h-4 col-span-4" />
+              <Skeleton className="h-6 col-span-2 rounded-full" />
+              <Skeleton className="h-4 col-span-1" />
+              <Skeleton className="h-8 col-span-1" />
             </div>
           ))}
         </div>

@@ -1,33 +1,54 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { columns } from "../../components/manageQuestions/ManageQuestionsColumns";
 import { logFrontend } from '../../api/LoggerAPI';
-import { getQuestions } from "@/api/QuestionsAPI";
+import { getQuestionsPage } from "@/api/QuestionsAPI";
 import type { Question } from "@/types/questions/QuestionPagination.type";
 import { ManageQuestionsDataTable } from "@/components/manageQuestions/ManageQuestionsDataTable";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ManageQuestionsPage() {
   const [data, setData] = useState<Question[]>([]);
+  const [total, setTotal] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+  const [search, setSearch] = useState<string>("");
+  const [difficultyFilter, setDifficultyFilter] = useState<"all" | "easy" | "medium" | "hard">("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<number>(0);
+  const latestRequestId = useRef(0);
 
   const getAllQuestions = async () => {
-    setLoading(true); // Ensure loading is reset on mount
+    const requestId = ++latestRequestId.current;
+    setLoading(true);
     logFrontend({
       level: 'INFO',
-      message: `Attempting to fetch all questions.`,
+      message: `Attempting to fetch questions page=${page}, pageSize=${pageSize}, search=${search || "none"}, difficulty=${difficultyFilter}.`,
       component: 'ManageQuestionsPage',
       url: globalThis.location.href,
     });
 
     try {
-      const questions = await getQuestions();
-      setData(questions);
+      const result = await getQuestionsPage({
+        page,
+        pageSize,
+        search,
+        difficulty: difficultyFilter === "all" ? undefined : difficultyFilter,
+      });
+      if (requestId !== latestRequestId.current) {
+        return;
+      }
+      setData(result.items);
+      setTotal(result.total);
 
-      // Log successful fetch
+      if (result.items.length === 0 && result.total > 0 && page > 1) {
+        setPage(page - 1);
+        return;
+      }
+
       logFrontend({
         level: 'INFO',
-        message: `Successfully loaded ${questions.length} questions.`,
+        message: `Successfully loaded ${result.items.length} questions (total=${result.total}).`,
         component: 'ManageQuestionsPage',
         url: globalThis.location.href,
       });
@@ -46,13 +67,16 @@ export default function ManageQuestionsPage() {
 
       setError(errorMessage);
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     getAllQuestions();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, difficultyFilter, refreshToken]);
 
   if (loading) {
     return (
@@ -108,8 +132,27 @@ export default function ManageQuestionsPage() {
       <ManageQuestionsDataTable
         columns={columns}
         data={data}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        search={search}
+        difficultyFilter={difficultyFilter}
+        loading={loading}
+        onSearchChange={(value) => {
+          setPage(1);
+          setSearch(value);
+        }}
+        onDifficultyFilterChange={(value) => {
+          setPage(1);
+          setDifficultyFilter(value);
+        }}
+        onPageChange={setPage}
+        onPageSizeChange={(value) => {
+          setPage(1);
+          setPageSize(value);
+        }}
         onToggleFrontpage={handleToggleFrontpage}
-        refreshTable={getAllQuestions}
+        refreshTable={() => setRefreshToken((prev) => prev + 1)}
       />
     </div>
   );
