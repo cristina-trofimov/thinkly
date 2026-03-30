@@ -190,7 +190,6 @@ describe("QuestionsAPI — additional coverage", () => {
       expect(q.tags).toEqual([]);
       expect(q.test_cases).toEqual([]);
     });
-  });
 
   // -------------------------------------------------------------------------
   // getQuestionsPage — search trimming
