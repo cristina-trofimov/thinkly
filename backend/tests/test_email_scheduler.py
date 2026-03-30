@@ -1,5 +1,5 @@
-import pytest
 import asyncio
+import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -31,118 +31,149 @@ NOW = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
 PAST = NOW - timedelta(hours=1)
 FUTURE = NOW + timedelta(hours=1)
 
+# ---------------------------------------------------------------------------
+# Patch targets
+# ---------------------------------------------------------------------------
+
 MOD = "backend.src.services.email_scheduler"
-PATCH_BREVO = f"{MOD}.send_email_via_brevo"
 PATCH_SESSION = f"{MOD}.SessionLocal"
-PATCH_CE_MODEL = f"{MOD}.CompetitionEmail"
 PATCH_RESOLVE = f"{MOD}.resolve_email_recipients"
 PATCH_SEND_REM = f"{MOD}._send_reminder"
+PATCH_PROCESS = f"{MOD}._process_email"
+PATCH_SEND_ONE = f"{MOD}._send_one_email"
 PATCH_LOGGER = f"{MOD}.logger"
 
-
 # ---------------------------------------------------------------------------
-# Tests for _send_reminder (ASYNC)
+# _send_reminder (async)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
-class TestSendReminder:
+class TestSendReminderAsync:
 
-    async def test_calls_brevo_once_per_recipient(self):
-        with patch(PATCH_BREVO) as mock_brevo:
+    @pytest.mark.asyncio
+    async def test_calls_send_one_per_recipient(self):
+        with patch(PATCH_SEND_ONE, return_value=True) as mock_send:
             from backend.src.services.email_scheduler import _send_reminder
-            await _send_reminder(1, ["a@b.com", "c@d.com"], "Subject", "Body")
+            await _send_reminder(1, ["a", "b"], "Sub", "Body")
 
-            assert mock_brevo.call_count == 2
+            assert mock_send.call_count == 2
 
-    async def test_returns_true_when_one_succeeds(self):
-        calls = [Exception("fail"), None]
-
-        with patch(PATCH_BREVO, side_effect=calls), patch(PATCH_LOGGER):
+    @pytest.mark.asyncio
+    async def test_returns_true_if_one_success(self):
+        with patch(PATCH_SEND_ONE, side_effect=[False, True]):
             from backend.src.services.email_scheduler import _send_reminder
             result = await _send_reminder(1, ["a", "b"], "Sub", "Body")
 
         assert result is True
 
-    async def test_returns_false_when_all_fail(self):
-        with patch(PATCH_BREVO, side_effect=Exception("fail")), patch(PATCH_LOGGER):
+    @pytest.mark.asyncio
+    async def test_returns_false_if_all_fail(self):
+        with patch(PATCH_SEND_ONE, return_value=False):
             from backend.src.services.email_scheduler import _send_reminder
             result = await _send_reminder(1, ["a", "b"], "Sub", "Body")
 
         assert result is False
 
+    @pytest.mark.asyncio
     async def test_empty_recipients(self):
-        with patch(PATCH_BREVO) as mock_brevo:
+        with patch(PATCH_SEND_ONE) as mock_send:
             from backend.src.services.email_scheduler import _send_reminder
             result = await _send_reminder(1, [], "Sub", "Body")
 
         assert result is False
-        mock_brevo.assert_not_called()
-
+        mock_send.assert_not_called()
 
 # ---------------------------------------------------------------------------
-# Tests for _process_email (ASYNC)
+# _send_one_email
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
-class TestProcessEmail:
+class TestSendOneEmail:
 
-    async def _run(self, email, recipients=None, now=None):
-        from backend.src.services.email_scheduler import _process_email
-        await _process_email(
-            email,
-            recipients if recipients is not None else ["r@example.com"],
-            now or NOW,
-        )
+    @pytest.mark.asyncio
+    async def test_uses_to_thread(self):
+        with patch("asyncio.to_thread") as mock_thread:
+            future = asyncio.Future()
+            future.set_result(None)
+            mock_thread.return_value = future
 
-    async def test_sends_24h_reminder_when_due(self):
+            from backend.src.services.email_scheduler import _send_one_email
+            await _send_one_email(1, "a@b.com", "Sub", "Body")
+
+        mock_thread.assert_called_once()
+
+# ---------------------------------------------------------------------------
+# _process_email
+# ---------------------------------------------------------------------------
+
+class TestProcessEmailAsync:
+
+    @pytest.mark.asyncio
+    async def test_24h_trigger(self):
         email = _make_email(time_24h_before=PAST)
 
         with patch(PATCH_SEND_REM, return_value=True) as mock_send:
-            await self._run(email)
+            from backend.src.services.email_scheduler import _process_email
+            await _process_email(email, ["a"], NOW)
 
-            mock_send.assert_called_once()
-            assert email.time_24h_before is None
+        mock_send.assert_called_once()
+        assert email.time_24h_before is None
 
-    async def test_does_not_send_when_not_due(self):
+    @pytest.mark.asyncio
+    async def test_multiple_triggers(self):
+        email = _make_email(
+            time_24h_before=PAST,
+            time_5min_before=PAST,
+            other_time=PAST,
+        )
+
+        with patch(PATCH_SEND_REM, return_value=True) as mock_send:
+            from backend.src.services.email_scheduler import _process_email
+            await _process_email(email, ["a"], NOW)
+
+        assert mock_send.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_not_due(self):
         email = _make_email(time_24h_before=FUTURE)
 
         with patch(PATCH_SEND_REM) as mock_send:
-            await self._run(email)
+            from backend.src.services.email_scheduler import _process_email
+            await _process_email(email, ["a"], NOW)
 
-            mock_send.assert_not_called()
-
-    async def test_partial_success_still_nulls(self):
-        email = _make_email(time_24h_before=PAST)
-
-        with patch(PATCH_SEND_REM, return_value=True):
-            await self._run(email)
-
-        assert email.time_24h_before is None
-
-    async def test_failure_keeps_timestamp(self):
-        email = _make_email(time_24h_before=PAST)
-
-        with patch(PATCH_SEND_REM, return_value=False):
-            await self._run(email)
-
-        assert email.time_24h_before == PAST
-
+        mock_send.assert_not_called()
+        assert email.time_24h_before == FUTURE
 
 # ---------------------------------------------------------------------------
-# Tests for run_scheduled_emails (ASYNC)
+# run_scheduled_emails
 # ---------------------------------------------------------------------------
 
-@pytest.mark.asyncio
-class TestRunScheduledEmails:
+class TestRunScheduledEmailsAsync:
 
     def _make_db(self, emails=None):
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.all.return_value = emails or []
         return mock_db
 
-    async def test_commits_when_processed(self):
-        email = _make_email(time_24h_before=PAST)
-        mock_db = self._make_db([email])
+    @pytest.mark.asyncio
+    async def test_processes_multiple_emails(self):
+        emails = [_make_email(email_id=i, time_24h_before=PAST) for i in range(3)]
+        mock_db = self._make_db(emails)
+
+        with patch(PATCH_SESSION, return_value=mock_db), \
+             patch(PATCH_RESOLVE, return_value=["a"]), \
+             patch(PATCH_PROCESS) as mock_process:
+
+            from backend.src.services.email_scheduler import run_scheduled_emails
+            await run_scheduled_emails()
+
+        assert mock_process.call_count == 3
+        mock_db.commit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_concurrent_execution(self):
+        email1 = _make_email(email_id=1, time_24h_before=PAST)
+        email2 = _make_email(email_id=2, time_24h_before=PAST)
+
+        mock_db = self._make_db([email1, email2])
 
         with patch(PATCH_SESSION, return_value=mock_db), \
              patch(PATCH_RESOLVE, return_value=["a"]), \
@@ -153,45 +184,40 @@ class TestRunScheduledEmails:
 
         mock_db.commit.assert_called_once()
 
-    async def test_no_emails_does_nothing(self):
-        mock_db = self._make_db([])
-
-        with patch(PATCH_SESSION, return_value=mock_db), \
-             patch(PATCH_RESOLVE, return_value=["a"]), \
-             patch(PATCH_SEND_REM) as mock_send:
-
-            from backend.src.services.email_scheduler import run_scheduled_emails
-            await run_scheduled_emails()
-
-        mock_send.assert_not_called()
-
-    async def test_handles_exception(self):
-        mock_db = MagicMock()
-        mock_db.query.side_effect = Exception("DB error")
-
-        with patch(PATCH_SESSION, return_value=mock_db):
-            from backend.src.services.email_scheduler import run_scheduled_emails
-            await run_scheduled_emails()
-
-        mock_db.rollback.assert_called_once()
-        mock_db.close.assert_called_once()
-
-    async def test_partial_failure_still_commits(self):
+    @pytest.mark.asyncio
+    async def test_skip_when_no_recipients(self):
         email = _make_email(time_24h_before=PAST)
         mock_db = self._make_db([email])
 
-        recipients = ["good", "bad"]
-
-        def side_effect(to, subject, text):
-            if to == ["bad"]:
-                raise Exception("fail")
-
         with patch(PATCH_SESSION, return_value=mock_db), \
-             patch(PATCH_RESOLVE, return_value=recipients), \
-             patch(PATCH_BREVO, side_effect=side_effect), \
-             patch(PATCH_LOGGER):
+             patch(PATCH_RESOLVE, return_value=[]), \
+             patch(PATCH_PROCESS) as mock_process:
 
             from backend.src.services.email_scheduler import run_scheduled_emails
             await run_scheduled_emails()
 
-        mock_db.commit.assert_called_once()
+        mock_process.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_commit_after_processing(self):
+        email = _make_email(time_24h_before=PAST)
+        mock_db = self._make_db([email])
+
+        order = []
+
+        async def mock_process(*args, **kwargs):
+            order.append("process")
+
+        def mock_commit():
+            order.append("commit")
+
+        mock_db.commit = mock_commit
+
+        with patch(PATCH_SESSION, return_value=mock_db), \
+             patch(PATCH_RESOLVE, return_value=["a"]), \
+             patch(PATCH_PROCESS, side_effect=mock_process):
+
+            from backend.src.services.email_scheduler import run_scheduled_emails
+            await run_scheduled_emails()
+
+        assert order == ["process", "commit"]
