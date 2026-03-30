@@ -2,7 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
-  Minimize2, ChevronUp, CloudUpload, UndoDot
+  Minimize2, ChevronUp, CloudUpload, Undo
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
@@ -15,7 +15,6 @@ import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
@@ -28,6 +27,7 @@ import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const CodingView = () => {
@@ -482,15 +482,34 @@ const CodingView = () => {
               <div data-testid="coding-area">
                 <div data-testid="coding-btns"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium">Code</span>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className={`grid ${mostRecentSub ? 'grid-cols-5' : 'grid-cols-4'} gap-1`}>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
                       onClick={runCode} data-testid="play-btn"
                     >
                       <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
                     </Button>
+
+                    {/* Most recent sub — only shown when available */}
+                    {mostRecentSub && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button data-testid='most-recent-sub-btn'
+                              onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
+                              className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                              <Undo size={22} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Go back to the most recently submitted code
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
                     <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={() => {
                         if (code.trim() === presetCode.trim()) {
@@ -504,15 +523,11 @@ const CodingView = () => {
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {fullCode
-                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
-                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
+                      {fullCode ? <Minimize2 data-testid='code-area-min-icon' size={22} /> : <Maximize2 data-testid='code-area-max-icon' size={22} />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {closeCode
-                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
-                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
+                      {closeCode ? <ChevronDown data-testid='code-area-down-icon' size={22} /> : <ChevronUp data-testid='code-area-up-icon' size={22} />}
                     </Button>
                   </div>
                 </div>
@@ -581,24 +596,8 @@ const CodingView = () => {
               >
                 <span className="text-lg font-medium">Output</span>
                 <div data-testid="output-btns"
-                  className={`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`} >
-                  {mostRecentSub && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
-                            className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                            <UndoDot size={22} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side='left' >
-                          <p className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl' >
-                            Go back to the most recently ran code
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  className="flex items-center gap-1">
+
                   <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
                     className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
                     {fullOutput
