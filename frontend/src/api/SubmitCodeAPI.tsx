@@ -16,7 +16,8 @@ export async function submitAttempt(
     questionInstance: QuestionInstance | undefined,
     userQuestionInstance: UserQuestionInstance | undefined,
     event: BaseEvent | undefined | null,
-    source_code: string,
+    code_to_run: string,
+    user_code: string,
     language_id: number | undefined,
     userId: number,
     isAlgoTime: boolean = false,
@@ -31,16 +32,22 @@ export async function submitAttempt(
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id,source_code, language_id, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id, code_to_run, language_id, userId)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
-        if (question.difficulty.toLowerCase() == 'easy') {
-          userQuestionInstance.points = 100
-        } else if (question.difficulty.toLowerCase() == 'medium') {
-          userQuestionInstance.points = 200
-        } else {
-          userQuestionInstance.points = 300
+        switch (question.difficulty.toLowerCase()) {
+          case 'easy':
+            userQuestionInstance.points = 100
+            break;
+          case 'medium':
+            userQuestionInstance.points = 200
+            break;
+            case 'hard':
+            userQuestionInstance.points = 300
+            break;
+          default:
+            throw new Error("SubmitAttempt: This is not a valid question difficulty level");
         }
       }
 
@@ -48,7 +55,7 @@ export async function submitAttempt(
       userQuestionInstance = await putUserInstance(userQuestionInstance)
 
       // 4. Save most recent submission
-      const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
+      const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, user_code, language_id)
 
       // 5. Update leaderboard based on session type
       if (isAlgoTime && event) {

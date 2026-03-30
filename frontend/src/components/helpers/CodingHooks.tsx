@@ -17,6 +17,9 @@ import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
 import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type"
+import { getMostRecentSub } from "@/api/MostRecentSubAPI"
+import { getAllSubmissions } from "@/api/SubmissionAPI"
+import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import { useUser } from "@/context/UserContext"
 
 
@@ -43,6 +46,8 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
     const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
     const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
+    const [ allSubmissions, setAllSubmissions ] = useState<SubmissionType[]>()
+    const [ allLanguages, setAllLanguages ] = useState<Language[]>()
 
     const { testcases } = useTestcases(activeQuestionInstance?.question_id)
 
@@ -164,7 +169,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         fetchQuestions()
     }, [questionsInstances, questions.length])
 
-    // Setting the default active question and question instance
+    // Setting the default active question and question instance and most recent submission
     // Then loads all active languages and user's preferences
     useEffect(() => {
         if (questions.length > 0 && !activeQuestion) {
@@ -251,6 +256,34 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         getOrCreateUserQuestionInstance()
     }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance, user])
 
+    // Get user's last submission if there's any, all submissions and all languages
+    useEffect(() => {
+        if (!userQuestionInstance?.user_question_instance_id) return
+
+        const lastSteps = async () => {
+            try {
+                const [subs, lastSub, langs] = await Promise.all([
+                    getAllSubmissions(userQuestionInstance.user_question_instance_id),
+                    getMostRecentSub(userQuestionInstance.user_question_instance_id),
+                    getAllLanguages(null)
+                ])
+
+                setAllSubmissions(subs)
+                setMostRecentSub(lastSub)
+                setAllLanguages(langs)
+            } catch (error) {
+                logFrontend({
+                    level: "ERROR",
+                    message: `An error occurred when getting most recent submission. Reason: ${error}`,
+                    component: "CodingHooks",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                })
+            }
+        }
+        lastSteps()
+    }, [userQuestionInstance?.user_question_instance_id])
+
     return {
         startTime, mostRecentSub, setMostRecentSub,
         isLoading, setIsLoading,
@@ -262,6 +295,8 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         languages, prevLangRef, event,
         selectedLang, setSelectedLang,
         userPreferences, testcases,
-        loadingMsg, setLoadingMsg
+        loadingMsg, setLoadingMsg,
+        allSubmissions, setAllSubmissions,
+        allLanguages, setAllLanguages
     }
 }

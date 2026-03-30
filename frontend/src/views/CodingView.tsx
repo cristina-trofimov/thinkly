@@ -28,6 +28,7 @@ import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getAllSubmissions } from '@/api/SubmissionAPI';
 
 
 const CodingView = () => {
@@ -43,9 +44,12 @@ const CodingView = () => {
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
-    selectedLang, setSelectedLang, event,
-    testcases, loadingMsg, isLoading
+    selectedLang, setSelectedLang, event, testcases,
+    loadingMsg, setLoadingMsg, isLoading, setIsLoading,
+    allSubmissions, setAllSubmissions, allLanguages
   } = useCodingHooks(question, comp, algo)
+
+  const codeDescAreaContainerRef = useRef<HTMLDivElement>(null)
 
   const {
     trackLanguageChanged,
@@ -125,58 +129,77 @@ const CodingView = () => {
       return
     }
 
-    if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
-      toast.warning(`You're submitting too fast.\nTry again after ${(mostRecentSub.submitted_on.getTime() + event.question_cooldown)}`)
-      return
+    let submit = true
+
+    if (event && mostRecentSub?.submitted_on) {
+      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 60000)
+
+      if (Date.now() < new Date(nextSubTime).getTime()) {
+        const remainingMs = nextSubTime - Date.now()
+        const formatted = new Date(remainingMs).toISOString().slice(14, 23) // "MM:SS.lll"
+
+        toast.warning(`You're submitting too fast.\nTry again in ${formatted}`)
+        submit = false
+        return
+      }
     }
 
-    setSubmissionState('loading')
+    if (submit) {
+      // Drive the left-panel Result tab instead of a full-page loader
+      setSubmissionState('loading')
 
-    try {
-      if (userQuestionInstance) {
-        userQuestionInstance.attempts = userQuestionInstance.attempts
-          ? userQuestionInstance.attempts + 1
-          : 1
+      try {
+        if (userQuestionInstance) {
+          userQuestionInstance.attempts = userQuestionInstance.attempts
+            ? userQuestionInstance.attempts + 1
+            : 1
 
-        userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-          ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-          : Date.now() - startTime!.getTime()
+          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+            : Date.now() - startTime!.getTime()
+        }
+
+        const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
+        const {
+          codeRunResponse,
+          submissionResponse,
+          mostRecentSubResponse
+        } = await submitAttempt(
+          activeQuestion, activeQuestionInstance,
+          userQuestionInstance, event,
+          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+
+        hasSubmittedRef.current = true;
+
+        setLatestSubmissionResult(submissionResponse)
+        await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
+          .then((response) => {
+            setAllSubmissions(response)
+          })
+
+        setLatestSubmissionResult(submissionResponse)
+        setLogs(prev => [...prev, codeRunResponse.judge0Response])
+        setMostRecentSub(mostRecentSubResponse)
+
+        trackCodeSubmitted(
+          activeQuestion!.question_id,
+          selectedLang!,
+        )
+      } catch (err) {
+        toast.error("Error when submitting the code.")
+        setSubmissionState('idle')
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when submitting code. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
+      } finally {
+        setSubmissionState('done')
       }
-
-      const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
-
-      const {
-        codeRunResponse,
-        submissionResponse,
-        mostRecentSubResponse
-      } = await submitAttempt(
-        activeQuestion, activeQuestionInstance,
-        userQuestionInstance, event,
-        codeToSubmit, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
-
-      hasSubmittedRef.current = true;
-
-      setLatestSubmissionResult(submissionResponse)
-
-      setLogs(prev => [...prev, codeRunResponse.judge0Response])
-      setMostRecentSub(mostRecentSubResponse)
-
-      trackCodeSubmitted(
-        activeQuestion!.question_id,
-        selectedLang!,
-      )
-    } catch (err) {
-      toast.error("Error when submitting the code.")
-      setSubmissionState('idle')
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when submitting code. Reason: ${err}`,
-        component: "CodingView",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
-    } finally {
-      setSubmissionState('done')
+      // }
     }
   }
 
@@ -185,9 +208,14 @@ const CodingView = () => {
       toast.warning('Please answer the riddle first...')
       return
     }
+    if (!code.trim()) {
+      toast.warning('You need to code something first...')
+      return
+    }
 
     try {
-      setSubmissionState('loading')
+      setIsLoading(true)
+      setLoadingMsg("Running")
 
       const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
       const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
@@ -213,7 +241,8 @@ const CodingView = () => {
         stack: (err as Error).stack,
       });
     } finally {
-      setSubmissionState('done')
+      setIsLoading(false)
+      setLoadingMsg("")
     }
   }
 
@@ -405,53 +434,56 @@ const CodingView = () => {
 
   return (
     <div data-testid="sandbox" key="sandbox"
-      className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+      className='flex flex-col px-2 h-162.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       {/* Loading modal */}
       <Loader isOpen={isLoading} msg={loadingMsg} />
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
-      <div className='flex items-center justify-center mb-2 w-full'>
-        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
-          <CloudUpload size={16} />Submit
-        </Button>
-      </div>
-      {questionsInstances.length > 1 && (
-        <div className='flex items-end-safe justify-end mb-2 w-full'>
-          <DropdownMenu data-testid='questions-dropdown'>
-            <DropdownMenuTrigger
-              data-testid='questions-btn'
-              className="bg-background text-muted-foreground text-base font-bold h-7
-                flex items-center gap-2 rounded-md p-2
-                hover:bg-primary/20 focus:bg-primary/55"
-            >
-              {activeDisplayQuestionName}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className='z-999' asChild>
-              <div data-testid='questions-menu'
-                className="z-10 text-sm bg-muted w-26 border rounded-lg"
-              >
-                {questions.map((q, idx) => (
-                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
-                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                    onSelect={() => handleQuestionChange(q)}
+      <div className='sticky top-0 z-10 bg-background'>
+        <div className='w-full h-10 mb-2 flex relative shrink-0'>
+          <div className='absolute left-1/2 -translate-x-1/2'>
+            <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
+              <CloudUpload size={16} />Submit
+            </Button>
+          </div>
+          {questionsInstances.length > 1 && (
+            <div className='absolute right-0'>
+              <DropdownMenu data-testid='questions-dropdown'>
+                <DropdownMenuTrigger
+                  data-testid='questions-btn'
+                  className="h-9 bg-background text-muted-foreground text-base font-bold
+                    flex items-center gap-2 rounded-md p-2
+                    hover:bg-primary/20 focus:bg-primary/55"
+                >
+                  {activeDisplayQuestionName}
+                  <ChevronDown />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className='z-999' asChild>
+                  <div data-testid='questions-menu'
+                    className="z-10 text-sm bg-muted w-26 border rounded-lg"
                   >
-                    {`Question ${idx + 1}`}
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    {questions.map((q, idx) => (
+                      <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                        className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                        onSelect={() => handleQuestionChange(q)}
+                      >
+                        {`Question ${idx + 1}`}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
-        className='h-full w-full'
-      >
+        className='flex-1' >
         {/* Description panel */}
         <Panel data-testid="resizable-panel" key="desc-area"
-          defaultSize={50} minSize={5}
+          defaultSize={50} minSize={0}
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea
@@ -463,7 +495,10 @@ const CodingView = () => {
             currentUserId={user?.id}
             submissionState={submissionState}
             latestSubmissionResult={latestSubmissionResult}
+            submissions={allSubmissions}
+            allLanguages={allLanguages}
             onRiddleSolved={handleRiddleSolved}
+            ref={codeDescAreaContainerRef}
           />
         </Panel>
 
@@ -612,7 +647,7 @@ const CodingView = () => {
                   </Button>
                 </div>
               </div>
-              <div data-testid="code-output-tab" className='max-h-full p-2.5'>
+              <div data-testid="code-output-tab" className='h-full p-2.5 flex flex-col'>
                 <ConsoleOutput logs={logs} />
               </div>
             </Panel>

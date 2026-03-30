@@ -6,7 +6,7 @@ const Loader = ({ isOpen, msg }: { isOpen: boolean, msg: string } ) => {
     msg  = "Loading"
   }
 
-    msg = `${msg}♥♥♥`
+    msg = `${msg}●●●`
 
   return (
     <Dialog open={isOpen} >
