@@ -107,16 +107,6 @@ const CodingView = () => {
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
-  const formattedTime = (() => {
-    if (remainingMs === null) return null          // no event / no timer
-    const totalSeconds = Math.floor(remainingMs / 1000)
-    const h = Math.floor(totalSeconds / 3600)
-    const m = Math.floor((totalSeconds % 3600) / 60)
-    const s = totalSeconds % 60
-    return h > 0
-      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      : `${m}:${String(s).padStart(2, '0')}`
-  })()
 
   // Called by CodeDescArea when the user solves the riddle.
   // Runs in CodingView so it updates the real userQuestionInstance state that

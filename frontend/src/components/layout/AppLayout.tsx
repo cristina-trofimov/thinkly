@@ -4,7 +4,6 @@ import { AppSidebar } from './AppSidebar';
 import { AppBreadcrumbs } from './AppBreadcrumb';
 import { NavUser } from './NavUser'
 import { MobileBanner } from "./MobileBanner";
-import { useUser } from '@/context/UserContext';
 
 interface RouteHandle {
   crumb?: {
