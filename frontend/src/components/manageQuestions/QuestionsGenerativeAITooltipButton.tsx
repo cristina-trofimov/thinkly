@@ -10,7 +10,7 @@ const GenAIHint = `You are an expert technical content creator and backend engin
 Below is the strict JSON schema you must follow. Do not output Markdown outside of the JSON block. Ensure the output is valid JSON.
 
 ### Constraints & Instructions:
-1.  **Code inside JSON:** Because you are putting code into JSON string values, you MUST properly escape newlines (\`\n\`), tabs (\`\t\`), and quotes (\`\"\`).
+1.  **Code inside JSON:** Because you are putting code into JSON string values, you MUST properly escape newlines (\`\n\`), tabs (\`\t\`), and quotes (\`"\`).
 2.  **\`template_code\`**: This is what the user sees in their editor. Keep it clean and provide the function signature.
 3.  **Overhead Code (\`imports\`, \`preset_classes\`, \`preset_functions\`, \`main_function\`)**: This code is hidden from the user but executed by the runner. 
     * Include serialization (\`to_json\`) and deserialization (\`from_json\`) logic in \`preset_functions\` to parse the test cases.
@@ -35,7 +35,7 @@ Below is the strict JSON schema you must follow. Do not output Markdown outside 
       {
         "language_name": "<String>",
         "imports": "<String escaped code>",
-        "preset_classes": "<String escaped code or \"\">",
+        "preset_classes": "<String escaped code or "">",
         "preset_functions": "<String escaped code for to_json/from_json>",
         "main_function": "<String escaped entry point code>",
         "template_code": "<String escaped boilerplate code for user>"
@@ -48,7 +48,7 @@ Generate a new question based on the following request.
 Request: Create a question for "[INSERT QUESTION TOPIC/NAME HERE, e.g., 'Valid Palindrome']".
 `;
 
-const QuestionsGenerativeAITooltipButton: React.FC<PropsWithChildren<{}>> = (props) => {
+const QuestionsGenerativeAITooltipButton: React.FC<PropsWithChildren<Record<string, never>>> = (props) => {
   const handleCopyHello = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(GenAIHint);
