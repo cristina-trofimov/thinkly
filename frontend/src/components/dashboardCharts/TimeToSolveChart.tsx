@@ -1,6 +1,7 @@
 import { BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import type { TimeToSolveChartProps, TimeToSolveData } from "@/types/adminDashboard/DashboardCharts.type";
+import { HorizontalBarsSkeleton } from "./DashboardChartSkeleton";
 
 const DIFFICULTY_COLORS = {
   Easy: "#10b981",
@@ -15,6 +16,10 @@ const PLACEHOLDER_DATA: TimeToSolveData[] = [
 ];
 
 export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProps) => {
+  if (loading) {
+    return <HorizontalBarsSkeleton />;
+  }
+
   const baseData = data.length > 0 ? data : PLACEHOLDER_DATA;
 
   const displayData = baseData.map((item) => ({
@@ -31,7 +36,7 @@ export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProp
         Medium: { color: DIFFICULTY_COLORS.Medium },
         Hard: { color: DIFFICULTY_COLORS.Hard },
       }}
-      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+      style={{ width: "100%", height: 180 }}
     >
       <BarChart
         data={displayData}

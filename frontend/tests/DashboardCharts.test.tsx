@@ -80,10 +80,9 @@ describe("DashboardCharts", () => {
   it("uses placeholder slices and hides tooltip when QuestionsSolvedChart has no usable data", () => {
     const { rerender } = render(<QuestionsSolvedChart data={[]} loading />);
 
-    const firstContainer = screen.getByTestId("chart-container");
-    expect(firstContainer).toHaveAttribute("data-opacity", "0.5");
+    expect(document.querySelector("[aria-busy='true']")).toBeInTheDocument();
     expect(screen.queryByTestId("chart-tooltip")).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("chart-cell")).toHaveLength(3);
+    expect(screen.queryAllByTestId("chart-cell")).toHaveLength(0);
 
     rerender(
       <QuestionsSolvedChart
@@ -101,10 +100,9 @@ describe("DashboardCharts", () => {
   it("uses fallback data in NumberOfLoginsChart when data is empty and supports loading opacity", () => {
     render(<NumberOfLoginsChart data={[]} loading />);
 
-    expect(screen.getByTestId("linechart")).toHaveAttribute("data-points", "7");
-    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
-    expect(screen.getByTestId("line")).toBeInTheDocument();
-    expect(screen.getByTestId("chart-tooltip")).toBeInTheDocument();
+    expect(screen.queryByTestId("linechart")).not.toBeInTheDocument();
+    expect(document.querySelector("[aria-busy='true']")).toBeInTheDocument();
+    expect(screen.queryByTestId("chart-tooltip")).not.toBeInTheDocument();
   });
 
   it("uses provided NumberOfLoginsChart data when available", () => {
@@ -119,7 +117,7 @@ describe("DashboardCharts", () => {
     );
 
     expect(screen.getByTestId("linechart")).toHaveAttribute("data-points", "3");
-    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "1");
+    expect(screen.getByTestId("chart-tooltip")).toBeInTheDocument();
   });
 
   it("renders TimeToSolveChart with fallback color for unknown type and placeholder fallback", () => {
@@ -139,20 +137,16 @@ describe("DashboardCharts", () => {
 
     rerender(<TimeToSolveChart data={[]} loading />);
 
-    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
-    cells = within(screen.getByTestId("bar"))
-      .getAllByTestId("chart-cell")
-      .map((node) => node.getAttribute("data-fill"));
-    expect(cells).toEqual(["#10b981", "#f59e0b", "#ef4444"]);
+    expect(screen.queryByTestId("barchart")).not.toBeInTheDocument();
+    expect(document.querySelector("[aria-busy='true']")).toBeInTheDocument();
   });
 
   it("uses 7days placeholder and interval 0 in ParticipationOverTimeChart", () => {
     render(<ParticipationOverTimeChart data={[]} timeRange="7days" loading />);
 
     expect(screen.getByText(/Participation over time/i)).toBeInTheDocument();
-    expect(screen.getByTestId("barchart")).toHaveAttribute("data-points", "7");
-    expect(screen.getByTestId("x-axis")).toHaveAttribute("data-interval", "0");
-    expect(screen.getByTestId("chart-container")).toHaveAttribute("data-opacity", "0.5");
+    expect(screen.queryByTestId("barchart")).not.toBeInTheDocument();
+    expect(document.querySelector("[aria-busy='true']")).toBeInTheDocument();
   });
 
   it("sets interval 2 for 30days and default interval 4 for 3months in ParticipationOverTimeChart", () => {
