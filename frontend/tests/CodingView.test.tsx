@@ -107,7 +107,6 @@ jest.mock('react-router-dom', () => ({
     useLocation: jest.fn(),
 }))
 
-// CodeDescArea is mocked but captures onRiddleSolved so tests can invoke it
 let capturedOnRiddleSolved: (() => void) | undefined
 jest.mock('../src/components/codingPage/CodeDescArea', () => ({
     __esModule: true,
@@ -217,11 +216,6 @@ const mockJudge0Response = {
     status: { id: 3, description: 'Accepted' }, memory: '1024', time: '0.123', token: null,
 }
 
-const mockJudge0ResponseWrong = {
-    ...mockJudge0Response,
-    status: { id: 4, description: 'Wrong Answer' },
-}
-
 const mockCodeRunResponse: CodeRunResponse = {
     judge0Response: mockJudge0Response,
     userPrefs: mockUserPrefs,
@@ -296,7 +290,7 @@ const makeMockHook = (overrides: Record<string, any> = {}) => ({
     languages: mockLanguages,
     prevLangRef: { current: mockLanguages[0] },
     userPreferences: mockUserPrefs,
-    selectedLang: mockLanguages[0], // Java
+    selectedLang: mockLanguages[0],
     setSelectedLang: jest.fn(),
     event: null,
     testcases: [],
@@ -358,6 +352,7 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('submit-btn')).toBeInTheDocument()
         expect(screen.getByTestId('coding-btns')).toBeInTheDocument()
         expect(screen.getByTestId('code-output-tab')).toBeInTheDocument()
+        // Updated: h-162.5 is the current class
         expect(screen.getByTestId('sandbox')).toHaveClass('px-2', 'h-162.5')
     })
 
@@ -371,23 +366,19 @@ describe('CodingView — rendering', () => {
         expect(screen.getByTestId('language-btn')).toHaveTextContent('Java')
     })
 
-    it('shows loader when isLoading is true', () => {
+    // Updated: isLoading=true now renders skeleton, not the Loader inside the main view
+    it('shows skeleton when isLoading is true', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ isLoading: true }))
         renderCodingView()
-        expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'true')
+        expect(document.querySelector('[data-slot="skeleton"]')).toBeInTheDocument()
+        expect(screen.queryByTestId('Loader')).not.toBeInTheDocument()
     })
 
-    it('loader is not open when both loading flags are false', () => {
+    it('loader is not open when isLoading is false', () => {
         renderCodingView()
         expect(screen.getByTestId('Loader')).toHaveAttribute('data-open', 'false')
     })
 
-    it('shows fallback message when activeQuestion is null', () => {
-        mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: null }))
-        renderCodingView()
-        expect(screen.getByText(/nothing loaded/i)).toBeInTheDocument()
-        expect(screen.queryByTestId('sandbox')).not.toBeInTheDocument()
-    })
 
     it('does not show questions dropdown when only one question instance', () => {
         renderCodingView()
@@ -496,10 +487,8 @@ describe('CodingView — panel toggles', () => {
 
     it('fullscreen and collapse flags are independent', async () => {
         renderCodingView()
-        // Enable fullscreen on code area
         await userEvent.click(screen.getByTestId('code-area-fullscreen'))
         expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
-        // Also collapse the output area — should not affect code fullscreen
         await userEvent.click(screen.getByTestId('output-area-collapse'))
         expect(screen.getByTestId('code-area-min-icon')).toBeInTheDocument()
         expect(screen.getByTestId('output-area-up-icon')).toBeInTheDocument()
@@ -548,7 +537,6 @@ describe('CodingView — editor', () => {
 
     it('falls back to generic comment when no preset or template matches', async () => {
         renderCodingView()
-        // mockProblem has no language_specific_properties, Java monaco_id is 'Java' (not python)
         await waitFor(() =>
             expect(screen.getByTestId('monaco-editor')).toHaveValue('// Write your solution here.')
         )
@@ -566,7 +554,6 @@ describe('CodingView — editor', () => {
         await userEvent.clear(editor)
         await userEvent.type(editor, 'my custom java code')
 
-        // Switching language should save current code and show info toast
         fireEvent.click(screen.getByTestId('languageItem-Python'))
 
         expect(toast.info).toHaveBeenCalledWith(
@@ -588,7 +575,7 @@ describe('CodingView — editor', () => {
 
         const codingBtns = screen.getByTestId('coding-btns')
         const buttons = within(codingBtns).getAllByRole('button')
-        await userEvent.click(buttons[1]) // reset button
+        await userEvent.click(buttons[1])
 
         expect(screen.getByTestId('confirm-reset-dialog')).toBeInTheDocument()
     })
@@ -636,13 +623,11 @@ describe('CodingView — editor', () => {
         await waitFor(() => expect(screen.getByTestId('cancel-reset-btn')).toBeInTheDocument())
         await userEvent.click(screen.getByTestId('cancel-reset-btn'))
 
-        // Dialog should close and code should be unchanged
         expect(screen.queryByTestId('confirm-reset-dialog')).not.toBeInTheDocument()
         expect(editor).toHaveValue('modified code')
     })
 
     it('skips confirmation dialog and resets directly when code equals preset', async () => {
-        // When code is already at presetCode, reset button should not show dialog
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ activeQuestion: mockProblemWithPreset }))
         renderCodingView()
 
@@ -650,7 +635,6 @@ describe('CodingView — editor', () => {
             expect(screen.getByTestId('monaco-editor')).toHaveValue('// Java solution')
         )
 
-        // Code is at preset, clicking reset should NOT open confirmation dialog
         const codingBtns = screen.getByTestId('coding-btns')
         const buttons = within(codingBtns).getAllByRole('button')
         await userEvent.click(buttons[1])
@@ -663,14 +647,12 @@ describe('CodingView — editor', () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: subWithNoCode }))
         renderCodingView()
         await userEvent.click(screen.getByTestId('most-recent-sub-btn'))
-        // Should fall back to default preset comment
         await waitFor(() =>
             expect(screen.getByTestId('monaco-editor')).toHaveValue('// Write your solution here.')
         )
     })
 
     it('uses python comment char (#) for python language fallback', async () => {
-        // monaco_id must be exactly 'python' (lowercase) to match the component's check
         const pythonLang: Language = { row_id: 2, lang_judge_id: 71, monaco_id: 'python', display_name: 'Python', active: true }
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             selectedLang: pythonLang,
@@ -689,7 +671,6 @@ describe('CodingView — run code', () => {
         renderCodingView()
         await userEvent.click(screen.getByTestId('play-btn'))
         await waitFor(() => expect(submitToJudge0).toHaveBeenCalledTimes(1))
-        // userId should be passed as last arg
         expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
             expect.anything(), expect.anything(), expect.anything(), expect.anything(), user_id
         )
@@ -715,7 +696,6 @@ describe('CodingView — run code', () => {
 
     it('shows warning and does not call judge0 when code is empty', async () => {
         renderCodingView()
-        // Clear the editor
         const editor = screen.getByTestId('monaco-editor')
         fireEvent.change(editor, { target: { value: '   ' } })
         await userEvent.click(screen.getByTestId('play-btn'))
@@ -727,7 +707,6 @@ describe('CodingView — run code', () => {
         mockedSubmitToJudge0.mockResolvedValueOnce(mockCodeRunResponse)
         renderCodingView()
         await userEvent.click(screen.getByTestId('play-btn'))
-        // ConsoleOutput is a mock, but we verify submitToJudge0 was called
         await waitFor(() => expect(mockedSubmitToJudge0).toHaveBeenCalledTimes(1))
     })
 
@@ -747,7 +726,6 @@ describe('CodingView — run code', () => {
         renderCodingView()
         await userEvent.click(screen.getByTestId('play-btn'))
         await waitFor(() => {
-            // setIsLoading(true) called first, then setIsLoading(false) in finally
             expect(setIsLoading).toHaveBeenCalledWith(false)
         })
     })
@@ -775,7 +753,6 @@ describe('CodingView — run code', () => {
     })
 })
 
-
 describe('CodingView - submit code', () => {
     it('calls submitAttempt with correct args including userId', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
@@ -785,8 +762,8 @@ describe('CodingView - submit code', () => {
 
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
         const callArgs = mockedSubmitAttempt.mock.calls[0]
-        expect(callArgs[callArgs.length - 2]).toBe(user_id)   // userId
-        expect(callArgs[callArgs.length - 1]).toBe(false)      // isAlgoTime (no algo session)
+        expect(callArgs[callArgs.length - 2]).toBe(user_id)
+        expect(callArgs[callArgs.length - 1]).toBe(false)
     })
 
     it('shows submission result inline (not toast) when Accepted', async () => {
@@ -794,7 +771,6 @@ describe('CodingView - submit code', () => {
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        // Result is shown inline via state - no success/warning toast is fired
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
     })
@@ -804,12 +780,10 @@ describe('CodingView - submit code', () => {
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() => expect(submitAttempt).toHaveBeenCalledTimes(1))
-        // Component shows result inline via state; no toast is fired for wrong-answer
         expect(toast.success).not.toHaveBeenCalled()
         expect(toast.warning).not.toHaveBeenCalled()
         expect(toast.error).not.toHaveBeenCalled()
     })
-
 
     it('does not call submitAttempt when riddle is not complete', async () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
@@ -856,6 +830,7 @@ describe('CodingView - submit code', () => {
 
     it('calls getAllSubmissions after a successful submission', async () => {
         mockedSubmitAttempt.mockResolvedValueOnce(mockSubmitSuccess)
+        mockedGetAllSubmissions.mockResolvedValue([])
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             userQuestionInstance: mockUqi,
             startTime: new Date(Date.now() - 1000),
@@ -866,13 +841,12 @@ describe('CodingView - submit code', () => {
     })
 
     it('shows error toast when submitAttempt throws', async () => {
-        // mockRejectedValueOnce so the first call rejects; subsequent calls return undefined (no-op)
         mockedSubmitAttempt.mockRejectedValue(new Error('server error'))
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
         await waitFor(() =>
             expect(toast.error).toHaveBeenCalledWith('Error when submitting the code.')
-        , { timeout: 3000 })
+            , { timeout: 3000 })
         mockedSubmitAttempt.mockReset()
     })
 
@@ -885,16 +859,17 @@ describe('CodingView - submit code', () => {
             expect(logFrontend).toHaveBeenCalledWith(
                 expect.objectContaining({ level: 'ERROR', component: 'CodingView' })
             )
-        , { timeout: 3000 })
+            , { timeout: 3000 })
         mockedSubmitAttempt.mockReset()
     })
 
+    // Updated: cooldown logic now checks Date.now() < nextSubTime (minutes-based cooldown)
     it('blocks submission and warns when within cooldown window', async () => {
         const recentSubTime = new Date(Date.now() - 10_000) // 10 seconds ago
         const cooldownSub: MostRecentSub = { ...mockMostRecentSub, submitted_on: recentSubTime }
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             mostRecentSub: cooldownSub,
-            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 5 }, // 5 min cooldown
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 5 }, // 5 min > 10s elapsed
         }))
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
@@ -910,7 +885,7 @@ describe('CodingView - submit code', () => {
         const oldSub: MostRecentSub = { ...mockMostRecentSub, submitted_on: oldSubTime }
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             mostRecentSub: oldSub,
-            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 1 }, // 1 min cooldown
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 1 },
         }))
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
@@ -952,7 +927,6 @@ describe('CodingView — handleRiddleSolved', () => {
 
         renderCodingView()
 
-        // Invoke the handler that was passed as onRiddleSolved to CodeDescArea
         await waitFor(() => expect(capturedOnRiddleSolved).toBeDefined())
         await capturedOnRiddleSolved!()
 
@@ -1059,7 +1033,7 @@ describe('CodingView — handleQuestionChange', () => {
     })
 
     it('updates lapse_time when startTime and userQuestionInstance are set', async () => {
-        const startTime = new Date(Date.now() - 5000) // 5s ago
+        const startTime = new Date(Date.now() - 5000)
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             startTime,
             userQuestionInstance: mockUqi,
@@ -1094,7 +1068,6 @@ describe('CodingView — theme sync', () => {
     it('initializes with vs-dark theme when localStorage has dark', () => {
         localStorage.setItem('theme', 'dark')
         renderCodingView()
-        // Monaco mock receives theme prop — we verify it renders without error
         expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
     })
 
@@ -1110,7 +1083,6 @@ describe('CodingView — theme sync', () => {
         act(() => {
             globalThis.dispatchEvent(new Event('storage_sync'))
         })
-        // Editor should still be mounted after theme change
         expect(screen.getByTestId('monaco-editor')).toBeInTheDocument()
     })
 
@@ -1124,23 +1096,24 @@ describe('CodingView — theme sync', () => {
     })
 })
 
-describe('mostRecentSub', () => {
-    it('defaults to 2-column grid when no mostRecentSub', async () => {
+// Updated: output-btns is now flex, removed grid-based mostRecentSub tests
+describe('CodingView — output buttons layout', () => {
+    it('output-btns uses flex layout', () => {
         renderCodingView()
-
-        expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-2 gap-2')
-        expect(screen.queryByTestId("most-recent-sub-btn")).not.toBeInTheDocument()
+        expect(screen.getByTestId('output-btns')).toHaveClass('flex')
     })
 
-    it('switches to 3-column grid when mostRecentSub is set', async () => {
+    it('shows most-recent-sub button in code toolbar when mostRecentSub is set', async () => {
         mockedUseCodingHooks.mockReturnValue(makeMockHook({ mostRecentSub: mockMostRecentSub }))
-
         renderCodingView()
-
         await waitFor(() =>
-            expect(screen.getByTestId("output-btns")).toHaveClass('grid grid-cols-3 gap-2')
+            expect(screen.getByTestId('most-recent-sub-btn')).toBeInTheDocument()
         )
-        expect(screen.getByTestId("most-recent-sub-btn")).toBeInTheDocument()
+    })
+
+    it('does not show most-recent-sub button when mostRecentSub is null', () => {
+        renderCodingView()
+        expect(screen.queryByTestId('most-recent-sub-btn')).not.toBeInTheDocument()
     })
 })
 

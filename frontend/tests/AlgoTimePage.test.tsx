@@ -23,7 +23,8 @@ const makeSession = (overrides = {}) => ({
   eventName: "Test Event",
   seriesName: "Test Series",
   startTime: new Date(now.getTime() - 30 * 60_000), // 30 min ago → Active
-  endTime: new Date(now.getTime() + 60 * 60_000),   // 1 hr from now
+  endTime: new Date(now.getTime() + 60 * 60_000),
+  location: "Test Location", // 1 hr from now
   ...overrides,
 });
 
@@ -124,7 +125,7 @@ describe("AlgoTimePage", () => {
       render(<AlgoTimePage />);
 
       await waitFor(() =>
-        expect(screen.getByText("Test Series")).toBeInTheDocument()
+        expect(screen.getByText("Test Location")).toBeInTheDocument()
       );
     });
 
@@ -215,7 +216,7 @@ describe("AlgoTimePage", () => {
     });
 
     it("logs the session id to the console when a button is clicked", async () => {
-      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => { });
       mockedGetAllAlgotimeSessions.mockResolvedValue([activeSession] as any);
 
       render(<AlgoTimePage />);
