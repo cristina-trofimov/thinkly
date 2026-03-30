@@ -81,6 +81,11 @@ class QuestionListItemResponse(BaseModel):
 
     @staticmethod
     def from_question(question: Question) -> "QuestionListItemResponse":
+        # Support both persisted/mutated flag and relationship-derived fallback.
+        instance_frontpage_flag = any(
+            getattr(instance, "event_id", None) is None
+            for instance in getattr(question, "question_instances", [])
+        )
         return QuestionListItemResponse(
             question_id=question.question_id,
             question_name=question.question_name,
@@ -94,16 +99,7 @@ class QuestionListItemResponse(BaseModel):
             test_cases=[TestCaseResponse.from_testcase(tc) for tc in getattr(question, "test_cases", [])],
             created_at=question.created_at.isoformat(),
             last_modified_at=question.last_modified_at.isoformat(),
-            show_on_frontpage=bool(
-                getattr(
-                    question,
-                    "show_on_frontpage",
-                    any(
-                        getattr(instance, "event_id", None) is None
-                        for instance in getattr(question, "question_instances", [])
-                    ),
-                )
-            ),
+            show_on_frontpage=bool(getattr(question, "show_on_frontpage", False) or instance_frontpage_flag),
             tags=[TagResponse.from_tag(tag) for tag in getattr(question, "tags", [])],
         )
 
@@ -190,7 +186,13 @@ def normalize_latest_modified(latest_modified: Optional[datetime]) -> datetime:
 
 
 def build_cache_headers(
-    total: int, max_question_id: int, sum_question_ids: int, latest_modified: datetime
+    total: int,
+    max_question_id: int,
+    sum_question_ids: int,
+    latest_modified: datetime,
+    frontpage_count: int = 0,
+    frontpage_max_instance_id: int = 0,
+    frontpage_sum_question_ids: int = 0,
 ) -> dict:
     """
     Build cache-related HTTP headers for the questions response.
@@ -204,7 +206,11 @@ def build_cache_headers(
     Returns:
         Dict containing Cache-Control, Last-Modified, and ETag headers
     """
-    etag_seed = f"questions:{total}:{max_question_id}:{sum_question_ids}:{int(latest_modified.timestamp())}"
+    etag_seed = (
+        f"questions:{total}:{max_question_id}:{sum_question_ids}:"
+        f"{int(latest_modified.timestamp())}:"
+        f"frontpage:{frontpage_count}:{frontpage_max_instance_id}:{frontpage_sum_question_ids}"
+    )
     etag = f'W/"{sha256(etag_seed.encode("utf-8")).hexdigest()}"'
     return {
         "Cache-Control": "no-cache, must-revalidate",
@@ -257,6 +263,28 @@ def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
     """
     question_ids = [question.question_id for question in questions]
     show_on_frontpage_ids = set()
+
+    def extract_question_id_from_row(row: object) -> Optional[int]:
+        # SQLAlchemy can return tuple-like rows or Row objects with _mapping.
+        if isinstance(row, tuple):
+            return row[0] if row else None
+
+        mapping = getattr(row, "_mapping", None)
+        if mapping is not None:
+            if "question_id" in mapping:
+                return mapping["question_id"]
+            if mapping:
+                return next(iter(mapping.values()))
+
+        question_id = getattr(row, "question_id", None)
+        if question_id is not None:
+            return question_id
+
+        try:
+            return row[0]  # type: ignore[index]
+        except Exception:
+            return None
+
     if question_ids:
         show_on_frontpage_rows = (
             db.query(QuestionInstance.question_id)
@@ -267,12 +295,9 @@ def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
             .all()
         )
         for row in show_on_frontpage_rows:
-            if isinstance(row, tuple):
-                show_on_frontpage_ids.add(row[0])
-            else:
-                question_id = getattr(row, "question_id", None)
-                if question_id is not None:
-                    show_on_frontpage_ids.add(question_id)
+            question_id = extract_question_id_from_row(row)
+            if question_id is not None:
+                show_on_frontpage_ids.add(question_id)
 
     for question in questions:
         question.show_on_frontpage = question.question_id in show_on_frontpage_ids
@@ -291,6 +316,7 @@ def get_question_by_id(question_id: int, db: Annotated[Session, Depends(get_db)]
         question: Question = db.query(Question).filter(Question.question_id == question_id).first()
         if not question:
             raise HTTPException(status_code=404, detail=f"Question with id {question_id} not found")
+        populate_frontpage_flags(db, [question])
         logger.info(f"Fetched question with ID {question_id}")
         return QuestionListItemResponse.from_question(question)
     except HTTPException:
@@ -341,10 +367,31 @@ def get_all_questions(
         max_question_id = max_question_id or 0
         sum_question_ids = sum_question_ids or 0
 
+        # Include frontpage state so ETag changes when QuestionInstance toggles happen.
+        frontpage_aggregates = (
+            db.query(
+                func.count(QuestionInstance.question_instance_id),
+                func.max(QuestionInstance.question_instance_id),
+                func.sum(QuestionInstance.question_id),
+            )
+            .filter(QuestionInstance.event_id.is_(None))
+            .first()
+            or (0, 0, 0)
+        )
+        frontpage_count = frontpage_aggregates[0] or 0
+        frontpage_max_instance_id = frontpage_aggregates[1] or 0
+        frontpage_sum_question_ids = frontpage_aggregates[2] or 0
+
         # Normalize datetime and build cache headers
         latest_modified = normalize_latest_modified(latest_modified)
         common_headers = build_cache_headers(
-            total_for_cache, max_question_id, sum_question_ids, latest_modified
+            total_for_cache,
+            max_question_id,
+            sum_question_ids,
+            latest_modified,
+            frontpage_count,
+            frontpage_max_instance_id,
+            frontpage_sum_question_ids,
         )
         etag = common_headers["ETag"]
 
