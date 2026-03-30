@@ -29,6 +29,7 @@ import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getAllSubmissions } from '@/api/SubmissionAPI';
+import { useCountdown } from '@/hooks/useCountdown'
 
 
 const CodingView = () => {
@@ -68,6 +69,10 @@ const CodingView = () => {
   const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
   const hasSubmittedRef = useRef(false);
+  const remainingMs = useCountdown(event?.event_end_date)
+  const isExpired = remainingMs === 0
+
+
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -132,11 +137,17 @@ const CodingView = () => {
     let submit = true
 
     if (event && mostRecentSub?.submitted_on) {
-      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 60000)
+      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 1000)
 
       if (Date.now() < new Date(nextSubTime).getTime()) {
         const remainingMs = nextSubTime - Date.now()
-        const formatted = new Date(remainingMs).toISOString().slice(14, 23) // "MM:SS.lll"
+        const totalSeconds = Math.ceil(remainingMs / 1000)
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+
+        const formatted = minutes > 0
+          ? `${minutes}m ${seconds}s`
+          : `${seconds}s`
 
         toast.warning(`You're submitting too fast.\nTry again in ${formatted}`)
         submit = false
@@ -351,6 +362,44 @@ const CodingView = () => {
   const mainPanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
   const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
+  // Replace just the formattedTime display span with this component:
+
+  const CompetitionTimer = ({ remainingMs }: { remainingMs: number | null }) => {
+    if (remainingMs === null) return null
+
+    const isExpired = remainingMs === 0
+    const isWarning = remainingMs < 5 * 60 * 1000
+    const isUrgent = remainingMs < 60 * 1000
+
+    const totalSeconds = Math.floor(remainingMs / 1000)
+    const h = Math.floor(totalSeconds / 3600)
+    const m = Math.floor((totalSeconds % 3600) / 60)
+    const s = totalSeconds % 60
+    const display = h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      : `${m}:${String(s).padStart(2, '0')}`
+
+    return (
+      <div className={`
+      flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium tabular-nums
+      transition-colors duration-500
+      ${isExpired || isUrgent
+          ? 'bg-destructive/10 border-destructive/30 text-destructive'
+          : isWarning
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+            : 'bg-muted border-border text-muted-foreground'
+        }
+    `}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' :
+          isUrgent ? 'bg-destructive animate-pulse' :
+            isWarning ? 'bg-amber-500 animate-pulse' :
+              'bg-emerald-500'
+          }`} />
+        {isExpired ? "Time's up" : display}
+      </div>
+    )
+  }
+
   useLayoutEffect(() => {
     let mainPanelSize: number[], codePanelSize: number[]
 
@@ -442,11 +491,12 @@ const CodingView = () => {
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
       <div className='sticky top-0 z-10 bg-background'>
-        <div className='w-full h-10 mb-2 flex relative shrink-0'>
-          <div className='absolute left-1/2 -translate-x-1/2'>
-            <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
+        <div className='w-full h-10 mb-2 flex relative shrink-0 items-center'>
+          <div className='absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5'>
+            <Button onClick={submitCode} data-testid="submit-btn" disabled={isExpired}>
               <CloudUpload size={16} />Submit
             </Button>
+            <CompetitionTimer remainingMs={remainingMs} />
           </div>
           {questionsInstances.length > 1 && (
             <div className='absolute right-0'>

@@ -60,7 +60,7 @@ export const getPublicCompetitionStatusBadgeClasses = (status: EventStatus) => {
     case "Active":
       return "bg-green-100 text-green-700";
     case "Upcoming":
-      return "bg-primary text-primary-foreground";
+      return "bg-primary/10 text-primary";
     default:
       return "bg-muted text-muted-foreground";
   }

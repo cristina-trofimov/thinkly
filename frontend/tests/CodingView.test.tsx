@@ -863,13 +863,12 @@ describe('CodingView - submit code', () => {
         mockedSubmitAttempt.mockReset()
     })
 
-    // Updated: cooldown logic now checks Date.now() < nextSubTime (minutes-based cooldown)
     it('blocks submission and warns when within cooldown window', async () => {
         const recentSubTime = new Date(Date.now() - 10_000) // 10 seconds ago
         const cooldownSub: MostRecentSub = { ...mockMostRecentSub, submitted_on: recentSubTime }
         mockedUseCodingHooks.mockReturnValue(makeMockHook({
             mostRecentSub: cooldownSub,
-            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 5 }, // 5 min > 10s elapsed
+            event: { event_id: 1, event_name: 'Test Event', question_cooldown: 30 }, // 30s > 10s elapsed
         }))
         renderCodingView()
         await userEvent.click(screen.getByTestId('submit-btn'))
