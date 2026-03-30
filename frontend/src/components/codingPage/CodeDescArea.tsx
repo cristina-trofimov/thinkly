@@ -1,11 +1,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table'
-import { FileText, History, Trophy, Loader2, ClipboardCheck } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
+import { useEffect, forwardRef, useState, useRef } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
 import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
-import { getAllSubmissions } from '@/api/SubmissionAPI'
 
 import RiddleUserForm from '../forms/RiddleForm'
 import { getRiddleById } from '@/api/RiddlesAPI'
@@ -14,69 +13,93 @@ import { toast } from 'sonner'
 
 import { TimeAgoFormat } from '../helpers/TimeAgoFormat'
 import { logFrontend } from '@/api/LoggerAPI'
-import { getAllLanguages } from '@/api/LanguageAPI'
-import { useCodingHooks } from '../helpers/CodingHooks'
 import type { Language } from '@/types/questions/Language.type'
-import SubmissionDetail from './SubmissionDetail'
-import { putUserInstance } from '@/api/UserQuestionInstanceAPI'
 import type { QuestionInstance } from '@/types/questions/QuestionInstance.type'
 import type { UserQuestionInstance } from '@/types/submissions/UserQuestionInstance.type'
 import type { SubmissionType } from '../../types/submissions/SubmissionType.type'
-import { SubmissionResult, SubmissionResultSkeleton } from './SubmissionResult'
+import { SubmissionSkeleton } from './SubmissionSkeleton'
+import { SubmissionDetail } from './SubmissionDetail'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
+import { getDiffColor } from '@/utils/difficultyBadge'
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-const CodeDescArea = (
-    { question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
-        submissionState, latestSubmissionResult }:
-        {
-            question: Question | undefined,
-            question_instance: QuestionInstance | undefined | null,
-            uqi: UserQuestionInstance | undefined | null,
-            testcases: TestCase[] | undefined | null,
-            /** The ID of the active competition/event, if the question was opened from one. */
-            eventId: number | undefined,
-            /** The display name of the active event. */
-            eventName: string | undefined,
-            /** True when the event is a Competition, false when AlgoTime. Ignored when eventId is undefined. */
-            isCompetitionEvent: boolean,
-            currentUserId?: number,
-            /** Driven by the parent when the user hits Submit. */
-            submissionState?: 'idle' | 'loading' | 'done',
-            /** The latest submission returned by the API once submissionState === 'done'. */
-            latestSubmissionResult?: SubmissionType | null,
-        }
-) => {
+type DescProp = {
+    question: Question | undefined,
+    question_instance: QuestionInstance | undefined | null,
+    uqi: UserQuestionInstance | undefined | null,
+    testcases: TestCase[] | undefined | null,
+    eventId: number | undefined,
+    eventName: string | undefined,
+    isCompetitionEvent: boolean,
+    currentUserId?: number,
+    submissionState?: 'idle' | 'loading' | 'done',
+    latestSubmissionResult?: SubmissionType | null,
+    allLanguages: Language[] | undefined,
+    submissions: SubmissionType[] | undefined,
+    onRiddleSolved?: () => void
+}
+
+const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
+({ question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
+    submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved
+}, _codeDescAreaContainerRef) => {
 
     const hasEvent = eventId !== undefined
 
     const baseTabs = [
-        { "id": "description", "label": "Description", "icon": <FileText /> },
-        { "id": "submissions", "label": "Submissions", "icon": <History /> },
-        { "id": "result", "label": "Result", "icon": <ClipboardCheck /> },
+        { "id": "description", "label": "Description", "icon": <FileText size={16} /> },
+        { "id": "submissions", "label": "Submissions", "icon": <History size={16} /> },
+        { "id": "result",      "label": "Result",      "icon": <ClipboardCheck size={16} /> },
     ]
 
-    // Only expose the Leaderboard tab when the question belongs to an event
     const tabs = hasEvent
-        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy /> }]
+        ? [...baseTabs, { "id": "leaderboard", "label": "Leaderboard", "icon": <Trophy size={16} /> }]
         : baseTabs
-
-    const { setUserQuestionInstance } = useCodingHooks(question)
 
     const { trackCodingTabSwitched } = useAnalytics()
 
     const [activeTab, setActiveTab] = useState("description")
-    const [allLanguages, setAllLanguages,] = useState<Language[] | null>(null)
     const [selectedSubmission, setSelectedSubmission] = useState<SubmissionType | null>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [containerWidth, setContainerWidth] = useState(0)
-    const [initialWidth, setInitialWidth] = useState<number | null>(null)
-    const [submissions, setSubmissions] = useState<SubmissionType[]>()
+
+    const tabsListRef = useRef<HTMLDivElement>(null)
+    const probeRef    = useRef<HTMLDivElement>(null)
+    const [iconOnly, setIconOnly] = useState(false)
+    const iconOnlyRef = useRef(false) // stale-closure-safe mirror of state
+
+    const EXPAND_BUFFER = 16 // px of extra headroom required before re-expanding
+
+    useEffect(() => {
+        const container = tabsListRef.current
+        if (!container) return
+
+        const check = () => {
+            const available  = container.clientWidth
+            const probeWidth = probeRef.current?.offsetWidth ?? 0
+
+            if (probeWidth === 0) return // JSDOM / not yet painted — leave as-is
+
+            if (!iconOnlyRef.current && available < probeWidth) {
+                iconOnlyRef.current = true
+                setIconOnly(true)
+            } else if (iconOnlyRef.current && available >= probeWidth + EXPAND_BUFFER) {
+                iconOnlyRef.current = false
+                setIconOnly(false)
+            }
+        }
+
+        check() // seed immediately on mount / whenever tabs change
+
+        const ro = new ResizeObserver(check)
+        ro.observe(container)
+        return () => ro.disconnect()
+    }, [tabs.length]) // re-run when tab count changes (3 vs 4)
 
     const [riddle, setRiddle] = useState<Riddle | null>(null)
     const [isLoadingRiddle, setIsLoadingRiddle] = useState(true)
 
-    // Auto-switch to the Result tab whenever a submission starts or finishes
+    // Auto-switch to Result tab on submission activity
     useEffect(() => {
         if (submissionState === 'loading' || submissionState === 'done') {
             setActiveTab('result')
@@ -90,12 +113,10 @@ const CodeDescArea = (
     }, [hasEvent, activeTab])
 
     useEffect(() => {
-        // No riddle on this question — skip fetch entirely and clear loading state
         if (!question_instance?.riddle_id) {
             setIsLoadingRiddle(false)
             return
         }
-        // Riddle already solved — no need to re-fetch
         if (uqi?.riddle_complete) {
             setIsLoadingRiddle(false)
             return
@@ -121,42 +142,7 @@ const CodeDescArea = (
         fetchRiddle()
     }, [question_instance, uqi?.riddle_complete])
 
-    useEffect(() => {
-        if (uqi?.user_question_instance_id) {
-            const FetchSubmissions = async () => {
-                const [subs, langs] = await Promise.all([
-                    getAllSubmissions(uqi?.user_question_instance_id),
-                    getAllLanguages(null)
-                ])
-
-                setSubmissions(subs)
-                setAllLanguages(langs)
-            }
-            FetchSubmissions()
-        }
-    }, [uqi])
-
-    useEffect(() => {
-        if (!containerRef.current) return
-        const observer = new ResizeObserver(entries => {
-            if (entries.length === 0) return
-            const width = entries[0].contentRect.width
-            setContainerWidth(width)
-            if (initialWidth === null) setInitialWidth(width)
-        })
-
-        observer.observe(containerRef.current)
-        return () => observer.disconnect()
-    }, [initialWidth, setContainerWidth])
-
-    if (!question || !question_instance || !uqi) return
-
-    const fullSize = containerRef.current?.offsetWidth
-    let halfSize = 0, quarterSize = 0
-    if (fullSize) {
-        halfSize = fullSize / 2
-        quarterSize = fullSize / 4
-    }
+    if (!question || !question_instance || !uqi) return null
 
     const handleTabChange = (tab: string) => {
         setActiveTab(tab)
@@ -166,7 +152,10 @@ const CodeDescArea = (
         )
     }
 
-    if (question_instance?.riddle_id && !uqi?.riddle_complete) { // Needs to solve riddle
+    const difficultyLabel = question.difficulty.replace(/^\w/, (char) => char.toUpperCase())
+
+    //Riddle Rendering Start-----------------------------------------------
+    if (question_instance?.riddle_id && !uqi?.riddle_complete) {
         if (isLoadingRiddle || !riddle) {
             return (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
@@ -178,151 +167,262 @@ const CodeDescArea = (
         return (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-background">
                 <div className="w-full max-w-md">
-                    <h2 className="text-lg font-semibold mb-4 text-center">{question.question_name}</h2>
+                    <div className="mb-4 flex flex-col items-center gap-2 text-center">
+                        <h2 className="text-lg font-semibold">{question.question_name}</h2>
+                        <span className={`text-[14px] w-fit px-2 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                            {difficultyLabel}
+                        </span>
+                    </div>
                     <RiddleUserForm
                         riddle={riddle}
-                        onSolved={async () => {
-                            const updated = { ...uqi, riddle_complete: true }
-                            await putUserInstance(updated)
-                                .then((resp) => setUserQuestionInstance(resp))
-                        }}
+                        onSolved={onRiddleSolved}
                     />
                 </div>
             </div>
         )
     }
     //Riddle Rendering End-------------------------------------------------
+
     return (
-        <Tabs data-testid="tabs" defaultValue='description'
-            value={activeTab} onValueChange={handleTabChange} className='w-full h-full'
+        <Tabs
+            data-testid="tabs"
+            defaultValue='description'
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className='w-full h-full flex flex-col'
         >
-            <TabsList data-testid="tabs-list" ref={containerRef}
-                className={`w-full h-10 py-0 px-4 bg-muted rounded-none
-                        border-b border-border/75 dark:border-border/50`}
+            <div
+                ref={probeRef}
+                aria-hidden
+                style={{
+                    position: 'fixed',
+                    top: -9999,
+                    left: -9999,
+                    visibility: 'hidden',
+                    pointerEvents: 'none',
+                    display: 'inline-flex',
+                    whiteSpace: 'nowrap',
+                    fontSize: '0.875rem',
+                    padding: '0 8px',
+                }}
             >
-                {tabs.map(t => {
-                    const isActive = activeTab === t.id
-                    let showText = true
-                    if (containerWidth < halfSize && !isActive) showText = false
-                    if (containerWidth < quarterSize && isActive) showText = false
-
-                    // Pulse the Result tab trigger while a submission is in flight
-                    const isResultLoading = t.id === 'result' && submissionState === 'loading'
-
-                    return <TabsTrigger data-testid="tabs-trigger" key={t.id} value={t.id}
-                        className={`bg-muted rounded-none
-                        hover:border-t-2 hover:border-primary/40
-                        data-[state=active]:border-primary
-                        data-[state=active]:text-primary
-                        data-[state=active]:bg-muted
-                        data-[state=active]:shadow-none
-                        data-[state=active]:border-b-[2.5px]
-                        data-[state=active]:border-x-0
-                        data-[state=active]:border-t-0
-                        dark:data-[state=active]:border-primary
-                        flex items-center gap-2 transition-all
-                            ${showText ? 'px-4' : 'px-2'}
-                            ${isResultLoading ? 'animate-pulse' : ''}
-                        `}
+                {tabs.map(t => (
+                    <div
+                        key={t.id}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0 12px' }}
                     >
                         {t.icon}
-                        {showText && t.label}
-                    </TabsTrigger>
+                        <span>{t.label}</span>
+                    </div>
+                ))}
+            </div>
+
+            <TabsList
+                ref={tabsListRef}
+                data-testid="tabs-list"
+                className="w-full h-10 shrink-0 rounded-none bg-muted
+                           border-b border-border/75 dark:border-border/50
+                           flex items-end gap-0 p-0"
+            >
+                {tabs.map(t => {
+                    const isResultLoading = t.id === 'result' && submissionState === 'loading'
+
+                    return (
+                        <TabsTrigger
+                            data-testid="tabs-trigger"
+                            key={t.id}
+                            value={t.id}
+                            title={t.label}
+                            className={[
+                                // Shape & spacing
+                                'relative h-full flex-1 rounded-none px-3',
+                                // Layout
+                                'inline-flex items-center justify-center gap-1.5',
+                                // Typography
+                                'text-sm font-medium',
+                                // Remove ALL default Shadcn button/pill chrome
+                                'bg-transparent border-0 shadow-none',
+                                // No press / scale animation
+                                'active:scale-100 active:bg-transparent',
+                                // Colours
+                                'text-muted-foreground',
+                                'hover:text-foreground hover:bg-transparent',
+                                // Active: text colour + bottom line via ::after
+                                'data-[state=active]:bg-transparent',
+                                'data-[state=active]:text-primary',
+                                'data-[state=active]:shadow-none',
+                                // Bottom line indicator
+                                'data-[state=active]:after:absolute',
+                                'data-[state=active]:after:bottom-0',
+                                'data-[state=active]:after:left-0',
+                                'data-[state=active]:after:right-0',
+                                'data-[state=active]:after:h-[2.5px]',
+                                'data-[state=active]:after:rounded-t-sm',
+                                'data-[state=active]:after:bg-primary',
+                                'data-[state=active]:after:content-[""]',
+                                // Loading pulse on the Result tab
+                                isResultLoading ? 'animate-pulse' : '',
+                            ].join(' ')}
+                        >
+                            {t.icon}
+                            {!iconOnly && <span>{t.label}</span>}
+                        </TabsTrigger>
+                    )
                 })}
             </TabsList>
 
             {/* Description */}
-            <TabsContent value='description' data-testid="tabs-content-description">
-                <div className='h-full p-6'>
-                    <h1 className='font-bold mb-3'>
-                        {question.question_name}
-                    </h1>
-                    <p className='text-left leading-6 break-words whitespace-pre-wrap overflow-y-auto max-h-96'>
-                        {question.question_description}
-                    </p>
-                    {testcases?.map((t, idx) => {
-                        return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
-                            <p className='font-bold'>Example {idx + 1}:</p>
-                            <div className='ml-4 flex flex-col gap-1'>
-                                <p className='font-bold'>Inputs <span className='font-normal'>
-                                    {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], idx) => {
-                                        const separator = idx < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
-                                        return `${key} = ${JSON.stringify(val)}${separator}`
-                                    })}
-                                </span></p>
-                                <p className='font-bold'>Outputs: <span className='font-normal'>
-                                    {JSON.stringify(t.expected_output, undefined, 2)}</span>
-                                </p>
-                            </div>
+            <TabsContent
+                value='description'
+                data-testid="tabs-content-description"
+                className="flex-1 overflow-y-auto mt-0"
+            >
+                <PanelGroup direction={'vertical'} className='h-full p-4'>
+                    <div className='shrink-0 mb-3 flex flex-col items-start gap-2'>
+                        <h1 className='text-2xl font-bold'>
+                            {question.question_name}
+                        </h1>
+                        <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                            {difficultyLabel}
+                        </span>
+                    </div>
+                    <Panel defaultSize={75} className='pb-1' >
+                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-full'>
+                            {question.question_description}
+                        </p>
+                    </Panel>
+                    <PanelResizeHandle data-testid="panel-resizable-handle"
+                        className='my-1 h-1 bg-muted rounded-full'
+                    />
+                    <Panel defaultSize={25} >
+                        {testcases && testcases.length > 0 && (
+                            <div className='max-h-full mt-2 px-2 border rounded-xl bg-muted/65
+                            wrap-break-word whitespace-pre-wrap overflow-y-auto' >
+                            {testcases.map((t, idx) => {
+                                return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
+                                    <p className='font-bold'>Example {idx + 1}:</p>
+                                    <div className='ml-4 flex flex-col gap-1'>
+                                        <p className='font-bold'>Inputs <span className='font-normal'>
+                                            {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], i) => {
+                                                const separator = i < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
+                                                return `${key} = ${JSON.stringify(val)}${separator}`
+                                            })}
+                                        </span></p>
+                                        <p className='font-bold'>Outputs: <span className='font-normal'>
+                                            {JSON.stringify(t.expected_output, undefined, 2)}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            })}
                         </div>
-                    })}
-                </div>
+                        )}
+                    </Panel>
+                </PanelGroup>
             </TabsContent>
 
             {/* Submissions */}
-            <TabsContent value='submissions' data-testid="tabs-content-submissions">
+            <TabsContent
+                value='submissions'
+                data-testid="tabs-content-submissions"
+                className='flex-1 min-h-0 mt-0'
+            >
                 <div className='h-full p-6'>
                     {selectedSubmission && (
-                        <SubmissionDetail selectedSubmission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
+                        <SubmissionDetail submission={selectedSubmission} goBack={() => setSelectedSubmission(null)} />
                     )}
 
                     {!selectedSubmission && (!submissions || submissions?.length < 1) && (
                         <div className='flex items-center justify-center h-full text-muted-foreground'>
                             You've yet to submit anything
-                        </div>)}
+                        </div>
+                    )}
 
                     {!selectedSubmission && submissions && submissions?.length > 0 && (
-                        <Table data-testid="table">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Language</TableHead>
-                                    <TableHead className="text-right">Memory</TableHead>
-                                    <TableHead className="text-right">Runtime</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {submissions?.map((s, idx) => {
-                                    const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
-
-                                    return <TableRow key={`submission ${idx + 1}`} data-testid={`submission-${idx + 1}`}
-                                        onClick={() => setSelectedSubmission(s)}
+                        <div className="h-full flex flex-col">
+                            <div className='shrink-0 inline-flex items-center'>
+                                <Tooltip>
+                                    <TooltipTrigger asChild className='z-9999999'>
+                                        <Info size={18} />
+                                    </TooltipTrigger>
+                                    <TooltipContent side='top'
+                                        className='z-99999999999999 p-1.5 text-sm bg-accent text-accent-foreground border rounded-3xl shadow'
                                     >
-                                        <TableCell className='grid grid-rows-2' >
-                                            <span className={`${status_color}`} >{s.status}</span>
-                                            <span className='text-card' >{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
-                                        </TableCell>
-                                        <TableCell className="" >
-                                            {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
-                                        </TableCell>
-                                        <TableCell className="text-right text-card" >{s?.memory}</TableCell>
-                                    </TableRow>
-                                })}
-                            </TableBody>
-                            <TableFooter className='mt-3' >
-                                <TableRow>
-                                    <TableCell colSpan={4} className='text-card' >{submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}</TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
+                                        Click on any submission to see more details
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Table>
+                                    <TableHeader className='sticky top-0 -z-9999999'>
+                                        <TableRow>
+                                            <TableHead className='text-center w-40'>Status</TableHead>
+                                            <TableHead className='text-center w-30'>Language</TableHead>
+                                            <TableHead className="text-center w-30">Memory</TableHead>
+                                            <TableHead className="text-center w-30">Runtime</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                </Table>
+                            </div>
+                            <div className='flex-1 min-h-0 overflow-y-auto'>
+                                <Table>
+                                    <TableBody>
+                                        {submissions?.map((s, idx) => {
+                                            const status_color = s.status === "Accepted" ? "text-green-500" : "text-red-500"
+                                            return (
+                                                <TableRow
+                                                    key={`submission ${idx + 1}`}
+                                                    data-testid={`submission-${idx + 1}`}
+                                                    onClick={() => setSelectedSubmission(s)}
+                                                >
+                                                    <TableCell className='grid grid-rows-2 w-40'>
+                                                        <span className={status_color}>{s.status}</span>
+                                                        <span className='text-muted-foreground'>{TimeAgoFormat(new Date(s.submitted_on).toISOString())}</span>
+                                                    </TableCell>
+                                                    <TableCell className="w-30">
+                                                        {allLanguages?.find(lang => lang.lang_judge_id === s.lang_judge_id)?.display_name}
+                                                    </TableCell>
+                                                    <TableCell className="text-center w-30">{s?.memory ? s.memory : "N/A"}</TableCell>
+                                                    <TableCell className="text-center w-30">{s?.runtime ? s.runtime : "N/A"}</TableCell>
+                                                </TableRow>
+                                            )
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            <div className='shrink-0'>
+                                <Table>
+                                    <TableFooter>
+                                        <TableRow>
+                                            <TableCell colSpan={4} className='text-muted-foreground'>
+                                                {submissions?.length} attempt{submissions?.length > 1 ? 's' : ''}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableFooter>
+                                </Table>
+                            </div>
+                        </div>
                     )}
                 </div>
             </TabsContent>
 
             {/* Result — live submission feedback */}
-            <TabsContent value='result' data-testid="tabs-content-result">
+            <TabsContent
+                value='result'
+                data-testid="tabs-content-result"
+                className="flex-1 overflow-y-auto mt-0"
+            >
                 <div className='h-full p-6 overflow-y-auto'>
-                    {submissionState === 'loading' && <SubmissionResultSkeleton />}
+                    {submissionState === 'loading' && <SubmissionSkeleton />}
 
                     {submissionState === 'done' && latestSubmissionResult && (
-                        <SubmissionResult result={latestSubmissionResult} />
+                        <SubmissionDetail submission={latestSubmissionResult} goBack={undefined} />
                     )}
 
                     {(submissionState === 'idle' || submissionState === undefined) && (
                         <div className='flex flex-col items-center justify-center h-full py-16 text-muted-foreground gap-2'>
                             <ClipboardCheck className="w-8 h-8 opacity-30" />
                             <p className="text-base">No submission yet</p>
-                            <p className="text-sm">Hit <span className="font-semibold text-foreground">Submit</span> to see your results here</p>
+                            <p className="text-sm">
+                                Hit <span className="font-semibold text-foreground">Submit</span> to see your results here
+                            </p>
                         </div>
                     )}
                 </div>
@@ -330,7 +430,11 @@ const CodeDescArea = (
 
             {/* Leaderboard — only mounted when an event is active */}
             {eventId !== undefined && (
-                <TabsContent value='leaderboard' data-testid="tabs-content-leaderboard">
+                <TabsContent
+                    value='leaderboard'
+                    data-testid="tabs-content-leaderboard"
+                    className="flex-1 overflow-y-auto mt-0"
+                >
                     <div className='h-full p-6'>
                         <EventLeaderboard
                             eventId={eventId}
@@ -343,6 +447,6 @@ const CodeDescArea = (
             )}
         </Tabs>
     )
-}
+})
 
 export default CodeDescArea

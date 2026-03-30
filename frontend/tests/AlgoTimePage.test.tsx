@@ -1,120 +1,189 @@
-import { render, screen, waitFor } from "@testing-library/react";
-
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import AlgoTimePage from "../src/views/AlgoTimePage";
-import { getAlgotimeSessionsPage } from "../src/api/AlgotimeAPI";
+import { getAllAlgotimeSessions } from "@/api/AlgotimeAPI";
+import { logFrontend } from "@/api/LoggerAPI";
 
-jest.mock("@/lib/axiosClient", () => ({
-  default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
+// ─── Mocks ────────────────────────────────────────────────────────────────────
+
+const mockedUsedNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...(jest.requireActual("react-router-dom") as any),
+  useNavigate: () => mockedUsedNavigate,
 }));
 
-jest.mock("../src/api/AlgotimeAPI");
+jest.mock("@/api/AlgotimeAPI", () => ({
+  getAllAlgotimeSessions: jest.fn(),
+}));
 
-const mockSessions = [
-  {
-    id: 1,
-    eventName: "Session Alpha",
-    seriesName: "Series A",
-    startTime: new Date("2025-03-01T10:00:00"),
-    endTime: new Date("2025-03-01T11:00:00"),
-    questionCooldown: 30,
-    questionCount: 2,
-    questions: [],
-  },
-  {
-    id: 2,
-    eventName: "Session Beta",
-    seriesName: null,
-    startTime: new Date("2025-02-01T09:00:00"),
-    endTime: new Date("2025-02-01T10:00:00"),
-    questionCooldown: 30,
-    questionCount: 0,
-    questions: [],
-  },
-];
+jest.mock("@/api/LoggerAPI", () => ({
+  logFrontend: jest.fn(),
+}));
 
-const makePage = (items = mockSessions, total = items.length) => ({
-  total,
-  page: 1,
-  pageSize: 12,
-  items,
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const now = new Date();
+
+const makeSession = (overrides = {}) => ({
+  id: `session-${Math.random()}`,
+  eventName: "Test Event",
+  seriesName: "Test Series",
+  startTime: new Date(now.getTime() - 30 * 60_000).toISOString(),
+  endTime: new Date(now.getTime() + 60 * 60_000).toISOString(),
+  location: "Test Location",
+  ...overrides,
 });
+
+const activeSession = makeSession({ id: "active-1", eventName: "Test Event" });
+const upcomingSession = makeSession({
+  id: "upcoming-1",
+  eventName: "Upcoming Event",
+  startTime: new Date(now.getTime() + 2 * 60 * 60_000).toISOString(),
+  endTime: new Date(now.getTime() + 3 * 60 * 60_000).toISOString()
+});
+const completedSession = makeSession({
+  id: "completed-1",
+  eventName: "Past Event",
+  startTime: new Date(now.getTime() - 3 * 60 * 60_000).toISOString(),
+  endTime: new Date(now.getTime() - 1 * 60 * 60_000).toISOString()
+});
+
+const mockedGetAllAlgotimeSessions = getAllAlgotimeSessions as jest.MockedFunction<typeof getAllAlgotimeSessions>;
+const mockedLogFrontend = logFrontend as jest.MockedFunction<typeof logFrontend>;
+
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("AlgoTimePage", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
-  it("shows loading state initially", () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(new Promise(() => {}));
-    render(<AlgoTimePage />);
-    expect(screen.getByText(/loading sessions/i)).toBeInTheDocument();
-  });
+  describe("loading state", () => {
+    it("shows a loading indicator while fetching sessions", async () => {
+      let resolve: (v: any[]) => void;
+      mockedGetAllAlgotimeSessions.mockReturnValue(
+        new Promise((r) => { resolve = r; }) as any
+      );
 
-  it("renders sessions after loading", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+      renderWithRouter(<AlgoTimePage />);
+      expect(screen.getByRole("heading", { name: /algotime sessions/i })).toBeInTheDocument();
+      expect(document.querySelectorAll("[data-slot='skeleton']").length).toBeGreaterThan(0);
 
-    await waitFor(() => {
-      expect(screen.getByText("Session Alpha")).toBeInTheDocument();
-      expect(screen.getByText("Session Beta")).toBeInTheDocument();
+      resolve!([]);
+      await waitFor(() =>
+        expect(document.querySelector("[data-slot='skeleton']")).not.toBeInTheDocument()
+      );
     });
   });
 
-  it("renders session question count", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Questions: 2")).toBeInTheDocument();
-      expect(screen.getByText("Questions: 0")).toBeInTheDocument();
+  describe("empty state", () => {
+    it("renders the empty-state message when the API returns no sessions", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([]);
+      renderWithRouter(<AlgoTimePage />);
+      await waitFor(() =>
+        expect(screen.getByText(/no sessions available/i)).toBeInTheDocument()
+      );
     });
   });
 
-  it("renders series name when present", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Series A")).toBeInTheDocument();
+  describe("session cards", () => {
+    it("renders a card for each session returned by the API", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([activeSession, upcomingSession, completedSession] as any);
+      renderWithRouter(<AlgoTimePage />);
+      await waitFor(() => expect(screen.getByText("Test Event")).toBeInTheDocument());
+      expect(screen.getByText("Upcoming Event")).toBeInTheDocument();
+      expect(screen.getByText("Past Event")).toBeInTheDocument();
     });
   });
 
-  it("renders Details and Join buttons for each session", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
-    render(<AlgoTimePage />);
+  describe("status badges", () => {
+    it("displays 'Active' badge for a currently running session", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([activeSession] as any);
+      renderWithRouter(<AlgoTimePage />);
+      await waitFor(() => expect(screen.getByText("Active")).toBeInTheDocument());
+    });
 
-    await waitFor(() => {
-      expect(screen.getAllByRole("button", { name: /details/i })).toHaveLength(2);
-      expect(screen.getAllByRole("button", { name: /join/i })).toHaveLength(2);
+    it("treats a session with an invalid startTime as Upcoming", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([makeSession({ startTime: "not-a-date" })] as any);
+      renderWithRouter(<AlgoTimePage />);
+      await waitFor(() => expect(screen.getByText("Upcoming")).toBeInTheDocument());
     });
   });
 
-  it("sorts sessions by startTime ascending", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([mockSessions[1], mockSessions[0]]));
-    render(<AlgoTimePage />);
+  describe("action buttons", () => {
+    it("opens the details modal when 'View Details' is clicked on an upcoming session", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([upcomingSession] as any);
+      renderWithRouter(<AlgoTimePage />);
 
-    await waitFor(() => {
-      const cards = screen.getAllByText(/Session (Alpha|Beta)/);
-      expect(cards[0].textContent).toBe("Session Beta");
-      expect(cards[1].textContent).toBe("Session Alpha");
+      const btn = await screen.findByRole("button", { name: /view details/i });
+      await userEvent.click(btn);
+
+      await waitFor(() => {
+        const dialog = screen.getByRole("dialog");
+        expect(dialog).toBeInTheDocument();
+        expect(within(dialog).getByText(upcomingSession.eventName)).toBeInTheDocument();
+      });
+    });
+
+    it("navigates to session page when 'Access Session' is clicked on completed session", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([completedSession] as any);
+      renderWithRouter(<AlgoTimePage />);
+
+      const btn = await screen.findByRole("button", { name: /access session/i });
+      await userEvent.click(btn);
+
+      expect(mockedUsedNavigate).toHaveBeenCalledWith(`/app/algotime/${completedSession.id}`);
     });
   });
 
-  it("shows empty state when no sessions", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage([], 0));
-    render(<AlgoTimePage />);
+  describe("sort order", () => {
+    it("renders Active sessions before Upcoming, and Upcoming before Completed", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([completedSession, upcomingSession, activeSession] as any);
+      renderWithRouter(<AlgoTimePage />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByText("Test Event")).toBeInTheDocument());
+
+      const cards = document.querySelectorAll("[data-slot='card']");
+      const texts = Array.from(cards).map((c) => c.textContent ?? "");
+
+      const activeIdx = texts.findIndex((t) => t.includes("Test Event"));
+      const upcomingIdx = texts.findIndex((t) => t.includes("Upcoming Event"));
+      const completedIdx = texts.findIndex((t) => t.includes("Past Event"));
+
+      expect(activeIdx).toBeLessThan(upcomingIdx);
+      expect(upcomingIdx).toBeLessThan(completedIdx);
     });
   });
 
-  it("handles API errors gracefully", async () => {
-    (getAlgotimeSessionsPage as jest.Mock).mockRejectedValue(new Error("Network error"));
-    render(<AlgoTimePage />);
+  describe("error handling", () => {
+    it("calls logFrontend when the API rejects", async () => {
+      const error = new Error("Network failure");
+      mockedGetAllAlgotimeSessions.mockRejectedValue(error);
 
-    await waitFor(() => {
-      expect(screen.getByText(/no algotime sessions/i)).toBeInTheDocument();
+      renderWithRouter(<AlgoTimePage />);
+
+      await waitFor(() =>
+        expect(mockedLogFrontend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            level: "ERROR",
+            message: expect.stringContaining("Network failure"),
+            component: "AlgoTimePage",
+          })
+        )
+      );
+    });
+  });
+
+  describe("date formatting", () => {
+    it("shows 'TBD' when startTime is an invalid date", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([makeSession({ startTime: "invalid" })] as any);
+      renderWithRouter(<AlgoTimePage />);
+      await waitFor(() => expect(screen.getAllByText(/TBD/)[0]).toBeInTheDocument());
     });
   });
 });

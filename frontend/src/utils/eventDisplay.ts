@@ -49,7 +49,7 @@ export const getAdminStatusBadgeClasses = (status: EventStatus) => {
     case "Active":
       return "bg-green-100 text-green-700";
     case "Upcoming":
-      return "bg-blue-100 text-blue-700";
+      return "bg-primary text-primary-foreground";
     default:
       return "bg-gray-100 text-gray-700";
   }
@@ -60,7 +60,7 @@ export const getPublicCompetitionStatusBadgeClasses = (status: EventStatus) => {
     case "Active":
       return "bg-green-100 text-green-700";
     case "Upcoming":
-      return "bg-blue-100 text-blue-700";
+      return "bg-primary/10 text-primary";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -71,7 +71,7 @@ export const getPublicCompetitionCardBorderClasses = (status: EventStatus) => {
     case "Active":
       return "border-2 border-green-500/50";
     case "Upcoming":
-      return "border-2 border-blue-500/50";
+      return "border-2 border-primary/50";
     default:
       return "border border-border opacity-70";
   }
@@ -82,7 +82,7 @@ export const getPublicCompetitionTitleClasses = (status: EventStatus) => {
     case "Active":
       return "text-green-600 dark:text-green-400";
     case "Upcoming":
-      return "text-blue-600 dark:text-blue-400";
+      return "text-primary dark:text-primary-light";
     default:
       return "text-muted-foreground";
   }

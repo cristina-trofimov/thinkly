@@ -21,7 +21,7 @@ const mapCompetition = (competition: CompetitionApiItem): Competition => ({
 export async function getCompetitionsPage(
   params: CompetitionsPageParams = {}
 ): Promise<CompetitionsPage> {
-  const { page = 1, pageSize = 12, search, status, sort = "desc" } = params;
+  const { page = 1, pageSize = 12, search, status, sort = "asc" } = params;
 
   try {
     const response = await axiosClient.get<CompetitionApiPage>("/competitions/", {

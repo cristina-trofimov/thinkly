@@ -5,6 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { PieChartSkeleton } from "./DashboardChartSkeleton";
 import type {
   CenterLabelProps,
   QuestionsSolvedChartProps,
@@ -72,14 +73,16 @@ export const QuestionsSolvedChart = ({
   loading = false,
 }: QuestionsSolvedChartProps) => {
   const hasData = data.length > 0;
-  
-  // Calculate total questions from actual data
+
   const totalQuestions = useMemo(() => {
     if (!hasData) return 0;
     return data.reduce((acc, curr) => acc + curr.value, 0);
   }, [data, hasData]);
 
-  // Use placeholder data if no data or total is 0
+  if (loading) {
+    return <PieChartSkeleton />;
+  }
+
   const chartData = hasData && totalQuestions > 0 ? data : PLACEHOLDER_DATA;
 
   const resolvedData = chartData.map((entry) => ({
@@ -90,7 +93,7 @@ export const QuestionsSolvedChart = ({
   return (
     <ChartContainer
       config={CHART_CONFIG}
-      style={{ width: "100%", height: 180, opacity: loading ? 0.5 : 1 }}
+      style={{ width: "100%", height: 180 }}
     >
       <PieChart>
         <Pie

@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   getCompetitionsPage,
 } from "@/api/CompetitionAPI";
@@ -14,6 +23,8 @@ import { logFrontend } from "../api/LoggerAPI";
 import { CardPaginationControls } from "@/components/helpers/CardPaginationControls";
 import { PUBLIC_CARD_PAGE_SIZE_OPTIONS } from "@/constants/pagination";
 import { getPageItems } from "@/utils/paginationUtils";
+import CompetitionsPageSkeleton from "@/components/competitions/CompetitionsPageSkeleton";
+import { useCardReveal } from "@/hooks/useCardReveal";
 import {
   formatEventDateTime,
   formatEventDateTimeLong,
@@ -23,11 +34,28 @@ import {
   getPublicCompetitionTitleClasses,
   type EventStatus as CompetitionStatus,
 } from "@/utils/eventDisplay";
+import { Filter } from "lucide-react";
 
 type ModalState =
   | { type: "leaderboard"; competition: Competition }
   | { type: "details"; competition: Competition }
   | null;
+
+const getEmptyCompetitionsHeading = (selectedFilter: "All" | CompetitionStatus) => {
+  if (selectedFilter === "All") {
+    return "No competitions available";
+  }
+
+  return `No ${selectedFilter.toLowerCase()} competitions available`;
+};
+
+const getEmptyCompetitionsMessage = (selectedFilter: "All" | CompetitionStatus) => {
+  if (selectedFilter === "All") {
+    return "Check back later for upcoming events.";
+  }
+
+  return "Try selecting a different filter.";
+};
 
 const renderCompetitionButton = (
   status: CompetitionStatus,
@@ -46,7 +74,7 @@ const renderCompetitionButton = (
               fromFeed: true,
               comp: comp,
             },
-          });
+          })
         }}
       >
         Join Now
@@ -70,7 +98,7 @@ const renderCompetitionButton = (
   return (
     <Button
       size="sm"
-      className="h-7 text-xs bg-blue-600 hover:bg-blue-700 text-primary-foreground"
+      className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
       onClick={() => setModal({ type: "details", competition: comp })}
     >
       View details
@@ -183,9 +211,66 @@ export default function CompetitionsPage() {
     comp: c,
     status: getEventStatus(c.startDate, c.endDate),
   }));
+  const cardsVisible = useCardReveal(loading, competitions.length);
   const hasNoMatchingCompetitions = competitionsWithStatus.length === 0 && !loading;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const pageItems = getPageItems(page, pageCount);
+  let competitionsContent: ReactNode = null;
+
+  if (loading) {
+    competitionsContent = <CompetitionsPageSkeleton />;
+  } else if (competitions.length > 0) {
+    competitionsContent = (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus, index) => {
+          const title = comp.competitionTitle || "Untitled Competition";
+          const rowIndex = Math.floor(index / 4);
+          const enterClass = cardsVisible
+            ? "translate-y-0 opacity-100"
+            : "translate-y-2 opacity-0";
+
+          return (
+            <Card
+              key={comp.id}
+              className={`overflow-hidden hover:shadow-lg bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)} ${enterClass} motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out`}
+              style={{
+                transitionDelay: cardsVisible ? `${rowIndex * 50}ms` : "0ms",
+              }}
+            >
+              <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
+                <div className="absolute inset-0 bg-grid-primary/5"></div>
+                <div className="absolute top-3 right-3 z-20">
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getPublicCompetitionStatusBadgeClasses(status)}`}>
+                    {status}
+                  </span>
+                </div>
+                <div className="relative z-10 text-center w-full">
+                  <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getPublicCompetitionTitleClasses(status)}`}>
+                    {title}
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="p-4 pb-0 flex flex-col gap-2">
+                <div>
+                  <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
+                    {comp.competitionLocation || "Online"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatEventDateTime(comp.startDate)}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end pt-2 border-t">
+                  {renderCompetitionButton(status, comp, nav, setModal)}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
@@ -198,72 +283,36 @@ export default function CompetitionsPage() {
         </p>
       </div>
 
-      {loading && (
-        <div className="py-12 text-center text-muted-foreground">Loading competitions...</div>
-      )}
-
-      {!loading && total > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {["All", "Active", "Upcoming", "Completed"].map((filter) => (
-            <Button
-              key={filter}
-              variant={selectedFilter === filter ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setPage(1);
-                setSelectedFilter(filter as "All" | CompetitionStatus);
-              }}
-              className={selectedFilter === filter ? "bg-primary text-primary-foreground" : ""}
-            >
-              {filter}
+      <div className="mb-6 flex flex-wrap gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-0.5 cursor-pointer">
+              <Filter className="h-4 w-4 text-primary" />
+              <span className="ml-2 hidden md:inline-flex items-center">
+                {selectedFilter === "All" ? "All Competitions" : selectedFilter}
+              </span>
             </Button>
-          ))}
-        </div>
-      )}
-
-      {competitions.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {competitionsWithStatus.map(({ comp, status }: CompetitionWithStatus) => {
-            const title = comp.competitionTitle || "Untitled Competition";
-
-            return (
-              <Card
-                key={comp.id}
-                className={`overflow-hidden hover:shadow-lg transition-shadow bg-card flex flex-col ${getPublicCompetitionCardBorderClasses(status)}`}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {["All", "Active", "Upcoming", "Completed"].map((filter) => (
+              <DropdownMenuItem
+                key={filter}
+                className="cursor-pointer"
+                onClick={() => {
+                  setPage(1);
+                  setSelectedFilter(filter as "All" | CompetitionStatus);
+                }}
               >
-                <div className="aspect-4/3 bg-linear-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
-                  <div className="absolute inset-0 bg-grid-primary/5"></div>
-                  <div className="absolute top-3 right-3 z-20">
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getPublicCompetitionStatusBadgeClasses(status)}`}>
-                      {status}
-                    </span>
-                  </div>
-                  <div className="relative z-10 text-center w-full">
-                    <div className={`text-xl md:text-2xl font-bold wrap-break-word leading-tight ${getPublicCompetitionTitleClasses(status)}`}>
-                      {title}
-                    </div>
-                  </div>
-                </div>
+                {filter === "All" ? "All Competitions" : filter}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
-                <CardContent className="p-4 pb-0 flex flex-col gap-2">
-                  <div>
-                    <p className={`text-sm font-medium ${status === "Completed" ? "text-muted-foreground" : ""}`}>
-                      {comp.competitionLocation || "Online"}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {formatEventDateTime(comp.startDate)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-end pt-2 border-t">
-                    {renderCompetitionButton(status, comp, nav, setModal)}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {competitionsContent}
 
       {total > 0 && (
         <CardPaginationControls
@@ -282,16 +331,8 @@ export default function CompetitionsPage() {
 
       {hasNoMatchingCompetitions && (
         <div className="text-center py-16">
-          <h3 className="text-lg font-semibold mb-2">
-            {selectedFilter === "All"
-              ? "No competitions available"
-              : `No ${selectedFilter.toLowerCase()} competitions available`}
-          </h3>
-          <p className="text-muted-foreground">
-            {selectedFilter === "All"
-              ? "Check back later for upcoming events."
-              : "Try selecting a different filter."}
-          </p>
+          <h3 className="text-lg font-semibold mb-2">{getEmptyCompetitionsHeading(selectedFilter)}</h3>
+          <p className="text-muted-foreground">{getEmptyCompetitionsMessage(selectedFilter)}</p>
         </div>
       )}
 

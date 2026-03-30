@@ -7,15 +7,15 @@ import {
 
 interface CompetitionItemProps {
   title: string;
-  date: string;
+  location?: string;
 }
 
-export default function CompetitionItem({ title, date }: Readonly<CompetitionItemProps>) {
+export default function CompetitionItem({ title, location }: Readonly<CompetitionItemProps>) {
   return (
     <Item variant="outline" className="bg-muted p-3">
       <ItemContent>
         <ItemTitle className="font-semibold">{title}</ItemTitle>
-        <ItemDescription>{date}</ItemDescription>
+        <ItemDescription>{location}</ItemDescription>
       </ItemContent>
     </Item>
   );

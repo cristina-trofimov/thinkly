@@ -55,6 +55,7 @@ import {
 import type { Account } from "@/types/account/Account.type";
 import { toast } from "sonner";
 import { deleteAccounts, type AccountsSort } from "@/api/AccountsAPI";
+import ManageAccountsTableSkeleton from "@/components/manageAccounts/ManageAccountsSkeleton";
 import {
   TablePagination,
 } from "@/components/helpers/Pagination";
@@ -85,6 +86,7 @@ function getUserTypeFilterLabel(userTypeFilter: UserTypeFilter) {
 declare module "@tanstack/react-table" {
   interface TableMeta<TData> {
     onUserUpdate?: (updatedUser: Account) => void;
+    currentUserRole?: "Admin" | "Owner" | "Participant";
   }
 }
 
@@ -96,6 +98,7 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   pageSize?: number;
   search?: string;
   userTypeFilter?: UserTypeFilter;
+  loading?: boolean;
   onSearchChange?: (value: string) => void;
   onUserTypeFilterChange?: (value: UserTypeFilter) => void;
   onSortChange?: (sort: AccountsSort) => void;
@@ -103,7 +106,13 @@ interface ManageAccountsDataTableProps<TData, TValue> {
   onPageSizeChange?: (pageSize: number) => void;
   onDeleteUsers?: (deletedUserIds: number[]) => void;
   onUserUpdate?: (updatedUser: Account) => void;
+  currentUserRole?: "Admin" | "Owner" | "Participant";
 }
+
+const CONTENT_ENTER_CLASS =
+  "translate-y-0 opacity-100 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2";
+const CONTENT_TRANSITION_CLASS =
+  "motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out";
 
 interface SelectionActionsProps {
   selectedCount: number;
@@ -167,13 +176,15 @@ export function ManageAccountsDataTable<TData, TValue>({
   pageSize = 25,
   search = "",
   userTypeFilter = "all",
-  onSearchChange = () => {},
-  onUserTypeFilterChange = () => {},
+  loading = false,
+  onSearchChange = () => { },
+  onUserTypeFilterChange = () => { },
   onSortChange,
-  onPageChange = () => {},
-  onPageSizeChange = () => {},
+  onPageChange = () => { },
+  onPageSizeChange = () => { },
   onDeleteUsers,
   onUserUpdate,
+  currentUserRole,
 }: Readonly<ManageAccountsDataTableProps<TData, TValue>>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -185,7 +196,7 @@ export function ManageAccountsDataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
-    meta: { onUserUpdate },
+    meta: { onUserUpdate, currentUserRole },
     state: { sorting, rowSelection },
   });
 
@@ -211,6 +222,19 @@ export function ManageAccountsDataTable<TData, TValue>({
     const selectedRows = table
       .getSelectedRowModel()
       .rows.map((row) => row.original as Account);
+
+    if (currentUserRole?.toLowerCase() === "admin") {
+      const hasProtectedAccounts = selectedRows.some(
+        (acc) => acc.accountType.toLowerCase() === "admin" || acc.accountType.toLowerCase() === "owner"
+      );
+
+      if (hasProtectedAccounts) {
+        toast.error("Permissions Denied", {
+          description: "Admins cannot delete other Admins or the Owner."
+        });
+        return; // Stop the deletion process entirely
+      }
+    }
 
     const userIds = selectedRows.map((row) => Number(row.id));
 
@@ -279,49 +303,58 @@ export function ManageAccountsDataTable<TData, TValue>({
           onCancel={clearSelection}
         />
       </div>
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
+      {loading ? (
+        <ManageAccountsTableSkeleton />
+      ) : (
+        <div className={`${CONTENT_TRANSITION_CLASS} ${CONTENT_ENTER_CLASS}`}>
+          <div className="overflow-hidden rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
                 ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No results.
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex flex-row items-center justify-between gap-3 py-4">
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+      {!loading && (
+        <div
+          className={`flex flex-row items-center justify-between gap-3 py-4 ${CONTENT_TRANSITION_CLASS} ${CONTENT_ENTER_CLASS}`}
+        >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Rows per page</span>
@@ -353,7 +386,8 @@ export function ManageAccountsDataTable<TData, TValue>({
           pageItems={pageItems}
           onPageChange={onPageChange}
         />
-      </div>
+        </div>
+      )}
     </div>
   );
 }

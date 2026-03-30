@@ -17,6 +17,7 @@ from endpoints.submission_api import submission_router
 from endpoints.question_instance_api import question_instance_router
 from endpoints.most_recent_sub_api import most_recent_sub_router
 from endpoints.user_preferences_api import user_preferences_router
+from endpoints.testcase_api import testcase_router
 from endpoints import authentification_api
 from endpoints.languages_api import languages_router
 from endpoints.base_event_api import base_event_router
@@ -54,7 +55,7 @@ async def lifespan(app: FastAPI):
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(run_scheduled_emails, "interval", minutes=1, id="email_scheduler")
-    scheduler.add_job(cleanup_ended_competitions, "interval", hours=1, id="competition_cleanup")
+    scheduler.add_job(cleanup_ended_competitions, "interval", weeks=1, id="competition_cleanup")
     scheduler.add_job(cleanup_ended_algotime_sessions, "interval", hours=1, id="algotime_cleanup")
     scheduler.start()
     logger.info("✓ Email scheduler started (polling every 60s)")
@@ -200,10 +201,11 @@ try:
     app.include_router(languages_router, prefix="/lang")
     app.include_router(base_event_router, prefix="/events")
     app.include_router(user_question_instance_router, prefix="/user-instances")
+    app.include_router(testcase_router, prefix="/testcase")
 except Exception:
     logger.warning("⚠️ Failed to register one or more routers. Make sure all routers are properly defined.")
 
 # Run server
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])
+    uvicorn.run("main:app", host="https://thinkly-production.up.railway.app/",  port=int(os.getenv("PORT", 8000)), reload=True, reload_excludes=["logs", "*.log", "__pycache__", "./*.db", "./*.sqlite"])

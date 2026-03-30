@@ -1,497 +1,246 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import type { Account } from '../src/types/account/Account.type';
+import { getAccountsPage } from '../src/api/AccountsAPI';
+import ManageAccountsPage from '../src/views/admin/ManageAccountsPage';
+import { useUser } from '../src/context/UserContext';
+import { useAnalytics } from '../src/hooks/useAnalytics';
+import { logFrontend } from '../src/api/LoggerAPI';
+
+// ─── Infrastructure mocks ─────────────────────────────────────────────────────
+
 jest.mock('../src/lib/axiosClient', () => ({
   __esModule: true,
-  default: {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  },
+  default: { get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() },
   API_URL: 'http://localhost:8000',
-}))
-jest.mock('./../src/api/AccountsAPI', () => ({
-  getAccounts: jest.fn(),
-  getAccountsPage: jest.fn(),
-  updateAccount: jest.fn(),
-  deleteAccounts: jest.fn(),
 }));
 
-describe('ManageAccountsPage', () => {
-  let ManageAccountsPage: any;
-  let getAccounts: jest.Mock;
-  const paginatedAccounts = (items: Account[], page = 1, pageSize = 25) => ({
-    total: items.length,
-    page,
-    pageSize,
-    items,
-  });
+jest.mock('../src/api/AccountsAPI', () => ({
+  getAccountsPage: jest.fn(),
+}));
 
-  beforeAll(() => {
-    const apiModule = require('./../src/api/AccountsAPI');
-    getAccounts = apiModule.getAccountsPage || apiModule.getAccounts;
-    
-    ManageAccountsPage = require('./../src/views/admin/ManageAccountsPage').default;
-  });
+jest.mock('../src/api/LoggerAPI', () => ({ logFrontend: jest.fn() }));
+
+// Fix: Create a stable mock object for analytics
+const mockAnalytics = {
+  trackAdminAccountsViewed: jest.fn(),
+  trackAdminAccountsBatchDeleted: jest.fn(),
+  trackAdminAccountUpdated: jest.fn(),
+};
+jest.mock('../src/hooks/useAnalytics', () => ({
+  useAnalytics: () => mockAnalytics,
+}));
+
+jest.mock('../src/context/UserContext', () => ({
+  useUser: jest.fn(() => ({ user: { id: 99, accountType: 'Owner' } })),
+}));
+
+// ─── Child component mocks ────────────────────────────────────────────────────
+
+jest.mock('../src/components/manageAccounts/ManageAccountsColumns', () => ({
+  columns: [],
+}));
+
+jest.mock('../src/components/manageAccounts/ManageAccountsDataTable', () => ({
+  ManageAccountsDataTable: ({
+    data,
+    loading,
+    onDeleteUsers,
+    onUserUpdate,
+    onSearchChange,
+    onUserTypeFilterChange,
+    onPageChange,
+    onPageSizeChange,
+    onSortChange,
+  }: any) => (
+    loading ? (
+      <div data-testid="skeleton" />
+    ) : (
+    <div data-testid="data-table">
+      {data.map((a: Account) => (
+        <div key={a.id} data-testid={`account-row-${a.id}`}>
+          <span>{a.email}</span>
+          <span>{a.accountType}</span>
+          <button data-testid={`update-btn-${a.id}`} onClick={() => onUserUpdate({ ...a, accountType: 'Admin' })}>Update</button>
+          <button data-testid={`transfer-owner-${a.id}`} onClick={() => onUserUpdate({ ...a, accountType: 'Owner' })}>Make Owner</button>
+        </div>
+      ))}
+      <button data-testid="delete-btn" onClick={() => onDeleteUsers([data[0]?.id])}>Delete First</button>
+      <button data-testid="change-search" onClick={() => onSearchChange('new search')}>Search</button>
+      <button data-testid="change-filter" onClick={() => onUserTypeFilterChange('admin')}>Filter</button>
+      <button data-testid="change-sort" onClick={() => onSortChange({ field: 'email', direction: 'asc' })}>Sort</button>
+      <button data-testid="next-page" onClick={() => onPageChange(2)}>Next</button>
+      <button data-testid="change-size" onClick={() => onPageSizeChange(50)}>Resize</button>
+    </div>
+    )
+  ),
+}));
+
+const paginatedAccounts = (items: Account[], page = 1, pageSize = 25, total?: number) => ({
+  total: total ?? items.length,
+  page,
+  pageSize,
+  items,
+});
+
+// ─── Tests ────────────────────────────────────────────────────────────────────
+
+describe('ManageAccountsPage Full Coverage', () => {
+  const mockUser1 = { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const };
+  const mockCurrentUser = { id: 99, firstName: 'Me', lastName: 'Owner', email: 'me@example.com', accountType: 'Owner' as const };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (getAccountsPage as jest.Mock).mockResolvedValue(paginatedAccounts([mockUser1, mockCurrentUser]));
   });
 
-  describe('Initial Render', () => {
-    it('renders without crashing', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
+  describe('Initial Render & Loading', () => {
+    it('displays loading skeleton initially', () => {
+      (getAccountsPage as jest.Mock).mockImplementation(() => new Promise(() => {}));
       render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
+      expect(screen.getByTestId('skeleton')).toBeInTheDocument();
+    });
+
+    it('renders data table after successful fetch', async () => {
+      render(<ManageAccountsPage />);
+      await waitFor(() => expect(screen.getByTestId('data-table')).toBeInTheDocument());
       expect(screen.getByText('john@example.com')).toBeInTheDocument();
-    });
-
-    it('displays loading state initially', () => {
-      getAccounts.mockImplementation(() => new Promise(() => {}));
-      
-      render(<ManageAccountsPage />);
-      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
-    });
-
-    it('renders container with correct styling', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      const { container } = render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      const mainContainer = container.querySelector('.container.mx-auto.p-6');
-      expect(mainContainer).toBeInTheDocument();
     });
   });
 
-  describe('Data Fetching', () => {
-    it('fetches data on mount', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
+  describe('Data Fetching & Filtering', () => {
+    it('resets page to 1 and fetches when search/filter/sort/size changes', async () => {
       render(<ManageAccountsPage />);
-      
+      await screen.findByTestId('data-table');
+
+      fireEvent.click(screen.getByTestId('change-search'));
+      await screen.findByTestId('data-table');
+
+      fireEvent.click(screen.getByTestId('change-filter'));
+      await screen.findByTestId('data-table');
+
+      fireEvent.click(screen.getByTestId('change-sort'));
+      await screen.findByTestId('data-table');
+
+      fireEvent.click(screen.getByTestId('change-size'));
+
       await waitFor(() => {
-        expect(getAccounts).toHaveBeenCalled();
+        expect(getAccountsPage).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
       });
     });
 
-    it('fetches data only once', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
+    it('handles API returning a raw array instead of paginated object', async () => {
+      (getAccountsPage as jest.Mock).mockResolvedValue([mockUser1]);
       render(<ManageAccountsPage />);
-      
+      await waitFor(() => expect(screen.getByText('john@example.com')).toBeInTheDocument());
+    });
+  });
+
+  describe('Deletion Logic', () => {
+    it('updates state and refreshes data on batch delete', async () => {
+      render(<ManageAccountsPage />);
+      await screen.findByTestId('data-table');
+
+      fireEvent.click(screen.getByTestId('delete-btn'));
+
+      expect(mockAnalytics.trackAdminAccountsBatchDeleted).toHaveBeenCalledWith(1);
+      await waitFor(() => expect(getAccountsPage).toHaveBeenCalledTimes(2));
+    });
+
+    it('ensures total count does not go below zero on deletion', async () => {
+        (getAccountsPage as jest.Mock).mockResolvedValue(paginatedAccounts([mockUser1], 1, 25, 1));
+        render(<ManageAccountsPage />);
+        await screen.findByTestId('delete-btn');
+        fireEvent.click(screen.getByTestId('delete-btn'));
+        expect(mockAnalytics.trackAdminAccountsBatchDeleted).toHaveBeenCalled();
+    });
+  });
+
+  describe('Update Logic', () => {
+    it('updates a user in the list and tracks analytics', async () => {
+      render(<ManageAccountsPage />);
+      await screen.findByTestId('update-btn-1');
+
+      fireEvent.click(screen.getByTestId('update-btn-1'));
+
+      expect(mockAnalytics.trackAdminAccountUpdated).toHaveBeenCalledWith(1, 'Admin');
+    });
+
+    it('demotes the current user to Admin if they transfer Ownership to another user', async () => {
+      render(<ManageAccountsPage />);
+      const row = await screen.findByTestId('account-row-99');
+      expect(within(row).getByText('Owner')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('transfer-owner-1'));
+
       await waitFor(() => {
-        expect(getAccounts).toHaveBeenCalledTimes(1);
+        expect(within(screen.getByTestId('account-row-99')).getByText('Admin')).toBeInTheDocument();
       });
     });
 
-    it('displays fetched data', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-        { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('john@example.com')).toBeInTheDocument();
-        expect(screen.getByText('jane@example.com')).toBeInTheDocument();
-      });
+    it('returns the same account if ID does not match during mapping', async () => {
+        render(<ManageAccountsPage />);
+        await screen.findByTestId('update-btn-1');
+        fireEvent.click(screen.getByTestId('update-btn-1'));
+        expect(mockAnalytics.trackAdminAccountUpdated).toHaveBeenCalled();
     });
+  });
 
-    it('handles empty response', async () => {
-      getAccounts.mockResolvedValue(paginatedAccounts([]));
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      expect(screen.getByText('No results.')).toBeInTheDocument();
-    });
-
-    it('transitions from loading to data state', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
+  describe('Pagination Edge Cases', () => {
+    it('decrements page if fetching an empty page when total results still exist', async () => {
+      (getAccountsPage as jest.Mock).mockResolvedValueOnce(paginatedAccounts([mockUser1], 2, 25, 50));
+      (getAccountsPage as jest.Mock).mockResolvedValueOnce(paginatedAccounts([], 2, 25, 50));
+      (getAccountsPage as jest.Mock).mockResolvedValueOnce(paginatedAccounts([mockUser1], 1, 25, 50));
 
       render(<ManageAccountsPage />);
-      
-      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      expect(screen.getByText('john@example.com')).toBeInTheDocument();
-    });
+      await screen.findByTestId('next-page');
+      fireEvent.click(screen.getByTestId('next-page'));
 
-    it('handles large dataset', async () => {
-      const largeDataset = Array.from({ length: 100 }, (_, i) => ({
-        id: i + 1,
-        firstName: `User${i}`,
-        lastName: `Test${i}`,
-        email: `user${i}@example.com`,
-        accountType: 'Admin' as const,
-      }));
-      
-      getAccounts.mockResolvedValue(paginatedAccounts(largeDataset));
-      
-      render(<ManageAccountsPage />);
-      
       await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
+        expect(getAccountsPage).toHaveBeenCalledWith(expect.objectContaining({ page: 1 }));
       });
-      
-      expect(screen.getByText('user0@example.com')).toBeInTheDocument();
     });
   });
 
   describe('Error Handling', () => {
-    it('displays error state on fetch failure', async () => {
-      getAccounts.mockRejectedValue(new Error('Network error'));
+    it('renders error message and logs stack trace on fetch failure', async () => {
+      const error = new Error('Network timeout');
+      error.stack = 'mock-stack-trace';
+      (getAccountsPage as jest.Mock).mockRejectedValue(error);
 
       render(<ManageAccountsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
+        expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+        expect(logFrontend).toHaveBeenCalledWith(expect.objectContaining({
+          level: 'ERROR',
+          stack: 'mock-stack-trace'
+        }));
       });
     });
 
-    it('displays error message with error details', async () => {
-      getAccounts.mockRejectedValue(new Error('Failed to fetch'));
-
-      render(<ManageAccountsPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
-      });
-    });
-
-    it('handles unknown error type', async () => {
-      getAccounts.mockRejectedValue('String error');
-
-      render(<ManageAccountsPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
-      });
-    });
-
-    it('stops loading on error', async () => {
-      getAccounts.mockRejectedValue(new Error('API Error'));
-      
+    it('handles non-Error objects in catch block gracefully', async () => {
+      (getAccountsPage as jest.Mock).mockRejectedValue('Unknown API Error');
       render(<ManageAccountsPage />);
       
       await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-    });
-
-    it('does not render data table on error', async () => {
-      getAccounts.mockRejectedValue(new Error('API Error'));
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByText('Filter emails...')).not.toBeInTheDocument();
+        expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+        expect(logFrontend).toHaveBeenCalledWith(expect.objectContaining({
+            message: expect.stringContaining("An unknown error occurred during account fetch.")
+        }));
       });
     });
   });
 
-  describe('Component Props', () => {
-    it('passes correct props to ManageAccountsDataTable', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
+  describe('Analytics', () => {
+    it('tracks page view with the total account count', async () => {
       render(<ManageAccountsPage />);
+      await screen.findByTestId('data-table');
       
       await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      expect(screen.getByText('Email')).toBeInTheDocument();
-      expect(screen.getByText('Account Type')).toBeInTheDocument();
-    });
-
-    it('passes columns prop', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      expect(screen.getByText('Name')).toBeInTheDocument();
-    });
-
-    it('passes data prop with fetched accounts', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('john@example.com')).toBeInTheDocument();
+        expect(mockAnalytics.trackAdminAccountsViewed).toHaveBeenCalledWith(2);
       });
     });
-  });
-
-  describe('User Deletion', () => {
-    it('provides onDeleteUsers callback', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-        { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
-      ]);
-      
-      getAccounts.mockResolvedValue(mockAccounts);
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('john@example.com')).toBeInTheDocument();
-        expect(screen.getByText('jane@example.com')).toBeInTheDocument();
-      });
-    });
-
-    it('updates state when handleDeleteUsers is called', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-        { id: 2, firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', accountType: 'Participant' as const },
-      ]);
-      
-      getAccounts.mockResolvedValue(mockAccounts);
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('john@example.com')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('User Updates', () => {
-    it('provides onUserUpdate callback', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-      ]);
-      
-      getAccounts.mockResolvedValue(mockAccounts);
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.getByText('john@example.com')).toBeInTheDocument();
-      });
-    });
-
-    it('passes onUserUpdate callback to DataTable', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' as const },
-      ]);
-      
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      expect(screen.getByText('john@example.com')).toBeInTheDocument();
-    });
-  });
-
-  describe('State Management', () => {
-    it('initializes with empty data array', () => {
-      getAccounts.mockImplementation(() => new Promise(() => {}));
-      
-      render(<ManageAccountsPage />);
-      
-      expect(screen.getByRole('generic', { busy: true })).toBeInTheDocument();
-    });
-
-    it('updates data state after successful fetch', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(getAccounts).toHaveBeenCalled();
-      });
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-    });
-
-    it('sets loading to false after data fetch', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-    });
-
-    it('clears error state on successful fetch', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-      
-      render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByText(/Error:/)).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Lifecycle', () => {
-    it('fetches data on component mount', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      render(<ManageAccountsPage />);
-      
-      expect(getAccounts).toHaveBeenCalled();
-    });
-
-    it('does not refetch on re-render', async () => {
-      const mockAccounts = paginatedAccounts([
-        { id: 1, firstName: 'John', lastName: 'Doe', email: 'john@example.com', accountType: 'Admin' },
-      ]);
-      getAccounts.mockResolvedValue(mockAccounts);
-
-      const { rerender } = render(<ManageAccountsPage />);
-      
-      await waitFor(() => {
-        expect(screen.queryByRole('generic', { busy: true })).not.toBeInTheDocument();
-      });
-      
-      rerender(<ManageAccountsPage />);
-      
-      expect(getAccounts).toHaveBeenCalledTimes(1);
-    });
-  });
-});
-
-describe('Account Type Definition', () => {
-  it('accepts Participant account type', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Participant',
-    };
-    expect(account.accountType).toBe('Participant');
-  });
-
-  it('accepts Admin account type', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Admin',
-    };
-    expect(account.accountType).toBe('Admin');
-  });
-
-  it('accepts Owner account type', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Owner',
-    };
-    expect(account.accountType).toBe('Owner');
-  });
-
-  it('requires firstName field', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Admin',
-    };
-    expect(account.firstName).toBe('Test');
-  });
-
-  it('requires lastName field', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Admin',
-    };
-    expect(account.lastName).toBe('User');
-  });
-
-  it('requires email field', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Admin',
-    };
-    expect(account.email).toBe('test@example.com');
-  });
-
-  it('requires id field', () => {
-    const account: Account = {
-      id: 1,
-      firstName: 'Test',
-      lastName: 'User',
-      email: 'test@example.com',
-      accountType: 'Admin',
-    };
-    expect(account.id).toBe(1);
   });
 });

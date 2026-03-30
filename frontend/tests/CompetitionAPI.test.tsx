@@ -58,7 +58,7 @@ describe("CompetitionAPI", () => {
           page: 1,
           page_size: 12,
           search: undefined,
-          sort: "desc",
+          sort: "asc",
           status: undefined,
         },
       });

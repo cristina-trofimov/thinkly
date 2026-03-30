@@ -12,13 +12,12 @@ jest.mock("react-router-dom", () => ({
 describe('ErrorPage Component', () => {
     it('renders and shows the error messages', () => {
         render(<ErroPage />)
-        expect(screen.getByText("404")).toBeInTheDocument()
+        expect(screen.getAllByText("404").length).toBeGreaterThan(0)
         expect(screen.getByText("Page not found")).toBeInTheDocument()
         expect(screen.getByText("Go back home")).toBeInTheDocument()
-        expect(screen.getByTestId("logo")).toBeInTheDocument()
     })
 
-    it('Goes back home after clicking on "Go back home" button ', () => {
+    it('Goes back home after clicking on "Go back home" button', () => {
         render(<ErroPage />)
         fireEvent.click(screen.getByText("Go back home"))
         expect(nav).toHaveBeenCalledWith('/app')

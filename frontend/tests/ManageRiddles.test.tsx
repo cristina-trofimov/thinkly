@@ -99,8 +99,8 @@ jest.mock("@/components/ui/pagination", () => ({
   PaginationContent: ({ children }: any) => <div>{children}</div>,
   PaginationEllipsis: () => <span>...</span>,
   PaginationItem: ({ children }: any) => <div>{children}</div>,
-  PaginationLink: ({ children, onClick, ...props }: any) => (
-    <button type="button" onClick={onClick} {...props}>
+  PaginationLink: ({ children, onClick, isActive, ...props }: any) => (
+    <button type="button" onClick={onClick} data-active={isActive ? "true" : "false"} {...props}>
       {children}
     </button>
   ),
@@ -159,6 +159,11 @@ describe("ManageRiddles", () => {
     jest.clearAllMocks();
   });
 
+  const expectRiddleSkeletonsToRender = () => {
+    expect(screen.getAllByText("Create New Riddle").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0);
+  };
+
   // Helper: find the dialog-content node that contains some text
   const getDialogContentContaining = (text: string): HTMLElement => {
     const dialogContents = screen.getAllByTestId("dialog-content");
@@ -177,7 +182,7 @@ describe("ManageRiddles", () => {
       expect(screen.getByPlaceholderText("Search question or answer...")).toBeInTheDocument();
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading riddles...")).not.toBeInTheDocument();
+        expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBe(0);
       });
     });
 
@@ -186,7 +191,7 @@ describe("ManageRiddles", () => {
 
       render(<ManageRiddles />);
 
-      expect(screen.getByText("Loading riddles...")).toBeInTheDocument();
+      expectRiddleSkeletonsToRender();
     });
   });
 
@@ -308,7 +313,7 @@ describe("ManageRiddles", () => {
       render(<ManageRiddles />);
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading riddles...")).not.toBeInTheDocument();
+        expect(document.querySelectorAll('[data-slot="skeleton"]').length).toBe(0);
       });
 
       consoleSpy.mockRestore();

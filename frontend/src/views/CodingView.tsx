@@ -2,23 +2,19 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import CodeDescArea from "../components/codingPage/CodeDescArea";
 import {
   Play, RotateCcw, Maximize2, ChevronDown,
-  Minimize2, ChevronUp, Terminal, MonitorCheck, CloudUpload, UndoDot
+  Minimize2, ChevronUp, CloudUpload, Undo
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
 import { submitToJudge0 } from '@/api/Judge0API';
-import Testcases from '../components/codingPage/Testcases';
 import { useLocation } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
-import ConsoleOutput from '../components/codingPage/ConsoleOutput';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { toast } from 'sonner';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@radix-ui/react-tooltip';
 import type { Competition } from '@/types/competition/Competition.type';
 import { logFrontend } from '@/api/LoggerAPI';
 import { useCodingHooks } from '@/components/helpers/CodingHooks';
@@ -28,25 +24,33 @@ import { submitAttempt } from '@/api/SubmitCodeAPI';
 import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
+import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
+import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getAllSubmissions } from '@/api/SubmissionAPI';
+import { useCountdown } from '@/hooks/useCountdown'
 
 
 const CodingView = () => {
   const location = useLocation()
   const comp: Competition = location?.state?.comp
+  const algo: AlgoTimeSession = location?.state?.algo_sess
   const question: Question = location?.state?.problem
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
-    isQuestionLoading, userQuestionInstance, setUserQuestionInstance,
-    isAsyncLoading, setIsAsyncLoading,
+    userQuestionInstance, setUserQuestionInstance,
     activeQuestion, setActiveQuestion,
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
-    mostRecentSubGroupClass,
-    selectedLang, setSelectedLang, event,
-    testcases, loadingMsg, setLoadingMsg
-  } = useCodingHooks(question, comp)
+    selectedLang, setSelectedLang, event, testcases,
+    loadingMsg, setLoadingMsg, isLoading, setIsLoading,
+    allSubmissions, setAllSubmissions, allLanguages
+  } = useCodingHooks(question, comp, algo)
+
+  const codeDescAreaContainerRef = useRef<HTMLDivElement>(null)
 
   const {
     trackLanguageChanged,
@@ -55,20 +59,20 @@ const CodingView = () => {
     trackCodeSubmitted,
   } = useAnalytics()
 
-  const{user} = useUser();
+  const { user } = useUser();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
   )
 
   const [logs, setLogs] = useState<Judge0Response[]>([])
-  const [currentOutputTab, setCurrentOutputTab] = useState<string>('testcases')
   const [submissionState, setSubmissionState] = useState<'idle' | 'loading' | 'done'>('idle')
   const [latestSubmissionResult, setLatestSubmissionResult] = useState<SubmissionType | null>(null)
-  const outputTabs = [
-    { id: 'testcases', text: 'Testcases', icon: <MonitorCheck size={16} /> },
-    { id: 'results', text: 'Results', icon: <Terminal size={16} /> },
-  ]
+  const hasSubmittedRef = useRef(false);
+  const remainingMs = useCountdown(event?.event_end_date)
+  const isExpired = remainingMs === 0
+
+
 
   useEffect(() => {
     const handleThemeSync = () => {
@@ -103,60 +107,110 @@ const CodingView = () => {
   }, [activeQuestion?.question_id, languages]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
+
+  // Called by CodeDescArea when the user solves the riddle.
+  // Runs in CodingView so it updates the real userQuestionInstance state that
+  // flows back down as a prop — fixing the "riddle stays stuck" bug.
+  const handleRiddleSolved = async () => {
+    if (!userQuestionInstance) return
+    try {
+      const updated = { ...userQuestionInstance, riddle_complete: true }
+      const resp = await putUserInstance(updated)
+      setUserQuestionInstance(resp)
+    } catch (error) {
+      logFrontend({
+        level: "ERROR",
+        message: `An error occurred when marking riddle as complete. Reason: ${error}`,
+        component: "CodingView",
+        url: globalThis.location.href,
+        stack: (error as Error).stack,
+      })
+    }
+  }
+
   const submitCode = async () => {
     if (activeQuestionInstance?.riddle_id && !userQuestionInstance?.riddle_complete) {
       toast.warning('Please answer the riddle first...')
       return
     }
 
-    if (event && mostRecentSub && (Date.now() > mostRecentSub.submitted_on.getTime() + event.question_cooldown)) {
-      toast.warning(`You're submitting too fast.\nTry again after ${(mostRecentSub.submitted_on.getTime() + event.question_cooldown)}`)
-      return
+    let submit = true
+
+    if (event && mostRecentSub?.submitted_on) {
+      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 1000)
+
+      if (Date.now() < new Date(nextSubTime).getTime()) {
+        const remainingMs = nextSubTime - Date.now()
+        const totalSeconds = Math.ceil(remainingMs / 1000)
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+
+        const formatted = minutes > 0
+          ? `${minutes}m ${seconds}s`
+          : `${seconds}s`
+
+        toast.warning(`You're submitting too fast.\nTry again in ${formatted}`)
+        submit = false
+        return
+      }
     }
 
-    // Drive the left-panel Result tab instead of a full-page loader
-    setSubmissionState('loading')
+    if (submit) {
+      // Drive the left-panel Result tab instead of a full-page loader
+      setSubmissionState('loading')
 
-    try {
-      if (userQuestionInstance) {
-        userQuestionInstance.attempts = userQuestionInstance.attempts
-          ? userQuestionInstance.attempts + 1
-          : 1
+      try {
+        if (userQuestionInstance) {
+          userQuestionInstance.attempts = userQuestionInstance.attempts
+            ? userQuestionInstance.attempts + 1
+            : 1
 
-        userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-          ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-          : Date.now() - startTime!.getTime()
+          userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
+            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
+            : Date.now() - startTime!.getTime()
+        }
+
+        const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+
+        const {
+          codeRunResponse,
+          submissionResponse,
+          mostRecentSubResponse
+        } = await submitAttempt(
+          activeQuestion, activeQuestionInstance,
+          userQuestionInstance, event,
+          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+
+        hasSubmittedRef.current = true;
+
+        setLatestSubmissionResult(submissionResponse)
+        await getAllSubmissions(userQuestionInstance?.user_question_instance_id)
+          .then((response) => {
+            setAllSubmissions(response)
+          })
+
+        setLatestSubmissionResult(submissionResponse)
+        setLogs(prev => [...prev, codeRunResponse.judge0Response])
+        setMostRecentSub(mostRecentSubResponse)
+
+        trackCodeSubmitted(
+          activeQuestion!.question_id,
+          selectedLang!,
+        )
+      } catch (err) {
+        toast.error("Error when submitting the code.")
+        setSubmissionState('idle')
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when submitting code. Reason: ${err}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (err as Error).stack,
+        });
+      } finally {
+        setSubmissionState('done')
       }
-
-      const {
-        codeRunResponse,
-        submissionResponse,
-        mostRecentSubResponse
-      } = await submitAttempt(
-        activeQuestion, activeQuestionInstance,
-        userQuestionInstance, event,
-        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
-
-      setLatestSubmissionResult(submissionResponse)
-      setSubmissionState('done')
-
-      setLogs(prev => [...prev, codeRunResponse.judge0Response])
-      setMostRecentSub(mostRecentSubResponse)
-
-      trackCodeSubmitted(
-        activeQuestion!.question_id,
-        selectedLang!,
-      )
-    } catch (err) {
-      toast.error("Error when submitting the code.")
-      setSubmissionState('idle')
-      logFrontend({
-        level: "ERROR",
-        message: `An error occurred when submitting code. Reason: ${err}`,
-        component: "CodingView",
-        url: globalThis.location.href,
-        stack: (err as Error).stack,
-      });
+      // }
     }
   }
 
@@ -165,16 +219,20 @@ const CodingView = () => {
       toast.warning('Please answer the riddle first...')
       return
     }
+    if (!code.trim()) {
+      toast.warning('You need to code something first...')
+      return
+    }
 
     try {
-      setIsAsyncLoading(true)
+      setIsLoading(true)
       setLoadingMsg("Running")
 
-      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id,
-        code, selectedLang?.lang_judge_id, testcases, user?.id ?? 0)
+      const codeToRun = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
+      const { judge0Response } = await submitToJudge0(activeQuestionInstance?.question_instance_id, activeQuestion?.question_id,
+        codeToRun, selectedLang?.lang_judge_id, user?.id ?? 0)
 
       setLogs(prev => [...prev, judge0Response])
-      setCurrentOutputTab("results")
 
       // Capture run result — status comes directly from Judge0 response
       trackCodeRun(
@@ -194,7 +252,7 @@ const CodingView = () => {
         stack: (err as Error).stack,
       });
     } finally {
-      setIsAsyncLoading(false)
+      setIsLoading(false)
       setLoadingMsg("")
     }
   }
@@ -211,21 +269,45 @@ const CodingView = () => {
     [activeQuestion, selectedLang]
   )
 
-  // Priority: composed starter fields -> template_code -> generic fallback comment
+  // The user only sees template_code when entering a question.
+  // All other fields (imports, preset_classes, preset_functions, main_function)
+  // are composed separately and injected at submission/run time — not shown in the editor.
   const commentChar = selectedLang?.monaco_id === 'python' ? '#' : '//'
   const fallbackComment = `${commentChar} Write your solution here.`
-  const composedStarterCode = [
+
+  const presetCode = activeLangProps?.template_code || fallbackComment
+
+  // Full code sent to Judge0: hidden boilerplate wrapped around the user's visible code
+  const composedBoilerplateBefore = [
     activeLangProps?.imports,
     activeLangProps?.preset_classes,
-    activeLangProps?.preset_functions,
-    activeLangProps?.main_function,
+    activeLangProps?.preset_functions
   ]
     .filter((section): section is string => Boolean(section?.trim()))
     .join('\n\n')
 
-  const presetCode = composedStarterCode || activeLangProps?.template_code || fallbackComment
+  const composedBoilerplateAfter = [
+    activeLangProps?.main_function
+  ]
+    .filter((section): section is string => Boolean(section?.trim()))
+    .join('\n\n')
 
   const [code, setCode] = useState<string>('')
+
+  // Warn before refresh/close if code has been modified
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isUnmodified =
+        hasSubmittedRef.current ||
+        code.trim() === presetCode.trim() ||
+        code.trim() === '';
+      if (isUnmodified) return;
+      e.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [code, presetCode]);
 
   // Restore buffer or fall back to presetCode on language/question change
   useEffect(() => {
@@ -280,6 +362,44 @@ const CodingView = () => {
   const mainPanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
   const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
+  // Replace just the formattedTime display span with this component:
+
+  const CompetitionTimer = ({ remainingMs }: { remainingMs: number | null }) => {
+    if (remainingMs === null) return null
+
+    const isExpired = remainingMs === 0
+    const isWarning = remainingMs < 5 * 60 * 1000
+    const isUrgent = remainingMs < 60 * 1000
+
+    const totalSeconds = Math.floor(remainingMs / 1000)
+    const h = Math.floor(totalSeconds / 3600)
+    const m = Math.floor((totalSeconds % 3600) / 60)
+    const s = totalSeconds % 60
+    const display = h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      : `${m}:${String(s).padStart(2, '0')}`
+
+    return (
+      <div className={`
+      flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium tabular-nums
+      transition-colors duration-500
+      ${isExpired || isUrgent
+          ? 'bg-destructive/10 border-destructive/30 text-destructive'
+          : isWarning
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+            : 'bg-muted border-border text-muted-foreground'
+        }
+    `}>
+        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' :
+          isUrgent ? 'bg-destructive animate-pulse' :
+            isWarning ? 'bg-amber-500 animate-pulse' :
+              'bg-emerald-500'
+          }`} />
+        {isExpired ? "Time's up" : display}
+      </div>
+    )
+  }
+
   useLayoutEffect(() => {
     let mainPanelSize: number[], codePanelSize: number[]
 
@@ -291,10 +411,10 @@ const CodingView = () => {
       codePanelSize = [0, 100]
     } else if (closeCode && !closeOutput) {
       mainPanelSize = [50, 50]
-      codePanelSize = [4.75, 95.25]
+      codePanelSize = [10, 90]
     } else if (closeOutput && !closeCode) {
       mainPanelSize = [50, 50]
-      codePanelSize = [95.25, 4.75]
+      codePanelSize = [90, 10]
     } else {
       mainPanelSize = [50, 50]
       codePanelSize = [65, 35]
@@ -304,74 +424,131 @@ const CodingView = () => {
     codePanelGroup.current?.setLayout(codePanelSize)
   }, [fullCode, fullOutput, closeCode, closeOutput])
 
-  if (!activeQuestion) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        <p>Nothing loaded. Please try again from the problem list, the competition or the algotime pages.</p>
+      <div className="px-2 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)] flex flex-col gap-2">
+        {/* Submit button row */}
+        <div className="flex justify-center mb-2">
+          <Skeleton className="h-9 w-28 rounded-md" />
+        </div>
+        {/* Main panels */}
+        <div className="flex gap-2 flex-1">
+          {/* Description panel */}
+          <div className="flex-1 rounded-md border p-4 flex flex-col gap-3">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+            <Skeleton className="h-4 w-full mt-4" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-24 w-full rounded-md mt-4" />
+          </div>
+          {/* Code + output panels */}
+          <div className="flex-1 flex flex-col gap-2">
+            {/* Code panel */}
+            <div className="flex-[65] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-12" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="h-10 border-b px-2 flex items-center">
+                <Skeleton className="h-6 w-24 rounded-md" />
+              </div>
+              <Skeleton className="flex-1 h-64 rounded-none" />
+            </div>
+            {/* Output panel */}
+            <div className="flex-[35] rounded-md border flex flex-col">
+              <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-16" />
+                <div className="flex gap-1">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
+                  ))}
+                </div>
+              </div>
+              <div className="p-2.5 flex flex-col gap-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div data-testid="sandbox" key="sandbox"
-      className='px-2 h-182.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
+      className='flex flex-col px-2 h-162.5 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)]'
     >
       {/* Loading modal */}
-      <Loader isOpen={isQuestionLoading || isAsyncLoading} msg={loadingMsg} />
+      <Loader isOpen={isLoading} msg={loadingMsg} />
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
-      <div className='flex items-center justify-center mb-2 w-full'>
-        <Button onClick={submitCode} data-testid="submit-btn" key="submit-btn">
-          <CloudUpload size={16} />Submit
-        </Button>
-      </div>
-      {questionsInstances.length > 1 && (
-        <div className='flex items-end-safe justify-end mb-2 w-full'>
-          <DropdownMenu data-testid='questions-dropdown'>
-            <DropdownMenuTrigger
-              data-testid='questions-btn'
-              className="bg-background text-muted-foreground text-base font-bold h-7
-                flex items-center gap-2 rounded-md p-2
-                hover:bg-primary/20 focus:bg-primary/55"
-            >
-              {activeDisplayQuestionName}
-              <ChevronDown />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className='z-999' asChild>
-              <div data-testid='questions-menu'
-                className="z-10 text-sm bg-muted w-26 border rounded-lg"
-              >
-                {questions.map((q, idx) => (
-                  <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
-                    className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
-                    onSelect={() => handleQuestionChange(q)}
+      <div className='sticky top-0 z-10 bg-background'>
+        <div className='w-full h-10 mb-2 flex relative shrink-0 items-center'>
+          <div className='absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5'>
+            <Button onClick={submitCode} data-testid="submit-btn" disabled={isExpired}>
+              <CloudUpload size={16} />Submit
+            </Button>
+            <CompetitionTimer remainingMs={remainingMs} />
+          </div>
+          {questionsInstances.length > 1 && (
+            <div className='absolute right-0'>
+              <DropdownMenu data-testid='questions-dropdown'>
+                <DropdownMenuTrigger
+                  data-testid='questions-btn'
+                  className="h-9 bg-background text-muted-foreground text-base font-bold
+                    flex items-center gap-2 rounded-md p-2
+                    hover:bg-primary/20 focus:bg-primary/55"
+                >
+                  {activeDisplayQuestionName}
+                  <ChevronDown />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className='z-999' asChild>
+                  <div data-testid='questions-menu'
+                    className="z-10 text-sm bg-muted w-26 border rounded-lg"
                   >
-                    {`Question ${idx + 1}`}
-                  </DropdownMenuItem>
-                ))}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    {questions.map((q, idx) => (
+                      <DropdownMenuItem data-testid={`questionItem-${q.question_name}`} key={q.question_name}
+                        className="text-s font-medium p-1 rounded-s hover:border-none hover:bg-primary/25"
+                        onSelect={() => handleQuestionChange(q)}
+                      >
+                        {`Question ${idx + 1}`}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
-      )}
+      </div>
       <PanelGroup ref={mainPanelGroup} direction="horizontal" data-testid="panel-group"
-        className='h-full w-full'
-      >
+        className='flex-1' >
         {/* Description panel */}
         <Panel data-testid="resizable-panel" key="desc-area"
-          defaultSize={50} minSize={5}
+          defaultSize={50} minSize={0}
           className='mr-0.75 rounded-md border'
         >
           <CodeDescArea
-              question={activeQuestion} question_instance={activeQuestionInstance}
+            question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
-            eventId={comp?.id}
-            eventName={comp?.competitionTitle}
+            eventId={event?.event_id ?? (algo ? 0 : undefined)}
+            eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
             isCompetitionEvent={!!comp}
             currentUserId={user?.id}
             submissionState={submissionState}
             latestSubmissionResult={latestSubmissionResult}
+            submissions={allSubmissions}
+            allLanguages={allLanguages}
+            onRiddleSolved={handleRiddleSolved}
+            ref={codeDescAreaContainerRef}
           />
         </Panel>
 
@@ -390,15 +567,34 @@ const CodingView = () => {
               <div data-testid="coding-area">
                 <div data-testid="coding-btns"
                   className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
+    border-b border-border/75 dark:border-border/50 py-1.5 px-4"
                 >
                   <span className="text-lg font-medium">Code</span>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className={`grid ${mostRecentSub ? 'grid-cols-5' : 'grid-cols-4'} gap-1`}>
                     <Button className="w-7 shadow-none bg-muted rounded-full hover:bg-primary/25"
                       onClick={runCode} data-testid="play-btn"
                     >
                       <Play size={24} color="green" strokeWidth={2.5} className='hover:fill-green-400 fill-transparent' />
                     </Button>
+
+                    {/* Most recent sub — only shown when available */}
+                    {mostRecentSub && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button data-testid='most-recent-sub-btn'
+                              onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
+                              className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                              <Undo size={22} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Go back to the most recently submitted code
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
                     <Button className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25"
                       onClick={() => {
                         if (code.trim() === presetCode.trim()) {
@@ -412,15 +608,11 @@ const CodingView = () => {
                     </Button>
                     <Button data-testid='code-area-fullscreen' onClick={() => { setFullCode(!fullCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {fullCode
-                        ? <Minimize2 data-testid='code-area-min-icon' size={22} />
-                        : <Maximize2 data-testid='code-area-max-icon' size={22} />}
+                      {fullCode ? <Minimize2 data-testid='code-area-min-icon' size={22} /> : <Maximize2 data-testid='code-area-max-icon' size={22} />}
                     </Button>
                     <Button data-testid='code-area-collapse' onClick={() => { setCloseCode(!closeCode) }}
                       className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {closeCode
-                        ? <ChevronDown data-testid='code-area-down-icon' size={22} />
-                        : <ChevronUp data-testid='code-area-up-icon' size={22} />}
+                      {closeCode ? <ChevronDown data-testid='code-area-down-icon' size={22} /> : <ChevronUp data-testid='code-area-up-icon' size={22} />}
                     </Button>
                   </div>
                 </div>
@@ -447,7 +639,7 @@ const CodingView = () => {
                               // Save current code to buffer before switching
                               codeBuffersRef.current.set(`${activeQuestion?.question_id}_${selectedLang?.monaco_id}`, code)
                               if (prevLangRef.current) {
-                                trackLanguageChanged(activeQuestion.question_id, prevLangRef.current, lang)
+                                trackLanguageChanged(activeQuestion?.question_id, prevLangRef.current, lang)
                               }
                               prevLangRef.current = lang
                               setSelectedLang(lang)
@@ -479,80 +671,35 @@ const CodingView = () => {
               className='my-[0.5px] border-none h-[0.5px]'
               style={{ background: "transparent" }}
             />
-
             {/* Output panel */}
             <Panel data-testid="resizable-handle" defaultSize={35}
               className="ml-0.75 mt-1 rounded-md border"
             >
-              <Tabs data-testid="sandbox-tabs" onValueChange={setCurrentOutputTab}
-                value={currentOutputTab} className='border-none h-full'
+              <div data-testid="output-area"
+                className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
+                  border-b border-border/75 dark:border-border/50 py-1.5 px-4"
               >
-                <TabsList data-testid="sandbox-tabs-list"
-                  className="w-full rounded-none h-10 bg-muted flex flex-row items-center justify-between
-                      border-b border-border/75 dark:border-border/50 py-1.5"
-                >
-                  <div className='w-full flex rounded-none h-10 bg-muted gap-3
-                      border-b border-border/75 dark:border-border/50 py-0 px-4'
-                  >
-                    {outputTabs.map(tab => (
-                      <TabsTrigger value={tab.id} key={tab.id} data-testid='sandbox-tabs-trigger'
-                        className='bg-muted rounded-none
-                        hover:border-t-2 hover:border-primary/40
-                        data-[state=active]:border-primary
-                        data-[state=active]:text-primary
-                        data-[state=active]:bg-muted
-                        data-[state=active]:shadow-none
-                        data-[state=active]:border-b-[2.5px]
-                        data-[state=active]:border-x-0
-                        data-[state=active]:border-t-0
-                        dark:data-[state=active]:border-primary
-                        flex items-center gap-2 transition-all'
-                      >
-                        {tab.icon}{tab.text}
-                      </TabsTrigger>
-                    ))}
-                  </div>
-                  <div className={`pr-5 ${mostRecentSubGroupClass}`} >
-                    {mostRecentSub && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button data-testid='most-recent-sub-btn' onClick={() => { setCode(mostRecentSub?.code || presetCode) }}
-                              className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                              <UndoDot size={22} />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className='z-99999999999999 p-1.5 text-sm bg-muted text-accent-foreground border rounded-3xl' >
-                              Go back to the most recently ran code
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
-                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {fullOutput
-                        ? <Minimize2 data-testid='output-area-min-icon' size={22} />
-                        : <Maximize2 data-testid='output-area-max-icon' size={22} />}
-                    </Button>
-                    <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
-                      className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
-                      {closeOutput
-                        ? <ChevronUp data-testid='output-area-up-icon' size={22} />
-                        : <ChevronDown data-testid='output-area-down-icon' size={22} />}
-                    </Button>
-                  </div>
-                </TabsList>
-                <TabsContent data-testid="testcases-tab" value="testcases"
-                  className='max-h-full p-2.5'>
-                  <Testcases question_id={activeQuestionInstance?.question_id} />
-                </TabsContent>
-                <TabsContent data-testid="code-output-tab" value="results"
-                  className='max-h-full p-2.5'>
-                  <ConsoleOutput logs={logs} />
-                </TabsContent>
-              </Tabs>
+                <span className="text-lg font-medium">Output</span>
+                <div data-testid="output-btns"
+                  className="flex items-center gap-1">
+
+                  <Button data-testid='output-area-fullscreen' onClick={() => { setFullOutput(!fullOutput) }}
+                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                    {fullOutput
+                      ? <Minimize2 data-testid='output-area-min-icon' size={22} />
+                      : <Maximize2 data-testid='output-area-max-icon' size={22} />}
+                  </Button>
+                  <Button data-testid='output-area-collapse' onClick={() => { setCloseOutput(!closeOutput) }}
+                    className="w-7 shadow-none text-accent-foreground bg-muted rounded-full hover:bg-primary/25">
+                    {closeOutput
+                      ? <ChevronUp data-testid='output-area-up-icon' size={22} />
+                      : <ChevronDown data-testid='output-area-down-icon' size={22} />}
+                  </Button>
+                </div>
+              </div>
+              <div data-testid="code-output-tab" className='h-full p-2.5 flex flex-col'>
+                <ConsoleOutput logs={logs} />
+              </div>
             </Panel>
           </PanelGroup>
         </Panel>

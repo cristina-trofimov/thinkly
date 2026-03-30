@@ -6,7 +6,7 @@ import type { BaseEvent } from "@/types/BaseEvent.type"
 import { useEffect, useRef, useState } from "react"
 import type { Language } from "@/types/questions/Language.type"
 import type { UserPreferences } from "@/types/account/UserPreferences.type"
-import { getEventByName } from "@/api/BaseEventAPI"
+import { getEventByID } from "@/api/BaseEventAPI"
 import { toast } from "sonner"
 import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInstance } from "@/api/QuestionInstanceAPI"
 import { getAllLanguages } from "@/api/LanguageAPI"
@@ -16,10 +16,14 @@ import { useTestcases } from "./useTestcases"
 import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
+import type { AlgoTimeSession } from "@/types/algoTime/AlgoTime.type"
+import { getMostRecentSub } from "@/api/MostRecentSubAPI"
+import { getAllSubmissions } from "@/api/SubmissionAPI"
+import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import { useUser } from "@/context/UserContext"
 
 
-export function useCodingHooks(question?: Question, comp?: Competition) {
+export function useCodingHooks(question?: Question, comp?: Competition, algo?: AlgoTimeSession) {
     const [ languages, setLanguages ] = useState<Language[]>()
     const [ selectedLang, setSelectedLang ] = useState<Language>()
     // Keep a ref to the previous language so we can log "from → to" on change
@@ -38,28 +42,31 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
     const [ activeDisplayQuestionName, setActiveDisplayQuestionName ] = useState<string>("Question 1")
 
-    const [ isQuestionLoading, setIsQuestionLoading ] = useState<boolean>(false)
-    const [ isAsyncLoading, setIsAsyncLoading ] = useState<boolean>(false)
+    const [ isLoading, setIsLoading ] = useState<boolean>(false)
     const [ loadingMsg, setLoadingMsg ] = useState<string>("")
 
     const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
-    const [ mostRecentSubGroupClass, setMostRecentSubGroupClass ] = useState<string>('grid grid-cols-2 gap-4')
+    const [ allSubmissions, setAllSubmissions ] = useState<SubmissionType[]>()
+    const [ allLanguages, setAllLanguages ] = useState<Language[]>()
 
     const { testcases } = useTestcases(activeQuestionInstance?.question_id)
 
+    const eventID = comp?.id || algo?.id || undefined
     const { user } = useUser()
 
 
     // Getting the competition or algotime event if it exists
     useEffect(() => {
-        if(comp?.id) {
+        if(eventID) {
             const InitializeCompEvent = async () => {
-                setIsQuestionLoading(true)
+                setIsLoading(true)
                 try {
-                    await getEventByName(comp?.competitionTitle)
-                        .then((response) => setEvent(response))
+                    await getEventByID(eventID)
+                        .then((response) => {
+                            setEvent(response)
+                        })
                 } catch (err) {
-                    toast.error("Error when fetching competition event.")
+                    toast.error("Error when fetching event.")
                     logFrontend({
                         level: "ERROR",
                         message: `Failed to fetch competition event. Reason: ${err}`,
@@ -68,22 +75,23 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                         stack: (err as Error).stack,
                     })
                 } finally {
-                    setIsQuestionLoading(false)
+                    setIsLoading(false)
                 }
             }
             InitializeCompEvent()
         }
-    }, [comp?.id, comp?.competitionTitle])
+    }, [eventID])
 
     // Getting the question instance (if it's a practice question and no event was passed)
     // Or all the question instances associated to the given event
     useEffect(() => {
         if (event) {
             const InitializeQuestionInstances = async () => {
-                setIsQuestionLoading(true)
+                setIsLoading(true)
                 try {
-                    await getAllQuestionInstancesByEventID(event?.event_id)
-                        .then((response) => setQuestionsInstances(response))
+                    await getAllQuestionInstancesByEventID(event.event_id)
+                        .then((response) => {
+                            setQuestionsInstances(response)})
                 } catch (err) {
                     toast.error("Error when fetching event's question instances.")
                     logFrontend({
@@ -94,13 +102,14 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                         stack: (err as Error).stack,
                     })
                 } finally {
-                    setIsQuestionLoading(false)
+                    setIsLoading(false)
                 }
             }
             InitializeQuestionInstances()
         } else if(question?.question_id) {
+
             const initQuestion = async () => {
-                setIsQuestionLoading(true)
+                setIsLoading(true)
                 try {
                     const [questionInstance, fullQuestion] = await Promise.all([
                         getQuestionInstance(question.question_id, null),
@@ -112,7 +121,8 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                         setQuestionsInstances([questionInstance])
                     } else {
                         await putQuestionInstance(undefined, question?.question_id, null, null)
-                            .then((response) => setQuestionsInstances([response]))
+                            .then((response) => {
+                                setQuestionsInstances([response])})
                     }
                 } catch (err) {
                     toast.error("Error when fetching question instance.")
@@ -124,7 +134,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                         stack: (err as Error).stack,
                     })
                 } finally {
-                    setIsQuestionLoading(false)
+                    setIsLoading(false)
                 }
             }
             initQuestion()
@@ -136,7 +146,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         if (!questionsInstances?.length || questions.length >= questionsInstances.length) return
 
         const fetchQuestions = async () => {
-            setIsQuestionLoading(true)
+            setIsLoading(true)
             try {
                 // Fetch all in parallel
                 const questionPromises = questionsInstances.map(qi => getQuestionByID(qi.question_id) )
@@ -153,13 +163,13 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
                     stack: (err as Error).stack,
                 })
             } finally {
-                setIsQuestionLoading(false)
+                setIsLoading(false)
             }
         }
         fetchQuestions()
     }, [questionsInstances, questions.length])
 
-    // Setting the default active question and question instance
+    // Setting the default active question and question instance and most recent submission
     // Then loads all active languages and user's preferences
     useEffect(() => {
         if (questions.length > 0 && !activeQuestion) {
@@ -193,7 +203,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
             }
         }
         loadLanguagesAndPrefs()
-    }, [questions, questionsInstances, activeQuestion, activeQuestionInstance])
+    }, [questions, questionsInstances, activeQuestion, activeQuestionInstance, user])
 
     useEffect(() => {
         if (!languages || languages.length < 1) return
@@ -202,7 +212,7 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
 
         setSelectedLang(savedLang || languages[0])
         prevLangRef.current = savedLang || languages[0]
-    }, [languages, userPreferences])
+    }, [languages, userPreferences, user])
 
 
     // switches current userQuestionInstance and lapse time when the user switches questions
@@ -244,27 +254,49 @@ export function useCodingHooks(question?: Question, comp?: Competition) {
         }
         setStartTime(new Date())
         getOrCreateUserQuestionInstance()
-    }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance])
+    }, [activeQuestionInstance?.question_instance_id, activeQuestionInstance, user])
 
-    // switches to a grid with 3 columns when the user already submitted something
+    // Get user's last submission if there's any, all submissions and all languages
     useEffect(() => {
-        setMostRecentSubGroupClass(`grid grid-cols-${mostRecentSub ? 3 : 2} gap-2`)
-    }, [mostRecentSub])
+        if (!userQuestionInstance?.user_question_instance_id) return
 
+        const lastSteps = async () => {
+            try {
+                const [subs, lastSub, langs] = await Promise.all([
+                    getAllSubmissions(userQuestionInstance.user_question_instance_id),
+                    getMostRecentSub(userQuestionInstance.user_question_instance_id),
+                    getAllLanguages(null)
+                ])
+
+                setAllSubmissions(subs)
+                setMostRecentSub(lastSub)
+                setAllLanguages(langs)
+            } catch (error) {
+                logFrontend({
+                    level: "ERROR",
+                    message: `An error occurred when getting most recent submission. Reason: ${error}`,
+                    component: "CodingHooks",
+                    url: globalThis.location.href,
+                    stack: (error as Error).stack,
+                })
+            }
+        }
+        lastSteps()
+    }, [userQuestionInstance?.user_question_instance_id])
 
     return {
         startTime, mostRecentSub, setMostRecentSub,
-        isQuestionLoading, setIsQuestionLoading,
-        isAsyncLoading, setIsAsyncLoading,
+        isLoading, setIsLoading,
         activeQuestion, setActiveQuestion,
         activeQuestionInstance, setActiveQuestionInstance,
         activeDisplayQuestionName, setActiveDisplayQuestionName,
         userQuestionInstance, setUserQuestionInstance,
         questions, questionsInstances,
         languages, prevLangRef, event,
-        mostRecentSubGroupClass,
         selectedLang, setSelectedLang,
         userPreferences, testcases,
-        loadingMsg, setLoadingMsg
+        loadingMsg, setLoadingMsg,
+        allSubmissions, setAllSubmissions,
+        allLanguages, setAllLanguages
     }
 }

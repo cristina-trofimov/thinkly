@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { logFrontend } from "../src/api/LoggerAPI";
 import { resetAlgoTimeLeaderboard } from "../src/api/LeaderboardsAPI";
 
+jest.mock("@/context/UserContext", () => ({
+  useUser: () => ({
+    user: { accountType: "Owner" },
+  }),
+}));
+
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => jest.fn(),
+}));
+
 const mockNavigate = jest.fn();
 jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
@@ -48,6 +59,14 @@ jest.mock("@/api/LeaderboardsAPI", () => ({
   resetAlgoTimeLeaderboard: jest.fn(),
 }));
 
+jest.mock("@/hooks/useAnalytics", () => ({
+  useAnalytics: () => ({
+    trackAdminAlgotimeSessionsViewed: jest.fn(),
+    trackAdminAlgotimeSearched: jest.fn(),
+    trackAdminAlgotimeCreateNavigated: jest.fn(),
+  }),
+}));
+
 const mockSessions = [
   {
     id: 1,
@@ -81,6 +100,19 @@ const makePage = (items = mockSessions, total = items.length) => ({
 });
 
 describe("ManageAlgotimeSessionsPage", () => {
+  beforeAll(() => {
+    global.scrollTo = jest.fn();
+    Object.defineProperty(document, "scrollingElement", {
+      configurable: true,
+      value: { scrollTo: jest.fn() },
+    });
+    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    global.cancelAnimationFrame = jest.fn();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getAlgotimeSessionsPage as jest.Mock).mockResolvedValue(makePage());
@@ -128,7 +160,7 @@ describe("ManageAlgotimeSessionsPage", () => {
 
   test("shows the skeleton on initial unresolved load", () => {
     (getAlgotimeSessionsPage as jest.Mock).mockReturnValue(
-      new Promise(() => {})
+      new Promise(() => { })
     );
 
     const { container } = render(<ManageAlgotimeSessionsPage />);

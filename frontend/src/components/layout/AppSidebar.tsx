@@ -55,7 +55,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filteredOtherLinks = React.useMemo(() => {
     if (!user) return []; // Or return just public links if you prefer
 
-    const isAdminOrOwner = ['admin', 'owner'].includes(user.accountType.toLowerCase());
+    const isAdminOrOwner = ['admin', 'owner'].includes(user?.accountType?.toLowerCase() ?? "");
 
     return navOther.filter(item => {
       // If the item requires admin and the user is NOT one, hide it.

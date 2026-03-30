@@ -1,6 +1,6 @@
 import type { BaseEvent } from "@/types/BaseEvent.type"
 import type { QuestionInstance } from "@/types/questions/QuestionInstance.type"
-import type { Question, TestCase } from "@/types/questions/QuestionPagination.type"
+import type { Question } from "@/types/questions/QuestionPagination.type"
 import type { SubmissionType } from "@/types/submissions/SubmissionType.type"
 import type { SubmitAttemptResponse } from "@/types/submissions/SubmitAttemptResponse.type"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -9,37 +9,45 @@ import { logFrontend } from "./LoggerAPI"
 import { updateMostRecentSub } from "./MostRecentSubAPI"
 import { saveSubmission } from "./SubmissionAPI"
 import { putUserInstance } from "./UserQuestionInstanceAPI"
+import { upsertAlgoTimeLeaderboardEntry, upsertCompetitionLeaderboardEntry } from "./LeaderboardsAPI"
 
 export async function submitAttempt(
     question: Question | undefined,
     questionInstance: QuestionInstance | undefined,
     userQuestionInstance: UserQuestionInstance | undefined,
     event: BaseEvent | undefined | null,
-    source_code: string,
+    code_to_run: string,
+    user_code: string,
     language_id: number | undefined,
-    testcases: TestCase[],
     userId: number,
+    isAlgoTime: boolean = false,
   ): Promise<SubmitAttemptResponse> {
     try {
       if (!questionInstance || !userQuestionInstance || !question || !language_id) {
         throw new Error("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
       }
 
-      if (event && !userQuestionInstance.riddle_complete) {
+      if (event && questionInstance.riddle_id && !userQuestionInstance.riddle_complete) {
         throw new Error("SubmitAttempt: riddle needs to be completed")
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, source_code, language_id, testcases, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id, code_to_run, language_id, userId)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
-        if (question.difficulty.toLowerCase() == 'easy') {
-          userQuestionInstance.points = 100
-        } else if (question.difficulty.toLowerCase() == 'medium') {
-          userQuestionInstance.points = 200
-        } else {
-          userQuestionInstance.points = 300
+        switch (question.difficulty.toLowerCase()) {
+          case 'easy':
+            userQuestionInstance.points = 100
+            break;
+          case 'medium':
+            userQuestionInstance.points = 200
+            break;
+            case 'hard':
+            userQuestionInstance.points = 300
+            break;
+          default:
+            throw new Error("SubmitAttempt: This is not a valid question difficulty level");
         }
       }
 
@@ -47,9 +55,16 @@ export async function submitAttempt(
       userQuestionInstance = await putUserInstance(userQuestionInstance)
 
       // 4. Save most recent submission
-      const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, source_code, language_id)
+      const mostRecentSubResponse = await updateMostRecentSub(userQuestionInstance.user_question_instance_id, user_code, language_id)
 
-      // 5. Save submission's output details
+      // 5. Update leaderboard based on session type
+      if (isAlgoTime && event) {
+        await upsertAlgoTimeLeaderboardEntry(userId)
+      } else if (!isAlgoTime && event) {
+        await upsertCompetitionLeaderboardEntry(userId, event.event_id)
+      }
+
+      // 6. Save submission's output details
       let runtime: number | null = null
       let memory: number | null = null
 

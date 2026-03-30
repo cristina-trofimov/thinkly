@@ -139,7 +139,7 @@ export const TimeInput = React.forwardRef<HTMLInputElement, TimeInputProps>(
                   key={t.value24}
                   data-selected={value === t.value24}
                   onClick={() => handleSelect(t.value24)}
-                  className={`cursor-pointer px-3 py-2 text-sm transition-colors ${
+                  className={`cursor-pointer w-full block  px-3 py-2 text-sm transition-colors ${
                     value === t.value24
                       ? "bg-primary/15 font-semibold text-primary"
                       : "hover:bg-primary/5"

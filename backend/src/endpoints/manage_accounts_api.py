@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Annotated, Literal, Optional
 import logging
 from services.posthog_analytics import track_custom_event
-
+from endpoints.authentification_api import get_current_user
 logger = logging.getLogger(__name__)
 accounts_router = APIRouter(tags=["Accounts"])
 DEFAULT_PAGE_SIZE = 25
@@ -171,44 +171,92 @@ def delete_multiple_accounts(payload: DeleteAccountsRequest, db: Annotated[Sessi
     response_model=AccountItemResponse,
     responses={
         400: {"description": "No fields to update."},
-        404: {"description": "Account not found."}
+        403: {"description": "Not authorized to transfer ownership."},
+        404: {"description": "Account or Requester not found."}
     }
 )
-def update_account(user_id: int, updated_fields: UpdateAccountRequest, db: Annotated[Session, Depends(get_db)]):
-    account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
-    if not account:
+def update_account(
+    user_id: int, 
+    updated_fields: UpdateAccountRequest, 
+    db: Annotated[Session, Depends(get_db)],
+    claims: Annotated[dict, Depends(get_current_user)] # This returns the JWT dict
+):
+    # 1. Fetch the actual DB object for the logged-in user (the requester)
+    # Using 'sub' or 'user_id' depending on your JWT payload structure
+    requester_identifier = claims.get("sub") or claims.get("user_id")
+    
+    if "@" in str(requester_identifier):
+        # Query by email if it looks like an email address
+        current_user_obj = db.query(UserAccount).filter(UserAccount.email == requester_identifier).first()
+    else:
+        # Query by ID if it's a number
+        current_user_obj = db.query(UserAccount).filter(UserAccount.user_id == int(requester_identifier)).first()
+    
+    if not current_user_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Logged-in user record not found.")
+
+    # 2. Fetch the target account being edited
+    target_account = db.query(UserAccount).filter(UserAccount.user_id == user_id).first()
+    if not target_account:
         logger.warning(f"Account with ID {user_id} not found.")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target account not found.")
 
     update_data = updated_fields.dict(exclude_unset=True)
     if not update_data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update.")
 
+    # 3. Handle Ownership Transfer Logic
+    if update_data.get("user_type") == "owner":
+        # Check if the person making the request is actually the current owner
+        if current_user_obj.user_type != "owner":
+            logger.error(f"User {current_user_obj.user_id} attempted unauthorized ownership transfer.")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="Only the current Owner can transfer ownership."
+            )
+        
+        # Check if they are trying to promote themselves (redundant but safe)
+        if current_user_obj.user_id == user_id:
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You are already the owner.")
+
+        # ATOMIC SWAP: Downgrade current owner to admin
+        current_user_obj.user_type = "admin"
+        db.add(current_user_obj) # Explicitly add to session to track the change
+        logger.info(f"User {current_user_obj.user_id} is being downgraded to admin due to transfer.")
+
+    # 4. Apply other field updates to the target account
     for key, value in update_data.items():
-        setattr(account, key, value)
+        setattr(target_account, key, value)
 
-    db.commit()
-    db.refresh(account)
-    logger.info(f"Updated account with ID {user_id}.")
+    try:
+        db.commit() # Atomic: Both requester -> admin AND target -> owner save here
+        db.refresh(target_account)
+        # We don't necessarily need to refresh current_user_obj unless returning it
+        logger.info(f"Ownership successfully transferred from {current_user_obj.user_id} to {user_id}.")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to commit ownership transfer: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database update failed.")
 
-    # Track account update
+    # 5. Track account update
     track_custom_event(
         user_id=str(user_id),
         event_name="account_updated",
         properties={
             "updated_fields": list(update_data.keys()),
-            "field_count": len(update_data),
+            "ownership_transferred": update_data.get("user_type") == "owner",
         }
     )
 
     return {
-        "user_id": account.user_id,
-        "first_name": account.first_name,
-        "last_name": account.last_name,
-        "email": account.email,
-        "user_type": account.user_type,
+        "user_id": target_account.user_id,
+        "first_name": target_account.first_name,
+        "last_name": target_account.last_name,
+        "email": target_account.email,
+        "user_type": target_account.user_type,
     }
-
+    
+    
 @accounts_router.get(
     "/users/{user_id}/preferences",
     responses={404: {"description": "Preferences not found."}}
