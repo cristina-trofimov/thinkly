@@ -293,8 +293,7 @@ export function ManageQuestionsDataTable<TData, TValue>({
             <AlertDialog>
               <AlertDialogTrigger asChild>
               {Object.keys(rowSelection).length > 0 && <Button
-                className="cursor-pointer"
-                variant="softDestructive"
+                className="text-destructive cursor-pointer bg-destructive/10 hover:bg-destructive/20"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>}

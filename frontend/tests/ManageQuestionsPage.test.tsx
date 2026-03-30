@@ -11,11 +11,15 @@ jest.mock("../src/api/QuestionsAPI", () => ({
 }));
 
 jest.mock("../src/components/manageQuestions/ManageQuestionsDataTable", () => ({
-  ManageQuestionsDataTable: ({ data, refreshTable }: any) => (
-    <div>
-      <div data-testid="manage-table">rows:{data.length}</div>
-      <button onClick={() => refreshTable?.()}>simulate-refresh</button>
-    </div>
+  ManageQuestionsDataTable: ({ data, refreshTable, loading }: any) => (
+    loading ? (
+      <div data-testid="manage-table-skeleton">loading</div>
+    ) : (
+      <div>
+        <div data-testid="manage-table">rows:{data.length}</div>
+        <button onClick={() => refreshTable?.()}>simulate-refresh</button>
+      </div>
+    )
   ),
 }));
 
@@ -54,6 +58,7 @@ describe("ManageQuestionsPage", () => {
     render(<ManageQuestionsPage />);
 
     // Skeleton renders while loading — data table is not mounted yet
+    expect(screen.getByTestId("manage-table-skeleton")).toBeInTheDocument();
     expect(screen.queryByTestId("manage-table")).not.toBeInTheDocument();
 
     await waitFor(() => {
