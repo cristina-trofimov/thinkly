@@ -132,11 +132,17 @@ const CodingView = () => {
     let submit = true
 
     if (event && mostRecentSub?.submitted_on) {
-      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 60000)
+      const nextSubTime = new Date(mostRecentSub.submitted_on).getTime() + (event.question_cooldown * 1000)
 
       if (Date.now() < new Date(nextSubTime).getTime()) {
         const remainingMs = nextSubTime - Date.now()
-        const formatted = new Date(remainingMs).toISOString().slice(14, 23) // "MM:SS.lll"
+        const totalSeconds = Math.ceil(remainingMs / 1000)
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+
+        const formatted = minutes > 0
+          ? `${minutes}m ${seconds}s`
+          : `${seconds}s`
 
         toast.warning(`You're submitting too fast.\nTry again in ${formatted}`)
         submit = false
