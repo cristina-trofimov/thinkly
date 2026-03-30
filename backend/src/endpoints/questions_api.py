@@ -338,6 +338,7 @@ def get_all_questions(
     page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
     search: Annotated[Optional[str], Query(max_length=200)] = None,
     difficulty: Annotated[Optional[Literal["easy", "medium", "hard"]], Query()] = None,
+    frontpage_only: Annotated[bool, Query()] = False,
     sort: Annotated[Literal["asc", "desc"], Query()] = "asc",
 ):
     try:
@@ -352,6 +353,11 @@ def get_all_questions(
 
         if difficulty:
             query = query.filter(Question.difficulty == difficulty)
+
+        if frontpage_only:
+            query = query.filter(
+                Question.question_instances.any(QuestionInstance.event_id.is_(None))
+            )
 
         # Fetch cache-related aggregates
         total_for_cache, latest_modified, max_question_id, sum_question_ids = (

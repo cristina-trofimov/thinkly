@@ -86,6 +86,7 @@ function HomePage() {
           search: questionSearch,
           difficulty:
             difficultyFilter === "all" ? undefined : difficultyFilter,
+          frontpageOnly: true,
           sort: "asc",
         });
         setQuestions(result.items);

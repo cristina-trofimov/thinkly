@@ -299,6 +299,29 @@ def test_get_all_questions_accepts_sort_param(client, mock_db):
     query.order_by.assert_called_once()
 
 
+def test_get_all_questions_applies_frontpage_only_filter(client, mock_db):
+    main_query = MagicMock()
+    main_query.filter.return_value = main_query
+    main_query.with_entities.return_value = main_query
+    main_query.order_by.return_value = main_query
+    main_query.offset.return_value = main_query
+    main_query.limit.return_value = main_query
+    main_query.first.return_value = (0, datetime(2025, 1, 1, 0, 0, 0), 0, 0)
+    main_query.count.return_value = 0
+    main_query.all.return_value = []
+
+    frontpage_aggregates_query = MagicMock()
+    frontpage_aggregates_query.filter.return_value = frontpage_aggregates_query
+    frontpage_aggregates_query.first.return_value = (0, 0, 0)
+
+    mock_db.query.side_effect = [main_query, frontpage_aggregates_query]
+
+    response = client.get("/get-all-questions", params={"frontpage_only": True})
+
+    assert response.status_code == 200
+    assert main_query.filter.call_count == 1
+
+
 def test_get_all_questions_rejects_invalid_page_size(client):
     response = client.get("/get-all-questions", params={"page_size": 101})
     assert response.status_code == 422

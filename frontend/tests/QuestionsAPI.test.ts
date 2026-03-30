@@ -189,6 +189,34 @@ describe("QuestionsAPI", () => {
       mockedAxios.get.mockRejectedValueOnce(new Error("Network error"));
       await expect(getQuestions()).rejects.toThrow("Network error");
     });
+
+    it("includes frontpage_only when requested", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
+
+      await getQuestionsPage({
+        page: 1,
+        pageSize: 25,
+        frontpageOnly: true,
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: {
+          page: 1,
+          page_size: 25,
+          search: undefined,
+          difficulty: undefined,
+          sort: "asc",
+          frontpage_only: true,
+        },
+      });
+    });
   })
 
   describe("getQuestionByID", () => {
