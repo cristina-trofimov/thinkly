@@ -73,6 +73,57 @@ describe("Judge0API", () => {
     expect(expected_output).toEqual('[1,2]\n[0,1]\n')
   })
 
+  it("preserves primitive and string testcase values without mangling them", async () => {
+    const { stdin, expected_output } = parse_input_output([
+      {
+        test_case_id: 1,
+        question_id: 1,
+        input_data: "abc",
+        expected_output: "xyz",
+      },
+      {
+        test_case_id: 2,
+        question_id: 1,
+        input_data: 42,
+        expected_output: 1337,
+      },
+    ])
+
+    expect(stdin).toEqual("abc\n42\n")
+    expect(expected_output).toEqual("xyz\n1337\n")
+  })
+
+  it("serializes array expected_output as JSON instead of space-joining elements", async () => {
+    mockedGetTestCases.mockResolvedValueOnce([
+      {
+        test_case_id: 1,
+        question_id: 1,
+        input_data: { nums: [2, 7, 11, 15], target: 9 },
+        expected_output: [0, 1],
+      },
+    ])
+
+    mockedAxios.post.mockResolvedValueOnce({
+      data: {
+        ok: true,
+      },
+    } as any)
+
+    await submitToJudge0(question_instance_id, question_id, code, language_id, user_id)
+
+    expect(mockedAxios.post).toHaveBeenCalledWith("/judge0", {
+      submissions: [
+        {
+          userId: user_id,
+          language_id: `${language_id}`,
+          source_code: code,
+          stdin: "[2,7,11,15] 9",
+          expected_output: "[0,1]",
+        },
+      ],
+    })
+  })
+
   it("submit to judge0 and returns final output", async () => {
     mockedGetTestCases.mockResolvedValueOnce(testcases)
 
