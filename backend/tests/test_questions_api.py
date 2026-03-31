@@ -26,6 +26,10 @@ from src.endpoints.questions_api import (
     CreateTestCaseRequest,
     QuestionLanguageSpecificPropertiesResponse,
     QuestionListItemResponse,
+    build_filtered_questions_query,
+    build_questions_cache_headers,
+    apply_question_sort,
+    extract_question_id_from_row,
     populate_frontpage_flags,
 )
 
@@ -340,6 +344,59 @@ def test_get_all_questions_db_error(client, mock_db):
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
 
+
+def test_build_filtered_questions_query_without_optional_filters(mock_db):
+    query = build_query_mock(mock_db)
+
+    result = build_filtered_questions_query(mock_db, search=None, difficulty=None, frontpage_only=False)
+
+    assert result is query
+    query.filter.assert_not_called()
+
+
+def test_build_filtered_questions_query_with_difficulty_and_frontpage_filter(mock_db):
+    query = build_query_mock(mock_db)
+
+    result = build_filtered_questions_query(
+        mock_db,
+        search=None,
+        difficulty="easy",
+        frontpage_only=True,
+    )
+
+    assert result is query
+    assert query.filter.call_count == 2
+
+
+def test_build_questions_cache_headers_handles_empty_aggregates(mock_db):
+    aggregate_query = MagicMock()
+    aggregate_query.with_entities.return_value = aggregate_query
+    aggregate_query.first.return_value = (None, None, None, None)
+
+    frontpage_query = MagicMock()
+    frontpage_query.filter.return_value = frontpage_query
+    frontpage_query.first.return_value = None
+
+    mock_db.query.return_value = frontpage_query
+
+    headers, latest_modified = build_questions_cache_headers(aggregate_query, mock_db)
+
+    assert headers["Cache-Control"] == "no-cache, must-revalidate"
+    assert headers["ETag"].startswith('W/"')
+    assert headers["Last-Modified"]
+    assert latest_modified.tzinfo == timezone.utc
+
+
+def test_apply_question_sort_returns_ordered_query(mock_db):
+    query = build_query_mock(mock_db)
+
+    desc_result = apply_question_sort(query, "desc")
+    asc_result = apply_question_sort(query, "asc")
+
+    assert desc_result is query
+    assert asc_result is query
+    assert query.order_by.call_count == 2
+
 def test_get_question_success(client, mock_db):
     """Test the path where the question is returned correctly."""
     
@@ -627,6 +684,37 @@ def test_populate_frontpage_flags_supports_mapping_rows(mock_db):
     populate_frontpage_flags(mock_db, questions)
 
     assert questions[0].show_on_frontpage is True
+
+
+def test_extract_question_id_from_row_supports_tuple_and_attr_rows():
+    tuple_row = (74,)
+    attr_row = SimpleNamespace(question_id=88)
+
+    assert extract_question_id_from_row(tuple_row) == 74
+    assert extract_question_id_from_row(attr_row) == 88
+
+
+def test_extract_question_id_from_row_supports_mapping_and_indexable_rows():
+    class MappingRow:
+        def __init__(self, mapping):
+            self._mapping = mapping
+
+    class IndexableRow:
+        def __getitem__(self, index):
+            if index == 0:
+                return 99
+            raise IndexError()
+
+    named_mapping_row = MappingRow({"question_id": 12})
+    value_mapping_row = MappingRow({"id": 13})
+
+    assert extract_question_id_from_row(named_mapping_row) == 12
+    assert extract_question_id_from_row(value_mapping_row) == 13
+    assert extract_question_id_from_row(IndexableRow()) == 99
+
+
+def test_extract_question_id_from_row_returns_none_for_unknown_shape():
+    assert extract_question_id_from_row(object()) is None
 
 
 def test_get_question_by_id_not_found(client, mock_db):

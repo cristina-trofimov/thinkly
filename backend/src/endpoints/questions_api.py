@@ -250,6 +250,28 @@ def check_cache_validators(request: Request, etag: str, latest_modified: datetim
     return validators and all(validators)
 
 
+def extract_question_id_from_row(row: object) -> Optional[int]:
+    # SQLAlchemy can return tuple-like rows, row mappings, or plain objects.
+    if isinstance(row, tuple):
+        return row[0] if row else None
+
+    mapping = getattr(row, "_mapping", None)
+    if mapping is not None:
+        if "question_id" in mapping:
+            return mapping["question_id"]
+        if mapping:
+            return next(iter(mapping.values()))
+
+    question_id = getattr(row, "question_id", None)
+    if question_id is not None:
+        return question_id
+
+    try:
+        return row[0]  # type: ignore[index]
+    except Exception:
+        return None
+
+
 def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
     """
     Query and populate the show_on_frontpage flag for each question.
@@ -262,28 +284,7 @@ def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
         questions: List of Question objects to update
     """
     question_ids = [question.question_id for question in questions]
-    show_on_frontpage_ids = set()
-
-    def extract_question_id_from_row(row: object) -> Optional[int]:
-        # SQLAlchemy can return tuple-like rows or Row objects with _mapping.
-        if isinstance(row, tuple):
-            return row[0] if row else None
-
-        mapping = getattr(row, "_mapping", None)
-        if mapping is not None:
-            if "question_id" in mapping:
-                return mapping["question_id"]
-            if mapping:
-                return next(iter(mapping.values()))
-
-        question_id = getattr(row, "question_id", None)
-        if question_id is not None:
-            return question_id
-
-        try:
-            return row[0]  # type: ignore[index]
-        except Exception:
-            return None
+    show_on_frontpage_ids: set[int] = set()
 
     if question_ids:
         show_on_frontpage_rows = (
@@ -294,13 +295,90 @@ def populate_frontpage_flags(db: Session, questions: list[Question]) -> None:
             )
             .all()
         )
-        for row in show_on_frontpage_rows:
-            question_id = extract_question_id_from_row(row)
-            if question_id is not None:
-                show_on_frontpage_ids.add(question_id)
+        show_on_frontpage_ids = {
+            question_id
+            for question_id in (
+                extract_question_id_from_row(row) for row in show_on_frontpage_rows
+            )
+            if question_id is not None
+        }
 
     for question in questions:
         question.show_on_frontpage = question.question_id in show_on_frontpage_ids
+
+
+def build_filtered_questions_query(
+    db: Session,
+    search: Optional[str],
+    difficulty: Optional[Literal["easy", "medium", "hard"]],
+    frontpage_only: bool,
+):
+    query = db.query(Question)
+    query = apply_text_search(
+        query,
+        search,
+        Question.question_name,
+        Question.question_description,
+    )
+
+    if difficulty:
+        query = query.filter(Question.difficulty == difficulty)
+
+    if frontpage_only:
+        query = query.filter(
+            Question.question_instances.any(QuestionInstance.event_id.is_(None))
+        )
+
+    return query
+
+
+def build_questions_cache_headers(query, db: Session) -> tuple[dict, datetime]:
+    # Fetch cache-related aggregates for current filtered question set.
+    total_for_cache, latest_modified, max_question_id, sum_question_ids = (
+        query.with_entities(
+            func.count(Question.question_id),
+            func.max(Question.last_modified_at),
+            func.max(Question.question_id),
+            func.sum(Question.question_id),
+        ).first()
+    )
+
+    total_for_cache = total_for_cache or 0
+    max_question_id = max_question_id or 0
+    sum_question_ids = sum_question_ids or 0
+
+    # Include frontpage state so ETag changes when QuestionInstance toggles happen.
+    frontpage_aggregates = (
+        db.query(
+            func.count(QuestionInstance.question_instance_id),
+            func.max(QuestionInstance.question_instance_id),
+            func.sum(QuestionInstance.question_id),
+        )
+        .filter(QuestionInstance.event_id.is_(None))
+        .first()
+        or (0, 0, 0)
+    )
+    frontpage_count = frontpage_aggregates[0] or 0
+    frontpage_max_instance_id = frontpage_aggregates[1] or 0
+    frontpage_sum_question_ids = frontpage_aggregates[2] or 0
+
+    latest_modified = normalize_latest_modified(latest_modified)
+    headers = build_cache_headers(
+        total_for_cache,
+        max_question_id,
+        sum_question_ids,
+        latest_modified,
+        frontpage_count,
+        frontpage_max_instance_id,
+        frontpage_sum_question_ids,
+    )
+    return headers, latest_modified
+
+
+def apply_question_sort(query, sort: Literal["asc", "desc"]):
+    if sort == "desc":
+        return query.order_by(Question.question_id.desc())
+    return query.order_by(Question.question_id.asc())
 
 
 @questions_router.get(
@@ -342,81 +420,16 @@ def get_all_questions(
     sort: Annotated[Literal["asc", "desc"], Query()] = "asc",
 ):
     try:
-        # Build query with filters
-        query = db.query(Question)
-        query = apply_text_search(
-            query,
-            search,
-            Question.question_name,
-            Question.question_description,
-        )
-
-        if difficulty:
-            query = query.filter(Question.difficulty == difficulty)
-
-        if frontpage_only:
-            query = query.filter(
-                Question.question_instances.any(QuestionInstance.event_id.is_(None))
-            )
-
-        # Fetch cache-related aggregates
-        total_for_cache, latest_modified, max_question_id, sum_question_ids = (
-            query.with_entities(
-                func.count(Question.question_id),
-                func.max(Question.last_modified_at),
-                func.max(Question.question_id),
-                func.sum(Question.question_id),
-            ).first()
-        )
-
-        total_for_cache = total_for_cache or 0
-        max_question_id = max_question_id or 0
-        sum_question_ids = sum_question_ids or 0
-
-        # Include frontpage state so ETag changes when QuestionInstance toggles happen.
-        frontpage_aggregates = (
-            db.query(
-                func.count(QuestionInstance.question_instance_id),
-                func.max(QuestionInstance.question_instance_id),
-                func.sum(QuestionInstance.question_id),
-            )
-            .filter(QuestionInstance.event_id.is_(None))
-            .first()
-            or (0, 0, 0)
-        )
-        frontpage_count = frontpage_aggregates[0] or 0
-        frontpage_max_instance_id = frontpage_aggregates[1] or 0
-        frontpage_sum_question_ids = frontpage_aggregates[2] or 0
-
-        # Normalize datetime and build cache headers
-        latest_modified = normalize_latest_modified(latest_modified)
-        common_headers = build_cache_headers(
-            total_for_cache,
-            max_question_id,
-            sum_question_ids,
-            latest_modified,
-            frontpage_count,
-            frontpage_max_instance_id,
-            frontpage_sum_question_ids,
-        )
+        query = build_filtered_questions_query(db, search, difficulty, frontpage_only)
+        common_headers, latest_modified = build_questions_cache_headers(query, db)
         etag = common_headers["ETag"]
 
-        # Check cache validators and return 304 if client has current version
         if check_cache_validators(request, etag, latest_modified):
             return Response(status_code=304, headers=common_headers)
 
-        # Sort and paginate
-        if sort == "desc":
-            query = query.order_by(Question.question_id.desc())
-        else:
-            query = query.order_by(Question.question_id.asc())
-
+        query = apply_question_sort(query, sort)
         total, questions = paginate_query(query, page, page_size)
-
-        # Populate frontpage flags
         populate_frontpage_flags(db, questions)
-
-        # Set response headers and return
         response.headers.update(common_headers)
 
         logger.info(
