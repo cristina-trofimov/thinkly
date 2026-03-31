@@ -62,13 +62,13 @@ export function EventLeaderboard({ eventId, eventName, isCompetitionEvent, curre
       <div className="flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-3 w-32" />
+          <h2 className="text-base font-semibold text-primary">{eventName}</h2>
+          <span className="text-xs text-muted-foreground">Refreshes every minute</span>
         </div>
         {/* Table header */}
         <div className="flex items-center gap-4 border-b pb-2">
-          {[24, 140, 80, 60].map((w, i) => (
-            <Skeleton key={i} className="h-3 rounded" style={{ width: w }} />
+          {["Rank", "Name", "Total Points", "Problems Solved", "Total Time"].map((label, i) => (
+            <span key={i} className="text-xs text-muted-foreground font-medium">{label}</span>
           ))}
         </div>
         {/* Rows */}
