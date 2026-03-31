@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 const SKELETON_CARD_COUNT = 8;
 
@@ -28,7 +29,9 @@ export default function AlgoTimePageSkeleton() {
             </div>
 
             <div className="flex items-center justify-end pt-2 border-t pb-4">
-              <Skeleton className="h-7 w-28 rounded-md" />
+              <Button disabled size="sm" className="w-28">
+                <Skeleton className="h-3 w-16" />
+              </Button>
             </div>
           </div>
         </div>
