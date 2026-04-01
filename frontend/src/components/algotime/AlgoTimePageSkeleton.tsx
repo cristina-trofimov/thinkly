@@ -28,7 +28,7 @@ export default function AlgoTimePageSkeleton() {
             </div>
 
             <div className="flex items-center justify-end pt-2 border-t pb-4">
-              <Skeleton className="h-7 w-28 rounded-md" />
+              <Skeleton className="h-7 w-24" />
             </div>
           </div>
         </div>

@@ -1,4 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Pencil, Puzzle, Trash2 } from "lucide-react";
 
 type ManageRiddlesSkeletonProps = {
   readonly count?: number;
@@ -17,10 +19,16 @@ export default function ManageRiddlesSkeleton({
         >
           <div className="bg-muted/30 p-6 pb-4">
             <div className="flex items-start justify-between gap-2">
-              <Skeleton className="h-9 w-9 rounded-lg" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Puzzle className="w-5 h-5 text-primary" />
+              </div>
               <div className="flex items-center gap-2">
-                <Skeleton className="h-8 w-8 rounded-md" />
-                <Skeleton className="h-8 w-8 rounded-md" />
+                <Button disabled variant="ghost" size="icon" className="h-8 w-8">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button disabled variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </div>

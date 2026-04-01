@@ -10,7 +10,7 @@ import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
 import { submitToJudge0 } from '@/api/Judge0API';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -25,9 +25,11 @@ import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
+import { CompetitionTimer } from '@/components/codingPage/CompetitionTimer';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TimesUpDialog } from '@/components/codingPage/TimesUpDialog';
 import { getAllSubmissions } from '@/api/SubmissionAPI';
 import { useCountdown } from '@/hooks/useCountdown'
 import { getAlgotimeById } from '@/api/AlgotimeAPI';
@@ -98,6 +100,7 @@ const CodingView = () => {
   } = useAnalytics()
 
   const { user } = useUser();
+  const navigate = useNavigate();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -109,6 +112,24 @@ const CodingView = () => {
   const hasSubmittedRef = useRef(false);
   const remainingMs = useCountdown(event?.event_end_date)
   const isExpired = remainingMs === 0
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
+
+  // Show time's up dialog and redirect after 5 seconds
+  useEffect(() => {
+    if (isExpired && event) {
+      setRedirectCountdown(5)
+    }
+  }, [isExpired, event])
+
+  useEffect(() => {
+    if (redirectCountdown === null) return
+    if (redirectCountdown === 0) {
+      navigate('/app/home')
+      return
+    }
+    const id = setTimeout(() => setRedirectCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(id)
+  }, [redirectCountdown, navigate])
 
 
 
@@ -400,43 +421,6 @@ const CodingView = () => {
   const mainPanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
   const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
-  // Replace just the formattedTime display span with this component:
-
-  const CompetitionTimer = ({ remainingMs }: { remainingMs: number | null }) => {
-    if (remainingMs === null) return null
-
-    const isExpired = remainingMs === 0
-    const isWarning = remainingMs < 5 * 60 * 1000
-    const isUrgent = remainingMs < 60 * 1000
-
-    const totalSeconds = Math.floor(remainingMs / 1000)
-    const h = Math.floor(totalSeconds / 3600)
-    const m = Math.floor((totalSeconds % 3600) / 60)
-    const s = totalSeconds % 60
-    const display = h > 0
-      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      : `${m}:${String(s).padStart(2, '0')}`
-
-    return (
-      <div className={`
-      flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium tabular-nums
-      transition-colors duration-500
-      ${isExpired || isUrgent
-          ? 'bg-destructive/10 border-destructive/30 text-destructive'
-          : isWarning
-            ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-            : 'bg-muted border-border text-muted-foreground'
-        }
-    `}>
-        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' :
-          isUrgent ? 'bg-destructive animate-pulse' :
-            isWarning ? 'bg-amber-500 animate-pulse' :
-              'bg-emerald-500'
-          }`} />
-        {isExpired ? "Time's up" : display}
-      </div>
-    )
-  }
 
   useLayoutEffect(() => {
     let mainPanelSize: number[], codePanelSize: number[]
@@ -465,13 +449,15 @@ const CodingView = () => {
   if (isLoading) {
     return (
       <div className="px-2 min-h-[calc(90vh)] min-w-[calc(100vw-var(--sidebar-width)-0.05rem)] flex flex-col gap-2">
-        {/* Submit button row */}
+        {/* Submit button row — static, always visible */}
         <div className="flex justify-center mb-2">
-          <Skeleton className="h-9 w-28 rounded-md" />
+          <Button disabled>
+            <CloudUpload size={16} />Submit
+          </Button>
         </div>
         {/* Main panels */}
         <div className="flex gap-2 flex-1">
-          {/* Description panel */}
+          {/* Description panel — content is dynamic */}
           <div className="flex-1 rounded-md border p-4 flex flex-col gap-3">
             <Skeleton className="h-6 w-48" />
             <Skeleton className="h-4 w-full" />
@@ -485,29 +471,46 @@ const CodingView = () => {
           <div className="flex-1 flex flex-col gap-2">
             {/* Code panel */}
             <div className="flex-[65] rounded-md border flex flex-col">
+              {/* Header — label and action buttons are static */}
               <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
-                <Skeleton className="h-4 w-12" />
+                <span className="text-lg font-medium">Code</span>
                 <div className="flex gap-1">
-                  {Array.from({ length: 4 }).map((_, i) => (
-                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
-                  ))}
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <Play size={24} strokeWidth={2.5} />
+                  </Button>
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <RotateCcw size={22} strokeWidth={2} />
+                  </Button>
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <Maximize2 size={22} />
+                  </Button>
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <ChevronUp size={22} />
+                  </Button>
                 </div>
               </div>
+              {/* Language selector — dynamic, loaded from API */}
               <div className="h-10 border-b px-2 flex items-center">
                 <Skeleton className="h-6 w-24 rounded-md" />
               </div>
+              {/* Editor body — dynamic (preset code) */}
               <Skeleton className="flex-1 h-64 rounded-none" />
             </div>
             {/* Output panel */}
             <div className="flex-[35] rounded-md border flex flex-col">
+              {/* Header — label and action buttons are static */}
               <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
-                <Skeleton className="h-4 w-16" />
+                <span className="text-lg font-medium">Output</span>
                 <div className="flex gap-1">
-                  {Array.from({ length: 2 }).map((_, i) => (
-                    <Skeleton key={i} className="h-7 w-7 rounded-full" />
-                  ))}
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <Maximize2 size={22} />
+                  </Button>
+                  <Button disabled className="w-7 shadow-none bg-muted rounded-full">
+                    <ChevronDown size={22} />
+                  </Button>
                 </div>
               </div>
+              {/* Output content — dynamic */}
               <div className="p-2.5 flex flex-col gap-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
@@ -525,6 +528,10 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isLoading} msg={loadingMsg} />
+
+      {/* Time's up dialog */}
+      <TimesUpDialog redirectCountdown={redirectCountdown} />
+
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
