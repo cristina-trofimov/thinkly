@@ -1,7 +1,15 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { AdminDashboard } from '../src/views/admin/AdminDashboardPage';
+import {
+  getNewAccountsStats,
+  getQuestionsSolvedStats,
+  getTimeToSolveStats,
+  getLoginsStats,
+  getParticipationStats,
+} from '@/api/AdminDashboardAPI';
 
 // --- MOCK SETUP ---
 
@@ -132,6 +140,12 @@ jest.mock('../src/components/dashboardCharts/ParticipationOverTimeChart', () => 
     <div data-testid="participation-chart">Participation Chart ({timeRange})</div>
   ),
 }));
+
+const mockedGetNewAccountsStats = getNewAccountsStats as jest.MockedFunction<typeof getNewAccountsStats>;
+const mockedGetQuestionsSolvedStats = getQuestionsSolvedStats as jest.MockedFunction<typeof getQuestionsSolvedStats>;
+const mockedGetTimeToSolveStats = getTimeToSolveStats as jest.MockedFunction<typeof getTimeToSolveStats>;
+const mockedGetLoginsStats = getLoginsStats as jest.MockedFunction<typeof getLoginsStats>;
+const mockedGetParticipationStats = getParticipationStats as jest.MockedFunction<typeof getParticipationStats>;
 
 describe('AdminDashboard', () => {
   // Helper to set the pathname using history.pushState
@@ -315,6 +329,31 @@ describe('AdminDashboard', () => {
       await waitFor(() => {
         expect(screen.getByText(/\b8\b/)).toBeInTheDocument();
       });
+    });
+
+    it('switching AlgoTime and Competitions only refetches participation stats', async () => {
+      renderWithRouter();
+
+      await waitFor(() => {
+        expect(screen.getByText(/25/)).toBeInTheDocument();
+      });
+
+      const initialAccountsCalls = mockedGetNewAccountsStats.mock.calls.length;
+      const initialSolvedCalls = mockedGetQuestionsSolvedStats.mock.calls.length;
+      const initialTimeCalls = mockedGetTimeToSolveStats.mock.calls.length;
+      const initialLoginCalls = mockedGetLoginsStats.mock.calls.length;
+      const initialParticipationCalls = mockedGetParticipationStats.mock.calls.length;
+
+      await userEvent.click(screen.getByRole('tab', { name: /competitions/i }));
+
+      await waitFor(() => {
+        expect(mockedGetParticipationStats.mock.calls.length).toBeGreaterThan(initialParticipationCalls);
+      });
+
+      expect(mockedGetNewAccountsStats).toHaveBeenCalledTimes(initialAccountsCalls);
+      expect(mockedGetQuestionsSolvedStats).toHaveBeenCalledTimes(initialSolvedCalls);
+      expect(mockedGetTimeToSolveStats).toHaveBeenCalledTimes(initialTimeCalls);
+      expect(mockedGetLoginsStats).toHaveBeenCalledTimes(initialLoginCalls);
     });
   });
 

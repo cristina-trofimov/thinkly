@@ -59,7 +59,8 @@ export function AdminDashboard() {
   const [participationData, setParticipationData] = useState<
     { date: string; participation: number }[]
   >([]);
-  const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [participationLoading, setParticipationLoading] = useState(true);
 
   const {
     trackAdminDashboardViewed,
@@ -71,7 +72,8 @@ export function AdminDashboard() {
   const isRootDashboard =
     location.pathname === "/app/dashboard" ||
     location.pathname === "/app/dashboard/";
-  const chartAnimationKey = `tab-${activeTab}`;
+  const sharedChartAnimationKey = `range-${timeRange}`;
+  const participationChartAnimationKey = `participation-${timeRange}-${activeTab}`;
 
   // Track page view once when the overview is showing
   useEffect(() => {
@@ -92,34 +94,51 @@ export function AdminDashboard() {
     trackAdminDashboardTimeRangeChanged(value);
   };
 
-  // Fetch stats data when timeRange or activeTab changes
+  // Fetch stats that depend only on the time range.
   useEffect(() => {
-    async function fetchStats() {
-      setLoading(true);
+    async function fetchSharedStats() {
+      setStatsLoading(true);
       try {
-        const [accounts, questionsSolved, timeToSolve, logins, participation] =
+        const [accounts, questionsSolved, timeToSolve, logins] =
           await Promise.all([
             getNewAccountsStats(timeRange),
             getQuestionsSolvedStats(timeRange),
             getTimeToSolveStats(timeRange),
             getLoginsStats(timeRange),
-            getParticipationStats(timeRange, activeTab),
           ]);
 
         setNewAccountStats(accounts);
         setQuestionsSolvedData(questionsSolved);
         setTimeToSolveData(timeToSolve);
         setLoginsData(logins);
-        setParticipationData(participation);
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {
-        setLoading(false);
+        setStatsLoading(false);
       }
     }
 
     if (isRootDashboard) {
-      fetchStats();
+      fetchSharedStats();
+    }
+  }, [timeRange, isRootDashboard]);
+
+  // Fetch only the participation data when its controls change.
+  useEffect(() => {
+    async function fetchParticipation() {
+      setParticipationLoading(true);
+      try {
+        const participation = await getParticipationStats(timeRange, activeTab);
+        setParticipationData(participation);
+      } catch (error) {
+        console.error("Error fetching participation stats:", error);
+      } finally {
+        setParticipationLoading(false);
+      }
+    }
+
+    if (isRootDashboard) {
+      fetchParticipation();
     }
   }, [timeRange, activeTab, isRootDashboard]);
 
@@ -193,46 +212,34 @@ export function AdminDashboard() {
           </div>
 
           <div className="m-6 rounded-lg shadow-md border">
-            {/* Tabs for Algotime/Competitions and Time Range Filter */}
             <div
-              className={`flex justify-between items-center gap-2 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+              className={`mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
             >
-              <div className="flex items-center">
-                <Tabs value={activeTab} onValueChange={handleTabChange}>
-                  <TabsList>
-                    <TabsTrigger
-                      value="algotime"
-                      className="cursor-pointer rounded-md font-semibold text-muted-foreground p-4 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
-                    >
-                      Algotime
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="competitions"
-                      className="cursor-pointer rounded-md font-semibold text-muted-foreground p-3 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
-                    >
-                      Competitions
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-
-              <div>
-                <Select value={timeRange} onValueChange={handleTimeRangeChange}>
-                  <SelectTrigger className="text-primary rounded-lg">
-                    <SelectValue
-                      className="text-primary"
-                      placeholder={getTimeRangeLabel(timeRange)}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Time range</SelectLabel>
-                      <SelectItem value="3months">Last 3 months</SelectItem>
-                      <SelectItem value="30days">Last 30 days</SelectItem>
-                      <SelectItem value="7days">Last 7 days</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-left text-lg font-semibold text-foreground">Platform metrics</h2>
+                  <p className="text-left text-sm font-normal text-muted-foreground mt-1">
+                    Monitor platform growth, user activity, and problem-solving trends.
+                  </p>
+                </div>
+                <div className="shrink-0">
+                  <Select value={timeRange} onValueChange={handleTimeRangeChange}>
+                    <SelectTrigger className="text-primary rounded-lg">
+                      <SelectValue
+                        className="text-primary"
+                        placeholder={getTimeRangeLabel(timeRange)}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Time range</SelectLabel>
+                        <SelectItem value="3months">Last 3 months</SelectItem>
+                        <SelectItem value="30days">Last 30 days</SelectItem>
+                        <SelectItem value="7days">Last 7 days</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -242,8 +249,8 @@ export function AdminDashboard() {
             >
                 <StatsCard
                   title="New Accounts"
-                  loading={loading}
-                  contentReady={!loading}
+                  loading={statsLoading}
+                  contentReady={!statsLoading}
                   value={newAccountStats.value}
                   subtitle={newAccountStats.subtitle}
                   description={newAccountStats.description}
@@ -251,39 +258,57 @@ export function AdminDashboard() {
               />
                 <StatsCard
                   title="Questions solved"
-                  contentReady={!loading}
+                  contentReady={!statsLoading}
                   dateSubtitle={getTimeRangeLabel(timeRange)}
                 >
                 <QuestionsSolvedChart
-                  key={`questions-${chartAnimationKey}`}
+                  key={`questions-${sharedChartAnimationKey}`}
                   data={questionsSolvedData}
-                  loading={loading}
+                  loading={statsLoading}
                 />
               </StatsCard>
-                <StatsCard title="Avg. Question Solve Time" contentReady={!loading}>
+                <StatsCard title="Avg. Question Solve Time" contentReady={!statsLoading}>
                   <TimeToSolveChart
-                    key={`time-${chartAnimationKey}`}
+                    key={`time-${sharedChartAnimationKey}`}
                     data={timeToSolveData}
-                  loading={loading}
+                  loading={statsLoading}
                 />
               </StatsCard>
-                <StatsCard title="Number of logins" contentReady={!loading}>
+                <StatsCard title="Number of logins" contentReady={!statsLoading}>
                   <NumberOfLoginsChart
-                    key={`logins-${chartAnimationKey}`}
+                    key={`logins-${sharedChartAnimationKey}`}
                     data={loginsData}
-                  loading={loading}
+                  loading={statsLoading}
                 />
               </StatsCard>
             </div>
 
             <div
-              className={`motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
+              className={`mt-6 px-6 pb-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
             >
+              <div className="mb-4 flex items-center justify-start">
+                <Tabs value={activeTab} onValueChange={handleTabChange}>
+                  <TabsList className="h-11 rounded-xl border border-border/70 bg-muted p-1 backdrop-blur-sm">
+                    <TabsTrigger
+                      value="algotime"
+                      className="min-w-30 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                    >
+                      Algotime
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="competitions"
+                      className="min-w-30 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                    >
+                      Competitions
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               <ParticipationOverTimeChart
-                key={`participation-${chartAnimationKey}`}
+                key={participationChartAnimationKey}
                 data={participationData}
                 timeRange={timeRange}
-                loading={loading}
+                loading={participationLoading}
               />
             </div>
           </div>
