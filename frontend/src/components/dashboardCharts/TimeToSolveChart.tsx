@@ -51,7 +51,17 @@ export const TimeToSolveChart = ({ data, loading = false }: TimeToSolveChartProp
           stroke="var(--color-muted-foreground)"
           tick={{ fontSize: 12 }}
         />
-        <ChartTooltip content={<ChartTooltipContent />} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value) => (
+                <span className="text-foreground font-mono font-medium tabular-nums">
+                  {`${Number(value).toLocaleString()} min`}
+                </span>
+              )}
+            />
+          }
+        />
         <Bar dataKey="time" radius={[0, 4, 4, 0]}>
           {displayData.map((entry) => (
             <Cell key={`${entry.type}-${entry.time}`} fill={entry.color} />
