@@ -10,7 +10,7 @@ import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
 import { submitToJudge0 } from '@/api/Judge0API';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -30,13 +30,51 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getAllSubmissions } from '@/api/SubmissionAPI';
 import { useCountdown } from '@/hooks/useCountdown'
+import { getAlgotimeById } from '@/api/AlgotimeAPI';
 
 
 const CodingView = () => {
   const location = useLocation()
+  const { algo_session } = useParams()
   const comp: Competition = location?.state?.comp
-  const algo: AlgoTimeSession = location?.state?.algo_sess
+  const [resolvedAlgo, setResolvedAlgo] = useState<AlgoTimeSession | undefined>(location?.state?.algo_sess)
   const question: Question = location?.state?.problem
+
+  useEffect(() => {
+    if (location?.state?.algo_sess) {
+      setResolvedAlgo(location.state.algo_sess as AlgoTimeSession)
+    }
+  }, [location?.state])
+
+  useEffect(() => {
+    if (resolvedAlgo || !algo_session) return
+
+    let cancelled = false
+
+    const loadAlgoSession = async () => {
+      try {
+        const fetchedSession = await getAlgotimeById(Number(algo_session))
+        if (!cancelled) {
+          setResolvedAlgo(fetchedSession)
+        }
+      } catch (error) {
+        toast.error("Error when loading the AlgoTime session.")
+        logFrontend({
+          level: "ERROR",
+          message: `An error occurred when loading AlgoTime session ${algo_session}. Reason: ${error}`,
+          component: "CodingView",
+          url: globalThis.location.href,
+          stack: (error as Error).stack,
+        })
+      }
+    }
+
+    loadAlgoSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [resolvedAlgo, algo_session])
 
   const {
     startTime, mostRecentSub, setMostRecentSub,
@@ -48,7 +86,7 @@ const CodingView = () => {
     selectedLang, setSelectedLang, event, testcases,
     loadingMsg, setLoadingMsg, isLoading, setIsLoading,
     allSubmissions, setAllSubmissions, allLanguages
-  } = useCodingHooks(question, comp, algo)
+  } = useCodingHooks(question, comp, resolvedAlgo)
 
   const codeDescAreaContainerRef = useRef<HTMLDivElement>(null)
 
@@ -179,7 +217,7 @@ const CodingView = () => {
         } = await submitAttempt(
           activeQuestion, activeQuestionInstance,
           userQuestionInstance, event,
-          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!algo)
+          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!resolvedAlgo)
 
         hasSubmittedRef.current = true;
 
@@ -539,8 +577,8 @@ const CodingView = () => {
           <CodeDescArea
             question={activeQuestion} question_instance={activeQuestionInstance}
             uqi={userQuestionInstance} testcases={testcases}
-            eventId={event?.event_id ?? (algo ? 0 : undefined)}
-            eventName={event?.event_name ?? (algo ? "AlgoTime Leaderboard" : undefined)}
+            eventId={event?.event_id ?? (resolvedAlgo ? 0 : undefined)}
+            eventName={event?.event_name ?? (resolvedAlgo ? "AlgoTime Leaderboard" : undefined)}
             isCompetitionEvent={!!comp}
             currentUserId={user?.id}
             submissionState={submissionState}

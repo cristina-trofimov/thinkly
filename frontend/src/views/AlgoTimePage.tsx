@@ -87,7 +87,12 @@ const renderSessionButton = (
       <Button
         size="sm"
         className="h-7 text-xs bg-green-600 hover:bg-green-700 text-primary-foreground"
-        onClick={() => nav(`/app/algotime/${session.id}`)}
+        onClick={() => nav(`/app/algo/${session.eventName}`, {
+          state: {
+            fromFeed: true,
+            algo_sess: session,
+          },
+        })}
       >
         Join Now
       </Button>
@@ -100,7 +105,12 @@ const renderSessionButton = (
         size="sm"
         variant="outline"
         className="h-7 text-xs text-muted-foreground hover:bg-muted"
-        onClick={() => nav(`/app/algotime/${session.id}`)}
+        onClick={() => nav(`/app/algo/${session.eventName}`, {
+          state: {
+            fromFeed: true,
+            algo_sess: session,
+          },
+        })}
       >
         Access Session
       </Button>
