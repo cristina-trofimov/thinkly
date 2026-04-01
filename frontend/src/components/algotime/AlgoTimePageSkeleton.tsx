@@ -29,9 +29,7 @@ export default function AlgoTimePageSkeleton() {
             </div>
 
             <div className="flex items-center justify-end pt-2 border-t pb-4">
-              <Button disabled size="sm" className="w-28">
-                <Skeleton className="h-3 w-16" />
-              </Button>
+              <Skeleton className="h-7 w-24" />
             </div>
           </div>
         </div>
