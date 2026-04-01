@@ -288,16 +288,16 @@ export function AdminDashboard() {
             >
               <div className="mb-4 flex items-center justify-start">
                 <Tabs value={activeTab} onValueChange={handleTabChange}>
-                  <TabsList className="h-11 rounded-xl border border-border/70 bg-muted p-1 backdrop-blur-sm">
+                  <TabsList className="h-10 rounded-xl border border-border/70 bg-muted p-1 backdrop-blur-sm">
                     <TabsTrigger
                       value="algotime"
-                      className="min-w-30 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                      className="min-w-30 cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
                     >
                       Algotime
                     </TabsTrigger>
                     <TabsTrigger
                       value="competitions"
-                      className="min-w-30 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                      className="min-w-30 cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
                     >
                       Competitions
                     </TabsTrigger>
