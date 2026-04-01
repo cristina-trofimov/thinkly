@@ -197,24 +197,22 @@ export function AdminDashboard() {
             <div
               className={`flex justify-between items-center gap-2 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
             >
-              <div className="flex items-center">
-                <Tabs value={activeTab} onValueChange={handleTabChange}>
-                  <TabsList>
-                    <TabsTrigger
-                      value="algotime"
-                      className="cursor-pointer rounded-md font-semibold text-muted-foreground p-4 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
-                    >
-                      Algotime
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="competitions"
-                      className="cursor-pointer rounded-md font-semibold text-muted-foreground p-3 transition-all duration-200 relative hover:text-primary data-[state=active]:text-primary"
-                    >
-                      Competitions
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
+              <Tabs value={activeTab} onValueChange={handleTabChange}>
+                <TabsList className="p-0 h-9 bg-transparent border rounded-lg overflow-hidden gap-0">
+                  <TabsTrigger
+                    value="algotime"
+                    className="h-full rounded-none px-5 text-sm font-medium border-r data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+                  >
+                    AlgoTime
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="competitions"
+                    className="h-full rounded-none px-5 text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
+                  >
+                    Competitions
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
               <div>
                 <Select value={timeRange} onValueChange={handleTimeRangeChange}>
