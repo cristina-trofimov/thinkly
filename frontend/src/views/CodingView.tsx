@@ -10,7 +10,7 @@ import { DropdownMenuTrigger } from "../components/ui/dropdown-menu";
 import { Panel, type ImperativePanelGroupHandle, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import MonacoEditor from "@monaco-editor/react";
 import { submitToJudge0 } from '@/api/Judge0API';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { Question } from '@/types/questions/QuestionPagination.type';
 import Loader from '../components/helpers/Loader';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -25,9 +25,11 @@ import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
+import { CompetitionTimer } from '@/components/codingPage/CompetitionTimer';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TimesUpDialog } from '@/components/codingPage/TimesUpDialog';
 import { getAllSubmissions } from '@/api/SubmissionAPI';
 import { useCountdown } from '@/hooks/useCountdown'
 
@@ -60,6 +62,7 @@ const CodingView = () => {
   } = useAnalytics()
 
   const { user } = useUser();
+  const navigate = useNavigate();
 
   const [theme, setTheme] = useState<string>(
     localStorage.getItem("theme") === "dark" ? "vs-dark" : "vs"
@@ -71,6 +74,24 @@ const CodingView = () => {
   const hasSubmittedRef = useRef(false);
   const remainingMs = useCountdown(event?.event_end_date)
   const isExpired = remainingMs === 0
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null)
+
+  // Show time's up dialog and redirect after 5 seconds
+  useEffect(() => {
+    if (isExpired && event) {
+      setRedirectCountdown(5)
+    }
+  }, [isExpired, event])
+
+  useEffect(() => {
+    if (redirectCountdown === null) return
+    if (redirectCountdown === 0) {
+      navigate('/app/home')
+      return
+    }
+    const id = setTimeout(() => setRedirectCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(id)
+  }, [redirectCountdown, navigate])
 
 
 
@@ -362,43 +383,6 @@ const CodingView = () => {
   const mainPanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
   const codePanelGroup = React.useRef<ImperativePanelGroupHandle>(null)
 
-  // Replace just the formattedTime display span with this component:
-
-  const CompetitionTimer = ({ remainingMs }: { remainingMs: number | null }) => {
-    if (remainingMs === null) return null
-
-    const isExpired = remainingMs === 0
-    const isWarning = remainingMs < 5 * 60 * 1000
-    const isUrgent = remainingMs < 60 * 1000
-
-    const totalSeconds = Math.floor(remainingMs / 1000)
-    const h = Math.floor(totalSeconds / 3600)
-    const m = Math.floor((totalSeconds % 3600) / 60)
-    const s = totalSeconds % 60
-    const display = h > 0
-      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      : `${m}:${String(s).padStart(2, '0')}`
-
-    return (
-      <div className={`
-      flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium tabular-nums
-      transition-colors duration-500
-      ${isExpired || isUrgent
-          ? 'bg-destructive/10 border-destructive/30 text-destructive'
-          : isWarning
-            ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-            : 'bg-muted border-border text-muted-foreground'
-        }
-    `}>
-        <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' :
-          isUrgent ? 'bg-destructive animate-pulse' :
-            isWarning ? 'bg-amber-500 animate-pulse' :
-              'bg-emerald-500'
-          }`} />
-        {isExpired ? "Time's up" : display}
-      </div>
-    )
-  }
 
   useLayoutEffect(() => {
     let mainPanelSize: number[], codePanelSize: number[]
@@ -506,6 +490,10 @@ const CodingView = () => {
     >
       {/* Loading modal */}
       <Loader isOpen={isLoading} msg={loadingMsg} />
+
+      {/* Time's up dialog */}
+      <TimesUpDialog redirectCountdown={redirectCountdown} />
+
       <ConfirmCodeReset isOpen={clearingCode} setClose={() => setClearingCode(false)}
         setReset={() => setConfirmClearingCode(true)} setNoReset={() => setConfirmClearingCode(false)}
       />
