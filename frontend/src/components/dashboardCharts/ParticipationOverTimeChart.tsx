@@ -8,13 +8,16 @@ export const ParticipationOverTimeChart = ({
   data,
   timeRange,
   loading = false,
+  eventType = "algotime",
 }: ParticipationOverTimeChartProps) => {
+  const subject = eventType === "competitions" ? "competitions" : "AlgoTime sessions";
+
   if (loading) {
     return (
       <div className="w-full mt-6 px-6">
         <h2 className="text-left text-lg font-semibold text-foreground">Participation over time</h2>
         <p className="text-left text-sm font-normal text-muted-foreground mt-1 mb-8">
-          Number of users joining competitions or AlgoTime sessions each day
+          Number of users joining {subject} each day
         </p>
         <VerticalBarsSkeleton />
       </div>
@@ -34,7 +37,7 @@ export const ParticipationOverTimeChart = ({
     <div className="w-full mt-6 px-6">
       <h2 className="text-left text-lg font-semibold text-foreground">Participation over time</h2>
       <p className="text-left text-sm font-normal text-muted-foreground mt-1 mb-8">
-        Number of users joining competitions or AlgoTime sessions each day
+        Number of users joining {subject} each day
       </p>
       <ChartContainer
         config={{ participation: { color: "var(--chart-4)" } }}

@@ -165,4 +165,18 @@ describe("DashboardCharts", () => {
     expect(screen.getByTestId("barchart")).toHaveAttribute("data-points", "1");
     expect(screen.getByTestId("x-axis")).toHaveAttribute("data-interval", "4");
   });
+
+  it("switches the ParticipationOverTimeChart description based on selected event type", () => {
+    const { rerender } = render(
+      <ParticipationOverTimeChart data={[]} timeRange="3months" eventType="algotime" />
+    );
+
+    expect(screen.getByText("Number of users joining AlgoTime sessions each day")).toBeInTheDocument();
+
+    rerender(
+      <ParticipationOverTimeChart data={[]} timeRange="3months" eventType="competitions" />
+    );
+
+    expect(screen.getByText("Number of users joining competitions each day")).toBeInTheDocument();
+  });
 });

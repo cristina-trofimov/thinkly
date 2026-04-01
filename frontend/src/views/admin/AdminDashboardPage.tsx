@@ -309,6 +309,7 @@ export function AdminDashboard() {
                 data={participationData}
                 timeRange={timeRange}
                 loading={participationLoading}
+                eventType={activeTab}
               />
             </div>
           </div>
