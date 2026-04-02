@@ -168,19 +168,19 @@ export function Leaderboards() {
 
   return (
     <div className="flex flex-col flex-1 w-full max-w-full px-4 space-y-4">
-      <div className="flex items-center">
+      <div className="mb-4 flex items-center justify-start">
         <Tabs value={leaderboardType} onValueChange={handleTabChange}>
-          <TabsList className="space-x-1">
+          <TabsList className="h-10 rounded-xl border border-border/70 bg-muted p-1 backdrop-blur-sm">
             <TabsTrigger
               value="algotime"
-              className="rounded-md text-primary"
+              className="min-w-30 cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
               data-cy="leaderboard-algotime"
             >
               AlgoTime
             </TabsTrigger>
             <TabsTrigger
               value="competition"
-              className="rounded-md text-primary"
+              className="min-w-30 cursor-pointer rounded-lg px-4 py-1.5 text-sm font-semibold text-muted-foreground transition-all duration-200 hover:text-foreground data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
               data-cy="leaderboard-competitions"
             >
               Competitions

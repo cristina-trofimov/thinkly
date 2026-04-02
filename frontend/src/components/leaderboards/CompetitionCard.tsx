@@ -157,6 +157,7 @@ export function CompetitionCard({
     }
   };
 
+
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     setDownloadExporting(true);
@@ -206,6 +207,8 @@ export function CompetitionCard({
   } else if (copyExporting) {
     copyButtonState = "exporting";
   }
+
+  console.log("time", competition.participants.map(p => p.total_time))
 
   return (
     <Card className={`mb-6 shadow-sm border ${isCurrent ? "border-primary" : "border-border"} ${backgroundColor}`}>
