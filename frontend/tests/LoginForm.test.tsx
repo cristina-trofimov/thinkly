@@ -45,15 +45,10 @@ jest.mock('react-router-dom', () => ({
 // Mock GoogleLogin component
 jest.mock('@react-oauth/google', () => ({
     GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    GoogleLogin: ({ onSuccess, onError }: any) => (
-        <button
-            type="button"
-            onClick={() => onSuccess({ credential: 'mock-google-credential' })}
-            data-testid="google-login-button"
-        >
-            Sign in with Google
-        </button>
-    ),
+    useGoogleOAuth: () => ({
+        clientId: 'test-client-id',
+        scriptLoadedSuccessfully: true,
+    }),
 }));
 
 jest.mock('../src/api/AccountsAPI', () => ({
@@ -93,6 +88,19 @@ describe('LoginForm', () => {
         jest.clearAllMocks();
         localStorage.clear();
         mockGetProfile.mockResolvedValue({ id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User', accountType: 'Participant' as const });
+        (global as any).window.google = {
+            accounts: {
+                id: {
+                    initialize: jest.fn(),
+                    prompt: jest.fn((callback?: (notification: any) => void) => {
+                        callback?.({
+                            isNotDisplayed: () => false,
+                            isSkippedMoment: () => false,
+                        });
+                    }),
+                },
+            },
+        };
     });
 
     describe('Rendering', () => {
@@ -118,7 +126,7 @@ describe('LoginForm', () => {
         it('renders Google Login button', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
-            expect(screen.getByTestId('google-login-button')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -280,8 +288,12 @@ describe('LoginForm', () => {
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByTestId('google-login-button');
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
             fireEvent.click(googleButton);
+
+            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
+            const initConfig = initialize.mock.calls[0][0];
+            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(mockGoogleLogin).toHaveBeenCalledWith('mock-google-credential');
@@ -297,8 +309,12 @@ describe('LoginForm', () => {
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByTestId('google-login-button');
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
             fireEvent.click(googleButton);
+
+            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
+            const initConfig = initialize.mock.calls[0][0];
+            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
