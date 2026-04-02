@@ -8,7 +8,7 @@ describe("timeFormat", () => {
 
         expect(TimeAgoFormat(new Date('2025-10-27T10:00:00Z').toISOString())).toBe('1 day ago');
         expect(TimeAgoFormat(new Date('2025-10-28T08:00:00Z').toISOString())).toBe('2 hours ago');
-        expect(TimeAgoFormat(new Date('2025-10-28T09:59:00Z').toISOString())).toBe('1 min ago');
+        expect(TimeAgoFormat(new Date('2025-10-28T09:59:00Z').toISOString())).toBe('1 minute ago');
         expect(TimeAgoFormat(new Date('2025-10-28T09:59:50Z').toISOString())).toBe('> 1 min ago');
         expect(TimeAgoFormat(new Date('2025-10-28T09:59:59Z').toISOString())).toBe('> 1 min ago');
     })
