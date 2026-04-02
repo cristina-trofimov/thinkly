@@ -308,7 +308,7 @@ async def login(login_request: LoginRequest, response: Response, db: Annotated[S
         value=refresh_token,
         httponly=True,
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
-        samesite="lax",
+        samesite="none",
         secure=True  # Set to True in production when using HTTPS
     )
 
@@ -510,7 +510,7 @@ async def logout(
     response.delete_cookie(
         key="refresh_token",
         httponly=True,
-        samesite="lax",
+        samesite="none",
         secure=True
     )
 

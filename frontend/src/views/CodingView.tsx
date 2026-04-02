@@ -225,8 +225,8 @@ const CodingView = () => {
             : 1
 
           userQuestionInstance.lapse_time = userQuestionInstance.lapse_time
-            ? userQuestionInstance.attempts + Date.now() - startTime!.getTime()
-            : Date.now() - startTime!.getTime()
+            ? userQuestionInstance.lapse_time + Math.floor((Date.now() - startTime!.getTime()) / 1000)
+            : Math.floor((Date.now() - startTime!.getTime()) / 1000)
         }
 
         const codeToSubmit = composedBoilerplateBefore + '\n\n' + code + '\n\n' + composedBoilerplateAfter
@@ -393,7 +393,7 @@ const CodingView = () => {
     if (idx === -1) return
 
     if (startTime && userQuestionInstance) {
-      userQuestionInstance.lapse_time = Date.now() - startTime.getTime()
+      userQuestionInstance.lapse_time = Math.floor((Date.now() - startTime.getTime()) / 1000)
     }
 
     try {
