@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useGoogleOAuth } from "@react-oauth/google";
-import { SiGoogle } from "@icons-pack/react-simple-icons";
+import { GoogleLogin } from "@react-oauth/google";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,27 +20,6 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { getUserPreferences } from "@/api/AccountsAPI";
 import { useUser } from "@/context/UserContext";
 
-type GooglePromptNotification = {
-  isNotDisplayed?: () => boolean;
-  isSkippedMoment?: () => boolean;
-};
-
-type GoogleAccountsId = {
-  initialize: (config: {
-    client_id: string;
-    callback: (response: GoogleCredentialResponse) => void;
-  }) => void;
-  prompt: (listener?: (notification: GooglePromptNotification) => void) => void;
-};
-
-function getGoogleAccountsId(): GoogleAccountsId | undefined {
-  return (
-    globalThis.window as Window & {
-      google?: { accounts?: { id?: GoogleAccountsId } };
-    }
-  ).google?.accounts?.id;
-}
-
 interface GoogleCredentialResponse {
   credential?: string;
   select_by?: string;
@@ -54,12 +32,11 @@ export function LoginForm({
   const [form, setForm] = useState<LoginRequest>({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [isGoogleReady, setIsGoogleReady] = useState(false);
+  const [googleButtonWidth, setGoogleButtonWidth] = useState<number>();
   const { setUser } = useUser();
-  const googleButtonInitializedRef = useRef(false);
+  const googleButtonWrapperRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
-  const { clientId, scriptLoadedSuccessfully } = useGoogleOAuth();
   const {
     identifyUser,
     trackLoginAttempt,
@@ -190,41 +167,34 @@ export function LoginForm({
   }, [trackLoginFailed]);
 
   useEffect(() => {
-    if (!scriptLoadedSuccessfully || googleButtonInitializedRef.current) return;
+    const wrapper = googleButtonWrapperRef.current;
+    if (!wrapper) return;
 
-    const googleAccounts = getGoogleAccountsId();
-    if (!googleAccounts) return;
+    const updateWidth = (): void => {
+      const nextWidth = Math.floor(wrapper.getBoundingClientRect().width);
+      if (nextWidth > 0) {
+        setGoogleButtonWidth((currentWidth) =>
+          currentWidth === nextWidth ? currentWidth : nextWidth
+        );
+      }
+    };
 
-    googleAccounts.initialize({
-      client_id: clientId,
-      callback: handleGoogleSuccess,
-    });
+    updateWidth();
 
-    googleButtonInitializedRef.current = true;
-    setIsGoogleReady(true);
-  }, [clientId, handleGoogleSuccess, scriptLoadedSuccessfully]);
-
-  const handleGoogleSignInClick = (): void => {
-    const googleAccounts = getGoogleAccountsId();
-
-    if (!googleAccounts || !googleButtonInitializedRef.current) {
-      trackLoginFailed("google", "Google identity script unavailable");
-      handleGoogleError();
-      return;
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateWidth);
+      return () => {
+        window.removeEventListener("resize", updateWidth);
+      };
     }
 
-    trackLoginAttempt("google");
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(wrapper);
 
-    googleAccounts.prompt((notification: GooglePromptNotification) => {
-      if (
-        notification?.isNotDisplayed?.() ||
-        notification?.isSkippedMoment?.()
-      ) {
-        trackLoginFailed("google", "Google prompt unavailable");
-        toast.error("Google Sign-In was unavailable. Try again later.");
-      }
-    });
-  };
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <div
@@ -283,16 +253,17 @@ export function LoginForm({
           </Field>
           <FieldSeparator>Or continue with</FieldSeparator>
           <Field>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignInClick}
-              disabled={!isGoogleReady || loading}
-            >
-              <SiGoogle className="size-4 shrink-0 text-primary" />
-              Sign in with Google
-            </Button>
+            <div ref={googleButtonWrapperRef} className="w-full">
+              <GoogleLogin
+                onSuccess={(response) => {
+                  trackLoginAttempt("google");
+                  void handleGoogleSuccess(response);
+                }}
+                onError={handleGoogleError}
+                width={googleButtonWidth}
+                containerProps={{ className: "w-full" }}
+              />
+            </div>
             <FieldDescription className="text-center">
               Don&apos;t have an account?{" "}
               <button
