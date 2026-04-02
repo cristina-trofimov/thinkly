@@ -8,6 +8,7 @@ export interface ParticipationOverTimeChartProps {
   data: ParticipationDataPoint[];
   timeRange: TimeRange;
   loading?: boolean;
+  eventType?: "algotime" | "competitions";
 }
 
 export interface NumberOfLoginsChartProps {

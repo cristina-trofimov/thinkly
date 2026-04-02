@@ -5,20 +5,43 @@ import { logFrontend } from "./LoggerAPI";
 import type { TestCase } from "@/types/questions/QuestionPagination.type";
 import { getTestCasesByQuestionId } from "./QuestionsAPI";
 
+function serializeJudge0Value(value: unknown): string {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+    }
+
+    if (Array.isArray(value)) {
+        return JSON.stringify(value);
+    }
+
+    if (typeof value === "object") {
+        return Object.values(value as Record<string, unknown>)
+            .map((entry) => serializeJudge0Value(entry))
+            .join(" ")
+            .trim();
+    }
+
+    return String(value);
+}
+
 export function parse_input_output(testcases: TestCase[]) {
     let stdin: string = ''
     let expected_output: string | null = ''
 
     testcases.forEach((t) => {
-        let inputs = ''
-        Object.values(t.input_data as Record<string, unknown>).forEach((v) => {
-            inputs += ` ${JSON.stringify(v)}`
-        })
-        stdin += `${inputs.trim()}\n`
-        expected_output += `${t.expected_output}\n`
+        stdin += `${serializeJudge0Value(t.input_data)}\n`
+        expected_output += `${serializeJudge0Value(t.expected_output)}\n`
     })
 
-    stdin.trimStart()
+    stdin = stdin.trimStart()
     expected_output = expected_output.trimStart()
 
     if (!expected_output) {
@@ -48,20 +71,12 @@ export async function submitToJudge0(
 
         // Create submissions array for batch processing
         const submissions = testcases.map((testcase) => {
-            const stdin = Object.values(testcase.input_data as Record<string, unknown>)
-                .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
-                .join(" ");
-
-            const expected_output = Object.values(testcase.expected_output as Record<string, unknown>)
-                .map((v) => (typeof v === "string" ? v : JSON.stringify(v)))
-                .join(" ");
-
             return {
                 userId: userId,
                 language_id: `${language_id}`,
                 source_code: source_code.trim(),
-                stdin: stdin,
-                expected_output: expected_output,
+                stdin: serializeJudge0Value(testcase.input_data),
+                expected_output: serializeJudge0Value(testcase.expected_output),
             };
         });
 

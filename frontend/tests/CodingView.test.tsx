@@ -3,7 +3,7 @@ import '@testing-library/jest-dom'
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CodingView from '../src/views/CodingView'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { MostRecentSub } from '../src/types/submissions/MostRecentSub.type'
 import { CodeRunResponse } from '../src/types/submissions/CodeRunResponse.type'
@@ -87,6 +87,7 @@ jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
 }))
 jest.mock('../src/api/LanguageAPI', () => ({ getAllLanguages: jest.fn() }))
 jest.mock('../src/api/UserPreferencesAPI', () => ({ getUserPrefs: jest.fn() }))
+jest.mock('../src/api/AlgotimeAPI', () => ({ getAlgotimeById: jest.fn() }))
 
 jest.mock('../src/hooks/useAnalytics', () => ({
     useAnalytics: () => ({
@@ -106,6 +107,7 @@ jest.mock('react-router-dom', () => ({
     ...jest.requireActual('react-router-dom'),
     useLocation: jest.fn(),
     useNavigate: jest.fn(() => jest.fn()),
+    useParams: jest.fn(),
 }))
 
 let capturedOnRiddleSolved: (() => void) | undefined
@@ -308,6 +310,8 @@ const mockedSubmitToJudge0 = submitToJudge0 as jest.MockedFunction<typeof submit
 const mockedSubmitAttempt = submitAttempt as jest.MockedFunction<typeof submitAttempt>
 const mockedPutUserInstance = putUserInstance as jest.MockedFunction<typeof putUserInstance>
 const mockedGetAllSubmissions = getAllSubmissions as jest.MockedFunction<typeof getAllSubmissions>
+const { getAlgotimeById } = require('../src/api/AlgotimeAPI')
+const mockedGetAlgotimeById = getAlgotimeById as jest.MockedFunction<typeof getAlgotimeById>
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -321,10 +325,22 @@ beforeEach(() => {
             pathname: '/code/1',
             state: { problem: mockProblem },
         })
+        ; (useParams as jest.Mock).mockReturnValue({})
     mockedUseCodingHooks.mockReturnValue(makeMockHook())
         ; (getProfile as jest.Mock).mockResolvedValue({ id: 1 })
     mockedPutUserInstance.mockResolvedValue(mockUqiRiddleComplete)
     mockedGetAllSubmissions.mockResolvedValue([])
+    mockedGetAlgotimeById.mockResolvedValue({
+        id: 1,
+        eventName: 'Algo Session',
+        startTime: new Date('2025-10-28T10:00:00Z'),
+        endTime: new Date('2025-10-28T11:00:00Z'),
+        questionCooldown: 300,
+        location: 'Online',
+        seriesId: 1,
+        seriesName: 'Algo Series',
+        questions: [],
+    })
 })
 
 const mockUser: Account = {
@@ -345,6 +361,18 @@ const renderCodingView = () =>
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('CodingView — rendering', () => {
+    it('fetches AlgoTime session by route param when navigation state is missing', async () => {
+        ; (useLocation as jest.Mock).mockReturnValue({
+            pathname: '/app/algo/1',
+            state: {},
+        })
+        ; (useParams as jest.Mock).mockReturnValue({ algo_session: '1' })
+
+        renderCodingView()
+
+        await waitFor(() => expect(mockedGetAlgotimeById).toHaveBeenCalledWith(1))
+    })
+
     it('renders all key structural elements', () => {
         renderCodingView()
         expect(screen.getAllByTestId('panel-group')).toHaveLength(2)

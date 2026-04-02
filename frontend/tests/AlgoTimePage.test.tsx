@@ -116,6 +116,21 @@ describe("AlgoTimePage", () => {
   });
 
   describe("action buttons", () => {
+    it("navigates to coding page with session state when 'Join Now' is clicked on active session", async () => {
+      mockedGetAllAlgotimeSessions.mockResolvedValue([activeSession] as any);
+      renderWithRouter(<AlgoTimePage />);
+
+      const btn = await screen.findByRole("button", { name: /join now/i });
+      await userEvent.click(btn);
+
+      expect(mockedUsedNavigate).toHaveBeenCalledWith(`/app/algo/${activeSession.eventName}`, {
+        state: {
+          fromFeed: true,
+          algo_sess: activeSession,
+        },
+      });
+    });
+
     it("opens the details modal when 'View Details' is clicked on an upcoming session", async () => {
       mockedGetAllAlgotimeSessions.mockResolvedValue([upcomingSession] as any);
       renderWithRouter(<AlgoTimePage />);
@@ -137,7 +152,12 @@ describe("AlgoTimePage", () => {
       const btn = await screen.findByRole("button", { name: /access session/i });
       await userEvent.click(btn);
 
-      expect(mockedUsedNavigate).toHaveBeenCalledWith(`/app/algotime/${completedSession.id}`);
+      expect(mockedUsedNavigate).toHaveBeenCalledWith(`/app/algo/${completedSession.eventName}`, {
+        state: {
+          fromFeed: true,
+          algo_sess: completedSession,
+        },
+      });
     });
   });
 
