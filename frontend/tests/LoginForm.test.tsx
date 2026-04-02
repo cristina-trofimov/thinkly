@@ -48,10 +48,19 @@ jest.mock('react-router-dom', () => ({
 // Mock GoogleLogin component
 jest.mock('@react-oauth/google', () => ({
     GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useGoogleOAuth: jest.fn(() => ({
-        clientId: 'test-client-id',
-        scriptLoadedSuccessfully: true,
-    })),
+    GoogleLogin: jest.fn(({ onSuccess, onError }: any) => (
+        <button
+            type="button"
+            data-testid="google-login-button"
+            onClick={() => onSuccess({ credential: 'mock-google-credential' })}
+            onContextMenu={(event) => {
+                event.preventDefault();
+                onError?.();
+            }}
+        >
+            Sign in with Google
+        </button>
+    )),
 }));
 
 jest.mock('../src/api/AccountsAPI', () => ({
@@ -76,13 +85,13 @@ const mockJwtDecode = jwtDecode as jest.MockedFunction<typeof jwtDecode>;
 const mockLogFrontend = logFrontend as jest.MockedFunction<typeof logFrontend>;
 const mockGetUserPreferences = getUserPreferences as jest.MockedFunction<typeof getUserPreferences>;
 const mockUseAnalytics = useAnalytics as jest.MockedFunction<typeof useAnalytics>;
-const mockUseGoogleOAuth = jest.requireMock('@react-oauth/google').useGoogleOAuth as jest.Mock;
 
 const mockSetUser = jest.fn();
 const mockIdentifyUser = jest.fn();
 const mockTrackLoginAttempt = jest.fn();
 const mockTrackLoginSuccess = jest.fn();
 const mockTrackLoginFailed = jest.fn();
+const mockGoogleLoginComponent = jest.requireMock('@react-oauth/google').GoogleLogin as jest.Mock;
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <GoogleOAuthProvider clientId="test-client-id">
@@ -101,29 +110,17 @@ describe('LoginForm', () => {
         document.documentElement.classList.remove('dark');
         mockGetProfile.mockResolvedValue({ id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User', accountType: 'Participant' as const });
         mockGetUserPreferences.mockResolvedValue({ theme: 'light' } as any);
-        mockUseGoogleOAuth.mockReturnValue({
-            clientId: 'test-client-id',
-            scriptLoadedSuccessfully: true,
-        });
         mockUseAnalytics.mockReturnValue({
             identifyUser: mockIdentifyUser,
             trackLoginAttempt: mockTrackLoginAttempt,
             trackLoginSuccess: mockTrackLoginSuccess,
             trackLoginFailed: mockTrackLoginFailed,
         } as any);
-        (global as any).window.google = {
-            accounts: {
-                id: {
-                    initialize: jest.fn(),
-                    prompt: jest.fn((callback?: (notification: any) => void) => {
-                        callback?.({
-                            isNotDisplayed: () => false,
-                            isSkippedMoment: () => false,
-                        });
-                    }),
-                },
-            },
-        };
+    });
+
+    afterEach(() => {
+        delete (global as any).ResizeObserver;
+        jest.restoreAllMocks();
     });
 
     describe('Rendering', () => {
@@ -149,7 +146,7 @@ describe('LoginForm', () => {
         it('renders Google Login button', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
-            expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+            expect(screen.getByTestId('google-login-button')).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -159,12 +156,13 @@ describe('LoginForm', () => {
             expect(screen.getByText('Sign up')).toBeInTheDocument();
         });
 
-        it('renders the Google icon inside the custom button', () => {
-            const { container } = render(<LoginForm />, { wrapper: Wrapper });
+        it('passes container props through to the Google login widget', () => {
+            render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
-            expect(googleButton).toContainElement(container.querySelector('svg'));
+            const lastCallProps = mockGoogleLoginComponent.mock.calls.at(-1)?.[0];
+            expect(lastCallProps.containerProps).toEqual({ className: 'w-full' });
         });
+
     });
 
     describe('Form Input Handling', () => {
@@ -259,8 +257,6 @@ describe('LoginForm', () => {
             await waitFor(() => {
                 expect(screen.queryByText('Logging in...')).not.toBeInTheDocument();
             });
-
-            expect(screen.getByRole('button', { name: /sign in with google/i })).not.toBeDisabled();
         });
 
         it('displays error message on failed login', async () => {
@@ -284,6 +280,26 @@ describe('LoginForm', () => {
             expect(mockNavigate).not.toHaveBeenCalled();
             expect(mockTrackLoginFailed).toHaveBeenCalledWith('email_password', 'Login failed');
             expect(mockLogFrontend).toHaveBeenCalled();
+        });
+
+        it('logs unknown email login errors without an error stack', async () => {
+            mockLogin.mockRejectedValue('plain failure');
+
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
+            fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrongpassword' } });
+            fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Invalid email or password.');
+            });
+
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('email_password', 'Unknown error');
+            expect(mockLogFrontend).toHaveBeenCalledWith(expect.objectContaining({
+                stack: undefined,
+                message: 'API Error: Failed to login: Unknown error during login.',
+            }));
         });
 
         it('clears previous error on new submission', async () => {
@@ -350,12 +366,8 @@ describe('LoginForm', () => {
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+            const googleButton = screen.getByTestId('google-login-button');
             fireEvent.click(googleButton);
-
-            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
-            const initConfig = initialize.mock.calls[0][0];
-            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(mockGoogleLogin).toHaveBeenCalledWith('mock-google-credential');
@@ -364,7 +376,6 @@ describe('LoginForm', () => {
             expect(localStorage.getItem('token')).toBe(mockToken);
             expect(mockJwtDecode).toHaveBeenCalledWith(mockToken);
             expect(mockNavigate).toHaveBeenCalledWith('/app/home');
-            expect((global as any).window.google.accounts.id.prompt).toHaveBeenCalled();
             expect(mockIdentifyUser).toHaveBeenCalledWith({
                 id: 2,
                 email: 'google@example.com',
@@ -381,12 +392,8 @@ describe('LoginForm', () => {
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+            const googleButton = screen.getByTestId('google-login-button');
             fireEvent.click(googleButton);
-
-            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
-            const initConfig = initialize.mock.calls[0][0];
-            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
@@ -399,57 +406,54 @@ describe('LoginForm', () => {
         });
 
         it('shows an error when Google returns no credential', async () => {
+            mockGoogleLoginComponent.mockImplementationOnce(({ onSuccess }: any) => (
+                <button
+                    type="button"
+                    data-testid="google-login-button"
+                    onClick={() => onSuccess({})}
+                >
+                    Sign in with Google
+                </button>
+            ));
+
             render(<LoginForm />, { wrapper: Wrapper });
 
-            fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
-
-            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
-            const initConfig = initialize.mock.calls[0][0];
-            initConfig.callback({});
+            fireEvent.click(screen.getByTestId('google-login-button'));
 
             await waitFor(() => {
                 expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
             });
 
             expect(mockGoogleLogin).not.toHaveBeenCalled();
+            expect(mockTrackLoginAttempt).toHaveBeenCalledWith('google');
             expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'No credential returned by Google');
         });
 
-        it('shows a prompt unavailable error when Google prompt is not displayed', async () => {
-            (global as any).window.google.accounts.id.prompt = jest.fn((callback?: (notification: any) => void) => {
-                callback?.({
-                    isNotDisplayed: () => true,
-                    isSkippedMoment: () => false,
-                });
-            });
-
+        it('shows a Google widget error when GoogleLogin reports an error', async () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
-            fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
+            fireEvent.contextMenu(screen.getByTestId('google-login-button'));
 
-            expect(toast.error).toHaveBeenCalledWith('Google Sign-In was unavailable. Try again later.');
-            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'Google prompt unavailable');
+            expect(toast.error).toHaveBeenCalledWith('Google Sign-In was unsuccessful. Try again later.');
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'Google Sign-In widget error');
         });
 
-        it('shows a Google widget error when the Google identity object is unavailable', async () => {
-            delete (global as any).window.google;
+        it('logs unknown Google login errors without an error stack', async () => {
+            mockGoogleLogin.mockRejectedValue('plain google failure');
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
-            expect(googleButton).toBeDisabled();
-        });
+            fireEvent.click(screen.getByTestId('google-login-button'));
 
-        it('disables the Google button until the Google script reports ready', () => {
-            mockUseGoogleOAuth.mockReturnValue({
-                clientId: 'test-client-id',
-                scriptLoadedSuccessfully: false,
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
             });
 
-            render(<LoginForm />, { wrapper: Wrapper });
-
-            expect(screen.getByRole('button', { name: /sign in with google/i })).toBeDisabled();
-            expect((global as any).window.google.accounts.id.initialize).not.toHaveBeenCalled();
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'Unknown error during Google login.');
+            expect(mockLogFrontend).toHaveBeenCalledWith(expect.objectContaining({
+                stack: undefined,
+                message: 'API Error: Failed to login using Google: Unknown error during Google login.',
+            }));
         });
     });
 
@@ -536,6 +540,62 @@ describe('LoginForm', () => {
             });
 
             expect(localStorage.getItem('token')).toBeNull();
+        });
+    });
+
+    describe('Google Button Sizing', () => {
+        it('measures the wrapper width and passes it to GoogleLogin', async () => {
+            let resizeObserverCallback: (() => void) | undefined;
+            const observe = jest.fn();
+            const disconnect = jest.fn();
+            (global as any).ResizeObserver = jest.fn((callback: () => void) => {
+                resizeObserverCallback = callback;
+                return {
+                    observe,
+                    disconnect,
+                };
+            });
+
+            const getBoundingClientRectSpy = jest
+                .spyOn(HTMLDivElement.prototype, 'getBoundingClientRect')
+                .mockImplementation(() => ({ width: 312 } as DOMRect));
+
+            const { unmount } = render(<LoginForm />, { wrapper: Wrapper });
+
+            await waitFor(() => {
+                const lastCallProps = mockGoogleLoginComponent.mock.calls.at(-1)?.[0];
+                expect(lastCallProps.width).toBe(312);
+            });
+
+            expect(observe).toHaveBeenCalled();
+            resizeObserverCallback?.();
+
+            unmount();
+
+            expect(disconnect).toHaveBeenCalled();
+            getBoundingClientRectSpy.mockRestore();
+        });
+
+        it('falls back to window resize when ResizeObserver is unavailable', async () => {
+            const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+            const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+            const getBoundingClientRectSpy = jest
+                .spyOn(HTMLDivElement.prototype, 'getBoundingClientRect')
+                .mockImplementation(() => ({ width: 280 } as DOMRect));
+
+            const { unmount } = render(<LoginForm />, { wrapper: Wrapper });
+
+            await waitFor(() => {
+                const lastCallProps = mockGoogleLoginComponent.mock.calls.at(-1)?.[0];
+                expect(lastCallProps.width).toBe(280);
+            });
+
+            expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+
+            unmount();
+
+            expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+            getBoundingClientRectSpy.mockRestore();
         });
     });
 });
