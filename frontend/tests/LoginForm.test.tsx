@@ -7,6 +7,9 @@ import * as authApi from '../src/api/AuthAPI';
 import { jwtDecode } from 'jwt-decode';
 import { toast } from 'sonner';
 import { UserContext } from '../src/context/UserContext';
+import { logFrontend } from '../src/api/LoggerAPI';
+import { getUserPreferences } from '../src/api/AccountsAPI';
+import { useAnalytics } from '../src/hooks/useAnalytics';
 
 // Polyfill for TextEncoder/TextDecoder
 import { TextEncoder, TextDecoder } from 'util';
@@ -45,15 +48,10 @@ jest.mock('react-router-dom', () => ({
 // Mock GoogleLogin component
 jest.mock('@react-oauth/google', () => ({
     GoogleOAuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    GoogleLogin: ({ onSuccess, onError }: any) => (
-        <button
-            type="button"
-            onClick={() => onSuccess({ credential: 'mock-google-credential' })}
-            data-testid="google-login-button"
-        >
-            Sign in with Google
-        </button>
-    ),
+    useGoogleOAuth: jest.fn(() => ({
+        clientId: 'test-client-id',
+        scriptLoadedSuccessfully: true,
+    })),
 }));
 
 jest.mock('../src/api/AccountsAPI', () => ({
@@ -61,12 +59,12 @@ jest.mock('../src/api/AccountsAPI', () => ({
 }));
 
 jest.mock('../src/hooks/useAnalytics', () => ({
-    useAnalytics: () => ({
+    useAnalytics: jest.fn(() => ({
         identifyUser: jest.fn(),
         trackLoginAttempt: jest.fn(),
         trackLoginSuccess: jest.fn(),
         trackLoginFailed: jest.fn(),
-    }),
+    })),
 }));
 
 // add to the top of the file alongside other mocks
@@ -75,8 +73,16 @@ const mockGetProfile = authApi.getProfile as jest.MockedFunction<typeof authApi.
 const mockLogin = authApi.login as jest.MockedFunction<typeof authApi.login>;
 const mockGoogleLogin = authApi.googleLogin as jest.MockedFunction<typeof authApi.googleLogin>;
 const mockJwtDecode = jwtDecode as jest.MockedFunction<typeof jwtDecode>;
+const mockLogFrontend = logFrontend as jest.MockedFunction<typeof logFrontend>;
+const mockGetUserPreferences = getUserPreferences as jest.MockedFunction<typeof getUserPreferences>;
+const mockUseAnalytics = useAnalytics as jest.MockedFunction<typeof useAnalytics>;
+const mockUseGoogleOAuth = jest.requireMock('@react-oauth/google').useGoogleOAuth as jest.Mock;
 
 const mockSetUser = jest.fn();
+const mockIdentifyUser = jest.fn();
+const mockTrackLoginAttempt = jest.fn();
+const mockTrackLoginSuccess = jest.fn();
+const mockTrackLoginFailed = jest.fn();
 
 const Wrapper = ({ children }: { children: React.ReactNode }) => (
     <GoogleOAuthProvider clientId="test-client-id">
@@ -92,7 +98,32 @@ describe('LoginForm', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         localStorage.clear();
+        document.documentElement.classList.remove('dark');
         mockGetProfile.mockResolvedValue({ id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User', accountType: 'Participant' as const });
+        mockGetUserPreferences.mockResolvedValue({ theme: 'light' } as any);
+        mockUseGoogleOAuth.mockReturnValue({
+            clientId: 'test-client-id',
+            scriptLoadedSuccessfully: true,
+        });
+        mockUseAnalytics.mockReturnValue({
+            identifyUser: mockIdentifyUser,
+            trackLoginAttempt: mockTrackLoginAttempt,
+            trackLoginSuccess: mockTrackLoginSuccess,
+            trackLoginFailed: mockTrackLoginFailed,
+        } as any);
+        (global as any).window.google = {
+            accounts: {
+                id: {
+                    initialize: jest.fn(),
+                    prompt: jest.fn((callback?: (notification: any) => void) => {
+                        callback?.({
+                            isNotDisplayed: () => false,
+                            isSkippedMoment: () => false,
+                        });
+                    }),
+                },
+            },
+        };
     });
 
     describe('Rendering', () => {
@@ -118,7 +149,7 @@ describe('LoginForm', () => {
         it('renders Google Login button', () => {
             render(<LoginForm />, { wrapper: Wrapper });
 
-            expect(screen.getByTestId('google-login-button')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
         });
 
         it('renders sign up link', () => {
@@ -126,6 +157,13 @@ describe('LoginForm', () => {
 
             expect(screen.getByText(/don't have an account\?/i)).toBeInTheDocument();
             expect(screen.getByText('Sign up')).toBeInTheDocument();
+        });
+
+        it('renders the Google icon inside the custom button', () => {
+            const { container } = render(<LoginForm />, { wrapper: Wrapper });
+
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+            expect(googleButton).toContainElement(container.querySelector('svg'));
         });
     });
 
@@ -165,7 +203,7 @@ describe('LoginForm', () => {
     describe('Login Submission', () => {
         it('successfully logs in with valid credentials', async () => {
             const mockToken = 'mock-jwt-token';
-            const mockDecodedToken = { sub: { role: 'student' } };
+            const mockDecodedToken = { id: 1, sub: 'test@example.com', role: 'student' };
 
             mockLogin.mockResolvedValue({ access_token: mockToken });
             mockJwtDecode.mockReturnValue(mockDecodedToken as any);
@@ -190,6 +228,16 @@ describe('LoginForm', () => {
             expect(localStorage.getItem('token')).toBe(mockToken);
             expect(mockJwtDecode).toHaveBeenCalledWith(mockToken);
             expect(mockNavigate).toHaveBeenCalledWith('/app/home');
+            expect(mockSetUser).toHaveBeenCalledWith({ id: 1, email: 'test@example.com', firstName: 'Test', lastName: 'User', accountType: 'Participant' });
+            expect(mockIdentifyUser).toHaveBeenCalledWith({
+                id: 1,
+                email: 'test@example.com',
+                firstName: '',
+                lastName: '',
+                role: 'student',
+            });
+            expect(mockTrackLoginAttempt).toHaveBeenCalledWith('email_password');
+            expect(mockTrackLoginSuccess).toHaveBeenCalledWith('email_password');
         });
 
         it('shows loading state during login', async () => {
@@ -211,6 +259,8 @@ describe('LoginForm', () => {
             await waitFor(() => {
                 expect(screen.queryByText('Logging in...')).not.toBeInTheDocument();
             });
+
+            expect(screen.getByRole('button', { name: /sign in with google/i })).not.toBeDisabled();
         });
 
         it('displays error message on failed login', async () => {
@@ -232,6 +282,8 @@ describe('LoginForm', () => {
 
             expect(localStorage.getItem('token')).toBeNull();
             expect(mockNavigate).not.toHaveBeenCalled();
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('email_password', 'Login failed');
+            expect(mockLogFrontend).toHaveBeenCalled();
         });
 
         it('clears previous error on new submission', async () => {
@@ -268,20 +320,42 @@ describe('LoginForm', () => {
             // Verify error toast was not called on successful login
             expect(toast.error).not.toHaveBeenCalled();
         });
+
+        it('applies dark mode when user preference theme is dark', async () => {
+            mockLogin.mockResolvedValue({ access_token: 'dark-mode-token' });
+            mockJwtDecode.mockReturnValue({ id: 1, sub: 'test@example.com', role: 'student' } as any);
+            mockGetUserPreferences.mockResolvedValue({ theme: 'dark' } as any);
+
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'test@example.com' } });
+            fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
+            fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+            await waitFor(() => {
+                expect(document.documentElement.classList.contains('dark')).toBe(true);
+            });
+
+            expect(localStorage.getItem('theme')).toBe('dark');
+        });
     });
 
     describe('Google Login', () => {
         it('successfully logs in with Google', async () => {
             const mockToken = 'mock-google-jwt-token';
-            const mockDecodedToken = { sub: { role: 'student' } };
+            const mockDecodedToken = { id: 2, sub: 'google@example.com', role: 'student' };
 
             mockGoogleLogin.mockResolvedValue({ access_token: mockToken });
             mockJwtDecode.mockReturnValue(mockDecodedToken as any);
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByTestId('google-login-button');
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
             fireEvent.click(googleButton);
+
+            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
+            const initConfig = initialize.mock.calls[0][0];
+            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(mockGoogleLogin).toHaveBeenCalledWith('mock-google-credential');
@@ -290,6 +364,16 @@ describe('LoginForm', () => {
             expect(localStorage.getItem('token')).toBe(mockToken);
             expect(mockJwtDecode).toHaveBeenCalledWith(mockToken);
             expect(mockNavigate).toHaveBeenCalledWith('/app/home');
+            expect((global as any).window.google.accounts.id.prompt).toHaveBeenCalled();
+            expect(mockIdentifyUser).toHaveBeenCalledWith({
+                id: 2,
+                email: 'google@example.com',
+                firstName: '',
+                lastName: '',
+                role: 'student',
+            });
+            expect(mockTrackLoginAttempt).toHaveBeenCalledWith('google');
+            expect(mockTrackLoginSuccess).toHaveBeenCalledWith('google');
         });
 
         it('handles Google login failure', async () => {
@@ -297,8 +381,12 @@ describe('LoginForm', () => {
 
             render(<LoginForm />, { wrapper: Wrapper });
 
-            const googleButton = screen.getByTestId('google-login-button');
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
             fireEvent.click(googleButton);
+
+            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
+            const initConfig = initialize.mock.calls[0][0];
+            initConfig.callback({ credential: 'mock-google-credential' });
 
             await waitFor(() => {
                 expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
@@ -306,6 +394,80 @@ describe('LoginForm', () => {
 
             expect(localStorage.getItem('token')).toBeNull();
             expect(mockNavigate).not.toHaveBeenCalled();
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'Google login failed');
+            expect(mockLogFrontend).toHaveBeenCalled();
+        });
+
+        it('shows an error when Google returns no credential', async () => {
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
+
+            const initialize = (global as any).window.google.accounts.id.initialize as jest.Mock;
+            const initConfig = initialize.mock.calls[0][0];
+            initConfig.callback({});
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Google login failed. Please try again.');
+            });
+
+            expect(mockGoogleLogin).not.toHaveBeenCalled();
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'No credential returned by Google');
+        });
+
+        it('shows a prompt unavailable error when Google prompt is not displayed', async () => {
+            (global as any).window.google.accounts.id.prompt = jest.fn((callback?: (notification: any) => void) => {
+                callback?.({
+                    isNotDisplayed: () => true,
+                    isSkippedMoment: () => false,
+                });
+            });
+
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
+
+            expect(toast.error).toHaveBeenCalledWith('Google Sign-In was unavailable. Try again later.');
+            expect(mockTrackLoginFailed).toHaveBeenCalledWith('google', 'Google prompt unavailable');
+        });
+
+        it('shows a Google widget error when the Google identity object is unavailable', async () => {
+            delete (global as any).window.google;
+
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            const googleButton = screen.getByRole('button', { name: /sign in with google/i });
+            expect(googleButton).toBeDisabled();
+        });
+
+        it('disables the Google button until the Google script reports ready', () => {
+            mockUseGoogleOAuth.mockReturnValue({
+                clientId: 'test-client-id',
+                scriptLoadedSuccessfully: false,
+            });
+
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            expect(screen.getByRole('button', { name: /sign in with google/i })).toBeDisabled();
+            expect((global as any).window.google.accounts.id.initialize).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Navigation', () => {
+        it('navigates to forgot password page', () => {
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+
+            expect(mockNavigate).toHaveBeenCalledWith('/forgot-password');
+        });
+
+        it('navigates to signup page', () => {
+            render(<LoginForm />, { wrapper: Wrapper });
+
+            fireEvent.click(screen.getByRole('button', { name: /sign up/i }));
+
+            expect(mockNavigate).toHaveBeenCalledWith('/signup');
         });
     });
 

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useGoogleOAuth } from "@react-oauth/google";
+import { SiGoogle } from "@icons-pack/react-simple-icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,31 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { getUserPreferences } from "@/api/AccountsAPI";
 import { useUser } from "@/context/UserContext";
 
+type GooglePromptNotification = {
+  isNotDisplayed?: () => boolean;
+  isSkippedMoment?: () => boolean;
+};
+
+type GoogleAccountsId = {
+  initialize: (config: {
+    client_id: string;
+    callback: (response: GoogleCredentialResponse) => void;
+  }) => void;
+  prompt: (listener?: (notification: GooglePromptNotification) => void) => void;
+};
+
+function getGoogleAccountsId(): GoogleAccountsId | undefined {
+  return (
+    globalThis.window as Window & {
+      google?: { accounts?: { id?: GoogleAccountsId } };
+    }
+  ).google?.accounts?.id;
+}
+
+interface GoogleCredentialResponse {
+  credential?: string;
+  select_by?: string;
+}
 
 export function LoginForm({
   className,
@@ -28,9 +54,12 @@ export function LoginForm({
   const [form, setForm] = useState<LoginRequest>({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isGoogleReady, setIsGoogleReady] = useState(false);
   const { setUser } = useUser();
+  const googleButtonInitializedRef = useRef(false);
 
   const navigate = useNavigate();
+  const { clientId, scriptLoadedSuccessfully } = useGoogleOAuth();
   const {
     identifyUser,
     trackLoginAttempt,
@@ -105,65 +134,96 @@ export function LoginForm({
     }
   };
 
-  interface GoogleCredentialResponse {
-    credential?: string;
-    select_by?: string;
-  }
+  const handleGoogleSuccess = useCallback(
+    async (credentialResponse: GoogleCredentialResponse): Promise<void> => {
+      try {
+        const { credential } = credentialResponse;
+        if (!credential) {
+          throw new Error("No credential returned by Google");
+        }
 
-  const handleGoogleSuccess = async (
-    credentialResponse: GoogleCredentialResponse
-  ): Promise<void> => {
-    trackLoginAttempt("google");
+        const res = await googleLogin(credential);
+        const { access_token: token } = res;
+        localStorage.setItem("token", token);
 
-    try {
-      const { credential } = credentialResponse;
-      if (!credential) {
-        throw new Error("No credential returned by Google");
+        const decoded = jwtDecode<DecodedToken>(token);
+
+        trackLoginSuccess("google");
+
+        // Identify the user so all future events are tied to them
+        identifyUser({
+          id: decoded.id,
+          email: decoded.sub ?? "",
+          firstName: "",
+          lastName: "",
+          role: decoded.role ?? "participant",
+        });
+
+        if (decoded) {
+          navigate("/app/home");
+        }
+      } catch (err: unknown) {
+        const isError = err instanceof Error;
+        const errorMessage = isError
+          ? err.message
+          : "Unknown error during Google login.";
+
+        trackLoginFailed("google", errorMessage);
+
+        logFrontend({
+          level: "ERROR",
+          message: `API Error: Failed to login using Google: ${errorMessage}`,
+          component: "LoginForm",
+          url: globalThis.location.href,
+          stack: isError ? err.stack : undefined,
+        });
+
+        toast.error("Google login failed. Please try again.");
       }
+    },
+    [identifyUser, navigate, trackLoginFailed, trackLoginSuccess]
+  );
 
-      const res = await googleLogin(credential);
-      const { access_token: token } = res;
-      localStorage.setItem("token", token);
-
-      const decoded = jwtDecode<DecodedToken>(token);
-
-      trackLoginSuccess("google");
-
-      // Identify the user so all future events are tied to them
-      identifyUser({
-        id: decoded.id,
-        email: decoded.sub ?? "",
-        firstName: "",
-        lastName: "",
-        role: decoded.role ?? "participant",
-      });
-
-      if (decoded) {
-        navigate("/app/home");
-      }
-    } catch (err: unknown) {
-      const isError = err instanceof Error;
-      const errorMessage = isError
-        ? err.message
-        : "Unknown error during Google login.";
-
-      trackLoginFailed("google", errorMessage);
-
-      logFrontend({
-        level: "ERROR",
-        message: `API Error: Failed to login using Google: ${errorMessage}`,
-        component: "LoginForm",
-        url: globalThis.location.href,
-        stack: isError ? err.stack : undefined,
-      });
-
-      toast.error("Google login failed. Please try again.");
-    }
-  };
-
-  const handleGoogleError = (): void => {
+  const handleGoogleError = useCallback((): void => {
     trackLoginFailed("google", "Google Sign-In widget error");
     toast.error("Google Sign-In was unsuccessful. Try again later.");
+  }, [trackLoginFailed]);
+
+  useEffect(() => {
+    if (!scriptLoadedSuccessfully || googleButtonInitializedRef.current) return;
+
+    const googleAccounts = getGoogleAccountsId();
+    if (!googleAccounts) return;
+
+    googleAccounts.initialize({
+      client_id: clientId,
+      callback: handleGoogleSuccess,
+    });
+
+    googleButtonInitializedRef.current = true;
+    setIsGoogleReady(true);
+  }, [clientId, handleGoogleSuccess, scriptLoadedSuccessfully]);
+
+  const handleGoogleSignInClick = (): void => {
+    const googleAccounts = getGoogleAccountsId();
+
+    if (!googleAccounts || !googleButtonInitializedRef.current) {
+      trackLoginFailed("google", "Google identity script unavailable");
+      handleGoogleError();
+      return;
+    }
+
+    trackLoginAttempt("google");
+
+    googleAccounts.prompt((notification: GooglePromptNotification) => {
+      if (
+        notification?.isNotDisplayed?.() ||
+        notification?.isSkippedMoment?.()
+      ) {
+        trackLoginFailed("google", "Google prompt unavailable");
+        toast.error("Google Sign-In was unavailable. Try again later.");
+      }
+    });
   };
 
   return (
@@ -223,10 +283,16 @@ export function LoginForm({
           </Field>
           <FieldSeparator>Or continue with</FieldSeparator>
           <Field>
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-            />
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleGoogleSignInClick}
+              disabled={!isGoogleReady || loading}
+            >
+              <SiGoogle className="size-4 shrink-0 text-primary" />
+              Sign in with Google
+            </Button>
             <FieldDescription className="text-center">
               Don&apos;t have an account?{" "}
               <button
