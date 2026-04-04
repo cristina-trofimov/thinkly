@@ -1,8 +1,8 @@
-interface CompetitionTimerProps {
+interface SessionTimerProps {
   remainingMs: number | null;
 }
 
-export function CompetitionTimer({ remainingMs }: CompetitionTimerProps) {
+export function SessionTimer({ remainingMs }: SessionTimerProps) {
   if (remainingMs === null) return null
 
   const isExpired = remainingMs === 0
