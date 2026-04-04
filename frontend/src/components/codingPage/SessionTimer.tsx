@@ -1,8 +1,8 @@
 interface SessionTimerProps {
-  remainingMs: number | null;
+  readonly remainingMs: number | null;
 }
 
-export function SessionTimer({ remainingMs }: SessionTimerProps) {
+export function SessionTimer({ remainingMs }: Readonly<SessionTimerProps>) {
   if (remainingMs === null) return null
 
   const isExpired = remainingMs === 0
@@ -17,23 +17,28 @@ export function SessionTimer({ remainingMs }: SessionTimerProps) {
     ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     : `${m}:${String(s).padStart(2, '0')}`
 
+  const dotClass = isExpired
+    ? 'bg-destructive'
+    : isUrgent
+      ? 'bg-destructive animate-pulse'
+      : isWarning
+        ? 'bg-amber-500 animate-pulse'
+        : 'bg-emerald-500'
+
+  const containerClass = isExpired || isUrgent
+    ? 'bg-destructive/10 border-destructive/30 text-destructive'
+    : isWarning
+      ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+      : 'bg-muted border-border text-muted-foreground'
+
   return (
     <div className={`
       flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium tabular-nums
       transition-colors duration-500
       ${isUrgent && !isExpired ? 'animate-pulse' : ''}
-      ${isExpired || isUrgent
-        ? 'bg-destructive/10 border-destructive/30 text-destructive'
-        : isWarning
-          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
-          : 'bg-muted border-border text-muted-foreground'
-      }
+      ${containerClass}
     `}>
-      <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? 'bg-destructive' :
-        isUrgent ? 'bg-destructive animate-pulse' :
-          isWarning ? 'bg-amber-500 animate-pulse' :
-            'bg-emerald-500'
-        }`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
       {isExpired ? "Time's up" : display}
     </div>
   )
