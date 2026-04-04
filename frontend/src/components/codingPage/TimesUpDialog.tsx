@@ -15,7 +15,7 @@ export function TimesUpDialog({ redirectCountdown }: TimesUpDialogProps) {
           </div>
           <DialogTitle className="text-xl font-semibold">Time's Up!</DialogTitle>
           <p className="text-muted-foreground text-sm">
-            The competition has ended. Thanks for participating!
+            Your session has ended. Thanks for participating!
           </p>
           <p className="text-sm">
             Redirecting you to the home page in{' '}

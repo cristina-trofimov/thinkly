@@ -25,7 +25,7 @@ import ConfirmCodeReset from '@/components/helpers/ConfirmCodeReset';
 import { useUser } from '@/context/UserContext';
 import type { SubmissionType } from '@/types/submissions/SubmissionType.type'
 import ConsoleOutput from '@/components/codingPage/ConsoleOutput';
-import { CompetitionTimer } from '@/components/codingPage/CompetitionTimer';
+import { SessionTimer } from '@/components/codingPage/SessionTimer';
 import type { AlgoTimeSession } from '@/types/algoTime/AlgoTime.type';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -541,7 +541,7 @@ const CodingView = () => {
             <Button onClick={submitCode} data-testid="submit-btn" disabled={isExpired}>
               <CloudUpload size={16} />Submit
             </Button>
-            <CompetitionTimer remainingMs={remainingMs} />
+            <SessionTimer remainingMs={remainingMs} />
           </div>
           {questionsInstances.length > 1 && (
             <div className='absolute right-0'>
