@@ -35,7 +35,7 @@ Below is the strict JSON schema you must follow. Do not output Markdown outside 
       {
         "language_name": "<String>",
         "imports": "<String escaped code>",
-        "preset_classes": "<String escaped code or \"\">",
+        "preset_classes": "<String escaped code or "">",
         "preset_functions": "<String escaped code for to_json/from_json>",
         "main_function": "<String escaped entry point code>",
         "template_code": "<String escaped boilerplate code for user>"
