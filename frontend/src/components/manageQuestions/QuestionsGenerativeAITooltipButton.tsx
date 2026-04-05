@@ -10,13 +10,13 @@ const GenAIHint = `You are an expert technical content creator and backend engin
 Below is the strict JSON schema you must follow. Do not output Markdown outside of the JSON block. Ensure the output is valid JSON.
 
 ### Constraints & Instructions:
-1.  **Code inside JSON:** Because you are putting code into JSON string values, you MUST properly escape newlines (\`\n\`), tabs (\`\t\`), and quotes (\`"\`).
+1.  **Code inside JSON:** Because you are putting code into JSON string values, you MUST properly escape newlines (\`\\n\`), tabs (\`\\t\`), and quotes (\`"\`).
 2.  **\`template_code\`**: This is what the user sees in their editor. Keep it clean and provide the function signature.
 3.  **Overhead Code (\`imports\`, \`preset_classes\`, \`preset_functions\`, \`main_function\`)**: This code is hidden from the user but executed by the runner. 
-    * Include serialization (\`to_json\`) and deserialization (\`from_json\`) logic in \`preset_functions\` to parse the test cases.
+    * Include serialization (\`to_json\`) and deserialization (\`from_json\`) logic in \`preset_functions\` to handle the test case data.
     * Provide any necessary class definitions (like \`ListNode\` or \`TreeNode\`) in \`preset_classes\`.
 4.  **Language Support**: You must generate \`language_specific_properties\` for exactly these languages: \`python\`, \`cpp\`, \`typescript\`, and \`csharp\`, or for exactly the languages requested after this.
-5.  **Single String I/O**: The \`input_data\` field MUST be a SINGLE string containing all arguments separated by newlines (e.g., \`"[1, 2, 3]\\n9"\`). It cannot be an array or an object. The \`expected_output\` must also be a single string (e.g., \`"[0, 1]"\`). The \`preset_functions\` you write must parse this single string to extract the separate arguments.
+5.  **Native JSON I/O**: The \`input_data\` and \`expected_output\` fields MUST be native JSON data types corresponding to the problem's inputs and outputs (e.g., an array like \`[1, 2, 3]\`, a number like \`9\`, an object like \`{"key": "value"}\`, a boolean, or a string). They MUST NOT be stringified JSON (e.g., NEVER use \`"[1, 2, 3]"\`). The overhead code you write must handle taking these native types and passing them correctly to the user's function.
 
 ### JSON Schema:
 [
@@ -27,15 +27,15 @@ Below is the strict JSON schema you must follow. Do not output Markdown outside 
     "tags": ["<String>", "<String>"],
     "testcases": [
       {
-        "input_data": "<Single String with escaped newlines for multiple arguments>",
-        "expected_output": "<Stringified Value>"
+        "input_data": "<Any JSON Data Type>",
+        "expected_output": "<Any JSON Data Type>"
       }
     ],
     "language_specific_properties": [
       {
         "language_name": "<String>",
         "imports": "<String escaped code>",
-        "preset_classes": "<String escaped code or "">",
+        "preset_classes": "<String escaped code or \"\">",
         "preset_functions": "<String escaped code for to_json/from_json>",
         "main_function": "<String escaped entry point code>",
         "template_code": "<String escaped boilerplate code for user>"
