@@ -125,6 +125,15 @@ export function LoginForm({
 
         const decoded = jwtDecode<DecodedToken>(token);
 
+        const profile = await getProfile();
+        const prefs = await getUserPreferences(profile.id);
+
+        localStorage.setItem("theme", prefs.theme ?? "light");
+        if (prefs.theme === "dark") document.documentElement.classList.add("dark");
+
+        setUser(profile);
+
+
         trackLoginSuccess("google");
 
         // Identify the user so all future events are tied to them

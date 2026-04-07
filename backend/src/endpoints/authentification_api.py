@@ -319,7 +319,7 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 
 @auth_router.post("/google-auth", responses=UNAUTHORIZED_RESPONSE)
-async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
+async def google_login(request: GoogleAuthRequest,response: Response, db: Annotated[Session, Depends(get_db)]):
     logger.info("Attempting Google OAuth login.")
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
@@ -396,6 +396,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         )
 
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+        refresh_token = create_refresh_token({"sub": user.email})
 
         # Create a session record for tracking logins
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -407,6 +408,15 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         )
         db.add(session)
         _commit_or_rollback(db)
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+            samesite="none",
+            secure=True
+        )
 
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"access_token": token}
