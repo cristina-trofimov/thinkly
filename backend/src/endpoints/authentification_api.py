@@ -189,14 +189,13 @@ UNAUTHORIZED_RESPONSE = {
 }
 
 
-def role_required(required_role: str):
+def roles_required(*required_roles: str):
     def role_checker(current_user: Annotated[dict, Depends(get_current_user)]):
-        if current_user.get("role") != required_role:
+        if current_user.get("role") not in required_roles:
             logger.warning(
-                f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
+                f"Access Forbidden: User {current_user.get('sub')} attempted to access endpoint requiring roles {required_roles}.")
             raise HTTPException(status_code=403, detail="Forbidden")
         return current_user
-
     return role_checker
 
 
@@ -548,7 +547,7 @@ async def logout(
 @auth_router.get("/admin/dashboard", responses=UNAUTHORIZED_RESPONSE)
 async def admin_dashboard(
         db: Annotated[Session, Depends(get_db)],
-        current_user: Annotated[dict, Depends(role_required("admin"))]
+        current_user: Annotated[dict, Depends(roles_required("admin"))]
 ):
     user_email = current_user.get("sub", "N/A")
     logger.info(f"Admin dashboard accessed successfully by user: {user_email}")

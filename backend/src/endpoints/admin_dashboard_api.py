@@ -6,7 +6,7 @@ from models.schema import (
     AlgoTimeSession, QuestionInstance, UserQuestionInstance, Submission, UserSession
 )
 from database_operations.database import get_db
-from endpoints.authentification_api import role_required
+from endpoints.authentification_api import roles_required
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
@@ -157,7 +157,7 @@ def get_chart_colors():
 @admin_dashboard_router.get("/overview", response_model=DashboardOverviewResponse)
 async def get_dashboard_overview(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))]
 ):
     """
     Get dashboard overview with 2 most recent items for each category.
@@ -264,7 +264,7 @@ async def get_dashboard_overview(
 @admin_dashboard_router.get("/stats/new-accounts", response_model=NewAccountsStatsResponse)
 async def get_new_accounts_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -318,7 +318,7 @@ async def get_new_accounts_stats(
 @admin_dashboard_router.get("/stats/questions-solved", response_model=List[QuestionsSolvedItem])
 async def get_questions_solved_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -371,7 +371,7 @@ async def get_questions_solved_stats(
 @admin_dashboard_router.get("/stats/time-to-solve", response_model=List[TimeToSolveItem])
 async def get_time_to_solve_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -429,7 +429,7 @@ async def get_time_to_solve_stats(
 @admin_dashboard_router.get("/stats/logins", response_model=List[LoginsDataPoint])
 async def get_logins_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -516,7 +516,7 @@ async def get_logins_stats(
 @admin_dashboard_router.get("/stats/participation", response_model=List[ParticipationDataPoint])
 async def get_participation_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends( roles_required("owner", "admin"))],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
