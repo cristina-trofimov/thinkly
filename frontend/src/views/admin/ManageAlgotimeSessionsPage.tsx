@@ -287,6 +287,8 @@ export default function ManageAlgotimeSessionsPage() {
           {algotimesSessions.map((ATsession, index) => (
             (() => {
               const rowIndex = Math.floor(index / 4);
+              const status = getEventStatus(ATsession.startTime, ATsession.endTime);
+              const isCompleted = status === "Completed";
               const enterClass = cardsVisible
                 ? "translate-y-0"
                 : "translate-y-2 opacity-0";
@@ -301,17 +303,12 @@ export default function ManageAlgotimeSessionsPage() {
                 >
                   <div className="aspect-4/3 bg-gradient-to-br from-primary/10 via-primary/5 to-background flex items-center justify-center relative overflow-hidden p-6">
                     <div className="absolute top-3 right-3 z-20">
-                      {(() => {
-                        const status = getEventStatus(ATsession.startTime, ATsession.endTime);
-                        return (
-                          <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}>
-                            {status}
-                          </span>
-                        );
-                      })()}
+                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shadow-sm ${getAdminStatusBadgeClasses(status)}`}>
+                        {status}
+                      </span>
                     </div>
                     <div className="relative z-10 text-center w-full">
-                      <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                      <div className={`text-2xl md:text-3xl font-bold break-words leading-tight ${isCompleted ? "text-muted-foreground" : "text-primary/80"}`}>
                         {ATsession.eventName || "no event"}
                       </div>
                     </div>
@@ -321,7 +318,7 @@ export default function ManageAlgotimeSessionsPage() {
                       <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                         Date
                       </h4>
-                      <p className="font-medium text-sm line-clamp-3 leading-relaxed">
+                      <p className={`font-medium text-sm line-clamp-3 leading-relaxed ${isCompleted ? "text-muted-foreground/60" : ""}`}>
                         {formatEventDate(ATsession.startTime)}
                       </p>
                     </div>

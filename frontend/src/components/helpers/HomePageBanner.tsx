@@ -30,23 +30,23 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
 
   const competitionData = useMemo(() => {
     const now = currentTime;
-    
+
     const activeCompetition = competitions.find(
       (c) => new Date(c.startDate) <= now && new Date(c.endDate) >= now
     );
-    
+
     if (activeCompetition) {
       return { competition: activeCompetition, status: "active" as const };
     }
-    
+
     const upcomingCompetitions = competitions
       .filter((c) => new Date(c.startDate) > now)
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-    
+
     if (upcomingCompetitions.length > 0) {
       return { competition: upcomingCompetitions[0], status: "upcoming" as const };
     }
-    
+
     return null;
   }, [competitions, currentTime]);
 
@@ -102,7 +102,7 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
         </p>
         <Button
           variant="outline"
-          className="rounded-lg font-semibold cursor-pointer text-primary hover:text-primary"
+          className="rounded-lg font-semibold cursor-pointer text-primary hover:text-primary bg-white hover:bg-white/90 border-white dark:text-primary dark:bg-white dark:hover:bg-white/90"
           onClick={() => {
             nav(`/app/comp/${competition.competitionTitle}`, {
               state: {
@@ -133,7 +133,7 @@ export default function HomePageBanner({ competitions }: Readonly<HomePageBanner
         {competition.competitionTitle}
       </h1>
       <p className="text-white text-lg mb-3">
-        Get ready! The competition starts on {new Date(competition.startDate).toLocaleDateString()} at {new Date(competition.startDate).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit',})}.
+        Get ready! The competition starts on {new Date(competition.startDate).toLocaleDateString()} at {new Date(competition.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', })}.
       </p>
     </div>
   );

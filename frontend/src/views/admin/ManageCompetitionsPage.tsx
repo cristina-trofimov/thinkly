@@ -326,10 +326,8 @@ const ManageCompetitions = () => {
           {competitions.map((comp, index) => {
             const status = getEventStatus(comp.startDate, comp.endDate);
             const title = comp.competitionTitle || "Untitled Competition";
-            let opacityClass = "opacity-100";
-            if (status === "Completed") {
-              opacityClass = "opacity-75";
-            }
+            const isCompleted = status === "Completed";
+            const opacityClass = isCompleted ? "opacity-60 grayscale-[50%]" : "opacity-100";
             const rowIndex = Math.floor(index / 4);
             const enterClass = cardsVisible
               ? "translate-y-0"
@@ -354,7 +352,7 @@ const ManageCompetitions = () => {
                     </span>
                   </div>
                   <div className="relative z-10 text-center w-full">
-                    <div className="text-2xl md:text-3xl font-bold text-primary/80 break-words leading-tight">
+                    <div className={`text-2xl md:text-3xl font-bold break-words leading-tight ${isCompleted ? "text-muted-foreground" : "text-primary/80"}`}>
                       {title}
                     </div>
                   </div>
@@ -362,10 +360,10 @@ const ManageCompetitions = () => {
 
                 <CardContent className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`text-xs mt-1 ${isCompleted ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                       {comp.competitionLocation || "Location TBD"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className={`text-xs mt-1 ${isCompleted ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                       {formatEventDate(comp.startDate)}
                     </p>
                   </div>
