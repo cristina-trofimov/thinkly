@@ -85,7 +85,7 @@ const CodingView = () => {
     activeQuestionInstance, setActiveQuestionInstance,
     activeDisplayQuestionName, setActiveDisplayQuestionName,
     questions, questionsInstances, languages, prevLangRef,
-    selectedLang, setSelectedLang, event, testcases,
+    selectedLang, setSelectedLang, event,
     loadingMsg, setLoadingMsg, isLoading, setIsLoading,
     allSubmissions, setAllSubmissions, allLanguages
   } = useCodingHooks(question, comp, resolvedAlgo)
@@ -470,7 +470,7 @@ const CodingView = () => {
           {/* Code + output panels */}
           <div className="flex-1 flex flex-col gap-2">
             {/* Code panel */}
-            <div className="flex-[65] rounded-md border flex flex-col">
+            <div className="flex-65 rounded-md border flex flex-col">
               {/* Header — label and action buttons are static */}
               <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
                 <span className="text-lg font-medium">Code</span>
@@ -497,7 +497,7 @@ const CodingView = () => {
               <Skeleton className="flex-1 h-64 rounded-none" />
             </div>
             {/* Output panel */}
-            <div className="flex-[35] rounded-md border flex flex-col">
+            <div className="flex-35 rounded-md border flex flex-col">
               {/* Header — label and action buttons are static */}
               <div className="h-10 bg-muted border-b px-4 flex items-center justify-between">
                 <span className="text-lg font-medium">Output</span>
@@ -583,7 +583,7 @@ const CodingView = () => {
         >
           <CodeDescArea
             question={activeQuestion} question_instance={activeQuestionInstance}
-            uqi={userQuestionInstance} testcases={testcases}
+            uqi={userQuestionInstance}
             eventId={event?.event_id ?? (resolvedAlgo ? 0 : undefined)}
             eventName={event?.event_name ?? (resolvedAlgo ? "AlgoTime Leaderboard" : undefined)}
             isCompetitionEvent={!!comp}

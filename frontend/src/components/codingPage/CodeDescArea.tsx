@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { FileText, History, Trophy, Loader2, ClipboardCheck, Info } from 'lucide-react'
 import { useEffect, forwardRef, useState, useRef } from 'react'
 import { EventLeaderboard } from '@/components/leaderboards/CodingPageLeaderboard'
-import type { Question, TestCase } from '@/types/questions/QuestionPagination.type'
+import type { Question } from '@/types/questions/QuestionPagination.type'
 import { useAnalytics } from '@/hooks/useAnalytics'
 
 import RiddleUserForm from '../forms/RiddleForm'
@@ -21,7 +21,6 @@ import { SubmissionSkeleton } from './SubmissionSkeleton'
 import { SubmissionDetail } from './SubmissionDetail'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@radix-ui/react-tooltip'
 import { getDiffColor } from '@/utils/difficultyBadge'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -29,7 +28,6 @@ type DescProp = {
     question: Question | undefined,
     question_instance: QuestionInstance | undefined | null,
     uqi: UserQuestionInstance | undefined | null,
-    testcases: TestCase[] | undefined | null,
     eventId: number | undefined,
     eventName: string | undefined,
     isCompetitionEvent: boolean,
@@ -42,7 +40,7 @@ type DescProp = {
 }
 
 const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
-({ question, question_instance, uqi, testcases, eventId, eventName, isCompetitionEvent, currentUserId,
+({ question, question_instance, uqi, eventId, eventName, isCompetitionEvent, currentUserId,
     submissionState, latestSubmissionResult, allLanguages, submissions, onRiddleSolved
 }, _codeDescAreaContainerRef) => {
 
@@ -275,49 +273,19 @@ const CodeDescArea = forwardRef<HTMLDivElement, DescProp>(
             <TabsContent
                 value='description'
                 data-testid="tabs-content-description"
-                className="flex-1 overflow-y-auto mt-0"
+                className="flex-1 overflow-y-auto mt-0 h-full p-4"
             >
-                <PanelGroup direction={'vertical'} className='h-full p-4'>
-                    <div className='shrink-0 mb-3 flex flex-col items-start gap-2'>
-                        <h1 className='text-2xl font-bold'>
-                            {question.question_name}
-                        </h1>
-                        <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
-                            {difficultyLabel}
-                        </span>
-                    </div>
-                    <Panel defaultSize={75} className='pb-1' >
-                        <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-full'>
-                            {question.question_description}
-                        </p>
-                    </Panel>
-                    <PanelResizeHandle data-testid="panel-resizable-handle"
-                        className='my-1 h-1 bg-muted rounded-full'
-                    />
-                    <Panel defaultSize={25} >
-                        {testcases && testcases.length > 0 && (
-                            <div className='max-h-full mt-2 px-2 border rounded-xl bg-muted/65
-                            wrap-break-word whitespace-pre-wrap overflow-y-auto' >
-                            {testcases.map((t, idx) => {
-                                return <div key={`example ${idx + 1}`} className='mt-3 flex flex-col gap-1'>
-                                    <p className='font-bold'>Example {idx + 1}:</p>
-                                    <div className='ml-4 flex flex-col gap-1'>
-                                        <p className='font-bold'>Inputs <span className='font-normal'>
-                                            {Object.entries(t.input_data as Record<string, unknown>).map(([key, val], i) => {
-                                                const separator = i < Object.keys(t.input_data as Record<string, unknown>).length - 1 ? `, ` : `\n`
-                                                return `${key} = ${JSON.stringify(val)}${separator}`
-                                            })}
-                                        </span></p>
-                                        <p className='font-bold'>Outputs: <span className='font-normal'>
-                                            {JSON.stringify(t.expected_output, undefined, 2)}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            })}
-                        </div>
-                        )}
-                    </Panel>
-                </PanelGroup>
+                <div className='shrink-0 mb-3 flex flex-col items-start gap-2'>
+                    <h1 className='text-2xl font-bold'>
+                        {question.question_name}
+                    </h1>
+                    <span className={`text-[14px] w-fit px-2.5 py-1 rounded-full ${getDiffColor(question.difficulty)}`}>
+                        {difficultyLabel}
+                    </span>
+                </div>
+                <p className='text-left leading-6 wrap-break-word whitespace-pre-wrap overflow-y-auto max-h-full'>
+                    {question.question_description}
+                </p>
             </TabsContent>
 
             {/* Submissions */}
