@@ -238,7 +238,7 @@ const CodingView = () => {
         } = await submitAttempt(
           activeQuestion, activeQuestionInstance,
           userQuestionInstance, event,
-          codeToSubmit, code, selectedLang?.lang_judge_id, user?.id ?? 0, !!resolvedAlgo)
+          codeToSubmit, code, selectedLang?.lang_judge_id, !!resolvedAlgo)
 
         hasSubmittedRef.current = true;
 

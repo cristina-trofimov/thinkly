@@ -80,7 +80,7 @@ const event_id = 1
 const source_code = "print('Hello')"
 const language_id = 71
 
-const boilerCode = `boilerBefore\n\n${source_code}\n\nboilerAfter`
+const boilerCode = `boilerBefore\n${source_code}\nboilerAfter`
 
 const event: BaseEvent = {
   event_id: event_id,
@@ -203,7 +203,7 @@ describe("Code Submission", () => {
       // userId is now the 8th argument
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_not_complete, undefined,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
         question_instance_id, question_id, boilerCode, language_id, user_id)
@@ -227,7 +227,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
         question_instance_id, question_id, boilerCode, language_id, user_id)
@@ -251,7 +251,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_not_complete, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
         question_instance_id, question_id, boilerCode, language_id, user_id)
@@ -275,7 +275,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[1],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSubmitToJudge0).toHaveBeenCalledWith(
         question_instance_id, question_id, boilerCode, language_id, user_id)
@@ -294,7 +294,7 @@ describe("Code Submission", () => {
     it("fails if submission linked to an event without completing riddle", async () => {
       await expect(submitAttempt(question, questionInstances[1],
               userQuestionInstance_riddle_not_complete,
-              event, boilerCode, source_code, language_id, user_id))
+              event, boilerCode, source_code, language_id))
             .rejects.toThrow("SubmitAttempt: riddle needs to be completed")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -312,7 +312,7 @@ describe("Code Submission", () => {
     it("throws an error if the given question is undefined", async () => {
       await expect(
         submitAttempt(undefined, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -330,7 +330,7 @@ describe("Code Submission", () => {
     it("throws an error if the given question instance is undefined", async () => {
       await expect(
         submitAttempt(question, undefined, userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -348,7 +348,7 @@ describe("Code Submission", () => {
     it("throws an error if the given user question instance is undefined", async () => {
       await expect(
         submitAttempt(question, questionInstances[0], undefined,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -366,7 +366,7 @@ describe("Code Submission", () => {
     it("throws an error if the given language is undefined", async () => {
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, undefined, user_id))
+                    event, boilerCode, source_code, undefined))
                 .rejects.toThrow("SubmitAttempt: missing field between (question, question instance, user question instance, or language) cannot be undefined")
 
       expect(mockedSubmitToJudge0).not.toHaveBeenCalled()
@@ -386,7 +386,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedPutUserInstance).not.toHaveBeenCalled()
@@ -406,7 +406,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()
@@ -427,7 +427,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()
@@ -449,7 +449,7 @@ describe("Code Submission", () => {
 
       await expect(
         submitAttempt(question, questionInstances[0], userQuestionInstance_riddle_complete,
-                    event, boilerCode, source_code, language_id, user_id))
+                    event, boilerCode, source_code, language_id))
                 .rejects.toThrow("Network error")
 
       expect(mockedSubmitToJudge0).toHaveBeenCalled()
@@ -476,7 +476,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(mediumQuestion, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedPutUserInstance).toHaveBeenCalledWith(
         expect.objectContaining({ points: 200 })
@@ -492,7 +492,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(hardQuestion, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedPutUserInstance).toHaveBeenCalledWith(
         expect.objectContaining({ points: 300 })
@@ -506,7 +506,7 @@ describe("Code Submission", () => {
       await expect(
         submitAttempt(invalidQuestion, questionInstances[0],
           userQuestionInstance_riddle_complete, event,
-          boilerCode, source_code, language_id, user_id)
+          boilerCode, source_code, language_id)
       ).rejects.toThrow("SubmitAttempt: This is not a valid question difficulty level")
 
       expect(mockedLogger).toHaveBeenCalledWith(
@@ -532,7 +532,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         freshUserQuestionInstance, event,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       // points should remain null — not set by the difficulty switch
       expect(mockedPutUserInstance).toHaveBeenCalledWith(
@@ -553,7 +553,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id, true)
+        boilerCode, source_code, language_id, true)
 
       expect(mockedUpsertAlgoTimeLeaderboardEntry).toHaveBeenCalledWith(user_id)
       expect(mockedUpsertCompetitionLeaderboardEntry).not.toHaveBeenCalled()
@@ -568,7 +568,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, event,
-        boilerCode, source_code, language_id, user_id, false)
+        boilerCode, source_code, language_id, false)
 
       expect(mockedUpsertCompetitionLeaderboardEntry).toHaveBeenCalledWith(user_id, event_id)
       expect(mockedUpsertAlgoTimeLeaderboardEntry).not.toHaveBeenCalled()
@@ -582,7 +582,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, undefined,
-        boilerCode, source_code, language_id, user_id, true)
+        boilerCode, source_code, language_id, true)
 
       expect(mockedUpsertAlgoTimeLeaderboardEntry).not.toHaveBeenCalled()
       expect(mockedUpsertCompetitionLeaderboardEntry).not.toHaveBeenCalled()
@@ -596,7 +596,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, null,
-        boilerCode, source_code, language_id, user_id, false)
+        boilerCode, source_code, language_id, false)
 
       expect(mockedUpsertAlgoTimeLeaderboardEntry).not.toHaveBeenCalled()
       expect(mockedUpsertCompetitionLeaderboardEntry).not.toHaveBeenCalled()
@@ -611,7 +611,7 @@ describe("Code Submission", () => {
       await expect(
         submitAttempt(question, questionInstances[0],
           userQuestionInstance_riddle_complete, event,
-          boilerCode, source_code, language_id, user_id, false)
+          boilerCode, source_code, language_id, false)
       ).rejects.toThrow("Leaderboard error")
 
       expect(mockedSaveSubmission).not.toHaveBeenCalled()
@@ -640,7 +640,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, undefined,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSaveSubmission).toHaveBeenCalledWith(
         expect.objectContaining({ runtime: null, memory: null })
@@ -655,7 +655,7 @@ describe("Code Submission", () => {
 
       await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, undefined,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(mockedSaveSubmission).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -677,7 +677,7 @@ describe("Code Submission", () => {
 
       const result = await submitAttempt(question, questionInstances[0],
         userQuestionInstance_riddle_complete, undefined,
-        boilerCode, source_code, language_id, user_id)
+        boilerCode, source_code, language_id)
 
       expect(result).toEqual({
         codeRunResponse: {
