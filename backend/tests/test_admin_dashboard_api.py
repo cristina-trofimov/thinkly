@@ -18,28 +18,6 @@ app.include_router(admin_dashboard_api.admin_dashboard_router, prefix="/admin/da
 
 
 @pytest.fixture
-def client(mock_db):
-    """Creates a test client with dependency overrides."""
-    test_app = FastAPI()
-    test_app.include_router(competitions_router)
-
-    # Override database dependency
-    def override_get_db():
-        try:
-            yield mock_db
-        finally:
-            pass
-
-    # Override authentication dependency
-    def override_get_current_user():
-        return {"sub": "test@example.com", "role": "admin"}
-
-    test_app.dependency_overrides[database.get_db] = override_get_db
-    test_app.dependency_overrides[get_current_user] = override_get_current_user
-
-    return TestClient(test_app)
-
-@pytest.fixture
 def mock_db_session():
     return MagicMock()
 
@@ -55,13 +33,13 @@ def client(mock_db_session, mock_admin_user):
         try:
             yield mock_db_session
         finally:
-            pass
+            mock_db_session.close()
 
     app.dependency_overrides[database.get_db] = override_get_db
 
-    with patch.object(admin_dashboard_api, 'role_required') as mock_role:
+    with patch.object(admin_dashboard_api, 'admin_or_owner_required') as mock_role:
         mock_role.return_value = lambda: mock_admin_user
-        app.dependency_overrides[admin_dashboard_api.role_required("admin")] = lambda: mock_admin_user
+        app.dependency_overrides[admin_dashboard_api.admin_or_owner_required] = lambda: mock_admin_user
         yield TestClient(app)
 
     app.dependency_overrides.clear()
@@ -104,7 +82,7 @@ class TestDashboardOverview:
         mock_db_session.query.return_value.order_by.return_value.limit.return_value.all.return_value = [mock_user_account]
         mock_db_session.query.return_value.join.return_value.order_by.return_value.limit.return_value.all.return_value = []
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/overview")
 
         assert response.status_code in [200, 401, 403]
@@ -125,7 +103,7 @@ class TestNewAccountsStats:
     def test_get_new_accounts_stats_3months(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.scalar.return_value = 10
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/new-accounts?time_range=3months")
 
         assert response.status_code in [200, 401, 403]
@@ -139,7 +117,7 @@ class TestNewAccountsStats:
     def test_get_new_accounts_stats_7days(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.scalar.return_value = 5
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/new-accounts?time_range=7days")
 
         assert response.status_code in [200, 401, 403]
@@ -147,7 +125,7 @@ class TestNewAccountsStats:
     def test_get_new_accounts_stats_30days(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.scalar.return_value = 8
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/new-accounts?time_range=30days")
 
         assert response.status_code in [200, 401, 403]
@@ -161,7 +139,7 @@ class TestQuestionsSolvedStats:
         easy.weighted_avg_solve_time = 25.0
         mock_db_session.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [easy]
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/questions-solved?time_range=3months")
 
         assert response.status_code in [200, 401, 403]
@@ -183,7 +161,7 @@ class TestTimeToSolveStats:
         easy.weighted_avg_solve_time = 45.5
         mock_db_session.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [easy]
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/time-to-solve?time_range=3months")
 
         assert response.status_code in [200, 401, 403]
@@ -201,7 +179,7 @@ class TestLoginsStats:
     def test_get_logins_stats_7days(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.group_by.return_value.all.return_value = []
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/logins?time_range=7days")
 
         assert response.status_code in [200, 401, 403]
@@ -212,7 +190,7 @@ class TestLoginsStats:
     def test_get_logins_stats_30days(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.scalar.return_value = 5
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/logins?time_range=30days")
 
         assert response.status_code in [200, 401, 403]
@@ -220,7 +198,7 @@ class TestLoginsStats:
     def test_get_logins_stats_3months(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.group_by.return_value.all.return_value = []
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/logins?time_range=3months")
 
         assert response.status_code in [200, 401, 403]
@@ -230,7 +208,7 @@ class TestParticipationStats:
     def test_get_participation_stats_algotime(self, client, mock_db_session):
         mock_db_session.query.return_value.join.return_value.filter.return_value.filter.return_value.scalar.return_value = 10
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/participation?time_range=3months&event_type=algotime")
 
         assert response.status_code in [200, 401, 403]
@@ -241,7 +219,7 @@ class TestParticipationStats:
     def test_get_participation_stats_competitions(self, client, mock_db_session):
         mock_db_session.query.return_value.join.return_value.filter.return_value.filter.return_value.scalar.return_value = 15
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/participation?time_range=3months&event_type=competitions")
 
         assert response.status_code in [200, 401, 403]
@@ -249,7 +227,7 @@ class TestParticipationStats:
     def test_get_participation_stats_7days(self, client, mock_db_session):
         mock_db_session.query.return_value.join.return_value.filter.return_value.filter.return_value.scalar.return_value = 3
 
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/participation?time_range=7days&event_type=algotime")
 
         assert response.status_code in [200, 401, 403]
@@ -258,12 +236,12 @@ class TestParticipationStats:
 class TestTimeRangeValidation:
     def test_invalid_time_range(self, client, mock_db_session):
         mock_db_session.query.return_value.filter.return_value.scalar.return_value = 0
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/new-accounts?time_range=invalid")
         assert response.status_code in [401, 422]
 
     def test_invalid_event_type(self, client, mock_db_session):
         mock_db_session.query.return_value.join.return_value.filter.return_value.filter.return_value.scalar.return_value = 0
-        with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
+        with patch.object(admin_dashboard_api, 'admin_or_owner_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/participation?event_type=invalid")
         assert response.status_code in [401, 422]
