@@ -159,7 +159,6 @@ async def analytics_middleware(request: Request, call_next):
 # --- Request Logging Middleware ---
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.info(">>", request.method, request.url.path, "Origin:", request.headers.get("origin"))
     response = await call_next(request)
     return response
 

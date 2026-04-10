@@ -12,7 +12,6 @@ import { getAllQuestionInstancesByEventID, getQuestionInstance, putQuestionInsta
 import { getAllLanguages } from "@/api/LanguageAPI"
 import { getUserPrefs } from "@/api/UserPreferencesAPI"
 import { getQuestionByID } from "@/api/QuestionsAPI"
-import { useTestcases } from "./useTestcases"
 import type { MostRecentSub } from "@/types/submissions/MostRecentSub.type"
 import { getUserInstance, putUserInstance } from "@/api/UserQuestionInstanceAPI"
 import type { UserQuestionInstance } from "@/types/submissions/UserQuestionInstance.type"
@@ -48,8 +47,6 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
     const [ mostRecentSub, setMostRecentSub ] = useState<MostRecentSub>()
     const [ allSubmissions, setAllSubmissions ] = useState<SubmissionType[]>()
     const [ allLanguages, setAllLanguages ] = useState<Language[]>()
-
-    const { testcases } = useTestcases(activeQuestionInstance?.question_id)
 
     const eventID = comp?.id || algo?.id || undefined
     const { user } = useUser()
@@ -294,7 +291,7 @@ export function useCodingHooks(question?: Question, comp?: Competition, algo?: A
         questions, questionsInstances,
         languages, prevLangRef, event,
         selectedLang, setSelectedLang,
-        userPreferences, testcases,
+        userPreferences,
         loadingMsg, setLoadingMsg,
         allSubmissions, setAllSubmissions,
         allLanguages, setAllLanguages

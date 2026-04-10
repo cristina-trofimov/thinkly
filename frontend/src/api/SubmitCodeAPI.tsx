@@ -19,7 +19,6 @@ export async function submitAttempt(
     code_to_run: string,
     user_code: string,
     language_id: number | undefined,
-    userId: number,
     isAlgoTime: boolean = false,
   ): Promise<SubmitAttemptResponse> {
     try {
@@ -32,7 +31,7 @@ export async function submitAttempt(
       }
 
       // 1. Submit to judge0 and save most recent submission
-      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id, code_to_run, language_id, userId)
+      const { judge0Response, userPrefs } = await submitToJudge0(questionInstance.question_instance_id, question.question_id, code_to_run, language_id, userQuestionInstance.user_id)
 
       // 2. Competition/Algotime points calculation
       if (event && judge0Response.status.description.toLocaleLowerCase() === "accepted") {
@@ -59,9 +58,9 @@ export async function submitAttempt(
 
       // 5. Update leaderboard based on session type
       if (isAlgoTime && event) {
-        await upsertAlgoTimeLeaderboardEntry(userId)
+        await upsertAlgoTimeLeaderboardEntry(userQuestionInstance.user_id)
       } else if (!isAlgoTime && event) {
-        await upsertCompetitionLeaderboardEntry(userId, event.event_id)
+        await upsertCompetitionLeaderboardEntry(userQuestionInstance.user_id, event.event_id)
       }
 
       // 6. Save submission's output details

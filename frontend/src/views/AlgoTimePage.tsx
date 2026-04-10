@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 
 const formatSessionDate = (d: Date | string) => {
   const date = new Date(d);
-  if (isNaN(date.getTime())) return "TBD";
+  if (Number.isNaN(date.getTime())) return "TBD";
   return date.toLocaleString(undefined, {
     month: "short",
     day: "numeric",
@@ -26,7 +26,7 @@ const formatSessionDate = (d: Date | string) => {
 
 const formatSessionDateLong = (d: Date | string) => {
   const date = new Date(d);
-  if (isNaN(date.getTime())) return "TBD";
+  if (Number.isNaN(date.getTime())) return "TBD";
   return date.toLocaleString(undefined, {
     weekday: "long",
     year: "numeric",
@@ -43,9 +43,9 @@ const getSessionStatus = (startTime: Date | string, endTime: Date | string): Ses
   const now = new Date();
   const start = new Date(startTime);
   const end = new Date(endTime);
-  if (isNaN(start.getTime())) return "Upcoming";
+  if (Number.isNaN(start.getTime())) return "Upcoming";
   if (now < start) return "Upcoming";
-  if (!isNaN(end.getTime()) && now > end) return "Completed";
+  if (!Number.isNaN(end.getTime()) && now > end) return "Completed";
   return "Active";
 };
 
