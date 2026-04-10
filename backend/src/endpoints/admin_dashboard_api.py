@@ -7,6 +7,7 @@ from models.schema import (
 )
 from database_operations.database import get_db
 from endpoints.authentification_api import role_required
+from endpoints.long_term_statistics_api import get_long_term_statistics_summary
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
@@ -150,6 +151,10 @@ def get_chart_colors():
         "hard": "var(--chart-3)",
         "chart4": "var(--chart-4)"
     }
+
+
+def _get_long_term_window_days(time_range: str) -> int:
+    return TIME_RANGE_CONFIG.get(time_range, DEFAULT_TIME_RANGE)[0]
 
 
 # ---------------- Routes ----------------
@@ -332,27 +337,17 @@ async def get_questions_solved_stats(
     colors = get_chart_colors()
 
     try:
-        range_start = get_time_range_start(time_range)
-
-        # Query successful submissions grouped by question difficulty
-        results = (
-            db.query(
-                Question.difficulty,
-                func.count(Submission.submission_id).label('count')
-            )
-            .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
-            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
-            .filter(
-                Submission.status == 'Accepted',
-                Submission.submitted_on >= range_start
-            )
-            .group_by(Question.difficulty)
-            .all()
+        summary = get_long_term_statistics_summary(
+            db=db,
+            window_value=_get_long_term_window_days(time_range),
+            window_unit="days",
+            difficulty=None,
         )
 
-        # Convert to dict for easy lookup
-        counts = {r.difficulty: r.count for r in results}
+        counts = {
+            item.difficulty: item.total_questions_solved
+            for item in summary.stats
+        }
 
         return [
             QuestionsSolvedItem(name="Easy", value=counts.get("easy", 0), color=colors["easy"]),
@@ -386,31 +381,17 @@ async def get_time_to_solve_stats(
     colors = get_chart_colors()
 
     try:
-        range_start = get_time_range_start(time_range)
-
-        # Calculate average time to solve by difficulty
-        # Time = submitted_on - event_start_date (in minutes)
-        results = (
-            db.query(
-                Question.difficulty,
-                func.avg(
-                    func.extract('epoch', Submission.submitted_on - BaseEvent.event_start_date) / 60
-                ).label('avg_minutes')
-            )
-            .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
-            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
-            .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
-            .filter(
-                Submission.status == 'Accepted',
-                Submission.submitted_on >= range_start
-            )
-            .group_by(Question.difficulty)
-            .all()
+        summary = get_long_term_statistics_summary(
+            db=db,
+            window_value=_get_long_term_window_days(time_range),
+            window_unit="days",
+            difficulty=None,
         )
 
-        # Convert to dict for easy lookup
-        times = {r.difficulty: round(r.avg_minutes, 1) if r.avg_minutes else 0 for r in results}
+        times = {
+            item.difficulty: round(item.average_solve_time, 1) if item.average_solve_time else 0
+            for item in summary.stats
+        }
 
         return [
             TimeToSolveItem(type="Easy", time=times.get("easy", 0), color=colors["easy"]),

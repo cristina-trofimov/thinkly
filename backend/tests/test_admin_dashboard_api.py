@@ -155,10 +155,11 @@ class TestNewAccountsStats:
 
 class TestQuestionsSolvedStats:
     def test_get_questions_solved_stats(self, client, mock_db_session):
-        mock_result = MagicMock()
-        mock_result.difficulty = "easy"
-        mock_result.count = 10
-        mock_db_session.query.return_value.join.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [mock_result]
+        easy = MagicMock()
+        easy.difficulty = "easy"
+        easy.total_solves = 10
+        easy.weighted_avg_solve_time = 25.0
+        mock_db_session.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [easy]
 
         with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/questions-solved?time_range=3months")
@@ -176,10 +177,11 @@ class TestQuestionsSolvedStats:
 
 class TestTimeToSolveStats:
     def test_get_time_to_solve_stats(self, client, mock_db_session):
-        mock_result = MagicMock()
-        mock_result.difficulty = "easy"
-        mock_result.avg_minutes = 45.5
-        mock_db_session.query.return_value.join.return_value.join.return_value.join.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [mock_result]
+        easy = MagicMock()
+        easy.difficulty = "easy"
+        easy.total_solves = 3
+        easy.weighted_avg_solve_time = 45.5
+        mock_db_session.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [easy]
 
         with patch.object(admin_dashboard_api, 'role_required', return_value=lambda: {"sub": "admin@test.com", "role": "admin"}):
             response = client.get("/admin/dashboard/stats/time-to-solve?time_range=3months")
