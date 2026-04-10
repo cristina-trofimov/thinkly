@@ -11,6 +11,7 @@ FK_USER_ACCOUNT_USER_ID = 'user_account.user_id'
 FK_BASE_EVENT_EVENT_ID = 'base_event.event_id'
 FK_QUESTION_QUESTION_ID = 'question.question_id'
 FK_LANGUAGE_LANG_JUDGE_ID = 'language.lang_judge_id'
+FK_COMPETITION_EVENT_ID = 'competition.event_id'
 ON_DELETE_SET_NULL = 'SET NULL'
 
 
@@ -108,7 +109,7 @@ class CompetitionEmail(Base):
     __tablename__ = 'competition_email'
 
     email_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
+    competition_id: Mapped[int] = mapped_column(ForeignKey(FK_COMPETITION_EVENT_ID, ondelete='CASCADE'))
 
     # Basic email schedule info
     subject: Mapped[str] = mapped_column()
@@ -304,7 +305,7 @@ class CompetitionLeaderboardEntry(Base):
     __tablename__ = 'competition_leaderboard_entry'
 
     competition_leaderboard_entry_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    competition_id: Mapped[int] = mapped_column(ForeignKey('competition.event_id', ondelete='CASCADE'))
+    competition_id: Mapped[int] = mapped_column(ForeignKey(FK_COMPETITION_EVENT_ID, ondelete='CASCADE'))
     name: Mapped[str] = mapped_column()
     user_id: Mapped[Optional[int]] = mapped_column(ForeignKey(FK_USER_ACCOUNT_USER_ID, ondelete=ON_DELETE_SET_NULL))
     total_score: Mapped[int] = mapped_column()
@@ -341,9 +342,19 @@ class AlgoTimeLeaderboardEntry(Base):
                                                                back_populates='algotime_leaderboard_entries',
                                                                uselist=False)
 
-
-
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.calculated_rank = None
+
+class LongTermStatistics(Base):
+    __tablename__ = 'long_term_statistics'
+
+    stats_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(ForeignKey(FK_BASE_EVENT_EVENT_ID, ondelete='CASCADE'))
+    difficulty: Mapped[str] = mapped_column(Enum('easy', 'medium', 'hard', name='difficulty_level'))
+    average_question_solve_time: Mapped[float] = mapped_column()
+    number_solves: Mapped[int] = mapped_column()
+
+    __table_args__ = (
+        UniqueConstraint('event_id', 'difficulty', name='uix_long_term_stats_event_difficulty'),
+    )
