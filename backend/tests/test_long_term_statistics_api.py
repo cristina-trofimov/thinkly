@@ -13,6 +13,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 from src.endpoints.long_term_statistics_api import get_db, long_term_statistics_router
+from src.endpoints.long_term_statistics_api import _get_range_start
 
 
 @pytest.fixture
@@ -91,3 +92,65 @@ def test_summary_db_error_returns_500(client, mock_db):
 
     assert response.status_code == 500
     assert response.json()["detail"] == "Failed to fetch long-term statistics"
+
+
+def test_get_range_start_supports_all_units():
+    now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    assert _get_range_start(now, 30, "minutes") == datetime(2025, 12, 31, 23, 30, tzinfo=timezone.utc)
+    assert _get_range_start(now, 2, "hours") == datetime(2025, 12, 31, 22, 0, tzinfo=timezone.utc)
+    assert _get_range_start(now, 7, "days") == datetime(2025, 12, 25, tzinfo=timezone.utc)
+    assert _get_range_start(now, 2, "weeks") == datetime(2025, 12, 18, tzinfo=timezone.utc)
+
+
+def test_summary_minutes_window_returns_200(client, mock_db):
+    easy = SimpleNamespace(difficulty="easy", total_solves=1, weighted_avg_solve_time=12.0)
+    mock_db.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [
+        easy,
+    ]
+
+    response = client.get("/long-term-statistics/summary?window_value=30&window_unit=minutes")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["stats"]) == 3
+
+
+def test_summary_weeks_window_returns_200(client, mock_db):
+    hard = SimpleNamespace(difficulty="hard", total_solves=4, weighted_avg_solve_time=65.0)
+    mock_db.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [
+        hard,
+    ]
+
+    response = client.get("/long-term-statistics/summary?window_value=2&window_unit=weeks")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["stats"]) == 3
+
+
+def test_summary_single_difficulty_empty_results_defaults_to_zero(client, mock_db):
+    mock_db.query.return_value.join.return_value.filter.return_value.filter.return_value.group_by.return_value.all.return_value = []
+
+    response = client.get("/long-term-statistics/summary?difficulty=easy&window_value=7&window_unit=days")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stats"][0]["difficulty"] == "easy"
+    assert data["stats"][0]["total_questions_solved"] == 0
+    assert data["stats"][0]["average_solve_time"] == pytest.approx(0.0)
+
+
+def test_summary_null_aggregate_values_fallback_to_zero(client, mock_db):
+    row = SimpleNamespace(difficulty="easy", total_solves=None, weighted_avg_solve_time=None)
+    mock_db.query.return_value.join.return_value.filter.return_value.group_by.return_value.all.return_value = [
+        row,
+    ]
+
+    response = client.get("/long-term-statistics/summary?window_value=7&window_unit=days")
+
+    assert response.status_code == 200
+    data = response.json()
+    easy_item = next(item for item in data["stats"] if item["difficulty"] == "easy")
+    assert easy_item["total_questions_solved"] == 0
+    assert easy_item["average_solve_time"] == pytest.approx(0.0)
