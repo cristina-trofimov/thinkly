@@ -1,4 +1,3 @@
-from sqlalchemy import text
 
 try:
     from src.database_operations.db import engine
