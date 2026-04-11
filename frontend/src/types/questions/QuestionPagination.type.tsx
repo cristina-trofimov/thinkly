@@ -83,6 +83,7 @@ export type QuestionsPageParams = {
   pageSize?: number;
   search?: string;
   difficulty?: "easy" | "medium" | "hard";
+  frontpageOnly?: boolean;
   sort?: "asc" | "desc";
 };
 

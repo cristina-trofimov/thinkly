@@ -71,6 +71,7 @@ function HomePage() {
           search: questionSearchQuery,
           difficulty:
             difficultyFilter === "all" ? undefined : difficultyFilter,
+          frontpageOnly: true,
           sort: "asc",
         });
         if (requestId !== latestQuestionRequestId.current) {

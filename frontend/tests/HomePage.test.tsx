@@ -126,6 +126,7 @@ describe("HomePage", () => {
             expect(compApi.getCompetitions).toHaveBeenCalled()
             expect(questionsApi.getQuestionsPage).toHaveBeenCalledWith({
                 page: 1,
+                frontpageOnly: true,
                 pageSize: 25,
                 search: "",
                 difficulty: undefined,

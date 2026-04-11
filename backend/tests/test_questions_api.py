@@ -25,6 +25,12 @@ from src.endpoints.questions_api import (
     questions_router,
     CreateTestCaseRequest,
     QuestionLanguageSpecificPropertiesResponse,
+    QuestionListItemResponse,
+    build_filtered_questions_query,
+    build_questions_cache_headers,
+    apply_question_sort,
+    extract_question_id_from_row,
+    populate_frontpage_flags,
 )
 
 # --- FIXTURES ---
@@ -175,6 +181,52 @@ def test_get_all_questions_returns_304_when_etag_matches(client, mock_db):
     assert response.headers["etag"] == etag
 
 
+def test_get_all_questions_etag_changes_when_frontpage_state_changes(client, mock_db):
+    latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+
+    main_query_1 = MagicMock()
+    main_query_1.filter.return_value = main_query_1
+    main_query_1.with_entities.return_value = main_query_1
+    main_query_1.order_by.return_value = main_query_1
+    main_query_1.offset.return_value = main_query_1
+    main_query_1.limit.return_value = main_query_1
+    main_query_1.first.return_value = (2, latest, 74, 147)
+    main_query_1.count.return_value = 0
+    main_query_1.all.return_value = []
+
+    frontpage_query_1 = MagicMock()
+    frontpage_query_1.filter.return_value = frontpage_query_1
+    frontpage_query_1.first.return_value = (0, 0, 0)
+
+    main_query_2 = MagicMock()
+    main_query_2.filter.return_value = main_query_2
+    main_query_2.with_entities.return_value = main_query_2
+    main_query_2.order_by.return_value = main_query_2
+    main_query_2.offset.return_value = main_query_2
+    main_query_2.limit.return_value = main_query_2
+    main_query_2.first.return_value = (2, latest, 74, 147)
+    main_query_2.count.return_value = 0
+    main_query_2.all.return_value = []
+
+    frontpage_query_2 = MagicMock()
+    frontpage_query_2.filter.return_value = frontpage_query_2
+    frontpage_query_2.first.return_value = (1, 99, 74)
+
+    mock_db.query.side_effect = [
+        main_query_1,
+        frontpage_query_1,
+        main_query_2,
+        frontpage_query_2,
+    ]
+
+    first_response = client.get("/get-all-questions")
+    second_response = client.get("/get-all-questions")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.headers["etag"] != second_response.headers["etag"]
+
+
 def test_get_all_questions_returns_200_when_one_validator_is_stale(client, mock_db):
     query = build_query_mock(mock_db)
     latest = datetime(2025, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
@@ -251,6 +303,29 @@ def test_get_all_questions_accepts_sort_param(client, mock_db):
     query.order_by.assert_called_once()
 
 
+def test_get_all_questions_applies_frontpage_only_filter(client, mock_db):
+    main_query = MagicMock()
+    main_query.filter.return_value = main_query
+    main_query.with_entities.return_value = main_query
+    main_query.order_by.return_value = main_query
+    main_query.offset.return_value = main_query
+    main_query.limit.return_value = main_query
+    main_query.first.return_value = (0, datetime(2025, 1, 1, 0, 0, 0), 0, 0)
+    main_query.count.return_value = 0
+    main_query.all.return_value = []
+
+    frontpage_aggregates_query = MagicMock()
+    frontpage_aggregates_query.filter.return_value = frontpage_aggregates_query
+    frontpage_aggregates_query.first.return_value = (0, 0, 0)
+
+    mock_db.query.side_effect = [main_query, frontpage_aggregates_query]
+
+    response = client.get("/get-all-questions", params={"frontpage_only": True})
+
+    assert response.status_code == 200
+    assert main_query.filter.call_count == 1
+
+
 def test_get_all_questions_rejects_invalid_page_size(client):
     response = client.get("/get-all-questions", params={"page_size": 101})
     assert response.status_code == 422
@@ -268,6 +343,59 @@ def test_get_all_questions_db_error(client, mock_db):
     assert response.status_code == 500
     # Check that our custom error message structure is present
     assert "Failed to retrieve questions" in response.json()["detail"]
+
+
+def test_build_filtered_questions_query_without_optional_filters(mock_db):
+    query = build_query_mock(mock_db)
+
+    result = build_filtered_questions_query(mock_db, search=None, difficulty=None, frontpage_only=False)
+
+    assert result is query
+    query.filter.assert_not_called()
+
+
+def test_build_filtered_questions_query_with_difficulty_and_frontpage_filter(mock_db):
+    query = build_query_mock(mock_db)
+
+    result = build_filtered_questions_query(
+        mock_db,
+        search=None,
+        difficulty="easy",
+        frontpage_only=True,
+    )
+
+    assert result is query
+    assert query.filter.call_count == 2
+
+
+def test_build_questions_cache_headers_handles_empty_aggregates(mock_db):
+    aggregate_query = MagicMock()
+    aggregate_query.with_entities.return_value = aggregate_query
+    aggregate_query.first.return_value = (None, None, None, None)
+
+    frontpage_query = MagicMock()
+    frontpage_query.filter.return_value = frontpage_query
+    frontpage_query.first.return_value = None
+
+    mock_db.query.return_value = frontpage_query
+
+    headers, latest_modified = build_questions_cache_headers(aggregate_query, mock_db)
+
+    assert headers["Cache-Control"] == "no-cache, must-revalidate"
+    assert headers["ETag"].startswith('W/"')
+    assert headers["Last-Modified"]
+    assert latest_modified.tzinfo == timezone.utc
+
+
+def test_apply_question_sort_returns_ordered_query(mock_db):
+    query = build_query_mock(mock_db)
+
+    desc_result = apply_question_sort(query, "desc")
+    asc_result = apply_question_sort(query, "asc")
+
+    assert desc_result is query
+    assert asc_result is query
+    assert query.order_by.call_count == 2
 
 def test_get_question_success(client, mock_db):
     """Test the path where the question is returned correctly."""
@@ -489,6 +617,104 @@ def test_get_question_by_id_success(client, mock_db):
             "expected_output": "3",
         }
     ]
+
+
+def test_get_question_by_id_populates_frontpage_flag_from_instances(client, mock_db):
+    fake_question = SimpleNamespace(
+        question_id=74,
+        question_name="Frontpage question",
+        question_description="desc",
+        media=None,
+        difficulty="easy",
+        created_at=datetime(2025, 1, 1, 0, 0, 0),
+        last_modified_at=datetime(2025, 1, 1, 0, 0, 0),
+        tags=[],
+        test_cases=[],
+        language_specific_properties=[],
+        question_instances=[],
+        show_on_frontpage=False,
+    )
+
+    question_query = MagicMock()
+    question_query.filter.return_value.first.return_value = fake_question
+
+    frontpage_query = MagicMock()
+    frontpage_query.filter.return_value.all.return_value = [SimpleNamespace(question_id=74)]
+
+    mock_db.query.side_effect = [question_query, frontpage_query]
+
+    response = client.get("/get-question-by-id/74")
+
+    assert response.status_code == 200
+    assert response.json()["show_on_frontpage"] is True
+
+
+def test_from_question_uses_instances_for_frontpage_flag_when_attribute_is_false():
+    fake_question = SimpleNamespace(
+        question_id=1,
+        question_name="Frontpage",
+        question_description="desc",
+        media=None,
+        difficulty="easy",
+        language_specific_properties=[],
+        test_cases=[],
+        created_at=datetime(2025, 1, 1, 0, 0, 0),
+        last_modified_at=datetime(2025, 1, 1, 0, 0, 0),
+        show_on_frontpage=False,
+        question_instances=[SimpleNamespace(event_id=None)],
+        tags=[],
+    )
+
+    response = QuestionListItemResponse.from_question(fake_question)
+
+    assert response.show_on_frontpage is True
+
+
+def test_populate_frontpage_flags_supports_mapping_rows(mock_db):
+    questions = [SimpleNamespace(question_id=74, show_on_frontpage=False)]
+
+    class FakeRow:
+        def __init__(self, question_id):
+            self._mapping = {"question_id": question_id}
+
+    query = MagicMock()
+    query.filter.return_value.all.return_value = [FakeRow(74)]
+    mock_db.query.return_value = query
+
+    populate_frontpage_flags(mock_db, questions)
+
+    assert questions[0].show_on_frontpage is True
+
+
+def test_extract_question_id_from_row_supports_tuple_and_attr_rows():
+    tuple_row = (74,)
+    attr_row = SimpleNamespace(question_id=88)
+
+    assert extract_question_id_from_row(tuple_row) == 74
+    assert extract_question_id_from_row(attr_row) == 88
+
+
+def test_extract_question_id_from_row_supports_mapping_and_indexable_rows():
+    class MappingRow:
+        def __init__(self, mapping):
+            self._mapping = mapping
+
+    class IndexableRow:
+        def __getitem__(self, index):
+            if index == 0:
+                return 99
+            raise IndexError()
+
+    named_mapping_row = MappingRow({"question_id": 12})
+    value_mapping_row = MappingRow({"id": 13})
+
+    assert extract_question_id_from_row(named_mapping_row) == 12
+    assert extract_question_id_from_row(value_mapping_row) == 13
+    assert extract_question_id_from_row(IndexableRow()) == 99
+
+
+def test_extract_question_id_from_row_returns_none_for_unknown_shape():
+    assert extract_question_id_from_row(object()) is None
 
 
 def test_get_question_by_id_not_found(client, mock_db):

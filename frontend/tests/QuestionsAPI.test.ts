@@ -123,6 +123,35 @@ describe("QuestionsAPI — additional coverage", () => {
       expect(q.created_at).toEqual(new Date("2025-03-10T00:00:00Z"));
     });
 
+    it("includes frontpage_only when requested", async () => {
+      mockedAxios.get.mockResolvedValueOnce({
+        data: {
+          total: 0,
+          page: 1,
+          page_size: 25,
+          items: [],
+        },
+      } as any);
+
+      await getQuestionsPage({
+        page: 1,
+        pageSize: 25,
+        frontpageOnly: true,
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/questions/get-all-questions", {
+        params: {
+          page: 1,
+          page_size: 25,
+          search: undefined,
+          difficulty: undefined,
+          sort: "asc",
+          frontpage_only: true,
+        },
+      });
+    });
+  })
+
     it("preserves a non-null media value", async () => {
       mockedAxios.get.mockResolvedValueOnce(
         makeSinglePageResponse({ media: "https://example.com/image.png" }) as any,
@@ -161,7 +190,6 @@ describe("QuestionsAPI — additional coverage", () => {
       expect(q.tags).toEqual([]);
       expect(q.test_cases).toEqual([]);
     });
-  });
 
   // -------------------------------------------------------------------------
   // getQuestionsPage — search trimming
