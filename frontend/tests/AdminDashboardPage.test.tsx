@@ -179,7 +179,7 @@ describe('AdminDashboard', () => {
     });
 
     // Check for header title
-    expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /platform metrics/i })).toBeInTheDocument();
   });
 
   it('renders stats, manage cards, and charts on the dashboard root route', async () => {

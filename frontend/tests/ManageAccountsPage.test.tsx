@@ -36,6 +36,8 @@ jest.mock('../src/context/UserContext', () => ({
   useUser: jest.fn(() => ({ user: { id: 99, accountType: 'Owner' } })),
 }));
 
+
+
 // ─── Child component mocks ────────────────────────────────────────────────────
 
 jest.mock('../src/components/manageAccounts/ManageAccountsColumns', () => ({
@@ -96,8 +98,8 @@ describe('ManageAccountsPage Full Coverage', () => {
   });
 
   describe('Initial Render & Loading', () => {
-    it('displays loading skeleton initially', () => {
-      (getAccountsPage as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    it('displays loading skeleton initially', async () => {
+      (getAccountsPage as jest.Mock).mockImplementation(() => new Promise(() => { })); // never resolves
       render(<ManageAccountsPage />);
       expect(screen.getByTestId('skeleton')).toBeInTheDocument();
     });

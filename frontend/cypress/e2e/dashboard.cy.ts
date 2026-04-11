@@ -82,9 +82,6 @@ describe('Admin Dashboard', () => {
   });
 
   it('renders the main dashboard overview', () => {
-    // Check for the header
-    cy.get('h1').contains('Overview').should('be.visible');
-
     // Check that the default tab is active
     cy.contains('button', 'Algotime').should('have.attr', 'data-state', 'active');
 

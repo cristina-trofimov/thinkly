@@ -189,14 +189,13 @@ UNAUTHORIZED_RESPONSE = {
 }
 
 
-def role_required(required_role: str):
+def roles_required(*required_roles: str):
     def role_checker(current_user: Annotated[dict, Depends(get_current_user)]):
-        if current_user.get("role") != required_role:
+        if current_user.get("role") not in required_roles:
             logger.warning(
-                f"Access Forbidden: User {current_user.get('sub')} attempted to access role '{required_role}' endpoint.")
+                f"Access Forbidden: User {current_user.get('sub')} attempted to access endpoint requiring roles {required_roles}.")
             raise HTTPException(status_code=403, detail="Forbidden")
         return current_user
-
     return role_checker
 
 
@@ -319,7 +318,7 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "your-google-client-id")
 
 
 @auth_router.post("/google-auth", responses=UNAUTHORIZED_RESPONSE)
-async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depends(get_db)]):
+async def google_login(request: GoogleAuthRequest,response: Response, db: Annotated[Session, Depends(get_db)]):
     logger.info("Attempting Google OAuth login.")
     try:
         idinfo = id_token.verify_oauth2_token(request.credential, grequests.Request(), GOOGLE_CLIENT_ID)
@@ -396,6 +395,7 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         )
 
         token = create_access_token({"sub": user.email, "role": user.user_type, "id": user.user_id})
+        refresh_token = create_refresh_token({"sub": user.email})
 
         # Create a session record for tracking logins
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -407,6 +407,15 @@ async def google_login(request: GoogleAuthRequest, db: Annotated[Session, Depend
         )
         db.add(session)
         _commit_or_rollback(db)
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600,
+            samesite="none",
+            secure=True
+        )
 
         logger.info(f"SUCCESSFUL GOOGLE AUTH: User '{email}' logged in/authenticated. Role: {user.user_type}")
         return {"access_token": token}
@@ -538,7 +547,7 @@ async def logout(
 @auth_router.get("/admin/dashboard", responses=UNAUTHORIZED_RESPONSE)
 async def admin_dashboard(
         db: Annotated[Session, Depends(get_db)],
-        current_user: Annotated[dict, Depends(role_required("admin"))]
+        current_user: Annotated[dict, Depends(roles_required("admin"))]
 ):
     user_email = current_user.get("sub", "N/A")
     logger.info(f"Admin dashboard accessed successfully by user: {user_email}")

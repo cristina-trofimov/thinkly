@@ -164,11 +164,7 @@ export function AdminDashboard() {
     <div className="flex flex-col w-full">
       {isRootDashboard ? (
         <div>
-          <div className="border-b">
-            <div className="flex justify-between items-center py-4 px-10">
-              <h1 className="text-base font-semibold text-primary">Overview</h1>
-            </div>
-          </div>
+
 
           {/* Management Cards Row */}
           <div
@@ -247,37 +243,37 @@ export function AdminDashboard() {
             <div
               className={`grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-4 gap-4 mt-6 px-6 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out ${sectionEnterClass}`}
             >
-                <StatsCard
-                  title="New Accounts"
-                  loading={statsLoading}
-                  contentReady={!statsLoading}
-                  value={newAccountStats.value}
-                  subtitle={newAccountStats.subtitle}
-                  description={newAccountStats.description}
+              <StatsCard
+                title="New Accounts"
+                loading={statsLoading}
+                contentReady={!statsLoading}
+                value={newAccountStats.value}
+                subtitle={newAccountStats.subtitle}
+                description={newAccountStats.description}
                 trend={newAccountStats.trend}
               />
-                <StatsCard
-                  title="Questions solved"
-                  contentReady={!statsLoading}
-                  dateSubtitle={getTimeRangeLabel(timeRange)}
-                >
+              <StatsCard
+                title="Questions solved"
+                contentReady={!statsLoading}
+                dateSubtitle={getTimeRangeLabel(timeRange)}
+              >
                 <QuestionsSolvedChart
                   key={`questions-${sharedChartAnimationKey}`}
                   data={questionsSolvedData}
                   loading={statsLoading}
                 />
               </StatsCard>
-                <StatsCard title="Avg. Question Solve Time" contentReady={!statsLoading}>
-                  <TimeToSolveChart
-                    key={`time-${sharedChartAnimationKey}`}
-                    data={timeToSolveData}
+              <StatsCard title="Avg. Question Solve Time" contentReady={!statsLoading}>
+                <TimeToSolveChart
+                  key={`time-${sharedChartAnimationKey}`}
+                  data={timeToSolveData}
                   loading={statsLoading}
                 />
               </StatsCard>
-                <StatsCard title="Number of logins" contentReady={!statsLoading}>
-                  <NumberOfLoginsChart
-                    key={`logins-${sharedChartAnimationKey}`}
-                    data={loginsData}
+              <StatsCard title="Number of logins" contentReady={!statsLoading}>
+                <NumberOfLoginsChart
+                  key={`logins-${sharedChartAnimationKey}`}
+                  data={loginsData}
                   loading={statsLoading}
                 />
               </StatsCard>
