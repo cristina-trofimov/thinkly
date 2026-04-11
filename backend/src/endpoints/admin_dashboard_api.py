@@ -7,7 +7,6 @@ from models.schema import (
     AlgoTimeSession, QuestionInstance, UserQuestionInstance, Submission, UserSession
 )
 from database_operations.database import get_db
-from endpoints.authentification_api import roles_required
 from endpoints.authentification_api import get_current_user
 from endpoints.long_term_statistics_api import get_long_term_statistics_summary
 from pydantic import BaseModel
