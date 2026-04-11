@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, inspect
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from models.schema import (
     UserAccount, Competition, BaseEvent, Question,
     AlgoTimeSession, QuestionInstance, UserQuestionInstance, Submission, UserSession
 )
 from database_operations.database import get_db
-from endpoints.authentification_api import role_required
+from endpoints.authentification_api import get_current_user
+from endpoints.long_term_statistics_api import get_long_term_statistics_summary
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 from datetime import datetime, timezone, timedelta
@@ -152,12 +154,120 @@ def get_chart_colors():
     }
 
 
+def _get_long_term_window_days(time_range: str) -> int:
+    return TIME_RANGE_CONFIG.get(time_range, DEFAULT_TIME_RANGE)[0]
+
+
+def _build_zero_participation_series(time_range: str) -> List[ParticipationDataPoint]:
+    now = datetime.now(timezone.utc)
+
+    if time_range == "7days":
+        days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        return [ParticipationDataPoint(date=day, participation=0) for day in days]
+
+    if time_range == "30days":
+        return [
+            ParticipationDataPoint(date=f"Day {index}", participation=0)
+            for index in range(1, 31)
+        ]
+
+    return [
+        ParticipationDataPoint(date=(now - timedelta(days=day)).strftime("%b %d"), participation=0)
+        for day in range(90, 0, -1)
+    ]
+
+
+def _legacy_participation_tables_available(db: Session) -> bool:
+    try:
+        inspector = inspect(db.get_bind())
+        required_tables = {"submission", "user_question_instance", "question_instance"}
+        existing_tables = set(inspector.get_table_names())
+        return required_tables.issubset(existing_tables)
+    except Exception:
+        return True
+
+
+def _get_submission_count(
+    db: Session,
+    event_type: Literal["algotime", "competitions"],
+    day_start: datetime,
+    day_end: datetime,
+) -> int:
+    query = (
+        db.query(func.count(Submission.submission_id))
+        .join(UserQuestionInstance, Submission.user_question_instance_id == UserQuestionInstance.user_question_instance_id)
+        .join(QuestionInstance, UserQuestionInstance.question_instance_id == QuestionInstance.question_instance_id)
+        .filter(
+            Submission.submitted_on >= day_start,
+            Submission.submitted_on < day_end,
+        )
+    )
+
+    if event_type == "competitions":
+        query = query.filter(
+            QuestionInstance.event_id.in_(db.query(Competition.event_id))
+        )
+    else:
+        query = query.filter(
+            QuestionInstance.event_id.in_(db.query(AlgoTimeSession.event_id))
+        )
+
+    return query.scalar() or 0
+
+
+def _build_participation_series(
+    db: Session,
+    time_range: str,
+    event_type: Literal["algotime", "competitions"],
+) -> List[ParticipationDataPoint]:
+    now = datetime.now(timezone.utc)
+
+    if time_range == "7days":
+        days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        data = []
+        for index, day in enumerate(days):
+            day_start = now - timedelta(days=(6 - index))
+            day_end = day_start + timedelta(days=1)
+            count = _get_submission_count(db, event_type, day_start, day_end)
+            data.append(ParticipationDataPoint(date=day, participation=count))
+        return data
+
+    if time_range == "30days":
+        data = []
+        for day in range(30, 0, -1):
+            day_start = now - timedelta(days=day)
+            day_end = day_start + timedelta(days=1)
+            count = _get_submission_count(db, event_type, day_start, day_end)
+            data.append(ParticipationDataPoint(date=f"Day {31 - day}", participation=count))
+        return data
+
+    data = []
+    for day in range(90, 0, -1):
+        day_start = now - timedelta(days=day)
+        day_end = day_start + timedelta(days=1)
+        count = _get_submission_count(db, event_type, day_start, day_end)
+        data.append(ParticipationDataPoint(date=day_start.strftime("%b %d"), participation=count))
+    return data
+
+
+def admin_or_owner_required(
+    current_user: Annotated[dict, Depends(get_current_user)]
+):
+    if current_user.get("role") not in {"admin", "owner"}:
+        logger.warning(
+            "Access Forbidden: User %s attempted to access admin dashboard stats endpoint.",
+            current_user.get("sub"),
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    return current_user
+
+
 # ---------------- Routes ----------------
 
 @admin_dashboard_router.get("/overview", response_model=DashboardOverviewResponse)
 async def get_dashboard_overview(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))]
+    current_user: Annotated[dict, Depends(admin_or_owner_required)]
 ):
     """
     Get dashboard overview with 2 most recent items for each category.
@@ -264,7 +374,7 @@ async def get_dashboard_overview(
 @admin_dashboard_router.get("/stats/new-accounts", response_model=NewAccountsStatsResponse)
 async def get_new_accounts_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends(admin_or_owner_required)],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -318,7 +428,7 @@ async def get_new_accounts_stats(
 @admin_dashboard_router.get("/stats/questions-solved", response_model=List[QuestionsSolvedItem])
 async def get_questions_solved_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends(admin_or_owner_required)],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -332,27 +442,17 @@ async def get_questions_solved_stats(
     colors = get_chart_colors()
 
     try:
-        range_start = get_time_range_start(time_range)
-
-        # Query successful submissions grouped by question difficulty
-        results = (
-            db.query(
-                Question.difficulty,
-                func.count(Submission.submission_id).label('count')
-            )
-            .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
-            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
-            .filter(
-                Submission.status == 'Accepted',
-                Submission.submitted_on >= range_start
-            )
-            .group_by(Question.difficulty)
-            .all()
+        summary = get_long_term_statistics_summary(
+            db=db,
+            window_value=_get_long_term_window_days(time_range),
+            window_unit="days",
+            difficulty=None,
         )
 
-        # Convert to dict for easy lookup
-        counts = {r.difficulty: r.count for r in results}
+        counts = {
+            item.difficulty: item.total_questions_solved
+            for item in summary.stats
+        }
 
         return [
             QuestionsSolvedItem(name="Easy", value=counts.get("easy", 0), color=colors["easy"]),
@@ -371,7 +471,7 @@ async def get_questions_solved_stats(
 @admin_dashboard_router.get("/stats/time-to-solve", response_model=List[TimeToSolveItem])
 async def get_time_to_solve_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends(admin_or_owner_required)],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -386,31 +486,17 @@ async def get_time_to_solve_stats(
     colors = get_chart_colors()
 
     try:
-        range_start = get_time_range_start(time_range)
-
-        # Calculate average time to solve by difficulty
-        # Time = submitted_on - event_start_date (in minutes)
-        results = (
-            db.query(
-                Question.difficulty,
-                func.avg(
-                    func.extract('epoch', Submission.submitted_on - BaseEvent.event_start_date) / 60
-                ).label('avg_minutes')
-            )
-            .join(QuestionInstance, Question.question_id == QuestionInstance.question_id)
-            .join(UserQuestionInstance, QuestionInstance.question_instance_id == UserQuestionInstance.question_instance_id)
-            .join(Submission, UserQuestionInstance.user_question_instance_id == Submission.user_question_instance_id)
-            .join(BaseEvent, QuestionInstance.event_id == BaseEvent.event_id)
-            .filter(
-                Submission.status == 'Accepted',
-                Submission.submitted_on >= range_start
-            )
-            .group_by(Question.difficulty)
-            .all()
+        summary = get_long_term_statistics_summary(
+            db=db,
+            window_value=_get_long_term_window_days(time_range),
+            window_unit="days",
+            difficulty=None,
         )
 
-        # Convert to dict for easy lookup
-        times = {r.difficulty: round(r.avg_minutes, 1) if r.avg_minutes else 0 for r in results}
+        times = {
+            item.difficulty: round(item.average_solve_time, 1) if item.average_solve_time else 0
+            for item in summary.stats
+        }
 
         return [
             TimeToSolveItem(type="Easy", time=times.get("easy", 0), color=colors["easy"]),
@@ -429,7 +515,7 @@ async def get_time_to_solve_stats(
 @admin_dashboard_router.get("/stats/logins", response_model=List[LoginsDataPoint])
 async def get_logins_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends(admin_or_owner_required)],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -516,7 +602,7 @@ async def get_logins_stats(
 @admin_dashboard_router.get("/stats/participation", response_model=List[ParticipationDataPoint])
 async def get_participation_stats(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[dict, Depends(role_required("admin"))],
+    current_user: Annotated[dict, Depends(admin_or_owner_required)],
     time_range: Annotated[
             Literal["7days", "30days", "3months"],
             Query()
@@ -533,66 +619,17 @@ async def get_participation_stats(
     logger.info(f"Fetching participation stats for range: {time_range}, type: {event_type}")
 
     try:
-        now = datetime.now(timezone.utc)
-
-        # Build base query with event type filter
-        def get_submission_count(day_start, day_end):
-            query = (
-                db.query(func.count(Submission.submission_id))
-                .join(UserQuestionInstance, Submission.user_question_instance_id == UserQuestionInstance.user_question_instance_id)
-                .join(QuestionInstance, UserQuestionInstance.question_instance_id == QuestionInstance.question_instance_id)
+        if not _legacy_participation_tables_available(db):
+            logger.warning(
+                "Legacy participation tables are missing; returning zero-filled participation stats."
             )
+            return _build_zero_participation_series(time_range)
 
-            # Filter by event type
-            if event_type == "competitions":
-                query = query.filter(
-                    QuestionInstance.event_id.in_(
-                        db.query(Competition.event_id)
-                    )
-                )
-            else:  # algotime
-                query = query.filter(
-                    QuestionInstance.event_id.in_(
-                        db.query(AlgoTimeSession.event_id)
-                    )
-                )
+        return _build_participation_series(db, time_range, event_type)
 
-            return query.filter(
-                Submission.submitted_on >= day_start,
-                Submission.submitted_on < day_end
-            ).scalar() or 0
-
-        if time_range == "7days":
-            days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-            data = []
-            for i, day in enumerate(days):
-                day_start = now - timedelta(days=(6-i))
-                day_end = day_start + timedelta(days=1)
-                count = get_submission_count(day_start, day_end)
-                data.append(ParticipationDataPoint(date=day, participation=count))
-            return data
-
-        elif time_range == "30days":
-            data = []
-            for day in range(30, 0, -1):
-                day_start = now - timedelta(days=day)
-                day_end = day_start + timedelta(days=1)
-                count = get_submission_count(day_start, day_end)
-                data.append(ParticipationDataPoint(
-                    date=f"Day {31 - day}",
-                    participation=count
-                ))
-            return data
-
-        else:  # 3months
-            data = []
-            for day in range(90, 0, -1):
-                day_start = now - timedelta(days=day)
-                day_end = day_start + timedelta(days=1)
-                count = get_submission_count(day_start, day_end)
-                date_str = day_start.strftime("%b %d")
-                data.append(ParticipationDataPoint(date=date_str, participation=count))
-            return data
+    except (OperationalError, ProgrammingError) as e:
+        logger.warning("Participation stats query failed; returning zero-filled series: %s", e)
+        return _build_zero_participation_series(time_range)
 
     except Exception as e:
         logger.exception(f"Error fetching participation stats: {str(e)}")
