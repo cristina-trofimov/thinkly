@@ -74,18 +74,25 @@ export async function getQuestionsPage({
   pageSize = DEFAULT_PAGE_SIZE,
   search,
   difficulty,
+  frontpageOnly,
   sort = "asc",
 }: QuestionsPageParams = {}): Promise<QuestionsPageResult> {
+  const params: Record<string, unknown> = {
+    page,
+    page_size: pageSize,
+    search: search?.trim() || undefined,
+    difficulty,
+    sort,
+  };
+
+  if (frontpageOnly !== undefined) {
+    params.frontpage_only = frontpageOnly;
+  }
+
   const response = await axiosClient.get<QuestionsResponse>(
     "/questions/get-all-questions",
     {
-      params: {
-        page,
-        page_size: pageSize,
-        search: search?.trim() || undefined,
-        difficulty,
-        sort,
-      },
+      params,
     },
   );
   
