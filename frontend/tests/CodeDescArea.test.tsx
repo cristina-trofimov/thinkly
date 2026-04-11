@@ -205,7 +205,6 @@ interface RenderOpts {
   question?: Question | undefined
   question_instance?: QuestionInstance | undefined | null
   uqi?: UserQuestionInstance | undefined | null
-  testcases?: TestCase[] | undefined | null
   eventId?: number | undefined
   eventName?: string
   isCompetitionEvent?: boolean
@@ -223,7 +222,6 @@ const renderCodeDescArea = (opts: RenderOpts = {}) => render(
       question={'question' in opts ? opts.question : mockQuestion}
       question_instance={'question_instance' in opts ? opts.question_instance : mockQuestionInstance}
       uqi={'uqi' in opts ? opts.uqi : mockUqi}
-      testcases={'testcases' in opts ? opts.testcases : mockTestcases}
       eventId={'eventId' in opts ? opts.eventId : 1}
       eventName={opts.eventName ?? 'Test Event'}
       isCompetitionEvent={opts.isCompetitionEvent ?? true}
@@ -315,14 +313,6 @@ describe('CodeDescArea — rendering', () => {
       expect(screen.getByTestId('tabs-content-description')).toBeInTheDocument()
       expect(screen.getByText('Two Sum')).toBeInTheDocument()
       expect(screen.getByText(/Given an array/)).toBeInTheDocument()
-    })
-  })
-
-  it('renders test case examples in description', async () => {
-    renderCodeDescArea()
-    await waitFor(() => {
-      expect(screen.getByText('Example 1:')).toBeInTheDocument()
-      expect(screen.getByText(/\[0,1\]/)).toBeInTheDocument()
     })
   })
 
@@ -426,7 +416,6 @@ describe('CodeDescArea — result tab', () => {
       question: mockQuestion,
       question_instance: mockQuestionInstance,
       uqi: mockUqi,
-      testcases: mockTestcases,
       eventId: 1 as number | undefined,
       eventName: 'Test Event',
       isCompetitionEvent: true,

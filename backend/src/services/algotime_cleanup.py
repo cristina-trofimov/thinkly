@@ -19,11 +19,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from database_operations.database import get_db
-from models.schema import BaseEvent, AlgoTimeSession, QuestionInstance
+from models.schema import (
+    AlgoTimeSession,
+    BaseEvent,
+    QuestionInstance,
+)
+from services.long_term_statistics_upsert import (
+    upsert_long_term_stats_for_events,
+)
 
 logger = logging.getLogger(__name__)
-
-
 def cleanup_ended_algotime_sessions() -> None:
     """
     Finds all AlgoTime sessions that have ended and deletes their QuestionInstance rows.
@@ -55,6 +60,8 @@ def cleanup_ended_algotime_sessions() -> None:
 
         ended_event_ids = [row.event_id for row in ended_event_ids]
 
+        upserted_stats = upsert_long_term_stats_for_events(db, ended_event_ids)
+
         instances_to_delete = (
             db.query(QuestionInstance)
             .filter(QuestionInstance.event_id.in_(ended_event_ids))
@@ -62,10 +69,13 @@ def cleanup_ended_algotime_sessions() -> None:
         )
 
         if instances_to_delete == 0:
+            if upserted_stats > 0:
+                db.commit()
             logger.debug(
                 "AlgoTime cleanup: ended sessions found %s, "
-                "but QuestionInstances already cleaned up.",
+                "but QuestionInstances already cleaned up. Upserted %d long-term stat row(s).",
                 ended_event_ids,
+                upserted_stats,
             )
             return
 
@@ -80,9 +90,11 @@ def cleanup_ended_algotime_sessions() -> None:
         logger.info(
             "AlgoTime cleanup: deleted %d QuestionInstance row(s) "
             "across event_ids %s. Cascaded children (UserQuestionInstance, "
-            "Submission, MostRecentSubmission) removed by DB.",
+            "Submission, MostRecentSubmission) removed by DB. Upserted %d "
+            "long-term stat row(s).",
             deleted,
             ended_event_ids,
+            upserted_stats,
         )
 
     except SQLAlchemyError as e:

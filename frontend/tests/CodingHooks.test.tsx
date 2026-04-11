@@ -8,7 +8,6 @@ import { getQuestionByID } from '../src/api/QuestionsAPI'
 import { getUserInstance, putUserInstance } from '../src/api/UserQuestionInstanceAPI'
 import { toast } from 'sonner'
 import { logFrontend } from '../src/api/LoggerAPI'
-import { useTestcases } from '../src/components/helpers/useTestcases'
 import { Question, TagResponse, TestCase } from '../src/types/questions/QuestionPagination.type'
 import { Competition } from '../src/types/competition/Competition.type'
 import { AlgoTimeQuestion, AlgoTimeSession } from '../src/types/algoTime/AlgoTime.type'
@@ -64,9 +63,6 @@ jest.mock('../src/api/UserQuestionInstanceAPI', () => ({
 jest.mock('../src/api/LoggerAPI', () => ({ logFrontend: jest.fn() }))
 jest.mock('sonner', () => ({
   toast: { error: jest.fn(), success: jest.fn(), warning: jest.fn() },
-}))
-jest.mock('../src/components/helpers/useTestcases', () => ({
-  useTestcases: jest.fn(),
 }))
 jest.mock('../src/api/MostRecentSubAPI', () => ({ getMostRecentSub: jest.fn() }))
 jest.mock('../src/api/SubmissionAPI', () => ({ getAllSubmissions: jest.fn() }))
@@ -216,7 +212,6 @@ const mockedGetUserPrefs = getUserPrefs as jest.Mock
 const mockedGetQuestionByID = getQuestionByID as jest.Mock
 const mockedGetUserInstance = getUserInstance as jest.Mock
 const mockedPutUserInstance = putUserInstance as jest.Mock
-const mockedUseTestcases = useTestcases as jest.Mock
 const mockedGetMostRecentSub = getMostRecentSub as jest.Mock
 const mockedGetAllSubmissions = getAllSubmissions as jest.Mock
 
@@ -235,21 +230,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 beforeEach(() => {
   jest.clearAllMocks()
-  mockedUseTestcases.mockReturnValue({ testcases: [] })
   mockedGetAllLanguages.mockResolvedValue(mockLanguages)
   mockedGetUserPrefs.mockResolvedValue(null)
   mockedGetUserInstance.mockResolvedValue(mockUQI)
   mockedPutUserInstance.mockResolvedValue(mockUQI)
   mockedGetQuestionByID.mockResolvedValue(mockQuestion)
-
-    // jest.clearAllMocks()
-    // mockedUseTestcases.mockReturnValue({ testcases: [] })
-    // mockedGetProfile.mockResolvedValue(mockProfile)
-    // mockedGetUserPrefs.mockResolvedValue(null)
-    // mockedGetUserInstance.mockResolvedValue(mockUQI)
-    // mockedPutUserInstance.mockResolvedValue(mockUQI)
-    // mockedGetQuestionByID.mockResolvedValue(mockQuestion)  // ← add
-
 })
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
