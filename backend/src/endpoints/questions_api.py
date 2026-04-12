@@ -519,6 +519,14 @@ def get_question_from_request(db: Session, request: CreateQuestionRequest) -> Qu
         template_code=qlsp.template_code,
     ) for qlsp in request.language_specific_properties]
 
+    question.test_cases = []
+    for tc in request.test_cases:
+        question.test_cases.append(TestCase(
+            question_id=question.question_id,
+            input_data=tc.input_data,
+            expected_output=tc.expected_output
+        ))
+
     return question
 
 
