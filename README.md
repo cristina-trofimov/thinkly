@@ -72,6 +72,4 @@ Docker commands (to run in root of project)</br>
 9. In your terminal, cd backend then run ```python src/init_db.py```
 10. Then cd src (still in backend) and run ```python -m populateDB```
 
-## Credentials for admin sign in
-Username : admin@thinkly.ca
-Password : admin123
+
